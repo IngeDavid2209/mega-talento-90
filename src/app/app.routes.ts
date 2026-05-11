@@ -8,29 +8,37 @@ import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
 
 export const routes: Routes = [
-  // EL MUNDO PRIVADO DE RH
+  // ==========================================
+  // 🛡️ EL MUNDO PRIVADO DE RH (PROTEGIDO)
+  // ==========================================
   {
     path: 'app',
     component: LayoutComponent,
-    canActivate: [authGuard], // ¡AQUÍ ESTÁ VIGILANDO!
+    canActivate: [authGuard], // <-- Nuestro "cadenero" validando la sesión en Firebase
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'kanban', component: KanbanComponent },
-      
-      // CONECTAMOS LA NUEVA RUTA AQUÍ
       { path: 'usuarios', component: UsuariosComponent },
-      
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
   
-  // EL MUNDO DE LOS CANDIDATOS
+  // ==========================================
+  // 🌍 RUTAS PÚBLICAS (ACCESO LIBRE)
+  // ==========================================
+  
+  // El formulario para los candidatos
   { path: 'unete', component: CandidateFormComponent },
   
-  // LA PUERTA DE RECURSOS HUMANOS
+  // La puerta de entrada para Recursos Humanos
   { path: 'login', component: LoginComponent },
   
-  // RUTAS COMODÍN
+  // ==========================================
+  // 🔄 RUTAS COMODÍN (REDIRECCIONES)
+  // ==========================================
+  // Si entran a la raíz pura (tusitio.com), los manda a unete
   { path: '', redirectTo: 'unete', pathMatch: 'full' },
+  
+  // Si escriben una URL que no existe (ej. tusitio.com/asdfg), los manda a unete
   { path: '**', redirectTo: 'unete' }
 ];
