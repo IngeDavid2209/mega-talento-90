@@ -20,17 +20,37 @@ export class DashboardComponent implements OnInit {
     await this.cargarCandidatos();
   }
 
-  async cargarCandidatos() {
+async cargarCandidatos() {
     try {
       this.cargando = true;
-      this.candidatos = await this.candidateService.getCandidates();
+      // 1. Traemos todos los candidatos de la base de datos
+      const todosLosCandidatos = await this.candidateService.getCandidates();
+      
+      // 2. Calculamos el tiempo actual y el límite de 48 horas en milisegundos
+      const ahora = new Date().getTime();
+      const limite48Horas = 48 * 60 * 60 * 1000; 
+
+      // 3. EL FILTRO MÁGICO: Solo dejamos pasar a los que tengan menos de 48 horas de antigüedad
+      this.candidatos = todosLosCandidatos.filter((candidato: any) => {
+        if (!candidato.createdAt) return false; // Si por error no tiene fecha, lo ignoramos
+        
+        const fechaCandidato = candidato.createdAt.toDate().getTime();
+        const diferencia = ahora - fechaCandidato;
+        
+        // Retorna true solo si la diferencia es menor o igual a 48 horas
+        return diferencia <= limite48Horas; 
+      });
+
+      // 4. Actualizamos el contador de las tarjetas de arriba para que coincida
       this.totalLeads = this.candidatos.length;
 
+      // 5. Los ordenamos del más reciente al más antiguo
       this.candidatos.sort((a, b) => {
         const dateA = a.createdAt?.toDate() || 0;
         const dateB = b.createdAt?.toDate() || 0;
-        return dateB - dateA;
+        return (dateB as any) - (dateA as any);
       });
+
     } catch (error) {
       console.error('Error cargando los candidatos:', error);
     } finally {
