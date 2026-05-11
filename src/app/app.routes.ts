@@ -23,22 +23,11 @@ export const routes: Routes = [
     ]
   },
   
-  // ==========================================
-  // 🌍 RUTAS PÚBLICAS (ACCESO LIBRE)
-  // ==========================================
-  
-  // El formulario para los candidatos
   { path: 'unete', component: CandidateFormComponent },
   
-  // La puerta de entrada para Recursos Humanos
   { path: 'login', component: LoginComponent },
   
-  // ==========================================
-  // 🔄 RUTAS COMODÍN (REDIRECCIONES)
-  // ==========================================
-  // Si entran a la raíz pura (tusitio.com), los manda a unete
   { path: '', redirectTo: 'unete', pathMatch: 'full' },
   
-  // Si escriben una URL que no existe (ej. tusitio.com/asdfg), los manda a unete
   { path: '**', redirectTo: 'unete' }
 ];
