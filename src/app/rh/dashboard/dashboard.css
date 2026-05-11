@@ -6,7 +6,6 @@
   background-color: #f8fafc;
   min-height: 100vh;
   font-family: system-ui, -apple-system, sans-serif;
-  /* Agregados para responsividad: */
   box-sizing: border-box;
   max-width: 100vw;
   overflow-x: hidden;
@@ -82,14 +81,14 @@
 .table-responsive {
   width: 100%;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch; /* Deslizamiento suave en celulares */
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  min-width: 800px; /* TRUCO CLAVE: Activa el scroll en lugar de asfixiar las columnas */
+  min-width: 800px;
 }
 
 .data-table th {
@@ -167,23 +166,49 @@
 }
 
 /* =========================================
+   SELECTOR DE ESTATUS INTERACTIVO
+   ========================================= */
+.status-select {
+  padding: 6px 28px 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.status-select.nuevo { background-color: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.status-select.contacto_pendiente { background-color: #fee2e2; color: #dc2626; border-color: #fecaca; }
+.status-select.entrevista { background-color: #fef9c3; color: #ca8a04; border-color: #fde047; }
+.status-select.contratado { background-color: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+
+.status-select:hover {
+  filter: brightness(0.95);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* =========================================
    AJUSTES MÓVILES (Magia Responsiva)
    ========================================= */
 @media (max-width: 768px) {
   .dashboard-container {
-    padding: 16px; /* Reducimos espacios a los lados */
+    padding: 16px;
   }
-
   .header h2 {
-    font-size: 22px; /* Título un poco más pequeño */
+    font-size: 22px;
   }
-
   .stats-grid {
-    grid-template-columns: 1fr; /* Tarjetas de 1 en 1 hacia abajo */
+    grid-template-columns: 1fr;
     gap: 16px;
   }
-
   .table-card {
-    padding: 16px; /* Menos padding dentro de la tarjeta blanca */
+    padding: 16px;
   }
 }

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CandidateService } from '../../core/services/candidate'; 
+import { CandidateService } from '../../core/services/candidate';
 
 @Component({
   selector: 'app-dashboard',
@@ -11,7 +11,7 @@ import { CandidateService } from '../../core/services/candidate';
 })
 export class DashboardComponent implements OnInit {
   private candidateService = inject(CandidateService);
-
+  
   candidatos: any[] = [];
   cargando: boolean = true;
   totalLeads: number = 0;
@@ -25,20 +25,19 @@ export class DashboardComponent implements OnInit {
       this.cargando = true;
       this.candidatos = await this.candidateService.getCandidates();
       this.totalLeads = this.candidatos.length;
-      
+
       this.candidatos.sort((a, b) => {
         const dateA = a.createdAt?.toDate() || 0;
         const dateB = b.createdAt?.toDate() || 0;
         return dateB - dateA;
       });
-
     } catch (error) {
       console.error('Error cargando los candidatos:', error);
     } finally {
       this.cargando = false;
     }
   }
-  
+
   formatearFecha(timestamp: any): string {
     if (!timestamp) return 'Sin fecha';
     const date = timestamp.toDate();
@@ -46,15 +45,29 @@ export class DashboardComponent implements OnInit {
   }
 
   contactarWhatsApp(telefono: string, nombre: string) {
-    // 1. Limpiamos el número de cualquier carácter no numérico
     const numeroLimpio = telefono.replace(/\D/g, '');
-    
-    // 2. Mensaje personalizado
     const mensaje = `Hola ${nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu solicitud y nos gustaría platicar contigo.`;
-    
-    // 3. Generamos link (Prefijo 52 para México)
     const url = `https://wa.me/52${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
-    
     window.open(url, '_blank');
+  }
+
+  // NUEVA FUNCIÓN PARA CAMBIAR EL ESTATUS
+  async cambiarEstatus(idCandidato: string, event: any) {
+    const nuevoEstatus = event.target.value;
+
+    try {
+      // Llamamos a Firebase para guardar el cambio
+      await this.candidateService.updateCandidate(idCandidato, { status: nuevoEstatus });
+
+      // Actualizamos visualmente el color en la tabla
+      const index = this.candidatos.findIndex(c => c.id === idCandidato);
+      if (index !== -1) {
+        this.candidatos[index].status = nuevoEstatus;
+      }
+      
+    } catch (error) {
+      console.error('Error al actualizar el estatus:', error);
+      alert('Hubo un error al intentar cambiar el estatus.');
+    }
   }
 }
