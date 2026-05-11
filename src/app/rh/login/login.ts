@@ -2,6 +2,8 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+// 1. Importamos las herramientas reales de Firebase Auth
+import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-login',
@@ -12,43 +14,44 @@ import { Router, RouterModule } from '@angular/router';
 })
 export class LoginComponent {
   private router = inject(Router);
+  private auth = inject(Auth); // 2. Inyectamos la conexión a Firebase
   
-  // 1. Cambiamos 'email' por 'username' para que sea congruente
   credentials = {
     username: '', 
     password: ''
   };
 
   cargando = false;
-  mensajeError = ''; // Variable para mostrar si se equivocan
+  mensajeError = '';
 
-  onLogin() {
+  // 3. Volvemos la función asíncrona (async) porque conectaremos con internet
+  async onLogin() {
     this.cargando = true;
-    this.mensajeError = ''; // Limpiamos el error cada vez que intentan
+    this.mensajeError = ''; 
     
-    // 2. EL TRUCO MAESTRO: Limpiamos espacios y le pegamos el dominio fantasma
-    const usuarioLimpio = this.credentials.username.trim().toLowerCase();
-    const correoConstruido = `${usuarioLimpio}@megadulces.com`;
+    // 4. Limpiamos espacios
+    let correoFinal = this.credentials.username.trim().toLowerCase();
+    
+    // 5. LA CORRECCIÓN: Si NO tiene el @, se lo pegamos. Si ya lo tiene, lo dejamos igual.
+    if (!correoFinal.includes('@')) {
+      correoFinal = `${correoFinal}@megadulces.com`;
+    }
 
-    console.log('El sistema evaluará este correo oculto:', correoConstruido);
+    console.log('Enviando a Firebase este correo:', correoFinal);
 
-    // Simulamos la validación (1 segundo)
-    setTimeout(() => {
+    try {
+      // 6. ¡CONEXIÓN REAL! Le pedimos a Firebase que valide las credenciales
+      await signInWithEmailAndPassword(this.auth, correoFinal, this.credentials.password);
       
-      // 3. ¡AQUÍ VALIDAMOS AL USUARIO! (Usamos la variable correoConstruido)
-      if (correoConstruido === 'admin@megadulces.com' && this.credentials.password === 'admin123') {
-        
-        // Si es correcto, le damos el gafete y lo dejamos pasar
-        localStorage.setItem('rh_logged', 'true'); 
-        this.cargando = false;
-        this.router.navigate(['/app/dashboard']);
-        
-      } else {
-        // Si se equivoca, le marcamos error y no lo dejamos pasar
-        this.cargando = false;
-        this.mensajeError = 'Usuario o contraseña incorrectos. Intenta de nuevo.';
-      }
+      // Si Firebase dice que sí, apagamos el botón y lo dejamos pasar
+      this.cargando = false;
+      this.router.navigate(['/app/dashboard']);
       
-    }, 1000);
+    } catch (error) {
+      // Si Firebase dice que no (error de contraseña o no existe), lo rechazamos
+      console.error('Error de Firebase:', error);
+      this.cargando = false;
+      this.mensajeError = 'Usuario o contraseña incorrectos. Intenta de nuevo.';
+    }
   }
 }
