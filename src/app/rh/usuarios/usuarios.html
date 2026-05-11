@@ -1,0 +1,106 @@
+<div class="page-container">
+  
+  <div class="page-header">
+    <h2>Gestión de Accesos</h2>
+    <p class="subtitle">Crea y administra las cuentas de Recursos Humanos</p>
+  </div>
+
+  <div class="content-grid">
+    
+    <div class="card">
+      <div class="card-header">
+        <h3>Nuevo Usuario</h3>
+      </div>
+      
+      <div class="card-body">
+        
+        @if (mensajeExito) {
+          <div class="alert-success">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            {{ mensajeExito }}
+          </div>
+        }
+
+        <form (ngSubmit)="crearUsuario()" #usuarioForm="ngForm">
+          
+          <div class="form-group">
+            <label>Nombre Completo</label>
+            <input type="text" [(ngModel)]="nuevoUsuario.nombreCompleto" name="nombreCompleto" required placeholder="Ej. Ana Pérez">
+          </div>
+
+          <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input type="email" [(ngModel)]="nuevoUsuario.email" name="email" required placeholder="Ej. ana.perez@megadulces.com">
+            <small>Se usará para la seguridad de la cuenta y recuperación de contraseña.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Usuario (Corto)</label>
+            <input type="text" [(ngModel)]="nuevoUsuario.username" name="username" required placeholder="Ej. aperez">
+            <small>Alias interno para identificar al reclutador en el sistema.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Rol en el sistema</label>
+            <select [(ngModel)]="nuevoUsuario.rol" name="rol">
+              <option value="reclutador">Reclutador / RH</option>
+              <option value="admin">Administrador General</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Contraseña Temporal</label>
+            <input type="password" [(ngModel)]="nuevoUsuario.password" name="password" required placeholder="Mínimo 6 caracteres">
+          </div>
+
+          <button type="submit" class="btn-primary" [disabled]="usuarioForm.invalid || cargando">
+            {{ cargando ? 'Creando...' : 'Crear Cuenta' }}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Usuarios Activos</h3>
+        <span class="badge">{{ listaUsuarios.length }}</span>
+      </div>
+      
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>NOMBRE</th>
+                <th>CORREO / USUARIO</th>
+                <th>ROL</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of listaUsuarios; track user.username) {
+                <tr>
+                  <td>
+                    <div class="user-info">
+                      <div class="avatar">{{ user.nombre.charAt(0) }}</div>
+                      <span>{{ user.nombre }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="color: #0f172a; font-size: 13px;">{{ user.email }}</div>
+                    <div style="color: #64748b; font-size: 12px; margin-top: 2px;" class="font-mono">@{{ user.username }}</div>
+                  </td>
+                  <td>
+                    <span class="role-tag" [class.tag-admin]="user.rol === 'Administrador'">
+                      {{ user.rol }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

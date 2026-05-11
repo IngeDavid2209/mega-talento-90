@@ -1,0 +1,250 @@
+/* Reseteo global para matar márgenes fantasmas */
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: #f1f5f9;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f1f5f9;
+  position: relative;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ========================================= */
+/* 1. ESTILOS DEL HEADER SUPERIOR            */
+/* ========================================= */
+.top-bar {
+  background-color: #ffffff;
+  color: #0f172a;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  z-index: 1000;
+}
+
+/* NUEVA CLASE: Agrupa hamburguesa y logo */
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* Separación entre las rayitas y la 'M' */
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-icon {
+  background-color: #0f172a; 
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.actions-section {
+  display: flex;
+  align-items: center;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #64748b;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+}
+
+.icon-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* BOTÓN DE HAMBURGUESA */
+.hamburger-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px; /* Reducido un poco para que alinee perfecto */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: #0f172a;
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+/* ========================================= */
+/* 2. MENÚ LATERAL (SIDE DRAWER)             */
+/* ========================================= */
+
+/* El fondo oscuro */
+.menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4); 
+  z-index: 1001; /* Arriba del header */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.menu-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* El Cajón Lateral */
+.side-drawer {
+  position: fixed;
+  top: 0;
+  left: -280px; /* Escondido a la izquierda de la pantalla */
+  width: 260px;
+  height: 100vh;
+  background-color: #ffffff;
+  z-index: 1002; /* Arriba del backdrop */
+  box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Animación suave */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cuando se abre, se pega al borde izquierdo */
+.side-drawer.show {
+  left: 0; 
+}
+
+/* Encabezado del menú lateral */
+.drawer-header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.drawer-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #dc2626;
+}
+
+/* Lista de navegación */
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nav-list li {
+  width: 100%;
+}
+
+.nav-list a {
+  display: block;
+  padding: 14px 24px;
+  text-decoration: none;
+  color: #475569;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-list a:hover {
+  background-color: #f8fafc;
+  color: #2563eb;
+  padding-left: 28px;
+}
+
+.nav-list a.active {
+  color: #2563eb;
+  font-weight: 600;
+  background-color: #eff6ff;
+  border-left: 4px solid #2563eb;
+  padding-left: 20px;
+}
+
+.divider {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 8px 24px;
+}
+
+.logout-link {
+  color: #dc2626 !important;
+}
+
+.logout-link:hover {
+  background-color: #fef2f2 !important;
+  padding-left: 28px !important;
+}
+
+/* ========================================= */
+/* 3. ESTILOS DEL CONTENIDO PRINCIPAL        */
+/* ========================================= */
+.content-area {
+  flex: 1;
+  background-color: #f1f5f9;
+  overflow-y: auto;
+  position: relative;
+}

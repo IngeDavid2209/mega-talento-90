@@ -1,0 +1,70 @@
+<div class="dashboard-container">
+  <div class="header">
+    <h2>Panel de Control - Mega Talento</h2>
+    <p>Vista general de solicitudes entrantes</p>
+  </div>
+
+  <!-- Tarjetas de Resumen Estadístico -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>Total de Solicitudes</h3>
+      <p class="stat-number">{{ totalLeads }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>Última actualización</h3>
+      <p class="stat-number" style="font-size: 18px; margin-top: 18px; color: #16a34a;">En vivo</p>
+    </div>
+  </div>
+
+  <!-- Tabla de Candidatos -->
+  <div class="table-card">
+    <h3>Últimos Candidatos Registrados</h3>
+    
+    @if (cargando) {
+      <div class="loading-state">Conectando con la base de datos...</div>
+    } @else if (candidatos.length === 0) {
+      <div class="empty-state">Aún no hay solicitudes registradas.</div>
+    } @else {
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>FECHA</th>
+              <th>NOMBRE</th>
+              <th>TELÉFONO</th>
+              <th>CIUDAD</th> <!-- 1. Cambiamos el título aquí -->
+              <th>PUESTO</th>
+              <th>ESTATUS</th>
+            </tr>
+          </thead>
+          
+          <!-- Cuerpo de la tabla -->
+          <tbody>
+            @for (candidato of candidatos; track candidato.id) {
+              <tr>
+                <td>{{ formatearFecha(candidato.createdAt) }}</td>
+                <td>
+                  <div class="user-info">
+                    <div class="avatar">{{ candidato.nombre.charAt(0) }}</div>
+                    <span>{{ candidato.nombre }}</span>
+                  </div>
+                </td>
+                <td>{{ candidato.telefono }}</td>
+                
+                <!-- 2. TRUCO AQUÍ: Si tiene ciudad la muestra, si no, busca la sucursal vieja -->
+                <td>{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
+                
+                <td>{{ candidato.puesto }}</td>
+                <td>
+                  <span class="status-badge" [class]="candidato.status">
+                    {{ candidato.status === 'nuevo' ? 'Lead recibido' : candidato.status }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

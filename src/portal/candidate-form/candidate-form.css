@@ -1,0 +1,124 @@
+/* =========================================
+   FONDO Y CENTRADO DE LA PANTALLA
+   ========================================= */
+.form-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  background-color: #f4f4f5; /* Gris muy clarito y elegante */
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   LA TARJETA BLANCA (Antes .card, ahora .form-card)
+   ========================================= */
+.form-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px; /* Esto evita que se estire por toda la pantalla */
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* =========================================
+   TEXTOS Y ENCABEZADOS
+   ========================================= */
+.form-header {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.form-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1916;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.form-header p {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Contenedor de cada campo */
+.form-group { 
+  margin-bottom: 20px; 
+}
+
+/* Etiquetas de los inputs */
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b4b4b;
+  margin-bottom: 8px;
+  transition: color 0.2s;
+}
+
+/* =========================================
+   INPUTS Y SELECTS
+   ========================================= */
+input, select {
+  width: 100%;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  color: #1a1916;
+  background-color: #f9fafb;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Efecto al hacer clic o tabulación */
+input:focus, select:focus {
+  outline: none;
+  border-color: #1a1916;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(26, 25, 22, 0.05);
+}
+
+/* =========================================
+   BOTÓN PRINCIPAL (Antes .btn-primary, ahora .btn-submit)
+   ========================================= */
+.btn-submit {
+  width: 100%;
+  background: #1a1916;
+  color: white;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+/* Animación al pasar el mouse */
+.btn-submit:hover:not(:disabled) {
+  background: #33322e;
+  transform: translateY(-1px);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Botón apagado (cuando faltan datos) */
+button:disabled, .btn-submit:disabled {
+  background-color: #cbd5e1 !important;
+  color: #64748b !important;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}

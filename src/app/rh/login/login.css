@@ -1,0 +1,190 @@
+/* Contenedor principal a pantalla completa */
+.login-wrapper {
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  background-color: #fbfbfc; /* Gris/blanco súper sutil */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden; /* Evita que las letras gigantes hagan scroll */
+}
+
+/* =========================================
+   MARCAS DE AGUA GIGANTES (Fondo)
+   ========================================= */
+.watermark {
+  position: absolute;
+  font-size: 22vw; /* Tamaño ajustado para que NO choquen en el medio */
+  font-family: "Arial Black", system-ui, -apple-system, sans-serif; /* Letra ancha y elegante, no aplastada */
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.02); /* Súper transparente */
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+/* MEGA - Arriba a la izquierda */
+.watermark-left { 
+  left: -2vw;
+  top: -4vh; /* Lo subimos para que libre el logo */
+}
+
+/* DULCES - Abajo a la derecha */
+.watermark-right { 
+  right: -2vw;
+  bottom: -6vh; /* Lo bajamos para que libre los enlaces */
+}
+
+/* =========================================
+   BOTÓN MODO B&N (Esquina superior)
+   ========================================= */
+.top-actions {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  z-index: 10;
+  letter-spacing: 0.05em;
+}
+
+.top-actions:hover { color: #0f172a; }
+
+/* =========================================
+   CONTENIDO CENTRAL (Logo y Tarjeta)
+   ========================================= */
+.login-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 360px; /* Ancho exacto para que se vea elegante */
+}
+
+.brand-logo {
+  width: 160px;
+  height: auto;
+}
+
+.portal-title {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: #64748b;
+  margin: 16px 0 24px 0;
+  font-weight: 700;
+}
+
+/* =========================================
+   LA TARJETA BLANCA
+   ========================================= */
+.login-card {
+  background: #ffffff;
+  width: 100%;
+  padding: 32px 28px;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f1f5f9;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   FORMULARIOS Y CAMPOS
+   ========================================= */
+.form-group {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: #f8fafc;
+  font-size: 13px;
+  color: #0f172a;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.2s;
+}
+
+input:focus {
+  border-color: #0f172a;
+  background-color: #ffffff;
+}
+
+input::placeholder { color: #94a3b8; }
+
+/* =========================================
+   BOTÓN PRINCIPAL (Azul oscuro / Negro)
+   ========================================= */
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  background-color: #0f172a !important; /* El color oscuro original */
+  color: #ffffff !important;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+}
+
+.btn-submit:hover:not(:disabled) { 
+  background-color: #1e293b !important; 
+}
+
+/* Mantenemos el botón oscuro aunque el formulario esté vacío */
+.btn-submit:disabled {
+  background-color: #0f172a !important; 
+  opacity: 0.6; /* Solo lo hacemos un poquito transparente */
+  cursor: not-allowed;
+}
+
+/* =========================================
+   ENLACES DEL PIE DE PÁGINA
+   ========================================= */
+.login-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+.login-footer a {
+  color: #64748b;
+  font-size: 11px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+
+.login-footer a:hover { color: #0f172a; }

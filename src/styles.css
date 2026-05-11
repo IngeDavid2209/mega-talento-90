@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #F7F6F2;
+  --surface: #FFFFFF;
+  --surface2: #F0EEE8;
+  --border: rgba(0,0,0,0.08);
+  --border-med: rgba(0,0,0,0.14);
+  --text: #1A1916;
+  --text2: #6B6860;
+  --text3: #A09E99;
+  --blue: #1A5FD4;
+  --blue-bg: #EBF1FD;
+  --blue-text: #1040A0;
+  --green: #1A8F5A;
+  --green-bg: #E6F5EE;
+  --green-text: #0E5E3A;
+  --amber: #B87010;
+  --amber-bg: #FDF3E0;
+  --amber-text: #7A4A00;
+  --red: #CC3333;
+  --red-bg: #FCEAEA;
+  --red-text: #8B1A1A;
+  --purple: #6644CC;
+  --purple-bg: #F0ECFD;
+  --purple-text: #3D2299;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+/* Copia aquí el resto de las clases del CSS que me pasaste (.sidebar, .nav-item, .card, .metrics-grid, etc.) */

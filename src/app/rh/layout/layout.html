@@ -1,0 +1,48 @@
+<div class="app-wrapper">
+  
+  <div class="menu-backdrop" [class.show]="isMenuOpen" (click)="isMenuOpen = false"></div>
+
+  <header class="top-bar">
+    <div class="left-section">
+      <button class="hamburger-btn" (click)="toggleMenu()" aria-label="Abrir menú de navegación">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+
+      <div class="brand-section">
+        <div class="app-icon">M</div> 
+        <h1 class="app-title">MEGA TALENTO 90</h1>
+      </div>
+    </div>
+    
+    <div class="actions-section">
+      <button class="icon-btn search-btn">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="side-drawer" [class.show]="isMenuOpen">
+    <div class="drawer-header">
+      <span class="drawer-title">Navegación</span>
+      <button class="close-btn" (click)="isMenuOpen = false">✕</button>
+    </div>
+
+   <ul class="nav-list">
+      <li><a routerLink="/app/dashboard" routerLinkActive="active" (click)="isMenuOpen = false">Dashboard</a></li>
+      <li><a routerLink="/app/kanban" routerLinkActive="active" (click)="isMenuOpen = false">Embudo de talento</a></li>
+      
+      <li><a routerLink="/app/usuarios" routerLinkActive="active" (click)="isMenuOpen = false">Gestión de Usuarios</a></li>
+      
+      <li><a routerLink="/unete" routerLinkActive="active" (click)="isMenuOpen = false">Ver Formulario público</a></li>
+      <li class="divider"></li>
+      <li><a routerLink="/login" class="logout-link" (click)="isMenuOpen = false">Salir</a></li>
+    </ul>
+  </nav>
+
+  <main class="content-area">
+    <router-outlet></router-outlet>
+  </main>
+
+</div>

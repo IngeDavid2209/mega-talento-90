@@ -1,0 +1,63 @@
+
+<div class="form-wrapper">
+  <div class="form-card">
+    
+    <div class="form-header">
+      <h2>Únete a nuestro equipo</h2>
+      <p>Mega Talento 90</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #talentoForm="ngForm">
+      
+      <!-- 1. Nombre -->
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" [(ngModel)]="candidate.nombre" name="nombre" required placeholder="Escribe tu nombre completo">
+      </div>
+
+      <!-- 2. Teléfono -->
+      <div class="form-group">
+        <label [style.color]="tel.invalid && tel.touched ? '#dc2626' : ''">Teléfono (WhatsApp) *</label>
+        <input type="tel" [(ngModel)]="candidate.telefono" name="telefono" #tel="ngModel" required maxlength="10" minlength="10" (keypress)="$event.charCode >= 48 && $event.charCode <= 57" placeholder="Ej. 3521234567">
+      </div>
+
+      <!-- 3. Ciudad -->
+      <div class="form-group">
+        <label>Ciudad en donde te interesa trabajar *</label>
+        <select [(ngModel)]="candidate.ciudad" name="ciudad" required>
+          <option value="" disabled selected>Selecciona una ciudad...</option>
+          @for (ciudad of ciudades; track ciudad) {
+            <option [value]="ciudad">{{ ciudad }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- 4. Puesto -->
+      <div class="form-group">
+        <label>Puesto que te interesa *</label>
+        <select [(ngModel)]="candidate.puesto" name="puesto" required>
+          <option value="" disabled selected>Selecciona un puesto...</option>
+          @for (puesto of puestos; track puesto) {
+            <option [value]="puesto">{{ puesto }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- 5. ¿Dónde te enteraste? -->
+      <div class="form-group">
+        <label>¿Dónde te enteraste de la vacante? *</label>
+        <select [(ngModel)]="candidate.fuente" name="fuente" required>
+          <option value="" disabled selected>Selecciona una opción...</option>
+          @for (fuente of fuentes; track fuente) {
+            <option [value]="fuente">{{ fuente }}</option>
+          }
+        </select>
+      </div>
+
+      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid">
+        Enviar Solicitud
+      </button>
+
+    </form>
+  </div>
+</div>
