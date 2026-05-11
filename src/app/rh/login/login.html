@@ -41,12 +41,8 @@
         </div>
 
         <button type="submit" class="btn-submit" [disabled]="loginForm.invalid || cargando">
-          @if (cargando) {
-          VERIFICANDO...
-          } @else {
-          INICIAR SESIÓN
-          }
-        </button>
+  {{ cargando ? 'VERIFICANDO...' : 'INICIAR SESIÓN' }}
+</button>
 
       </form>
     </div>
