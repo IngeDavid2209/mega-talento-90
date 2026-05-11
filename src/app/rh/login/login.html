@@ -1,5 +1,5 @@
 <div class="login-wrapper">
-  
+
   <!-- Marcas de agua gigantes en el fondo -->
   <div class="watermark watermark-left">MEGA</div>
   <div class="watermark watermark-right">DULCES</div>
@@ -7,52 +7,44 @@
   <!-- Botón superior derecho -->
   <div class="top-actions">
     <span>MODO B&N</span>
-    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"
+      stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
     </svg>
   </div>
 
   <!-- Contenido Central -->
   <div class="login-content">
-    
+
     <!-- Logo y Título -->
-    <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png" alt="Mega Dulces De Los Altos" class="brand-logo">
+    <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png"
+      alt="Mega Dulces De Los Altos" class="brand-logo">
     <h2 class="portal-title">PORTAL DE ACCESO</h2>
 
     <!-- Alerta de error (solo se muestra si se equivocan) -->
     @if (mensajeError) {
-      <div class="error-alert">{{ mensajeError }}</div>
+    <div class="error-alert">{{ mensajeError }}</div>
     }
 
     <!-- Tarjeta Blanca del Formulario -->
     <div class="login-card">
       <form (ngSubmit)="onLogin()" #loginForm="ngForm">
-        
+
         <div class="form-group">
           <label>USUARIO</label>
-          <input 
-            type="text" 
-            [(ngModel)]="credentials.username" 
-            name="username" 
-            required 
-            placeholder="Ej. admin">
+          <input type="text" [(ngModel)]="credentials.username" name="username" required placeholder="Ej. admin">
         </div>
 
         <div class="form-group">
           <label>CONTRASEÑA</label>
-          <input 
-            type="password" 
-            [(ngModel)]="credentials.password" 
-            name="password" 
-            required 
-            placeholder="••••••••">
+          <input type="password" [(ngModel)]="credentials.password" name="password" required placeholder="••••••••">
         </div>
 
         <button type="submit" class="btn-submit" [disabled]="loginForm.invalid || cargando">
           @if (cargando) {
-            VERIFICANDO...
+          VERIFICANDO...
           } @else {
-            INICIAR SESIÓN
+          INICIAR SESIÓN
           }
         </button>
 
@@ -63,7 +55,8 @@
     <div class="login-footer">
       <a href="#" class="link-left">Recuperar Acceso</a>
       <a href="#" class="link-right">
-        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"
+          stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
