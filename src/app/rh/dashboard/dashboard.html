@@ -7,7 +7,7 @@
   <div class="stats-grid">
     <div class="stat-card">
       <h3>Total de Solicitudes</h3>
-      <p class="stat-number">{{ totalLeads }}</p>
+      <p class="stat-number">{{ candidatos.length }}</p>
     </div>
     <div class="stat-card">
       <h3>Última actualización</h3>
@@ -17,55 +17,56 @@
 
   <div class="table-card">
     <h3>Últimos Candidatos Registrados</h3>
-    
+
     @if (cargando) {
-      <div class="loading-state">Conectando con la base de datos...</div>
+    <div class="loading-state">Conectando con la base de datos...</div>
     } @else if (candidatos.length === 0) {
-      <div class="empty-state">Aún no hay solicitudes registradas.</div>
+    <div class="empty-state">Aún no hay solicitudes registradas.</div>
     } @else {
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>FECHA</th>
-              <th>NOMBRE</th>
-              <th>TELÉFONO</th>
-              <th>CIUDAD</th>
-              <th>PUESTO</th>
-              <th>ESTATUS</th>
-            </tr>
-          </thead>
-          
-          <tbody>
-            @for (candidato of candidatos; track candidato.id) {
-              <tr>
-                <td>{{ formatearFecha(candidato.createdAt) }}</td>
-                <td>
-                  <div class="user-info">
-                    <div class="avatar">{{ candidato.nombre.charAt(0) }}</div>
-                    <span>{{ candidato.nombre }}</span>
-                  </div>
-                </td>
-                <td>
-                  <div class="phone-action-cell">
-                    <span>{{ candidato.telefono }}</span>
-                    <button class="btn-whatsapp" (click)="contactarWhatsApp(candidato.telefono, candidato.nombre)" title="Enviar mensaje">
-                      📲 WhatsApp
-                    </button>
-                  </div>
-                </td>
-                <td>{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
-                <td>{{ candidato.puesto }}</td>
-                <td>
-                  <span class="status-badge" [class]="candidato.status">
-                    {{ candidato.status === 'nuevo' ? 'Lead recibido' : candidato.status }}
-                  </span>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>FECHA</th>
+            <th>NOMBRE</th>
+            <th>TELÉFONO</th>
+            <th>CIUDAD</th>
+            <th>PUESTO</th>
+            <th>ESTATUS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (candidato of candidatos; track candidato.id) {
+          <tr>
+            <td>{{ formatearFecha(candidato.createdAt) }}</td>
+            <td>
+              <div class="user-info">
+                <div class="avatar">{{ candidato.nombre.charAt(0) }}</div>
+                <span>{{ candidato.nombre }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="phone-action-cell">
+                <span>{{ candidato.telefono }}</span>
+                <button class="btn-whatsapp" (click)="contactarWhatsApp(candidato.telefono, candidato.nombre)"
+                  title="Enviar mensaje">
+                  📲 WhatsApp
+                </button>
+              </div>
+            </td>
+            <td>{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
+            <td>{{ candidato.puesto }}</td>
+            <td>
+              <span class="status-badge" [class]="candidato.status">
+                {{ candidato.status === 'nuevo' ? 'Lead recibido' : candidato.status }}
+              </span>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
     }
   </div>
 </div>
