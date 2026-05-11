@@ -4,7 +4,6 @@
     <p>Vista general de solicitudes entrantes</p>
   </div>
 
-  <!-- Tarjetas de Resumen Estadístico -->
   <div class="stats-grid">
     <div class="stat-card">
       <h3>Total de Solicitudes</h3>
@@ -16,7 +15,6 @@
     </div>
   </div>
 
-  <!-- Tabla de Candidatos -->
   <div class="table-card">
     <h3>Últimos Candidatos Registrados</h3>
     
@@ -32,13 +30,12 @@
               <th>FECHA</th>
               <th>NOMBRE</th>
               <th>TELÉFONO</th>
-              <th>CIUDAD</th> <!-- 1. Cambiamos el título aquí -->
+              <th>CIUDAD</th>
               <th>PUESTO</th>
               <th>ESTATUS</th>
             </tr>
           </thead>
           
-          <!-- Cuerpo de la tabla -->
           <tbody>
             @for (candidato of candidatos; track candidato.id) {
               <tr>
@@ -49,11 +46,15 @@
                     <span>{{ candidato.nombre }}</span>
                   </div>
                 </td>
-                <td>{{ candidato.telefono }}</td>
-                
-                <!-- 2. TRUCO AQUÍ: Si tiene ciudad la muestra, si no, busca la sucursal vieja -->
+                <td>
+                  <div class="phone-action-cell">
+                    <span>{{ candidato.telefono }}</span>
+                    <button class="btn-whatsapp" (click)="contactarWhatsApp(candidato.telefono, candidato.nombre)" title="Enviar mensaje">
+                      📲 WhatsApp
+                    </button>
+                  </div>
+                </td>
                 <td>{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
-                
                 <td>{{ candidato.puesto }}</td>
                 <td>
                   <span class="status-badge" [class]="candidato.status">

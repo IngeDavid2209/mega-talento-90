@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CandidateService } from '../../core/services/candidate'; // Ajusta la ruta si es necesario
+import { CandidateService } from '../../core/services/candidate'; 
 
 @Component({
   selector: 'app-dashboard',
@@ -16,7 +16,6 @@ export class DashboardComponent implements OnInit {
   cargando: boolean = true;
   totalLeads: number = 0;
 
-  // OnInit se ejecuta automáticamente cuando la pantalla carga
   async ngOnInit() {
     await this.cargarCandidatos();
   }
@@ -24,11 +23,9 @@ export class DashboardComponent implements OnInit {
   async cargarCandidatos() {
     try {
       this.cargando = true;
-      // Llamamos a Firebase usando el método que agregaste hace un momento
       this.candidatos = await this.candidateService.getCandidates();
       this.totalLeads = this.candidatos.length;
       
-      // Ordenamos para que los más recientes salgan primero en la tabla
       this.candidatos.sort((a, b) => {
         const dateA = a.createdAt?.toDate() || 0;
         const dateB = b.createdAt?.toDate() || 0;
@@ -42,10 +39,22 @@ export class DashboardComponent implements OnInit {
     }
   }
   
-  // Pequeña función para que la fecha de Firebase se vea bonita (ej. 04 may 2026)
   formatearFecha(timestamp: any): string {
     if (!timestamp) return 'Sin fecha';
     const date = timestamp.toDate();
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  contactarWhatsApp(telefono: string, nombre: string) {
+    // 1. Limpiamos el número de cualquier carácter no numérico
+    const numeroLimpio = telefono.replace(/\D/g, '');
+    
+    // 2. Mensaje personalizado
+    const mensaje = `Hola ${nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu solicitud y nos gustaría platicar contigo.`;
+    
+    // 3. Generamos link (Prefijo 52 para México)
+    const url = `https://wa.me/52${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
+    
+    window.open(url, '_blank');
   }
 }
