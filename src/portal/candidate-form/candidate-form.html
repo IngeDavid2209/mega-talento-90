@@ -1,27 +1,26 @@
-
 <div class="form-wrapper">
   <div class="form-card">
     
     <div class="form-header">
-      <h2>Únete a nuestro equipo</h2>
-      <p>Mega Talento 90</p>
+      <img src="/logo-megadulces.png" alt="Logo Mega Dulces" class="brand-logo">
+      <h2>Únete a la familia Mega Dulces</h2>
+      <p class="welcome-message">
+        ¡Estamos buscando talento como tú! Completa este breve formulario y nuestro equipo de Reclutamiento se pondrá en contacto contigo muy pronto.
+      </p>
     </div>
 
     <form (ngSubmit)="onSubmit()" #talentoForm="ngForm">
       
-      <!-- 1. Nombre -->
       <div class="form-group">
         <label>Nombre completo *</label>
         <input type="text" [(ngModel)]="candidate.nombre" name="nombre" required placeholder="Escribe tu nombre completo">
       </div>
 
-      <!-- 2. Teléfono -->
       <div class="form-group">
         <label [style.color]="tel.invalid && tel.touched ? '#dc2626' : ''">Teléfono (WhatsApp) *</label>
         <input type="tel" [(ngModel)]="candidate.telefono" name="telefono" #tel="ngModel" required maxlength="10" minlength="10" (keypress)="$event.charCode >= 48 && $event.charCode <= 57" placeholder="Ej. 3521234567">
       </div>
 
-      <!-- 3. Ciudad -->
       <div class="form-group">
         <label>Ciudad en donde te interesa trabajar *</label>
         <select [(ngModel)]="candidate.ciudad" name="ciudad" required>
@@ -32,7 +31,6 @@
         </select>
       </div>
 
-      <!-- 4. Puesto -->
       <div class="form-group">
         <label>Puesto que te interesa *</label>
         <select [(ngModel)]="candidate.puesto" name="puesto" required>
@@ -43,7 +41,6 @@
         </select>
       </div>
 
-      <!-- 5. ¿Dónde te enteraste? -->
       <div class="form-group">
         <label>¿Dónde te enteraste de la vacante? *</label>
         <select [(ngModel)]="candidate.fuente" name="fuente" required>
