@@ -22,15 +22,16 @@
 
   <nav class="side-drawer" [class.show]="isMenuOpen">
     <div class="drawer-header">
-      <span class="drawer-title">Navegación</span>
+      <span class="drawer-title">NAVEGACIÓN</span>
       <button class="close-btn" (click)="isMenuOpen = false">✕</button>
     </div>
 
    <ul class="nav-list">
-      <li><a routerLink="/app/dashboard" routerLinkActive="active" (click)="isMenuOpen = false">Dashboard</a></li>
+      <li><a routerLink="/app/dashboard" routerLinkActive="active" (click)="isMenuOpen = false">Panel</a></li>
       <li><a routerLink="/app/kanban" routerLinkActive="active" (click)="isMenuOpen = false">Embudo de talento</a></li>
-      
       <li><a routerLink="/app/usuarios" routerLinkActive="active" (click)="isMenuOpen = false">Gestión de Usuarios</a></li>
+      
+      <li><a routerLink="/app/historial" routerLinkActive="active" (click)="isMenuOpen = false">Historial</a></li>
       
       <li><a routerLink="/unete" routerLinkActive="active" (click)="isMenuOpen = false">Ver Formulario público</a></li>
       <li class="divider"></li>
