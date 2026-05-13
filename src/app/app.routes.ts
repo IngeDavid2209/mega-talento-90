@@ -6,6 +6,7 @@ import { CandidateFormComponent } from '../portal/candidate-form/candidate-form'
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard'; 
 import { UsuariosComponent } from './rh/usuarios/usuarios';
+import { HistorialComponent } from './rh/historial/historial';
 
 export const routes: Routes = [
   // ==========================================
@@ -29,5 +30,7 @@ export const routes: Routes = [
   
   { path: '', redirectTo: 'unete', pathMatch: 'full' },
   
-  { path: '**', redirectTo: 'unete' }
+  { path: '**', redirectTo: 'unete' },
+
+  { path: 'historial', component: HistorialComponent }
 ];

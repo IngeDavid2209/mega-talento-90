@@ -1,0 +1,95 @@
+<div class="dashboard-container">
+  <div class="header">
+    <h2>Historial de Candidatos</h2>
+    <p>Base de datos completa y registro de solicitudes pasadas</p>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns: 1fr;">
+    <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3>Total Histórico de Registros</h3>
+        <p class="stat-number">{{ candidatos.length }}</p>
+      </div>
+      <div style="text-align: right;">
+        <span style="background-color: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 13px;">
+          Base de Datos Maestra
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-toolbar">
+      <input type="text" 
+             class="search-input" 
+             placeholder="🔍 Buscar en todo el historial..." 
+             [(ngModel)]="terminoBusqueda" 
+             (input)="filtrarCandidatos()">
+             
+      <button class="btn-excel" (click)="exportarExcel()" title="Descargar todo el historial">
+        📊 Exportar Historial a Excel
+      </button>
+    </div>
+
+    @if (cargando) {
+      <div class="loading-state">Extrayendo registros históricos...</div>
+    } @else if (candidatosFiltrados.length === 0) {
+      <div class="empty-state">No se encontraron registros en el historial.</div>
+    } @else {
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>FECHA</th>
+              <th>NOMBRE</th>
+              <th>TELÉFONO</th>
+              <th>CIUDAD</th>
+              <th>PUESTO</th>
+              <th>CV</th>
+              <th>ESTATUS</th>
+            </tr>
+          </thead>
+          
+          <tbody>
+            @for (candidato of candidatosFiltrados; track candidato.id) {
+              <tr>
+                <td>{{ formatearFecha(candidato.createdAt) }}</td>
+                <td>
+                  <div class="user-info">
+                    <div class="avatar" style="background-color: #64748b;">{{ candidato.nombre.charAt(0) }}</div>
+                    <span>{{ candidato.nombre }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="phone-action-cell">
+                    <span>{{ candidato.telefono }}</span>
+                    <button class="btn-whatsapp" (click)="contactarWhatsApp(candidato.telefono, candidato.nombre)">
+                      📲 WhatsApp
+                    </button>
+                  </div>
+                </td>
+                <td>{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
+                <td>{{ candidato.puesto }}</td>
+                <td>
+                  @if (candidato.cvUrl) {
+                    <a [href]="candidato.cvUrl" target="_blank" class="btn-cv">📄 Ver PDF</a>
+                  } @else {
+                    <span class="no-cv">Sin archivo</span>
+                  }
+                </td>
+                <td>
+                  <select class="status-select" [class]="candidato.status" (change)="cambiarEstatus(candidato.id, $event)" translate="no">
+                    <option value="nuevo" [selected]="candidato.status === 'nuevo'">Nueva solicitud</option>
+                    <option value="contacto_pendiente" [selected]="candidato.status === 'contacto_pendiente'">Contacto pendiente</option>
+                    <option value="entrevista" [selected]="candidato.status === 'entrevista'">Entrevista</option>
+                    <option value="contratado" [selected]="candidato.status === 'contratado'">Contratado</option>
+                  </select>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
