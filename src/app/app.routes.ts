@@ -20,6 +20,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'kanban', component: KanbanComponent },
       { path: 'usuarios', component: UsuariosComponent },
+      { path: 'historial', component: HistorialComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
