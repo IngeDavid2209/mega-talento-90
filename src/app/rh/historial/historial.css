@@ -52,3 +52,19 @@
   .header h2 { font-size: 22px; }
   .table-card { padding: 16px; }
 }
+/* ==============================
+   DISEÑO RESPONSIVO (MÓVILES) - HISTORIAL
+   ============================== */
+@media (max-width: 768px) {
+  .dashboard-container { padding: 16px; }
+  .header h2 { font-size: 22px; }
+  
+  /* El buscador y botón de Excel se apilan */
+  .table-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .search-input { min-width: 100%; max-width: 100%; width: 100%; }
+  .btn-excel { width: 100%; text-align: center; }
+  
+  /* Ajuste de las tarjetas de arriba */
+  .stat-card { flex-direction: column; align-items: flex-start !important; gap: 12px; }
+  .stat-card div:last-child { text-align: left !important; }
+}

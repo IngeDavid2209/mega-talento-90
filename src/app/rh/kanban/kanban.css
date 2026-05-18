@@ -319,3 +319,31 @@
     padding: 16px;
   }
 }
+/* ==============================
+   DISEÑO RESPONSIVO (MÓVILES) - KANBAN
+   ============================== */
+@media (max-width: 768px) {
+  .kanban-header { padding: 16px; }
+  .kanban-header h2 { font-size: 22px; }
+  
+  /* Los 4 indicadores se vuelven una cuadrícula de 2x2 */
+  .metrics-bar { 
+    grid-template-columns: 1fr 1fr; 
+    padding: 0 16px 16px 16px; 
+    gap: 12px; 
+  }
+  .metric-card { padding: 12px; border-right: none; }
+  .metric-value { font-size: 22px; }
+  
+  /* Los filtros se apilan uno sobre otro */
+  .filter-bar { flex-direction: column; padding: 0 16px 16px 16px; }
+  .filter-input { width: 100%; min-width: 100%; }
+  
+  .board-container { padding: 16px; gap: 12px; }
+  .kanban-column { min-width: 280px; max-width: 280px; }
+}
+
+@media (max-width: 480px) {
+  /* En teléfonos muy pequeños, los indicadores se ponen en una sola lista hacia abajo */
+  .metrics-bar { grid-template-columns: 1fr; }
+}

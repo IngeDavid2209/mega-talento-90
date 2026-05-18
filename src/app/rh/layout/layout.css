@@ -248,3 +248,22 @@ html, body {
   overflow-y: auto;
   position: relative;
 }
+/* ==============================
+   DISEÑO RESPONSIVO (MÓVILES) - LAYOUT GENERAL
+   ============================== */
+@media (max-width: 768px) {
+  .side-drawer {
+    transform: translateX(-100%); /* Esconde el menú a la izquierda por defecto */
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .side-drawer.show {
+    transform: translateX(0); /* Lo muestra cuando presionas las 3 rayitas */
+  }
+
+  .content-area {
+    margin-left: 0 !important; /* El contenido ocupa el 100% del ancho */
+    padding-top: 64px; /* Deja espacio para la barra superior */
+  }
+}
