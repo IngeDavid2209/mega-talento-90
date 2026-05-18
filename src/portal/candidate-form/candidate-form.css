@@ -151,3 +151,37 @@ button:disabled, .btn-submit:disabled {
   margin: 12px auto 0;
   max-width: 90%; /* Evita que el texto llegue hasta las orillas */
 }
+.file-input {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.file-input:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+/* Estiliza el botón gris feo que traen los navegadores por defecto */
+.file-input::file-selector-button {
+  background-color: #e2e8f0;
+  color: #334155;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: background-color 0.2s;
+}
+
+.file-input::file-selector-button:hover {
+  background-color: #cbd5e1;
+}
