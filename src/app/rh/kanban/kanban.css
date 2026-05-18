@@ -2,23 +2,24 @@
 .kanban-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 24px;
+  height: 100vh;
+  background-color: #f8fafc;
+  font-family: system-ui, -apple-system, sans-serif;
   box-sizing: border-box;
 }
 
 /* Encabezado */
 .kanban-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  padding: 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .kanban-header h2 {
   margin: 0;
   color: #0f172a;
-  font-size: 24px;
+  font-size: 26px;
+  font-weight: 700;
 }
 
 .subtitle {
@@ -27,13 +28,75 @@
   font-size: 14px;
 }
 
-/* Tablero (Scroll Horizontal) */
+/* ==============================
+   BARRA DE KPIs (METRICAS)
+   ============================== */
+.metrics-bar {
+  display: flex;
+  background-color: #ffffff;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  justify-content: space-around;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: center;
+  border-right: 1px solid #e2e8f0;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 4px;
+}
+
+/* ==============================
+   BARRA DE FILTROS
+   ============================== */
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.filter-input {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  color: #334155;
+  outline: none;
+  width: 200px;
+}
+
+.filter-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ==============================
+   TABLERO KANBAN
+   ============================== */
 .board-container {
   display: flex;
   gap: 20px;
-  overflow-x: auto;
-  padding-bottom: 16px;
-  flex: 1;
+  overflow-x: auto; /* Scroll horizontal si hay muchas columnas */
+  padding: 24px;
+  flex: 1; /* Ocupa el resto de la pantalla */
   align-items: flex-start;
   -webkit-overflow-scrolling: touch;
 }
@@ -41,21 +104,16 @@
 /* Columnas */
 .kanban-column {
   background-color: #f1f5f9;
-  border-radius: 10px;
-  min-width: 300px;
-  max-width: 300px;
+  border-radius: 12px;
+  min-width: 320px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   max-height: 100%;
 }
 
-.column-alert {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
 .column-header {
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -71,7 +129,6 @@
   letter-spacing: 0.05em;
 }
 
-/* Globos de contadores */
 .badge {
   background-color: #e2e8f0;
   color: #475569;
@@ -81,10 +138,13 @@
   font-weight: 700;
 }
 
-.badge-danger {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
+/* Colores específicos de columna */
+.status-nuevo .column-header { border-bottom-color: #f87171; }
+.status-contacto_pendiente .column-header { border-bottom-color: #fb923c; }
+.status-entrevista .column-header { border-bottom-color: #fde047; }
+.status-oferta .column-header { border-bottom-color: #a78bfa; }
+.status-contratado .column-header { border-bottom-color: #4ade80; }
+.status-rechazado .column-header { border-bottom-color: #94a3b8; }
 
 /* Área donde van las tarjetas */
 .column-content {
@@ -95,92 +155,159 @@
   gap: 12px;
 }
 
-/* Tarjetas */
+.empty-column-text {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 24px;
+  font-style: italic;
+}
+
+/* ==============================
+   TARJETAS (CARDS)
+   ============================== */
 .kanban-card {
   background-color: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border: 1px solid #e2e8f0;
-  transition: box-shadow 0.2s, transform 0.1s;
+  cursor: grab;
+  transition: all 0.2s ease;
 }
 
 .kanban-card:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
 }
 
-.card-danger {
-  border-left: 4px solid #dc2626;
+/* Efecto visual al arrastrar */
+.is-dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
 }
 
-.card-title {
-  font-weight: 600;
-  color: #0f172a;
-  font-size: 15px;
-  margin-bottom: 4px;
+.column-over {
+  background-color: #e0f2fe;
+  border: 2px dashed #3b82f6;
 }
 
-.card-subtitle {
-  color: #475569;
-  font-size: 13px;
-  margin-bottom: 12px;
+/* Alerta de urgencia (más de 3 días) */
+.card-alerta {
+  border-left: 4px solid #f87171;
 }
 
-.card-footer {
+/* Estructura Interna de Card */
+.card-body {
   display: flex;
-  align-items: center;
+  gap: 12px;
 }
 
-/* Etiquetas dentro de las tarjetas */
-.tag {
-  background-color: #f1f5f9;
-  color: #64748b;
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.tag-danger {
-  background-color: #fee2e2;
-  color: #dc2626;
-  font-weight: 600;
-}
-
-/* Botón WhatsApp */
-.btn-whatsapp {
+.card-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px;
-  background-color: #25D366;
   color: white;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.card-title {
+  margin: 0;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.card-subtitle {
+  margin: 2px 0 0 0;
+  color: #475569;
+  font-size: 13px;
+}
+
+.card-score {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+}
+
+.dot.active {
+  background-color: #4ade80;
+}
+
+/* Footer de Card */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.card-meta, .card-date {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Acciones de Card */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 6px;
   border: none;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s;
-  box-sizing: border-box;
+  transition: opacity 0.2s;
 }
 
-.btn-whatsapp:hover {
-  background-color: #128C7E;
+.action-btn:hover {
+  opacity: 0.8;
 }
 
-/* =========================================
-   AJUSTES MÓVILES EXTRAS
-   ========================================= */
+.action-btn.contact {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.action-btn.view {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+/* Cargando */
+.loading-tablero {
+  text-align: center;
+  margin-top: 80px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* Responsivo para Columnas */
 @media (max-width: 768px) {
-  .kanban-wrapper {
-    padding: 16px; 
-  }
-  
-  .kanban-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .board-container {
+    padding: 16px;
   }
 }

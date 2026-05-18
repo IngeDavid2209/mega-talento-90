@@ -1,92 +1,95 @@
 <div class="kanban-wrapper">
+  
   <div class="kanban-header">
     <div>
-      <h2>Embudo de talento</h2>
-      <p class="subtitle">Gestiona el flujo de candidatos de Mega Dulces</p>
+      <h2>Embudo de talento Mega</h2>
+      <p class="subtitle">Gestiona el flujo de reclutamiento</p>
     </div>
   </div>
 
+  <div class="metrics-bar">
+    <div class="metric-card">
+      <span class="metric-label">Total Candidatos</span>
+      <span class="metric-value">{{ kpiTotalCandidatos | number }}</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Tasa de Conversión</span>
+      <span class="metric-value">{{ kpiTasaConversion | number:'1.0-1' }}%</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Tiempo Promedio (días)</span>
+      <span class="metric-value">{{ kpiTiempoPromedio | number }}</span>
+    </div>
+    <div class="metric-card" style="border-right: none;">
+      <span class="metric-label">Meta Contrataciones</span>
+      <span class="metric-value">{{ kpiMetaContrataciones }}</span>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" class="filter-input" placeholder="🔍 Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="📍 Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
+    <input type="date" class="filter-input" [(ngModel)]="filtroFecha" (input)="filtrarYArmarTablero()">
+  </div>
+
   @if (cargando) {
-    <p style="text-align: center; color: #64748b; margin-top: 40px;">Cargando tablero...</p>
+    <p class="loading-tablero">Abriendo embudo de talentos...</p>
   } @else {
     <div class="board-container">
       
-      <div class="kanban-column">
-        <div class="column-header column-alert">
-          <h3 translate="no">Nueva solicitud</h3>
-          <span class="badge badge-danger">{{ nuevos.length }}</span>
-        </div>
-        <div class="column-content">
-          @for (candidato of nuevos; track candidato.id) {
-            <div class="kanban-card card-danger">
-              <div class="card-title">{{ candidato.nombre }}</div>
-              <div class="card-subtitle">{{ candidato.puesto }}</div>
-              <div class="card-footer">
-                <span class="tag tag-danger">{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
+      @for (columna of columnas; track columna.id) {
+        <div class="kanban-column"
+             [class]="'status-' + columna.id"
+             (dragover)="onDragOver($event, columna.id)"
+             (drop)="onDrop($event, columna.id)">
+          
+          <div class="column-header">
+            <h3>{{ columna.title }}</h3>
+            <span class="badge">{{ columna.count }}</span>
+          </div>
+
+          <div class="column-content">
+            @for (candidato of columna.candidates; track candidato.id) {
+              <div class="kanban-card" 
+                   [class.card-alerta]="isCandidatoAlerta(candidato)"
+                   draggable="true" 
+                   (dragstart)="onDragStart($event, candidato.id)"
+                   (dragend)="onDragEnd($event)">
+                
+                <div class="card-body">
+                  <div class="card-avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
+                    {{ candidato.nombre.charAt(0) }}
+                  </div>
+                  <div class="card-info">
+                    <p class="card-title">{{ candidato.nombre }}</p>
+                    <p class="card-subtitle">{{ candidato.puesto }}</p>
+                    
+                    <div class="card-score">
+                      <span class="dot active"></span>
+                      <span class="dot active"></span>
+                      <span class="dot active"></span>
+                      <span class="dot"></span>
+                      <span class="dot"></span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="card-footer">
+                  <span class="card-meta">📍 {{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
+                  <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
+                </div>
+
+                <div class="card-actions">
+                  <button class="action-btn contact" (click)="contactarWhatsApp(candidato.telefono)">📞 Contactar</button>
+                  <button class="action-btn view">📄 Ver CV</button>
+                </div>
               </div>
-              <button class="btn-whatsapp" style="margin-top: 12px; width: 100%;" (click)="contactarYmover(candidato)">
-                📲 Contactar (WhatsApp)
-              </button>
-            </div>
-          } @empty {
-            <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 20px;">Bandeja limpia</p>
-          }
+            } @empty {
+              <p class="empty-column-text">Arrastra aquí</p>
+            }
+          </div>
         </div>
-      </div>
-
-      <div class="kanban-column">
-        <div class="column-header">
-          <h3 translate="no">Contacto Pendiente</h3>
-          <span class="badge">{{ contactados.length }}</span>
-        </div>
-        <div class="column-content">
-          @for (candidato of contactados; track candidato.id) {
-            <div class="kanban-card">
-              <div class="card-title">{{ candidato.nombre }}</div>
-              <div class="card-subtitle">{{ candidato.puesto }}</div>
-              <div class="card-footer">
-                <span class="tag">{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
-              </div>
-            </div>
-          } @empty {
-            <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 20px;">Sin candidatos pendientes</p>
-          }
-        </div>
-      </div>
-
-      <div class="kanban-column">
-        <div class="column-header">
-          <h3 translate="no">Entrevista</h3>
-          <span class="badge">{{ entrevistas.length }}</span>
-        </div>
-        <div class="column-content">
-          @for (candidato of entrevistas; track candidato.id) {
-            <div class="kanban-card" style="border-left: 4px solid #ca8a04;">
-              <div class="card-title">{{ candidato.nombre }}</div>
-              <div class="card-subtitle">{{ candidato.puesto }}</div>
-            </div>
-          } @empty {
-            <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 20px;">Sin entrevistas programadas</p>
-          }
-        </div>
-      </div>
-
-      <div class="kanban-column">
-        <div class="column-header">
-          <h3 translate="no">Contratado</h3>
-          <span class="badge" style="background-color: #dcfce7; color: #16a34a;">{{ contratados.length }}</span>
-        </div>
-        <div class="column-content">
-          @for (candidato of contratados; track candidato.id) {
-            <div class="kanban-card" style="border-left: 4px solid #16a34a;">
-              <div class="card-title">{{ candidato.nombre }}</div>
-              <div class="card-subtitle">{{ candidato.puesto }}</div>
-            </div>
-          } @empty {
-            <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 20px;">Aún no hay contrataciones</p>
-          }
-        </div>
-      </div>
+      }
 
     </div>
   }
