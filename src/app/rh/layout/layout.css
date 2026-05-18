@@ -267,3 +267,15 @@ html, body {
     padding-top: 64px; /* Deja espacio para la barra superior */
   }
 }
+.app-logo-img {
+  height: 36px; /* Ajusta la altura para que se vea bien junto al texto */
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Espacio entre el logo y el nombre del sistema */
+}
