@@ -13,10 +13,10 @@ import * as XLSX from 'xlsx';
 })
 export class HistorialComponent implements OnInit {
   private candidateService = inject(CandidateService);
-  
+
   candidatos: any[] = [];
   candidatosFiltrados: any[] = [];
-  
+
   cargando: boolean = true;
   terminoBusqueda: string = '';
 
@@ -24,11 +24,11 @@ export class HistorialComponent implements OnInit {
     await this.cargarHistorialCompleto();
   }
 
-async cargarHistorialCompleto() {
+  async cargarHistorialCompleto() {
     try {
       this.cargando = true;
       const todos = await this.candidateService.getCandidates();
-      
+
       // Aquí NO hay filtro de 48 horas. Pasan todos directo.
       // CORRECCIÓN: Le decimos a TypeScript que 'a' y 'b' son de tipo 'any'
       this.candidatos = todos.sort((a: any, b: any) => {
@@ -48,13 +48,13 @@ async cargarHistorialCompleto() {
 
   filtrarCandidatos() {
     const termino = this.terminoBusqueda.toLowerCase().trim();
-    
+
     if (!termino) {
       this.candidatosFiltrados = [...this.candidatos];
       return;
     }
 
-    this.candidatosFiltrados = this.candidatos.filter(c => 
+    this.candidatosFiltrados = this.candidatos.filter(c =>
       c.nombre.toLowerCase().includes(termino) ||
       c.puesto.toLowerCase().includes(termino) ||
       (c.ciudad && c.ciudad.toLowerCase().includes(termino))
@@ -83,21 +83,41 @@ async cargarHistorialCompleto() {
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  contactarWhatsApp(telefono: string, nombre: string) {
-    const numeroLimpio = telefono.replace(/\D/g, '');
-    const mensaje = `Hola ${nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu historial y nos gustaría platicar contigo sobre una nueva vacante.`;
+  async contactarWhatsApp(candidato: any) {
+    // 1. Abrimos la pestaña de WhatsApp (como ya lo hacíamos)
+    const numeroLimpio = candidato.telefono.replace(/\D/g, '');
+    const mensaje = `Hola ${candidato.nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu historial y nos gustaría platicar contigo sobre una nueva vacante.`;
     const url = `https://wa.me/52${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
-  }
 
+    // 2. LA MAGIA: Si el candidato era "nuevo", lo pasamos a "contacto_pendiente" automáticamente
+    if (candidato.status === 'nuevo') {
+      try {
+        // Actualizamos en la base de datos (Firebase)
+        await this.candidateService.updateCandidate(candidato.id, { status: 'contacto_pendiente' });
+
+        // Actualizamos visualmente en la tabla al instante (sin tener que recargar la página)
+        candidato.status = 'contacto_pendiente';
+
+      } catch (error) {
+        console.error('Error al automatizar el estatus:', error);
+      }
+    }
+  }
   async cambiarEstatus(idCandidato: string, event: any) {
     const nuevoEstatus = event.target.value;
     try {
+      // 1. Actualizamos el estatus en Firebase
       await this.candidateService.updateCandidate(idCandidato, { status: nuevoEstatus });
+
+      // 2. Actualizamos el estatus visualmente en tu tabla local
       const index = this.candidatosFiltrados.findIndex(c => c.id === idCandidato);
-      if (index !== -1) this.candidatosFiltrados[index].status = nuevoEstatus;
+      if (index !== -1) {
+        this.candidatosFiltrados[index].status = nuevoEstatus;
+      }
     } catch (error) {
-      console.error('Error al actualizar el estatus:', error);
+      console.error('Error al actualizar el estatus desde el selector:', error);
     }
   }
+
 }
