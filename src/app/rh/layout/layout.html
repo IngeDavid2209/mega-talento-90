@@ -1,5 +1,5 @@
 <div class="app-wrapper">
-  
+
   <div class="menu-backdrop" [class.show]="isMenuOpen" (click)="isMenuOpen = false"></div>
 
   <header class="top-bar">
@@ -11,12 +11,12 @@
       </button>
 
       <div class="brand-section">
-        <img src="assets/images/logo-md.png" alt="Logo Mega Dulces" class="app-logo-img"> 
-        
+        <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png"
+          alt="Logo Mega Dulces" class="app-logo-img">
         <h1 class="app-title">MEGA TALENTO 90</h1>
       </div>
     </div>
-    
+
     <div class="actions-section">
     </div>
   </header>
@@ -27,13 +27,14 @@
       <button class="close-btn" (click)="isMenuOpen = false">✕</button>
     </div>
 
-   <ul class="nav-list">
+    <ul class="nav-list">
       <li><a routerLink="/app/dashboard" routerLinkActive="active" (click)="isMenuOpen = false">Panel</a></li>
       <li><a routerLink="/app/kanban" routerLinkActive="active" (click)="isMenuOpen = false">Embudo de talento</a></li>
-      <li><a routerLink="/app/usuarios" routerLinkActive="active" (click)="isMenuOpen = false">Gestión de Usuarios</a></li>
-      
+      <li><a routerLink="/app/usuarios" routerLinkActive="active" (click)="isMenuOpen = false">Gestión de Usuarios</a>
+      </li>
+
       <li><a routerLink="/app/historial" routerLinkActive="active" (click)="isMenuOpen = false">Historial</a></li>
-      
+
       <li><a routerLink="/unete" routerLinkActive="active" (click)="isMenuOpen = false">Ver Formulario público</a></li>
       <li class="divider"></li>
       <li><a routerLink="/login" class="logout-link" (click)="isMenuOpen = false">Salir</a></li>
