@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
-
+import { NgZone } from '@angular/core';
 // Interfaz para el sistema de control de riesgos (OFERTA)
+
+
 interface OfertaChecklist {
   ofertaAceptada: 'gris' | 'amarillo' | 'verde' | 'rojo';
   documentacion: 'gris' | 'amarillo' | 'verde' | 'rojo';
@@ -39,7 +41,7 @@ interface KanbanColumn {
 })
 export class KanbanComponent implements OnInit {
   private candidateService = inject(CandidateService);
-  
+  private ngZone = inject(NgZone);
   cargando = true;
   candidatos: any[] = [];
   columnas: KanbanColumn[] = [];
@@ -69,16 +71,17 @@ export class KanbanComponent implements OnInit {
 async cargarTodo() {
     this.cargando = true;
     try {
-      // Usamos el nuevo método en tiempo real en lugar de getCandidates()
       this.candidateService.listenToCandidates((datosFrescos) => {
-        this.candidatos = datosFrescos;
-        
-        // Recalculamos la vista y los KPIs CADA VEZ que Firebase detecta un cambio
-        this.calcularMétricas();
-        this.filtrarYArmarTablero();
-        
-        // Apagamos la pantalla de carga al recibir el primer paquete de datos
-        this.cargando = false; 
+        // ngZone obliga a Angular a repintar el HTML inmediatamente
+        this.ngZone.run(() => {
+          this.candidatos = datosFrescos;
+          
+          // Se recalculan los KPIs con los datos reales
+          this.calcularMétricas();
+          this.filtrarYArmarTablero();
+          
+          this.cargando = false; 
+        });
       });
     } catch (error) {
       console.error('Error conectando el tablero en vivo:', error);
