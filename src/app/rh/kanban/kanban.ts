@@ -205,4 +205,29 @@ export class KanbanComponent implements OnInit {
     const numeroLimpio = telefono.replace(/\D/g, '');
     window.open(`https://wa.me/52${numeroLimpio}`, '_blank');
   }
+  // Función para ciclar el estado del checklist
+  async cambiarEstadoIcono(candidato: any, key: keyof OfertaChecklist) {
+    if (!candidato.ofertaChecklist) return;
+
+    const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
+    const actual = candidato.ofertaChecklist[key];
+    const indexActual = estados.indexOf(actual);
+    const siguienteIndex = (indexActual + 1) % estados.length;
+    
+    // Actualizamos localmente
+    candidato.ofertaChecklist[key] = estados[siguienteIndex];
+
+    // Persistimos en Firebase
+    try {
+      await this.candidateService.updateCandidate(candidato.id, {
+        ofertaChecklist: candidato.ofertaChecklist
+      });
+      // Recalculamos la barra de progreso al instante
+      this.getProgresoOferta(candidato);
+    } catch (error) {
+      console.error('Error al actualizar checklist:', error);
+      // Revertimos si falla
+      candidato.ofertaChecklist[key] = actual;
+    }
+  }
 }

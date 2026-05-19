@@ -389,3 +389,14 @@
   border-radius: 2px; 
   transition: width 0.3s ease; 
 }
+.icon-status { 
+  font-size: 14px; 
+  opacity: 0.3; 
+  transition: all 0.2s ease; 
+  cursor: pointer; /* <--- Esto cambia el cursor a una manita */
+}
+
+.icon-status:hover {
+  transform: scale(1.3); /* <--- Un pequeño efecto al pasar el mouse */
+  opacity: 0.8;
+}

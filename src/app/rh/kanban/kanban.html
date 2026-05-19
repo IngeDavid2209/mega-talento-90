@@ -79,17 +79,17 @@
                   <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
                 </div>
 
-                @if (candidato.status === 'oferta') {
+               @if (candidato.status === 'oferta') {
                   <div class="oferta-checklist">
                     <div class="progress-bar-container">
                       <div class="progress-bar" [style.width.%]="getProgresoOferta(candidato)"></div>
                     </div>
                     <div class="checklist-icons">
-                      <span [class]="'icon-status ' + (candidato.ofertaChecklist?.ofertaAceptada || 'gris')" title="Oferta">💰</span>
-                      <span [class]="'icon-status ' + (candidato.ofertaChecklist?.documentacion || 'gris')" title="Docs">📄</span>
-                      <span [class]="'icon-status ' + (candidato.ofertaChecklist?.aprobacionJefe || 'gris')" title="Jefe">👨‍💼</span>
-                      <span [class]="'icon-status ' + (candidato.ofertaChecklist?.fechaIngreso || 'gris')" title="Fecha">📅</span>
-                      <span [class]="'icon-status ' + (candidato.ofertaChecklist?.confirmacionFinal || 'gris')" title="Conf.">📞</span>
+                      <span class="icon-status" [class]="candidato.ofertaChecklist?.ofertaAceptada || 'gris'" (click)="cambiarEstadoIcono(candidato, 'ofertaAceptada')" title="Oferta">💰</span>
+                      <span class="icon-status" [class]="candidato.ofertaChecklist?.documentacion || 'gris'" (click)="cambiarEstadoIcono(candidato, 'documentacion')" title="Docs">📄</span>
+                      <span class="icon-status" [class]="candidato.ofertaChecklist?.aprobacionJefe || 'gris'" (click)="cambiarEstadoIcono(candidato, 'aprobacionJefe')" title="Jefe">👨‍💼</span>
+                      <span class="icon-status" [class]="candidato.ofertaChecklist?.fechaIngreso || 'gris'" (click)="cambiarEstadoIcono(candidato, 'fechaIngreso')" title="Fecha">📅</span>
+                      <span class="icon-status" [class]="candidato.ofertaChecklist?.confirmacionFinal || 'gris'" (click)="cambiarEstadoIcono(candidato, 'confirmacionFinal')" title="Conf.">📞</span>
                     </div>
                   </div>
                 }
