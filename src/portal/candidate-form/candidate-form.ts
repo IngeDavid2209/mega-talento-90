@@ -33,8 +33,10 @@ export class CandidateFormComponent {
   ciudades = [
     'La Piedad',
     'Santa Ana',
+    'Zamora',
     'Morelia',
-    'Yurécuaro'
+    'Yurécuaro',
+    'Otro'
   ];
 
   puestos = [
@@ -44,7 +46,8 @@ export class CandidateFormComponent {
     'Chofer Repartidor',
     'Gerente de Sucursal',
     'Personal Administrativo',
-    'Anaquelista'
+    'Anaquelista',
+    'Otro'
   ];
 
   fuentes = [
