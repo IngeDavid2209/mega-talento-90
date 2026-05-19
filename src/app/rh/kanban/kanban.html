@@ -105,6 +105,9 @@
                       <span class="icon-status" [class]="candidato.contratadoChecklist?.asistenciaPrimerDia || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'asistenciaPrimerDia')" title="Asistió Primer Día">✅</span>
                     </div>
                   </div>
+                  <div class="permanencia-badge" [ngClass]="getClasePermanencia(getDiasPermanencia(candidato.hiredAt))">
+                      {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
+                    </div>
                 }
                 
                 <div class="card-actions">

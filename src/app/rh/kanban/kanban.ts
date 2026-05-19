@@ -324,4 +324,40 @@ calcularMétricas() {
     const numeroLimpio = telefono.replace(/\D/g, '');
     window.open(`https://wa.me/52${numeroLimpio}`, '_blank');
   }
+
+  // --- LÓGICA DE PERMANENCIA Y RETENCIÓN ---
+  getDiasPermanencia(hiredAt: any): number {
+    if (!hiredAt) return 0;
+    
+    let fechaIngreso: Date;
+    // Manejo seguro de fechas de Firebase
+    if (typeof hiredAt.toDate === 'function') {
+      fechaIngreso = hiredAt.toDate();
+    } else {
+      fechaIngreso = new Date(hiredAt);
+    }
+    
+    const hoy = new Date();
+    // Reiniciamos horas para calcular días exactos
+    hoy.setHours(0, 0, 0, 0);
+    fechaIngreso.setHours(0, 0, 0, 0);
+    
+    const diffTime = hoy.getTime() - fechaIngreso.getTime();
+    return Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+  }
+
+  getEtiquetaPermanencia(dias: number): string {
+    if (dias === 0) return '⏳ Ingreso hoy (Crítico)';
+    if (dias < 7) return `⏳ ${dias} días (Riesgo Alto)`;
+    if (dias < 15) return `⏳ ${dias} días (Estable)`;
+    if (dias < 30) return `⏳ ${dias} días (Avanzado)`;
+    return `✅ Consolidado (+30 días)`;
+  }
+
+  getClasePermanencia(dias: number): string {
+    if (dias < 7) return 'badge-critico';
+    if (dias < 15) return 'badge-estable';
+    if (dias < 30) return 'badge-avanzado';
+    return 'badge-consolidado';
+  }
 }
