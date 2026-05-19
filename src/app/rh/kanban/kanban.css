@@ -347,3 +347,45 @@
   /* En teléfonos muy pequeños, los indicadores se ponen en una sola lista hacia abajo */
   .metrics-bar { grid-template-columns: 1fr; }
 }
+/* ==============================
+   CHECKLIST DE AUDITORÍA (OFERTA)
+   ============================== */
+.oferta-checklist { 
+  margin-top: 12px; 
+  padding-top: 8px; 
+  border-top: 1px solid #f1f5f9; 
+}
+
+.checklist-icons { 
+  display: flex; 
+  justify-content: space-between; 
+  margin-top: 6px; 
+}
+
+.icon-status { 
+  font-size: 14px; 
+  opacity: 0.3; 
+  transition: opacity 0.3s; 
+  cursor: help; /* Indica al usuario que es informativo */
+}
+
+/* Colores dinámicos del checklist */
+.icon-status.amarillo { opacity: 1; color: #fbbf24; }
+.icon-status.verde { opacity: 1; color: #22c55e; }
+.icon-status.rojo { opacity: 1; color: #ef4444; }
+.icon-status.gris { opacity: 0.3; }
+
+/* Barra de progreso de validación */
+.progress-bar-container { 
+  height: 4px; 
+  background: #e2e8f0; 
+  border-radius: 2px; 
+  margin-bottom: 8px; 
+}
+
+.progress-bar { 
+  height: 100%; 
+  background: #3b82f6; 
+  border-radius: 2px; 
+  transition: width 0.3s ease; 
+}

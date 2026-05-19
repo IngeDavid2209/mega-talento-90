@@ -1,10 +1,18 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // <-- NECESARIO PARA LOS FILTROS
-import { CandidateService } from '../../core/services/candidate'; 
+import { FormsModule } from '@angular/forms';
+import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
 
-// Interfaz para definir la estructura de las columnas
+// Interfaz para el sistema de control de riesgos
+interface OfertaChecklist {
+  ofertaAceptada: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  documentacion: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  aprobacionJefe: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  fechaIngreso: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  confirmacionFinal: 'gris' | 'amarillo' | 'verde' | 'rojo';
+}
+
 interface KanbanColumn {
   id: string;
   title: string;
@@ -26,7 +34,6 @@ export class KanbanComponent implements OnInit {
   candidatos: any[] = [];
   columnas: KanbanColumn[] = [];
 
-  // Definición de las 6 etapas del embudo profesional
   statusConfig = [
     { id: 'nuevo', title: 'Nuevo' },
     { id: 'contacto_pendiente', title: 'Contacto' },
@@ -36,13 +43,11 @@ export class KanbanComponent implements OnInit {
     { id: 'rechazado', title: 'Rechazado' }
   ];
 
-  // Variables para Métricas (KPIs)
   kpiTotalCandidatos = 0;
   kpiTasaConversion = 0;
   kpiTiempoPromedio = 0;
-  kpiMetaContrataciones = 20; // Puedes cambiar esto a dinámico después
+  kpiMetaContrataciones = 20;
 
-  // Variables para Filtros
   filtroPuesto = '';
   filtroCiudad = '';
   filtroFecha = '';
@@ -64,15 +69,11 @@ export class KanbanComponent implements OnInit {
     }
   }
 
-  // FUNCIÓN 1: CÁLCULO DE KPIs
   calcularMétricas() {
     this.kpiTotalCandidatos = this.candidatos.length;
-    
     const contratados = this.candidatos.filter(c => c.status === 'contratado').length;
     this.kpiTasaConversion = this.kpiTotalCandidatos > 0 ? (contratados / this.kpiTotalCandidatos) * 100 : 0;
-
-    // Cálculo básico de tiempo promedio (usando createdAt hasta hoy si no está contratado)
-    // Para ser preciso, necesitas un campo 'hiredAt' en Firebase. Por ahora usaremos el promedio general.
+    
     let diasTotales = 0;
     this.candidatos.forEach(c => {
       if (c.createdAt) {
@@ -85,21 +86,24 @@ export class KanbanComponent implements OnInit {
     this.kpiTiempoPromedio = this.kpiTotalCandidatos > 0 ? Math.round(diasTotales / this.kpiTotalCandidatos) : 0;
   }
 
-  // FUNCIÓN 2: LÓGICA DE FILTROS EN TIEMPO REAL
+  // Lógica de auditoría: Calcular porcentaje de progreso visual
+  getProgresoOferta(candidato: any): number {
+    if (!candidato.ofertaChecklist) return 0;
+    const items = Object.values(candidato.ofertaChecklist);
+    const completados = items.filter(val => val === 'verde').length;
+    return (completados / items.length) * 100;
+  }
+
   filtrarYArmarTablero() {
     let candidatosFiltrados = [...this.candidatos];
-
     if (this.filtroPuesto) {
       const puestoLower = this.filtroPuesto.toLowerCase();
       candidatosFiltrados = candidatosFiltrados.filter(c => c.puesto.toLowerCase().includes(puestoLower));
     }
-
     if (this.filtroCiudad) {
       const ciudadLower = this.filtroCiudad.toLowerCase();
       candidatosFiltrados = candidatosFiltrados.filter(c => (c.ciudad || c.sucursal || '').toLowerCase().includes(ciudadLower));
     }
-
-    // Filtro básico de fecha (coincidencia exacta por ahora, ajustable a rango)
     if (this.filtroFecha) {
       candidatosFiltrados = candidatosFiltrados.filter(c => {
         if (!c.createdAt) return false;
@@ -107,7 +111,6 @@ export class KanbanComponent implements OnInit {
         return fechaCandidato === this.filtroFecha;
       });
     }
-
     this.armarTablero(candidatosFiltrados);
   }
 
@@ -123,65 +126,62 @@ export class KanbanComponent implements OnInit {
     });
   }
 
-  // FUNCIÓN 3: DRAG & DROP (HTML Nativo)
   candidatoArrastradoId: string | null = null;
-  columnaOverId: string | null = null;
-
-  // Se ejecuta al empezar a arrastrar una tarjeta
   onDragStart(event: DragEvent, candidatoId: string) {
     this.candidatoArrastradoId = candidatoId;
     (event.target as HTMLElement).classList.add('is-dragging');
   }
 
-  // Se ejecuta cuando dejas de arrastrar
   onDragEnd(event: DragEvent) {
     (event.target as HTMLElement).classList.remove('is-dragging');
   }
 
-  // Se ejecuta cuando pasas una tarjeta SOBRE una columna (hay que cancelarlo para permitir soltar)
   onDragOver(event: DragEvent, columnaId: string) {
-    event.preventDefault(); // <-- Importante: permite el drop
-    this.columnaOverId = columnaId;
+    event.preventDefault();
   }
 
-  // Se ejecuta cuando sueltas la tarjeta en una columna
   async onDrop(event: DragEvent, columnaDestinoId: string) {
     event.preventDefault();
     if (!this.candidatoArrastradoId) return;
 
     const id = this.candidatoArrastradoId;
-    this.candidatoArrastradoId = null; // Limpiamos
+    this.candidatoArrastradoId = null;
 
-    // Encontramos el candidato en local
     const index = this.candidatos.findIndex(c => c.id === id);
     if (index === -1) return;
-
-    // Si no cambió de estatus, no hacemos nada
     if (this.candidatos[index].status === columnaDestinoId) return;
 
-    // Optimizamos en vista (Movimiento optimista)
     const estatusAnterior = this.candidatos[index].status;
     this.candidatos[index].status = columnaDestinoId;
     
-    // Si se contrató o rechazó, deberíamos agregar la fecha final.
     const actualizacionData: any = { status: columnaDestinoId };
+
+    // Automatización: Inicializar checklist si entra en oferta
+    if (columnaDestinoId === 'oferta' && !this.candidatos[index].ofertaChecklist) {
+      actualizacionData.ofertaChecklist = {
+        ofertaAceptada: 'gris',
+        documentacion: 'gris',
+        aprobacionJefe: 'gris',
+        fechaIngreso: 'gris',
+        confirmacionFinal: 'gris'
+      };
+      this.candidatos[index].ofertaChecklist = actualizacionData.ofertaChecklist;
+    }
+
     if (columnaDestinoId === 'contratado') actualizacionData.hiredAt = Timestamp.now();
     if (columnaDestinoId === 'rechazado') actualizacionData.rejectedAt = Timestamp.now();
 
     try {
-      this.filtrarYArmarTablero(); // Actualizamos vista local rápido
+      this.filtrarYArmarTablero();
       await this.candidateService.updateCandidate(id, actualizacionData);
-      // Recalculamos KPIs por si acaso (ej. cambió contratado)
       this.calcularMétricas();
     } catch (error) {
       console.error('Error al mover candidato:', error);
-      // Revertimos en local si falla Firebase
       this.candidatos[index].status = estatusAnterior;
       this.filtrarYArmarTablero();
     }
   }
 
-  // Funciones Auxiliares para UI
   getAvatarColor(nombre: string): string {
     if (!nombre) return '#64748b';
     const colores = ['#f87171', '#fb923c', '#4ade80', '#22d3ee', '#818cf8', '#c084fc'];
@@ -192,20 +192,17 @@ export class KanbanComponent implements OnInit {
   formatearFecha(timestamp: any): string {
     if (!timestamp) return 'S/F';
     const date = timestamp.toDate();
-    const options: any = { day: '2-digit', month: 'short' }; // ej. "12 oct"
-    return date.toLocaleDateString('es-MX', options);
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
   }
 
-  // Alerta si lleva más de 3 días en "Nuevo"
   isCandidatoAlerta(candidato: any): boolean {
     if (candidato.status !== 'nuevo' || !candidato.createdAt) return false;
     const diasTotal = Math.ceil(Math.abs(new Date().getTime() - candidato.createdAt.toDate().getTime()) / (1000 * 60 * 60 * 24));
     return diasTotal > 3;
   }
 
-contactarWhatsApp(telefono: string) {
+  contactarWhatsApp(telefono: string) {
     const numeroLimpio = telefono.replace(/\D/g, '');
-    const url = `https://wa.me/52${numeroLimpio}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/52${numeroLimpio}`, '_blank');
   }
 }
