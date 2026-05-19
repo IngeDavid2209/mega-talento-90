@@ -4,13 +4,23 @@ import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
 
-// Interfaz para el sistema de control de riesgos
+// Interfaz para el sistema de control de riesgos (OFERTA)
 interface OfertaChecklist {
   ofertaAceptada: 'gris' | 'amarillo' | 'verde' | 'rojo';
   documentacion: 'gris' | 'amarillo' | 'verde' | 'rojo';
   aprobacionJefe: 'gris' | 'amarillo' | 'verde' | 'rojo';
   fechaIngreso: 'gris' | 'amarillo' | 'verde' | 'rojo';
   confirmacionFinal: 'gris' | 'amarillo' | 'verde' | 'rojo';
+}
+
+// Interfaz para el sistema de control post-ingreso (CONTRATADO)
+interface ContratadoChecklist {
+  contratoFirmado: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  altaAdministrativa: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  altaImss: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  entregaHerramientas: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  induccion: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  asistenciaPrimerDia: 'gris' | 'amarillo' | 'verde' | 'rojo';
 }
 
 interface KanbanColumn {
@@ -29,11 +39,11 @@ interface KanbanColumn {
 })
 export class KanbanComponent implements OnInit {
   private candidateService = inject(CandidateService);
-
+  
   cargando = true;
   candidatos: any[] = [];
   columnas: KanbanColumn[] = [];
-
+  
   statusConfig = [
     { id: 'nuevo', title: 'Nuevo' },
     { id: 'contacto_pendiente', title: 'Contacto' },
@@ -42,12 +52,12 @@ export class KanbanComponent implements OnInit {
     { id: 'contratado', title: 'Contratado' },
     { id: 'rechazado', title: 'Rechazado' }
   ];
-
+  
   kpiTotalCandidatos = 0;
   kpiTasaConversion = 0;
   kpiTiempoPromedio = 0;
   kpiMetaContrataciones = 20;
-
+  
   filtroPuesto = '';
   filtroCiudad = '';
   filtroFecha = '';
@@ -86,12 +96,58 @@ export class KanbanComponent implements OnInit {
     this.kpiTiempoPromedio = this.kpiTotalCandidatos > 0 ? Math.round(diasTotales / this.kpiTotalCandidatos) : 0;
   }
 
-  // Lógica de auditoría: Calcular porcentaje de progreso visual
+  // --- LÓGICA DE AUDITORÍA: OFERTA ---
   getProgresoOferta(candidato: any): number {
     if (!candidato.ofertaChecklist) return 0;
     const items = Object.values(candidato.ofertaChecklist);
     const completados = items.filter(val => val === 'verde').length;
     return (completados / items.length) * 100;
+  }
+
+  async cambiarEstadoIcono(candidato: any, key: keyof OfertaChecklist) {
+    if (!candidato.ofertaChecklist) return;
+    const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
+    const actual = candidato.ofertaChecklist[key];
+    const indexActual = estados.indexOf(actual);
+    const siguienteIndex = (indexActual + 1) % estados.length;
+    
+    candidato.ofertaChecklist[key] = estados[siguienteIndex];
+    try {
+      await this.candidateService.updateCandidate(candidato.id, {
+        ofertaChecklist: candidato.ofertaChecklist
+      });
+      this.getProgresoOferta(candidato);
+    } catch (error) {
+      console.error('Error al actualizar checklist:', error);
+      candidato.ofertaChecklist[key] = actual;
+    }
+  }
+
+  // --- LÓGICA DE AUDITORÍA: CONTRATADO ---
+  getProgresoContratado(candidato: any): number {
+    if (!candidato.contratadoChecklist) return 0;
+    const items = Object.values(candidato.contratadoChecklist);
+    const completados = items.filter(val => val === 'verde').length;
+    return (completados / items.length) * 100;
+  }
+
+  async cambiarEstadoIconoContratado(candidato: any, key: keyof ContratadoChecklist) {
+    if (!candidato.contratadoChecklist) return;
+    const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
+    const actual = candidato.contratadoChecklist[key];
+    const indexActual = estados.indexOf(actual);
+    const siguienteIndex = (indexActual + 1) % estados.length;
+    
+    candidato.contratadoChecklist[key] = estados[siguienteIndex];
+    try {
+      await this.candidateService.updateCandidate(candidato.id, {
+        contratadoChecklist: candidato.contratadoChecklist
+      });
+      this.getProgresoContratado(candidato);
+    } catch (error) {
+      console.error('Error al actualizar checklist de contratado:', error);
+      candidato.contratadoChecklist[key] = actual;
+    }
   }
 
   filtrarYArmarTablero() {
@@ -127,6 +183,7 @@ export class KanbanComponent implements OnInit {
   }
 
   candidatoArrastradoId: string | null = null;
+  
   onDragStart(event: DragEvent, candidatoId: string) {
     this.candidatoArrastradoId = candidatoId;
     (event.target as HTMLElement).classList.add('is-dragging');
@@ -153,10 +210,10 @@ export class KanbanComponent implements OnInit {
 
     const estatusAnterior = this.candidatos[index].status;
     this.candidatos[index].status = columnaDestinoId;
-    
+
     const actualizacionData: any = { status: columnaDestinoId };
 
-    // Automatización: Inicializar checklist si entra en oferta
+    // Automatización OFERTA
     if (columnaDestinoId === 'oferta' && !this.candidatos[index].ofertaChecklist) {
       actualizacionData.ofertaChecklist = {
         ofertaAceptada: 'gris',
@@ -168,7 +225,23 @@ export class KanbanComponent implements OnInit {
       this.candidatos[index].ofertaChecklist = actualizacionData.ofertaChecklist;
     }
 
-    if (columnaDestinoId === 'contratado') actualizacionData.hiredAt = Timestamp.now();
+    // Automatización CONTRATADO
+    if (columnaDestinoId === 'contratado') {
+      actualizacionData.hiredAt = Timestamp.now();
+      
+      if (!this.candidatos[index].contratadoChecklist) {
+        actualizacionData.contratadoChecklist = {
+          contratoFirmado: 'gris', 
+          altaAdministrativa: 'gris', 
+          altaImss: 'gris',
+          entregaHerramientas: 'gris', 
+          induccion: 'gris', 
+          asistenciaPrimerDia: 'gris'
+        };
+        this.candidatos[index].contratadoChecklist = actualizacionData.contratadoChecklist;
+      }
+    }
+
     if (columnaDestinoId === 'rechazado') actualizacionData.rejectedAt = Timestamp.now();
 
     try {
@@ -204,30 +277,5 @@ export class KanbanComponent implements OnInit {
   contactarWhatsApp(telefono: string) {
     const numeroLimpio = telefono.replace(/\D/g, '');
     window.open(`https://wa.me/52${numeroLimpio}`, '_blank');
-  }
-  // Función para ciclar el estado del checklist
-  async cambiarEstadoIcono(candidato: any, key: keyof OfertaChecklist) {
-    if (!candidato.ofertaChecklist) return;
-
-    const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
-    const actual = candidato.ofertaChecklist[key];
-    const indexActual = estados.indexOf(actual);
-    const siguienteIndex = (indexActual + 1) % estados.length;
-    
-    // Actualizamos localmente
-    candidato.ofertaChecklist[key] = estados[siguienteIndex];
-
-    // Persistimos en Firebase
-    try {
-      await this.candidateService.updateCandidate(candidato.id, {
-        ofertaChecklist: candidato.ofertaChecklist
-      });
-      // Recalculamos la barra de progreso al instante
-      this.getProgresoOferta(candidato);
-    } catch (error) {
-      console.error('Error al actualizar checklist:', error);
-      // Revertimos si falla
-      candidato.ofertaChecklist[key] = actual;
-    }
   }
 }

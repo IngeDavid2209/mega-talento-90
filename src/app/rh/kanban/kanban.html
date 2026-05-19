@@ -1,12 +1,11 @@
 <div class="kanban-wrapper">
-  
   <div class="kanban-header">
     <div>
       <h2>Embudo de talento Mega</h2>
       <p class="subtitle">Gestiona el flujo de reclutamiento</p>
     </div>
   </div>
-
+  
   <div class="metrics-bar">
     <div class="metric-card">
       <span class="metric-label">Total Candidatos</span>
@@ -25,37 +24,36 @@
       <span class="metric-value">{{ kpiMetaContrataciones }}</span>
     </div>
   </div>
-
+  
   <div class="filter-bar">
     <input type="text" class="filter-input" placeholder="🔍 Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
     <input type="text" class="filter-input" placeholder="📍 Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
     <input type="date" class="filter-input" [(ngModel)]="filtroFecha" (input)="filtrarYArmarTablero()">
   </div>
-
+  
   @if (cargando) {
     <p class="loading-tablero">Abriendo embudo de talentos...</p>
   } @else {
     <div class="board-container">
-      
       @for (columna of columnas; track columna.id) {
         <div class="kanban-column"
              [class]="'status-' + columna.id"
              (dragover)="onDragOver($event, columna.id)"
              (drop)="onDrop($event, columna.id)">
-          
+             
           <div class="column-header">
             <h3>{{ columna.title }}</h3>
             <span class="badge">{{ columna.count }}</span>
           </div>
-
+          
           <div class="column-content">
             @for (candidato of columna.candidates; track candidato.id) {
-              <div class="kanban-card" 
+              <div class="kanban-card"
                    [class.card-alerta]="isCandidatoAlerta(candidato)"
-                   draggable="true" 
+                   draggable="true"
                    (dragstart)="onDragStart($event, candidato.id)"
                    (dragend)="onDragEnd($event)">
-                
+                   
                 <div class="card-body">
                   <div class="card-avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
                     {{ candidato.nombre.charAt(0) }}
@@ -63,7 +61,6 @@
                   <div class="card-info">
                     <p class="card-title">{{ candidato.nombre }}</p>
                     <p class="card-subtitle">{{ candidato.puesto }}</p>
-                    
                     <div class="card-score">
                       <span class="dot active"></span>
                       <span class="dot active"></span>
@@ -78,8 +75,8 @@
                   <span class="card-meta">📍 {{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
                   <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
                 </div>
-
-               @if (candidato.status === 'oferta') {
+                
+                @if (candidato.status === 'oferta') {
                   <div class="oferta-checklist">
                     <div class="progress-bar-container">
                       <div class="progress-bar" [style.width.%]="getProgresoOferta(candidato)"></div>
@@ -93,6 +90,23 @@
                     </div>
                   </div>
                 }
+                
+                @if (candidato.status === 'contratado') {
+                  <div class="contratado-checklist">
+                    <div class="progress-bar-container">
+                      <div class="progress-bar progress-success" [style.width.%]="getProgresoContratado(candidato)"></div>
+                    </div>
+                    <div class="checklist-icons">
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoFirmado')" title="Contrato Firmado">📝</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.altaAdministrativa || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'altaAdministrativa')" title="Alta Administrativa">🏢</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.altaImss || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'altaImss')" title="Alta IMSS">🛡️</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.entregaHerramientas || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'entregaHerramientas')" title="Herramientas/Uniforme">👕</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'induccion')" title="Inducción Completada">📚</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.asistenciaPrimerDia || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'asistenciaPrimerDia')" title="Asistió Primer Día">✅</span>
+                    </div>
+                  </div>
+                }
+                
                 <div class="card-actions">
                   <button class="action-btn contact" (click)="contactarWhatsApp(candidato.telefono)">📞 Contactar</button>
                   <button class="action-btn view">📄 Ver CV</button>
