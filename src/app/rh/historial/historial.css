@@ -49,7 +49,6 @@
 .status-select.contratado { background-color: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
 
 .loading-state, .empty-state { text-align: center; padding: 60px 20px; color: #64748b; font-size: 15px; }
-
 /* ==============================
    DISEÑO RESPONSIVO (MÓVILES) - HISTORIAL
    ============================== */
@@ -67,57 +66,57 @@
   .stat-card div:last-child { text-align: left !important; }
 
   /* ==============================
-     MAGIA CSS: TABLA A VISTA DE TARJETAS
+     CORRECCIÓN DE LA TABLA (TARJETAS)
      ============================== */
-  /* Forzamos que la tabla no actúe como tabla en celular */
+  /* 1. Evitamos que la tarjeta se desborde hacia la derecha */
+  .table-responsive { overflow-x: hidden !important; }
+  
+  /* 2. Matamos el ancho de 800px de la versión de escritorio */
+  .data-table { min-width: 0 !important; width: 100% !important; }
+
+  /* 3. Estructura de tarjeta */
   .data-table, .data-table tbody, .data-table tr, .data-table td {
     display: block;
     width: 100%;
     box-sizing: border-box;
   }
   
-  /* Escondemos las cabeceras superiores de la tabla */
-  .data-table thead {
-    display: none; 
-  }
+  .data-table thead { display: none; }
   
-  /* Convertimos cada fila en una "tarjeta" individual */
   .data-table tr {
     margin-bottom: 16px;
-    background-color: #f8fafc;
+    background-color: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     padding: 8px 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Le damos un ligero relieve */
   }
   
-  /* Alineamos el contenido de cada celda */
+  /* 4. Acomodo de las filas internas de la tarjeta */
   .data-table td {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
     text-align: right;
+    gap: 16px; /* Espacio para que el texto no se pegue a la etiqueta */
   }
   
-  /* Quitamos el borde al último elemento de la tarjeta */
-  .data-table td:last-child {
-    border-bottom: none;
-  }
+  .data-table td:last-child { border-bottom: none; }
   
-  /* Inyectamos el nombre de la columna (tomado del HTML) antes del dato */
   .data-table td::before {
     content: attr(data-label);
     font-weight: 700;
     color: #64748b;
     font-size: 11px;
     text-transform: uppercase;
-    margin-right: 16px;
+    flex-shrink: 0; /* Evita que la etiqueta se aplaste */
     text-align: left;
   }
   
-  /* Ajustamos los elementos internos para que no choquen con la etiqueta izquierda */
-  .user-info { justify-content: flex-end; }
-  .phone-action-cell { justify-content: flex-end; }
-  .status-select { max-width: 150px; }
+  /* 5. Ajustes internos para que los botones y textos fluyan bien */
+  .user-info { justify-content: flex-end; width: 100%; }
+  .phone-action-cell { justify-content: flex-end; width: 100%; flex-wrap: wrap; gap: 8px; }
+  .status-select { max-width: 160px; font-size: 11px; padding: 6px 24px 6px 12px; }
 }
