@@ -12,14 +12,17 @@
 .header p { color: #64748b; margin-top: 0; margin-bottom: 32px; font-size: 15px; }
 
 .stats-grid { display: grid; gap: 24px; margin-bottom: 32px; }
+
 .stat-card { background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
 .stat-card h3 { margin: 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .stat-number { margin: 12px 0 0; font-size: 36px; font-weight: 800; color: #0f172a; }
 
 .table-card { background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+
 .table-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
 .search-input { flex: 1; min-width: 280px; max-width: 400px; padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; outline: none; }
 .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
 .btn-excel { background-color: #10b981; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-excel:hover { background-color: #059669; }
 
@@ -47,24 +50,74 @@
 
 .loading-state, .empty-state { text-align: center; padding: 60px 20px; color: #64748b; font-size: 15px; }
 
-@media (max-width: 768px) {
-  .dashboard-container { padding: 16px; }
-  .header h2 { font-size: 22px; }
-  .table-card { padding: 16px; }
-}
 /* ==============================
    DISEÑO RESPONSIVO (MÓVILES) - HISTORIAL
    ============================== */
 @media (max-width: 768px) {
   .dashboard-container { padding: 16px; }
   .header h2 { font-size: 22px; }
-  
+
   /* El buscador y botón de Excel se apilan */
   .table-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
   .search-input { min-width: 100%; max-width: 100%; width: 100%; }
   .btn-excel { width: 100%; text-align: center; }
-  
+
   /* Ajuste de las tarjetas de arriba */
   .stat-card { flex-direction: column; align-items: flex-start !important; gap: 12px; }
   .stat-card div:last-child { text-align: left !important; }
+
+  /* ==============================
+     MAGIA CSS: TABLA A VISTA DE TARJETAS
+     ============================== */
+  /* Forzamos que la tabla no actúe como tabla en celular */
+  .data-table, .data-table tbody, .data-table tr, .data-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Escondemos las cabeceras superiores de la tabla */
+  .data-table thead {
+    display: none; 
+  }
+  
+  /* Convertimos cada fila en una "tarjeta" individual */
+  .data-table tr {
+    margin-bottom: 16px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 16px;
+  }
+  
+  /* Alineamos el contenido de cada celda */
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: right;
+  }
+  
+  /* Quitamos el borde al último elemento de la tarjeta */
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+  
+  /* Inyectamos el nombre de la columna (tomado del HTML) antes del dato */
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-right: 16px;
+    text-align: left;
+  }
+  
+  /* Ajustamos los elementos internos para que no choquen con la etiqueta izquierda */
+  .user-info { justify-content: flex-end; }
+  .phone-action-cell { justify-content: flex-end; }
+  .status-select { max-width: 150px; }
 }
