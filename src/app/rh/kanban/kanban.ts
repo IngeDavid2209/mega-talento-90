@@ -89,21 +89,57 @@ async cargarTodo() {
     }
   }
 
-  calcularMétricas() {
-    this.kpiTotalCandidatos = this.candidatos.length;
-    const contratados = this.candidatos.filter(c => c.status === 'contratado').length;
-    this.kpiTasaConversion = this.kpiTotalCandidatos > 0 ? (contratados / this.kpiTotalCandidatos) * 100 : 0;
-    
-    let diasTotales = 0;
-    this.candidatos.forEach(c => {
-      if (c.createdAt) {
-        const fin = c.status === 'contratado' ? (c.hiredAt?.toDate() || new Date()) : new Date();
-        const inicio = c.createdAt.toDate();
-        const diffTime = Math.abs(fin.getTime() - inicio.getTime());
-        diasTotales += Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      }
-    });
-    this.kpiTiempoPromedio = this.kpiTotalCandidatos > 0 ? Math.round(diasTotales / this.kpiTotalCandidatos) : 0;
+calcularMétricas() {
+    try {
+      console.log("🔍 Calculando métricas para:", this.candidatos.length, "candidatos");
+      
+      // 1. Asignación directa del KPI principal
+      this.kpiTotalCandidatos = this.candidatos.length;
+      
+      // 2. Tasa de Conversión
+      const contratados = this.candidatos.filter(c => c.status === 'contratado').length;
+      this.kpiTasaConversion = this.kpiTotalCandidatos > 0 ? (contratados / this.kpiTotalCandidatos) * 100 : 0;
+      
+      // 3. Tiempo Promedio (Protegido contra fechas corruptas)
+      let diasTotales = 0;
+      let candidatosValidos = 0;
+
+      this.candidatos.forEach(c => {
+        try {
+          if (c.createdAt) {
+            // Evaluamos de forma segura si es un Timestamp de Firebase o un dato nativo
+            let inicio: Date;
+            if (typeof c.createdAt.toDate === 'function') {
+              inicio = c.createdAt.toDate();
+            } else {
+              inicio = new Date(c.createdAt); // Rescate si se guardó como string
+            }
+            
+            let fin = new Date(); // Por defecto es 'hoy'
+            
+            if (c.status === 'contratado' && c.hiredAt) {
+              if (typeof c.hiredAt.toDate === 'function') {
+                fin = c.hiredAt.toDate();
+              } else {
+                fin = new Date(c.hiredAt);
+              }
+            }
+
+            const diffTime = Math.abs(fin.getTime() - inicio.getTime());
+            diasTotales += Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            candidatosValidos++;
+          }
+        } catch (errorFecha) {
+          console.warn(`⚠️ Error al procesar las fechas de ${c.nombre || 'Candidato Desconocido'}:`, errorFecha);
+        }
+      });
+      
+      this.kpiTiempoPromedio = candidatosValidos > 0 ? Math.round(diasTotales / candidatosValidos) : 0;
+      console.log("✅ Métricas actualizadas con éxito. Total:", this.kpiTotalCandidatos);
+      
+    } catch (error) {
+      console.error("❌ Error crítico en la función calcularMétricas:", error);
+    }
   }
 
   // --- LÓGICA DE AUDITORÍA: OFERTA ---
