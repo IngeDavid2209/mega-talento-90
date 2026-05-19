@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-// Agregamos 'doc' y 'updateDoc' a la lista de importaciones
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from 'firebase/firestore';
+// Agregamos 'onSnapshot' para el tiempo real
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
@@ -22,7 +22,7 @@ export class CandidateService {
     console.log("1. Servicio contactado...");
     const newCandidate = {
       ...candidateData,
-      status: 'nuevo', // Lo dejamos como 'nuevo' para que caiga en la primera columna
+      status: 'nuevo',
       createdAt: new Date()
     };
     console.log("2. Enviando a Firebase...");
@@ -31,20 +31,31 @@ export class CandidateService {
     return docRef;
   }
 
+  // Mantenemos este por si lo usas en reportes estáticos
   async getCandidates() {
     const snapshot = await getDocs(collection(db, 'candidates'));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
-  // === NUEVO MÉTODO PARA EL KANBAN ===
+  // === NUEVO MÉTODO EN TIEMPO REAL PARA EL TABLERO ===
+  listenToCandidates(callback: (candidatos: any[]) => void) {
+    const queryRef = collection(db, 'candidates');
+    
+    // onSnapshot se queda "escuchando" la base de datos 24/7
+    const unsubscribe = onSnapshot(queryRef, (snapshot) => {
+      const candidatos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(candidatos); // Enviamos los datos frescos al componente
+    }, (error) => {
+      console.error("Error en la conexión en tiempo real:", error);
+    });
+
+    return unsubscribe;
+  }
+
   async updateCandidate(id: string, data: any) {
     try {
-      // Creamos la referencia al documento específico usando el ID
       const candidateRef = doc(db, 'candidates', id);
-      
-      // Aplicamos la actualización en Firebase
       await updateDoc(candidateRef, data);
-      
       return true;
     } catch (error) {
       console.error("Error al actualizar candidato:", error);
