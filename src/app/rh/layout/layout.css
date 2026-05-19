@@ -279,3 +279,36 @@ html, body {
   align-items: center;
   gap: 12px; /* Espacio entre el logo y el nombre del sistema */
 }
+/* ==============================
+   CORRECCIÓN DE TABLA EN MÓVILES (SCROLL HORIZONTAL)
+   ============================== */
+@media (max-width: 768px) {
+  /* Quitamos el margen lateral de la tarjeta para aprovechar la pantalla */
+  .table-card {
+    padding: 16px 0 !important; 
+  }
+  
+  /* Mantenemos el margen solo para el buscador y el botón */
+  .table-toolbar {
+    padding: 0 16px;
+  }
+
+  /* Forzamos el contenedor a permitir el deslizamiento con el dedo */
+  .table-responsive {
+    width: 100vw;
+    overflow-x: auto;
+    padding: 0 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Le decimos a la tabla que NUNCA mida menos de 900px (activa el scroll) */
+  .data-table {
+    min-width: 900px !important;
+  }
+
+  /* ¡LA MAGIA! Prohibimos que el texto se parta en varios renglones */
+  .data-table th, 
+  .data-table td {
+    white-space: nowrap !important;
+  }
+}
