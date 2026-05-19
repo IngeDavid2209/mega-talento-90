@@ -66,15 +66,22 @@ export class KanbanComponent implements OnInit {
     await this.cargarTodo();
   }
 
-  async cargarTodo() {
+async cargarTodo() {
     this.cargando = true;
     try {
-      this.candidatos = await this.candidateService.getCandidates();
-      this.calcularMétricas();
-      this.filtrarYArmarTablero();
+      // Usamos el nuevo método en tiempo real en lugar de getCandidates()
+      this.candidateService.listenToCandidates((datosFrescos) => {
+        this.candidatos = datosFrescos;
+        
+        // Recalculamos la vista y los KPIs CADA VEZ que Firebase detecta un cambio
+        this.calcularMétricas();
+        this.filtrarYArmarTablero();
+        
+        // Apagamos la pantalla de carga al recibir el primer paquete de datos
+        this.cargando = false; 
+      });
     } catch (error) {
-      console.error('Error cargando el tablero:', error);
-    } finally {
+      console.error('Error conectando el tablero en vivo:', error);
       this.cargando = false;
     }
   }
