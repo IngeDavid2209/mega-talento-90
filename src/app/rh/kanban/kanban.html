@@ -96,18 +96,16 @@
                     <div class="progress-bar-container">
                       <div class="progress-bar progress-success" [style.width.%]="getProgresoContratado(candidato)"></div>
                     </div>
-                    <div class="checklist-icons">
+                    <div class="checklist-icons" style="justify-content: space-around;">
                       <span class="icon-status" [class]="candidato.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoFirmado')" title="Contrato Firmado">📝</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.altaAdministrativa || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'altaAdministrativa')" title="Alta Administrativa">🏢</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.altaImss || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'altaImss')" title="Alta IMSS">🛡️</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.entregaHerramientas || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'entregaHerramientas')" title="Herramientas/Uniforme">👕</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'induccion')" title="Inducción Completada">📚</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.asistenciaPrimerDia || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'asistenciaPrimerDia')" title="Asistió Primer Día">✅</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoOms')" title="Contrato en OMS">💻</span>
+                      <span class="icon-status" [class]="candidato.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'induccion')" title="Inducción Completa">📚</span>
                     </div>
                   </div>
+                  
                   <div class="permanencia-badge" [ngClass]="getClasePermanencia(getDiasPermanencia(candidato.hiredAt))">
-                      {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
-                    </div>
+                    {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
+                  </div>
                 }
                 
                 <div class="card-actions">
