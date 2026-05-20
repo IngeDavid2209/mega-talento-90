@@ -4,22 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
 
-// Interfaz para el NUEVO sistema de control (PRIMER CONTACTO)
+// Interfaz para el sistema de control (PRIMER CONTACTO)
 interface ContactoChecklist {
   validacionExperiencia: 'gris' | 'amarillo' | 'verde' | 'rojo';
   escolaridad: 'gris' | 'amarillo' | 'verde' | 'rojo';
   zonaResidencia: 'gris' | 'amarillo' | 'verde' | 'rojo';
   sueldoEsperado: 'gris' | 'amarillo' | 'verde' | 'rojo';
   documentacionPreliminar: 'gris' | 'amarillo' | 'verde' | 'rojo';
-}
-
-// Interfaz para el sistema de control de riesgos (OFERTA)
-interface OfertaChecklist {
-  ofertaAceptada: 'gris' | 'amarillo' | 'verde' | 'rojo';
-  documentacion: 'gris' | 'amarillo' | 'verde' | 'rojo';
-  aprobacionJefe: 'gris' | 'amarillo' | 'verde' | 'rojo';
-  fechaIngreso: 'gris' | 'amarillo' | 'verde' | 'rojo';
-  confirmacionFinal: 'gris' | 'amarillo' | 'verde' | 'rojo';
 }
 
 // Interfaz para el sistema de control post-ingreso (CONTRATADO)
@@ -55,6 +46,17 @@ export class KanbanComponent implements OnInit {
   candidatoSeleccionado: any = null;
 
   abrirExpediente(candidato: any) {
+    // SEGURO: Si el candidato es viejo y no tiene los checklists, se los creamos en memoria al abrirlo
+    if (!candidato.contactoChecklist) {
+      candidato.contactoChecklist = {
+        validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris'
+      };
+    }
+    if (!candidato.contratadoChecklist) {
+      candidato.contratadoChecklist = {
+        contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris'
+      };
+    }
     this.candidatoSeleccionado = candidato;
   }
 
@@ -159,24 +161,6 @@ export class KanbanComponent implements OnInit {
       });
     } catch (error) {
       candidato.contactoChecklist[key] = actual;
-    }
-  }
-
-  // --- LÓGICA DE AUDITORÍA: OFERTA ---
-  async cambiarEstadoIcono(candidato: any, key: keyof OfertaChecklist) {
-    if (!candidato.ofertaChecklist) return;
-    const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
-    const actual = candidato.ofertaChecklist[key];
-    const indexActual = estados.indexOf(actual);
-    const siguienteIndex = (indexActual + 1) % estados.length;
-
-    candidato.ofertaChecklist[key] = estados[siguienteIndex];
-    try {
-      await this.candidateService.updateCandidate(candidato.id, {
-        ofertaChecklist: candidato.ofertaChecklist
-      });
-    } catch (error) {
-      candidato.ofertaChecklist[key] = actual;
     }
   }
 
@@ -294,15 +278,6 @@ export class KanbanComponent implements OnInit {
         sueldoEsperado: 'gris', documentacionPreliminar: 'gris'
       };
       this.candidatos[index].contactoChecklist = actualizacionData.contactoChecklist;
-    }
-
-    // AUTOMATIZACIÓN: Checklist Oferta
-    if (columnaDestinoId === 'oferta' && !this.candidatos[index].ofertaChecklist) {
-      actualizacionData.ofertaChecklist = {
-        ofertaAceptada: 'gris', documentacion: 'gris', aprobacionJefe: 'gris',
-        fechaIngreso: 'gris', confirmacionFinal: 'gris'
-      };
-      this.candidatos[index].ofertaChecklist = actualizacionData.ofertaChecklist;
     }
 
     // AUTOMATIZACIÓN: Checklist Contratado

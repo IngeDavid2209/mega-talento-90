@@ -117,36 +117,23 @@
 
       <div class="panel-content">
         <div class="panel-section">
-          <h4>Auditoría de Proceso</h4>
+          <h4>☑️ Auditoría de Proceso</h4>
           
-          @if (candidatoSeleccionado.status === 'contacto_pendiente') {
-            <p class="section-desc">Valida estos puntos en el primer contacto:</p>
-            <div class="checklist-icons">
-              <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.validacionExperiencia || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'validacionExperiencia')">Experiencia</span>
-              <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.escolaridad || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'escolaridad')">Escolaridad</span>
-              <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.zonaResidencia || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'zonaResidencia')">Zona</span>
-              <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.sueldoEsperado || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'sueldoEsperado')">Sueldo</span>
-              <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.documentacionPreliminar || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'documentacionPreliminar')">Docs Prelim</span>
-            </div>
-          } @else if (candidatoSeleccionado.status === 'oferta') {
-            <p class="section-desc">Valida estos puntos antes de la contratación:</p>
-            <div class="checklist-icons">
-              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.ofertaAceptada || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'ofertaAceptada')">Oferta</span>
-              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.documentacion || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'documentacion')">Docs</span>
-              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.aprobacionJefe || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'aprobacionJefe')">VoBo Jefe</span>
-              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.fechaIngreso || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'fechaIngreso')">Fecha</span>
-              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.confirmacionFinal || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'confirmacionFinal')">Confirma</span>
-            </div>
-          } @else if (candidatoSeleccionado.status === 'contratado') {
-            <p class="section-desc">Checklist de integración post-ingreso:</p>
-            <div class="checklist-icons">
-              <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoFirmado')">Firma de Contrato</span>
-              <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoOms')">Alta OMS</span>
-              <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'induccion')">Inducción</span>
-            </div>
-          } @else {
-            <p class="section-desc">Mueve al candidato a Contacto, Oferta o Contratado para habilitar sus checklists.</p>
-          }
+          <p class="section-desc" style="margin-top: 12px; font-weight: 600; color: #334155;">1. Primer Contacto</p>
+          <div class="checklist-icons">
+            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.validacionExperiencia || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'validacionExperiencia')">Experiencia</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.escolaridad || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'escolaridad')">Escolaridad</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.zonaResidencia || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'zonaResidencia')">Zona</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.sueldoEsperado || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'sueldoEsperado')">Sueldo</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.documentacionPreliminar || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'documentacionPreliminar')">Docs Preliminar</span>
+          </div>
+
+          <p class="section-desc" style="margin-top: 16px; font-weight: 600; color: #334155;">2. Contratación e Ingreso</p>
+          <div class="checklist-icons">
+            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoFirmado')">Firma Contrato</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoOms')">Alta OMS</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'induccion')">Inducción</span>
+          </div>
         </div>
 
         <div class="panel-section">
