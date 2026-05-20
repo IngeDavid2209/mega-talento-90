@@ -28,16 +28,27 @@
     </div>
 
     <ul class="nav-list">
-      <li><a routerLink="/app/dashboard" routerLinkActive="active" (click)="isMenuOpen = false">Panel</a></li>
-      <li><a routerLink="/app/kanban" routerLinkActive="active" (click)="isMenuOpen = false">Embudo de talento</a></li>
-      <li><a routerLink="/app/usuarios" routerLinkActive="active" (click)="isMenuOpen = false">Gestión de Usuarios</a>
+      <li>
+        <a routerLink="/app/dashboard" routerLinkActive="active" (click)="navegar('/app/dashboard')" style="display: block; width: 100%; padding-block: 8px;">Panel</a>
       </li>
-
-      <li><a routerLink="/app/historial" routerLinkActive="active" (click)="isMenuOpen = false">Historial</a></li>
-
-      <li><a routerLink="/unete" routerLinkActive="active" (click)="isMenuOpen = false">Ver Formulario público</a></li>
+      <li>
+        <a routerLink="/app/kanban" routerLinkActive="active" (click)="navegar('/app/kanban')" style="display: block; width: 100%; padding-block: 8px;">Embudo de talento</a>
+      </li>
+      <li>
+        <a routerLink="/app/usuarios" routerLinkActive="active" (click)="navegar('/app/usuarios')" style="display: block; width: 100%; padding-block: 8px;">Gestión de Usuarios</a>
+      </li>
+      <li>
+        <a routerLink="/app/historial" routerLinkActive="active" (click)="navegar('/app/historial')" style="display: block; width: 100%; padding-block: 8px;">Historial</a>
+      </li>
+      <li>
+        <a routerLink="/unete" routerLinkActive="active" (click)="navegar('/unete')" style="display: block; width: 100%; padding-block: 8px;">Ver Formulario público</a>
+      </li>
+      
       <li class="divider"></li>
-      <li><a routerLink="/login" class="logout-link" (click)="isMenuOpen = false">Salir</a></li>
+      
+      <li>
+        <a (click)="navegar('/login')" class="logout-link" style="display: block; width: 100%; padding-block: 8px;">Salir</a>
+      </li>
     </ul>
   </nav>
 
