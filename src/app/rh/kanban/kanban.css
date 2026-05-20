@@ -346,3 +346,36 @@
 .badge-estable { background-color: #fef9c3; color: #ca8a04; border: 1px solid #fde047; } 
 .badge-avanzado { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; } 
 .badge-consolidado { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+/* ==============================
+   NUEVO ESTILO: ETIQUETAS DE TEXTO (CHECKLIST)
+   ============================== */
+.checklist-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.text-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  /* Estado inicial (Gris) */
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+
+.text-status:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Colores dinámicos al hacer clic */
+.text-status.amarillo { background-color: #fef9c3; color: #ca8a04; border-color: #fde047; }
+.text-status.verde { background-color: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+.text-status.rojo { background-color: #fee2e2; color: #dc2626; border-color: #fca5a5; }
