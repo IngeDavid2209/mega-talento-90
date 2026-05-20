@@ -158,4 +158,30 @@
       </div>
     </div>
   }
-</div>
+</div><div class="panel-section">
+          <h4>📎 Documentos del Expediente</h4>
+          <p class="section-desc">Sube INE, contratos, actas, etc.</p>
+          
+          <div class="upload-area">
+            <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
+            <label for="docUpload" class="upload-btn" [style.opacity]="subiendoDoc ? '0.5' : '1'">
+              <span>{{ subiendoDoc ? '⏳ Subiendo a la nube...' : '+ Agregar documento' }}</span>
+            </label>
+          </div>
+          
+          <div class="doc-list">
+            @if (candidatoSeleccionado.cvUrl) {
+              <a [href]="candidatoSeleccionado.cvUrl" target="_blank" class="doc-item">
+                <span class="doc-icon">📄</span> Curriculum Vitae (Inicial)
+              </a>
+            }
+
+            @if (candidatoSeleccionado.documentos) {
+              @for (doc of candidatoSeleccionado.documentos; track doc.url) {
+                <a [href]="doc.url" target="_blank" class="doc-item">
+                  <span class="doc-icon">📎</span> {{ doc.nombre }}
+                </a>
+              }
+            }
+          </div>
+        </div>

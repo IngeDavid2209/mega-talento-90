@@ -45,6 +45,46 @@ export class KanbanComponent implements OnInit {
   // --- CONTROL DEL PANEL LATERAL ---
   candidatoSeleccionado: any = null;
 
+  // --- SUBIDA DE DOCUMENTOS ---
+  subiendoDoc = false;
+
+  async subirDocumento(event: any) {
+    const file = event.target.files[0];
+    if (!file || !this.candidatoSeleccionado) return;
+
+    this.subiendoDoc = true;
+    try {
+      // 1. Subir el archivo a Firebase Storage
+      const url = await this.candidateService.uploadDocument(file, this.candidatoSeleccionado.id);
+
+      // 2. Crear el objeto del nuevo documento
+      const nuevoDoc = {
+        nombre: file.name,
+        url: url,
+        fecha: new Date().toISOString()
+      };
+
+      // 3. Obtener la lista actual de documentos del candidato (o crear una vacía)
+      const documentosActuales = this.candidatoSeleccionado.documentos || [];
+      documentosActuales.push(nuevoDoc);
+
+      // 4. Guardar la nueva lista en la base de datos (Firestore)
+      await this.candidateService.updateCandidate(this.candidatoSeleccionado.id, {
+        documentos: documentosActuales
+      });
+
+      // Actualizamos la vista inmediatamente
+      this.candidatoSeleccionado.documentos = documentosActuales;
+
+    } catch (error) {
+      console.error("Error al subir el documento:", error);
+      alert("Hubo un error al subir el archivo. Revisa tu conexión.");
+    } finally {
+      this.subiendoDoc = false;
+      event.target.value = ''; // Limpiamos el input para poder subir otro
+    }
+  }
+
   abrirExpediente(candidato: any) {
     // SEGURO: Si el candidato es viejo y no tiene los checklists, se los creamos en memoria al abrirlo
     if (!candidato.contactoChecklist) {

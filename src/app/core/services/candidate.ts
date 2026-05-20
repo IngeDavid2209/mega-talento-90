@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-// Agregamos 'onSnapshot' para el tiempo real
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+// NUEVO: Importamos las funciones de Storage para los documentos
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
@@ -14,41 +15,34 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app); // Inicializamos el disco duro
 
 @Injectable({ providedIn: 'root' })
 export class CandidateService {
 
   async createCandidate(candidateData: any) {
-    console.log("1. Servicio contactado...");
     const newCandidate = {
       ...candidateData,
       status: 'nuevo',
       createdAt: new Date()
     };
-    console.log("2. Enviando a Firebase...");
     const docRef = await addDoc(collection(db, 'candidates'), newCandidate);
-    console.log("3. ¡ÉXITO! ID:", docRef.id);
     return docRef;
   }
 
-  // Mantenemos este por si lo usas en reportes estáticos
   async getCandidates() {
     const snapshot = await getDocs(collection(db, 'candidates'));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
-  // === NUEVO MÉTODO EN TIEMPO REAL PARA EL TABLERO ===
   listenToCandidates(callback: (candidatos: any[]) => void) {
     const queryRef = collection(db, 'candidates');
-    
-    // onSnapshot se queda "escuchando" la base de datos 24/7
     const unsubscribe = onSnapshot(queryRef, (snapshot) => {
       const candidatos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      callback(candidatos); // Enviamos los datos frescos al componente
+      callback(candidatos);
     }, (error) => {
       console.error("Error en la conexión en tiempo real:", error);
     });
-
     return unsubscribe;
   }
 
@@ -61,5 +55,16 @@ export class CandidateService {
       console.error("Error al actualizar candidato:", error);
       throw error;
     }
+  }
+
+  // === NUEVO: FUNCIÓN PARA SUBIR ARCHIVOS AL EXPEDIENTE ===
+  async uploadDocument(file: File, candidateId: string): Promise<string> {
+    // Creamos una carpeta por candidato y le ponemos un sello de tiempo al nombre para que no se sobreescriban
+    const filePath = `expedientes/${candidateId}/${new Date().getTime()}_${file.name}`;
+    const storageRef = ref(storage, filePath);
+
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
+    return downloadUrl;
   }
 }
