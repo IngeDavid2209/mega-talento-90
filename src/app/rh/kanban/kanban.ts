@@ -52,53 +52,6 @@ export class KanbanComponent implements OnInit {
   candidatoSeleccionado: any = null;
   subiendoDoc = false;
 
-  abrirExpediente(candidato: any) {
-    if (!candidato.contactoChecklist) {
-      candidato.contactoChecklist = { validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris' };
-    }
-    if (!candidato.contratadoChecklist) {
-      candidato.contratadoChecklist = { contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris' };
-    }
-    this.candidatoSeleccionado = candidato;
-  }
-
-  cerrarExpediente() {
-    this.candidatoSeleccionado = null;
-  }
-
-  // --- SUBIDA DE DOCUMENTOS ---
-  async subirDocumento(event: any) {
-    const file = event.target.files[0];
-    if (!file || !this.candidatoSeleccionado) return;
-
-    this.subiendoDoc = true;
-    try {
-      const url = await this.candidateService.uploadDocument(file, this.candidatoSeleccionado.id);
-
-      const nuevoDoc = {
-        nombre: file.name,
-        url: url,
-        fecha: new Date().toISOString()
-      };
-
-      const documentosActuales = this.candidatoSeleccionado.documentos || [];
-      documentosActuales.push(nuevoDoc);
-
-      await this.candidateService.updateCandidate(this.candidatoSeleccionado.id, {
-        documentos: documentosActuales
-      });
-
-      this.candidatoSeleccionado.documentos = documentosActuales;
-
-    } catch (error) {
-      console.error("Error al subir el documento:", error);
-      alert("Hubo un error al subir el archivo. Revisa tu conexión.");
-    } finally {
-      this.subiendoDoc = false;
-      event.target.value = ''; 
-    }
-  }
-
   statusConfig = [
     { id: 'nuevo', title: 'Nuevo' },
     { id: 'contacto_pendiente', title: 'Contacto' },
@@ -129,6 +82,14 @@ export class KanbanComponent implements OnInit {
           this.candidatos = datosFrescos;
           this.calcularMétricas();
           this.filtrarYArmarTablero();
+          
+          // Mantener la referencia viva si el expediente está abierto
+          if (this.candidatoSeleccionado) {
+            const actualizado = this.candidatos.find(c => c.id === this.candidatoSeleccionado.id);
+            if (actualizado) {
+              this.abrirExpediente(actualizado);
+            }
+          }
           this.cargando = false;
         });
       });
@@ -171,6 +132,85 @@ export class KanbanComponent implements OnInit {
     }
   }
 
+  abrirExpediente(candidato: any) {
+    if (!candidato.contactoChecklist) {
+      candidato.contactoChecklist = { validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris' };
+    }
+    if (!candidato.contratadoChecklist) {
+      candidato.contratadoChecklist = { contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris' };
+    }
+    this.candidatoSeleccionado = candidato;
+  }
+
+  cerrarExpediente() {
+    this.candidatoSeleccionado = null;
+  }
+
+  // --- NUEVA LÓGICA DE CAMBIO DE ETAPA DIRECTO (STEPPER) ---
+  getStepIndex(statusId: string): number {
+    return this.statusConfig.findIndex(s => s.id === statusId);
+  }
+
+  async moverEtapaDirecto(candidato: any, nuevaColumnaId: string) {
+    if (!candidato || candidato.status === nuevaColumnaId) return;
+
+    const estatusAnterior = candidato.status;
+    candidato.status = nuevaColumnaId;
+
+    const actualizacionData: any = { status: nuevaColumnaId };
+
+    if (nuevaColumnaId === 'contacto_pendiente' && !candidato.contactoChecklist) {
+      actualizacionData.contactoChecklist = { validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris' };
+      candidato.contactoChecklist = actualizacionData.contactoChecklist;
+    }
+    if (nuevaColumnaId === 'oferta' && !candidato.ofertaChecklist) {
+      actualizacionData.ofertaChecklist = { ofertaAceptada: 'gris', documentacion: 'gris', aprobacionJefe: 'gris', fechaIngreso: 'gris', confirmacionFinal: 'gris' };
+      candidato.ofertaChecklist = actualizacionData.ofertaChecklist;
+    }
+    if (nuevaColumnaId === 'contratado') {
+      actualizacionData.hiredAt = Timestamp.now();
+      if (!candidato.contratadoChecklist) {
+        actualizacionData.contratadoChecklist = { contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris' };
+        candidato.contratadoChecklist = actualizacionData.contratadoChecklist;
+      }
+    }
+    if (nuevaColumnaId === 'rechazado') actualizacionData.rejectedAt = Timestamp.now();
+
+    try {
+      this.filtrarYArmarTablero();
+      await this.candidateService.updateCandidate(candidato.id, actualizacionData);
+      this.calcularMétricas();
+    } catch (error) {
+      console.error("Error al mover etapa desde el stepper:", error);
+      candidato.status = estatusAnterior;
+      this.filtrarYArmarTablero();
+    }
+  }
+
+  // --- SUBIDA DE DOCUMENTOS ---
+  async subirDocumento(event: any) {
+    const file = event.target.files[0];
+    if (!file || !this.candidatoSeleccionado) return;
+
+    this.subiendoDoc = true;
+    try {
+      const url = await this.candidateService.uploadDocument(file, this.candidatoSeleccionado.id);
+      const nuevoDoc = { nombre: file.name, url: url, fecha: new Date().toISOString() };
+      const documentosActuales = this.candidatoSeleccionado.documentos || [];
+      documentosActuales.push(nuevoDoc);
+
+      await this.candidateService.updateCandidate(this.candidatoSeleccionado.id, { documentos: documentosActuales });
+      this.candidatoSeleccionado.documentos = documentosActuales;
+    } catch (error) {
+      console.error("Error al subir el documento:", error);
+      alert("Hubo un error al subir el archivo.");
+    } finally {
+      this.subiendoDoc = false;
+      event.target.value = '';
+    }
+  }
+
+  // --- CONTROL DE ICONOS DE AUDITORÍA ---
   async cambiarEstadoIconoContacto(candidato: any, key: keyof ContactoChecklist) {
     if (!candidato.contactoChecklist) return;
     const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
@@ -207,8 +247,7 @@ export class KanbanComponent implements OnInit {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     fechaIngreso.setHours(0, 0, 0, 0);
-    const diffTime = hoy.getTime() - fechaIngreso.getTime();
-    return Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+    return Math.max(0, Math.floor((hoy.getTime() - fechaIngreso.getTime()) / (1000 * 60 * 60 * 24)));
   }
 
   getEtiquetaPermanencia(dias: number): string {
@@ -242,8 +281,7 @@ export class KanbanComponent implements OnInit {
 
   armarTablero(candidatos: any[]) {
     this.columnas = this.statusConfig.map(status => {
-      const candidatosEnStatus = candidatos.filter(c => c.status === status.id);
-      return { id: status.id, title: status.title, count: candidatosEnStatus.length, candidates: candidatosEnStatus };
+      return { id: status.id, title: status.title, count: candidatos.filter(c => c.status === status.id).length, candidates: candidatos.filter(c => c.status === status.id) };
     });
   }
 
@@ -257,38 +295,9 @@ export class KanbanComponent implements OnInit {
     if (!this.candidatoArrastradoId) return;
     const id = this.candidatoArrastradoId;
     this.candidatoArrastradoId = null;
-    const index = this.candidatos.findIndex(c => c.id === id);
-    if (index === -1) return;
-    if (this.candidatos[index].status === columnaDestinoId) return;
-    
-    const estatusAnterior = this.candidatos[index].status;
-    this.candidatos[index].status = columnaDestinoId;
-    const actualizacionData: any = { status: columnaDestinoId };
-    
-    if (columnaDestinoId === 'contacto_pendiente' && !this.candidatos[index].contactoChecklist) {
-      actualizacionData.contactoChecklist = { validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris' };
-      this.candidatos[index].contactoChecklist = actualizacionData.contactoChecklist;
-    }
-    if (columnaDestinoId === 'oferta' && !this.candidatos[index].ofertaChecklist) {
-      actualizacionData.ofertaChecklist = { ofertaAceptada: 'gris', documentacion: 'gris', aprobacionJefe: 'gris', fechaIngreso: 'gris', confirmacionFinal: 'gris' };
-      this.candidatos[index].ofertaChecklist = actualizacionData.ofertaChecklist;
-    }
-    if (columnaDestinoId === 'contratado') {
-      actualizacionData.hiredAt = Timestamp.now();
-      if (!this.candidatos[index].contratadoChecklist) {
-        actualizacionData.contratadoChecklist = { contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris' };
-        this.candidatos[index].contratadoChecklist = actualizacionData.contratadoChecklist;
-      }
-    }
-    if (columnaDestinoId === 'rechazado') actualizacionData.rejectedAt = Timestamp.now();
-    
-    try {
-      this.filtrarYArmarTablero();
-      await this.candidateService.updateCandidate(id, actualizacionData);
-      this.calcularMétricas();
-    } catch (error) {
-      this.candidatos[index].status = estatusAnterior;
-      this.filtrarYArmarTablero();
+    const candidato = this.candidatos.find(c => c.id === id);
+    if (candidato) {
+      await this.moverEtapaDirecto(candidato, columnaDestinoId);
     }
   }
 
@@ -312,7 +321,7 @@ export class KanbanComponent implements OnInit {
   }
 
   contactarWhatsApp(telefono: string) {
-    const numeroLimpio = telefono.replace(/\D/g, '');
+    const numeroLimpio = (telefono || '').replace(/\D/g, '');
     window.open(`https://wa.me/52${numeroLimpio}`, '_blank');
   }
 }

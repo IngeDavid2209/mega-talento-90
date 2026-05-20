@@ -115,6 +115,20 @@
         <button class="btn-close" (click)="cerrarExpediente()">✖</button>
       </div>
 
+      <div class="stepper-container">
+        @for (step of statusConfig; track step.id; let idx = $index) {
+          <div class="stepper-step" 
+               [class.active]="candidatoSeleccionado.status === step.id"
+               [class.completed]="getStepIndex(candidatoSeleccionado.status) > idx"
+               (click)="moverEtapaDirecto(candidatoSeleccionado, step.id)">
+            <div class="stepper-circle">
+              @if (getStepIndex(candidatoSeleccionado.status) > idx) { ✓ } @else { {{ idx + 1 }} }
+            </div>
+            <span class="stepper-label">{{ step.title }}</span>
+          </div>
+        }
+      </div>
+
       <div class="panel-content">
         <div class="panel-section">
           <h4>☑️ Auditoría de Proceso</h4>
