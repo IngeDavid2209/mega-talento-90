@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
-// NUEVO: Importamos las funciones de Storage para los documentos
+// Importamos las herramientas para guardar archivos
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -26,8 +26,7 @@ export class CandidateService {
       status: 'nuevo',
       createdAt: new Date()
     };
-    const docRef = await addDoc(collection(db, 'candidates'), newCandidate);
-    return docRef;
+    return await addDoc(collection(db, 'candidates'), newCandidate);
   }
 
   async getCandidates() {
@@ -57,14 +56,12 @@ export class CandidateService {
     }
   }
 
-  // === NUEVO: FUNCIÓN PARA SUBIR ARCHIVOS AL EXPEDIENTE ===
+  // === FUNCIÓN PARA SUBIR ARCHIVOS AL EXPEDIENTE ===
   async uploadDocument(file: File, candidateId: string): Promise<string> {
-    // Creamos una carpeta por candidato y le ponemos un sello de tiempo al nombre para que no se sobreescriban
     const filePath = `expedientes/${candidateId}/${new Date().getTime()}_${file.name}`;
     const storageRef = ref(storage, filePath);
 
     await uploadBytes(storageRef, file);
-    const downloadUrl = await getDownloadURL(storageRef);
-    return downloadUrl;
+    return await getDownloadURL(storageRef);
   }
 }
