@@ -21,33 +21,37 @@
     </div>
   </header>
 
-  <nav class="side-drawer" [class.show]="isMenuOpen">
+<nav class="side-drawer" [class.show]="isMenuOpen">
     <div class="drawer-header">
       <span class="drawer-title">NAVEGACIÓN</span>
       <button class="close-btn" (click)="isMenuOpen = false">✕</button>
     </div>
 
-    <ul class="nav-list">
-      <li>
-        <a routerLink="/app/dashboard" routerLinkActive="active" (click)="navegar('/app/dashboard')" style="display: block; width: 100%; padding-block: 8px;">Panel</a>
-      </li>
-      <li>
-        <a routerLink="/app/kanban" routerLinkActive="active" (click)="navegar('/app/kanban')" style="display: block; width: 100%; padding-block: 8px;">Embudo de talento</a>
-      </li>
-      <li>
-        <a routerLink="/app/usuarios" routerLinkActive="active" (click)="navegar('/app/usuarios')" style="display: block; width: 100%; padding-block: 8px;">Gestión de Usuarios</a>
-      </li>
-      <li>
-        <a routerLink="/app/historial" routerLinkActive="active" (click)="navegar('/app/historial')" style="display: block; width: 100%; padding-block: 8px;">Historial</a>
-      </li>
-      <li>
-        <a routerLink="/unete" routerLinkActive="active" (click)="navegar('/unete')" style="display: block; width: 100%; padding-block: 8px;">Ver Formulario público</a>
+    <ul class="nav-list" style="padding: 0; list-style: none; margin: 0;">
+      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
+        <a routerLink="/app/dashboard" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Panel</a>
       </li>
       
-      <li class="divider"></li>
+      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
+        <a routerLink="/app/kanban" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Embudo de talento</a>
+      </li>
       
-      <li>
-        <a (click)="navegar('/login')" class="logout-link" style="display: block; width: 100%; padding-block: 8px;">Salir</a>
+      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
+        <a routerLink="/app/usuarios" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Gestión de Usuarios</a>
+      </li>
+
+      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
+        <a routerLink="/app/historial" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Historial</a>
+      </li>
+
+      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
+        <a routerLink="/unete" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Ver Formulario público</a>
+      </li>
+      
+      <li class="divider" style="height: 1px; background-color: #e2e8f0; margin: 10px 0;"></li>
+      
+      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
+        <a routerLink="/login" class="logout-link" style="display: block; width: 100%; padding: 15px 20px; color: #ef4444;">Salir</a>
       </li>
     </ul>
   </nav>

@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterModule, Router } from '@angular/router'; // <-- Importamos Router
+import { RouterOutlet, RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-layout',
@@ -10,18 +10,9 @@ import { RouterOutlet, RouterModule, Router } from '@angular/router'; // <-- Imp
   styleUrl: './layout.css'
 })
 export class LayoutComponent {
-  private router = inject(Router); // <-- Inyectamos el motor de viaje
-
-  // === LÓGICA DEL MENÚ DE HAMBURGUESA ===
-  isMenuOpen: boolean = false; // El menú empieza cerrado
+  isMenuOpen: boolean = false; 
 
   toggleMenu() {
-    this.isMenuOpen = !this.isMenuOpen; // Cambia el estado (abre/cierra)
-  }
-
-  // === NAVEGACIÓN A PRUEBA DE BALAS PARA MÓVILES ===
-  navegar(ruta: string) {
-    this.isMenuOpen = false; // 1. Obliga al menú a cerrarse al instante
-    this.router.navigate([ruta]); // 2. Viaja a la pantalla seleccionada
+    this.isMenuOpen = !this.isMenuOpen; 
   }
 }
