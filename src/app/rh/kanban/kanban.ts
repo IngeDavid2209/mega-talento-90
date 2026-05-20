@@ -13,7 +13,7 @@ interface OfertaChecklist {
   confirmacionFinal: 'gris' | 'amarillo' | 'verde' | 'rojo';
 }
 
-// Interfaz para el sistema de control post-ingreso (CONTRATADO) - ACTUALIZADO
+// Interfaz para el sistema de control post-ingreso (CONTRATADO)
 interface ContratadoChecklist {
   contratoFirmado: 'gris' | 'amarillo' | 'verde' | 'rojo';
   contratoOms: 'gris' | 'amarillo' | 'verde' | 'rojo';
@@ -37,26 +37,36 @@ interface KanbanColumn {
 export class KanbanComponent implements OnInit {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
-  
+
   cargando = true;
   candidatos: any[] = [];
   columnas: KanbanColumn[] = [];
-  
-  // CAMBIO: Título de 'rechazado' a 'No Viable'
+
+  // --- CONTROL DEL PANEL LATERAL ---
+  candidatoSeleccionado: any = null;
+
+  abrirExpediente(candidato: any) {
+    this.candidatoSeleccionado = candidato;
+  }
+
+  cerrarExpediente() {
+    this.candidatoSeleccionado = null;
+  }
+
   statusConfig = [
     { id: 'nuevo', title: 'Nuevo' },
     { id: 'contacto_pendiente', title: 'Contacto' },
     { id: 'entrevista', title: 'Entrevista' },
     { id: 'oferta', title: 'Oferta' },
     { id: 'contratado', title: 'Contratado' },
-    { id: 'rechazado', title: 'No Viable' } 
+    { id: 'rechazado', title: 'No Viable' }
   ];
-  
+
   kpiTotalCandidatos = 0;
   kpiTasaConversion = 0;
   kpiTiempoPromedio = 0;
   kpiMetaContrataciones = 20;
-  
+
   filtroPuesto = '';
   filtroCiudad = '';
   filtroFecha = '';
@@ -73,7 +83,7 @@ export class KanbanComponent implements OnInit {
           this.candidatos = datosFrescos;
           this.calcularMétricas();
           this.filtrarYArmarTablero();
-          this.cargando = false; 
+          this.cargando = false;
         });
       });
     } catch (error) {
@@ -87,7 +97,7 @@ export class KanbanComponent implements OnInit {
       this.kpiTotalCandidatos = this.candidatos.length;
       const contratados = this.candidatos.filter(c => c.status === 'contratado').length;
       this.kpiTasaConversion = this.kpiTotalCandidatos > 0 ? (contratados / this.kpiTotalCandidatos) * 100 : 0;
-      
+
       let diasTotales = 0;
       let candidatosValidos = 0;
 
@@ -98,11 +108,11 @@ export class KanbanComponent implements OnInit {
             if (typeof c.createdAt.toDate === 'function') {
               inicio = c.createdAt.toDate();
             } else {
-              inicio = new Date(c.createdAt); 
+              inicio = new Date(c.createdAt);
             }
-            
-            let fin = new Date(); 
-            
+
+            let fin = new Date();
+
             if (c.status === 'contratado' && c.hiredAt) {
               if (typeof c.hiredAt.toDate === 'function') {
                 fin = c.hiredAt.toDate();
@@ -110,7 +120,6 @@ export class KanbanComponent implements OnInit {
                 fin = new Date(c.hiredAt);
               }
             }
-
             const diffTime = Math.abs(fin.getTime() - inicio.getTime());
             diasTotales += Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             candidatosValidos++;
@@ -119,7 +128,7 @@ export class KanbanComponent implements OnInit {
           console.warn(`Error fecha candidato ${c.nombre}:`, errorFecha);
         }
       });
-      
+
       this.kpiTiempoPromedio = candidatosValidos > 0 ? Math.round(diasTotales / candidatosValidos) : 0;
     } catch (error) {
       console.error("Error crítico en calcularMétricas:", error);
@@ -140,7 +149,7 @@ export class KanbanComponent implements OnInit {
     const actual = candidato.ofertaChecklist[key];
     const indexActual = estados.indexOf(actual);
     const siguienteIndex = (indexActual + 1) % estados.length;
-    
+
     candidato.ofertaChecklist[key] = estados[siguienteIndex];
     try {
       await this.candidateService.updateCandidate(candidato.id, {
@@ -166,7 +175,7 @@ export class KanbanComponent implements OnInit {
     const actual = candidato.contratadoChecklist[key];
     const indexActual = estados.indexOf(actual);
     const siguienteIndex = (indexActual + 1) % estados.length;
-    
+
     candidato.contratadoChecklist[key] = estados[siguienteIndex];
     try {
       await this.candidateService.updateCandidate(candidato.id, {
@@ -195,11 +204,11 @@ export class KanbanComponent implements OnInit {
   }
 
   getEtiquetaPermanencia(dias: number): string {
-    if (dias === 0) return '⏳ Ingreso hoy (Crítico)';
-    if (dias < 7) return `⏳ ${dias} días (Riesgo Alto)`;
-    if (dias < 15) return `⏳ ${dias} días (Estable)`;
-    if (dias < 30) return `⏳ ${dias} días (Avanzado)`;
-    return `✅ Consolidado (+30 días)`;
+    if (dias === 0) return ' ⏳ Ingreso hoy (Crítico)';
+    if (dias < 7) return ` ⏳ ${dias} días (Riesgo Alto)`;
+    if (dias < 15) return ` ⏳ ${dias} días (Estable)`;
+    if (dias < 30) return ` ⏳ ${dias} días (Avanzado)`;
+    return ` ✅ Consolidado (+30 días)`;
   }
 
   getClasePermanencia(dias: number): string {
@@ -240,7 +249,7 @@ export class KanbanComponent implements OnInit {
   }
 
   candidatoArrastradoId: string | null = null;
-  
+
   onDragStart(event: DragEvent, candidatoId: string) {
     this.candidatoArrastradoId = candidatoId;
     (event.target as HTMLElement).classList.add('is-dragging');
@@ -257,19 +266,15 @@ export class KanbanComponent implements OnInit {
   async onDrop(event: DragEvent, columnaDestinoId: string) {
     event.preventDefault();
     if (!this.candidatoArrastradoId) return;
-
     const id = this.candidatoArrastradoId;
     this.candidatoArrastradoId = null;
-
     const index = this.candidatos.findIndex(c => c.id === id);
     if (index === -1) return;
     if (this.candidatos[index].status === columnaDestinoId) return;
-
     const estatusAnterior = this.candidatos[index].status;
     this.candidatos[index].status = columnaDestinoId;
-
     const actualizacionData: any = { status: columnaDestinoId };
-
+    
     if (columnaDestinoId === 'oferta' && !this.candidatos[index].ofertaChecklist) {
       actualizacionData.ofertaChecklist = {
         ofertaAceptada: 'gris', documentacion: 'gris', aprobacionJefe: 'gris',
@@ -281,10 +286,9 @@ export class KanbanComponent implements OnInit {
     if (columnaDestinoId === 'contratado') {
       actualizacionData.hiredAt = Timestamp.now();
       if (!this.candidatos[index].contratadoChecklist) {
-        // CAMBIO: Inicialización de los 3 puntos nuevos
         actualizacionData.contratadoChecklist = {
-          contratoFirmado: 'gris', 
-          contratoOms: 'gris', 
+          contratoFirmado: 'gris',
+          contratoOms: 'gris',
           induccion: 'gris'
         };
         this.candidatos[index].contratadoChecklist = actualizacionData.contratadoChecklist;
@@ -292,7 +296,6 @@ export class KanbanComponent implements OnInit {
     }
 
     if (columnaDestinoId === 'rechazado') actualizacionData.rejectedAt = Timestamp.now();
-
     try {
       this.filtrarYArmarTablero();
       await this.candidateService.updateCandidate(id, actualizacionData);

@@ -5,7 +5,7 @@
       <p class="subtitle">Gestiona el flujo de reclutamiento</p>
     </div>
   </div>
-  
+
   <div class="metrics-bar">
     <div class="metric-card">
       <span class="metric-label">Total Candidatos</span>
@@ -24,13 +24,13 @@
       <span class="metric-value">{{ kpiMetaContrataciones }}</span>
     </div>
   </div>
-  
+
   <div class="filter-bar">
-    <input type="text" class="filter-input" placeholder="🔍 Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
-    <input type="text" class="filter-input" placeholder="📍 Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder=" 🔍 Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder=" 📍 Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
     <input type="date" class="filter-input" [(ngModel)]="filtroFecha" (input)="filtrarYArmarTablero()">
   </div>
-  
+
   @if (cargando) {
     <p class="loading-tablero">Abriendo embudo de talentos...</p>
   } @else {
@@ -40,12 +40,12 @@
              [class]="'status-' + columna.id"
              (dragover)="onDragOver($event, columna.id)"
              (drop)="onDrop($event, columna.id)">
-             
+
           <div class="column-header">
             <h3>{{ columna.title }}</h3>
             <span class="badge">{{ columna.count }}</span>
           </div>
-          
+
           <div class="column-content">
             @for (candidato of columna.candidates; track candidato.id) {
               <div class="kanban-card"
@@ -53,7 +53,7 @@
                    draggable="true"
                    (dragstart)="onDragStart($event, candidato.id)"
                    (dragend)="onDragEnd($event)">
-                   
+
                 <div class="card-body">
                   <div class="card-avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
                     {{ candidato.nombre.charAt(0) }}
@@ -70,53 +70,23 @@
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="card-footer">
-                  <span class="card-meta">📍 {{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
+                  <span class="card-meta"> 📍 {{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
                   <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
                 </div>
-                
-                @if (candidato.status === 'oferta') {
-                  <div class="oferta-checklist">
-                    <div class="progress-bar-container">
-                      <div class="progress-bar" [style.width.%]="getProgresoOferta(candidato)"></div>
-                    </div>
-                  <div class="checklist-icons">
-  <span class="text-status" [class]="candidato.ofertaChecklist?.ofertaAceptada || 'gris'" (click)="cambiarEstadoIcono(candidato, 'ofertaAceptada')">Oferta</span>
-  <span class="text-status" [class]="candidato.ofertaChecklist?.documentacion || 'gris'" (click)="cambiarEstadoIcono(candidato, 'documentacion')">Docs</span>
-  <span class="text-status" [class]="candidato.ofertaChecklist?.aprobacionJefe || 'gris'" (click)="cambiarEstadoIcono(candidato, 'aprobacionJefe')">VoBo Jefe</span>
-  <span class="text-status" [class]="candidato.ofertaChecklist?.fechaIngreso || 'gris'" (click)="cambiarEstadoIcono(candidato, 'fechaIngreso')">Fecha</span>
-  <span class="text-status" [class]="candidato.ofertaChecklist?.confirmacionFinal || 'gris'" (click)="cambiarEstadoIcono(candidato, 'confirmacionFinal')">Confirma</span>
-</div>
 
-<div class="checklist-icons" style="justify-content: flex-start; gap: 6px;">
-  <span class="text-status" [class]="candidato.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoFirmado')">Firma</span>
-  <span class="text-status" [class]="candidato.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoOms')">Alta OMS</span>
-  <span class="text-status" [class]="candidato.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'induccion')">Inducción</span>
-</div>
-                  </div>
-                }
-                
                 @if (candidato.status === 'contratado') {
-                  <div class="contratado-checklist">
-                    <div class="progress-bar-container">
-                      <div class="progress-bar progress-success" [style.width.%]="getProgresoContratado(candidato)"></div>
-                    </div>
-                    <div class="checklist-icons" style="justify-content: space-around;">
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoFirmado')" title="Contrato Firmado">📝</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoOms')" title="Contrato en OMS">💻</span>
-                      <span class="icon-status" [class]="candidato.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'induccion')" title="Inducción Completa">📚</span>
-                    </div>
-                  </div>
-                  
                   <div class="permanencia-badge" [ngClass]="getClasePermanencia(getDiasPermanencia(candidato.hiredAt))">
                     {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
                   </div>
                 }
                 
                 <div class="card-actions">
+                  <button class="action-btn view" (click)="abrirExpediente(candidato)" style="background-color: #3b82f6; color: white;">
+                    📂 Abrir Expediente
+                  </button>
                   <button class="action-btn contact" (click)="contactarWhatsApp(candidato.telefono)">📞 Contactar</button>
-                  <button class="action-btn view">📄 Ver CV</button>
                 </div>
               </div>
             } @empty {
@@ -125,6 +95,71 @@
           </div>
         </div>
       }
+    </div>
+  }
+
+  @if (candidatoSeleccionado) {
+    <div class="panel-overlay" (click)="cerrarExpediente()"></div>
+    
+    <div class="side-panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <div class="panel-avatar" [style.background-color]="getAvatarColor(candidatoSeleccionado.nombre)">
+            {{ candidatoSeleccionado.nombre.charAt(0) }}
+          </div>
+          <div>
+            <h3>{{ candidatoSeleccionado.nombre }}</h3>
+            <p>{{ candidatoSeleccionado.puesto }} | {{ candidatoSeleccionado.ciudad || 'Sin ciudad' }}</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="cerrarExpediente()">✖</button>
+      </div>
+
+      <div class="panel-content">
+        <div class="panel-section">
+          <h4>Auditoría de Proceso</h4>
+          
+          @if (candidatoSeleccionado.status === 'oferta') {
+            <p class="section-desc">Valida estos puntos antes de la contratación:</p>
+            <div class="checklist-icons">
+              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.ofertaAceptada || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'ofertaAceptada')">Oferta</span>
+              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.documentacion || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'documentacion')">Docs</span>
+              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.aprobacionJefe || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'aprobacionJefe')">VoBo Jefe</span>
+              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.fechaIngreso || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'fechaIngreso')">Fecha</span>
+              <span class="text-status" [class]="candidatoSeleccionado.ofertaChecklist?.confirmacionFinal || 'gris'" (click)="cambiarEstadoIcono(candidatoSeleccionado, 'confirmacionFinal')">Confirma</span>
+            </div>
+          } @else if (candidatoSeleccionado.status === 'contratado') {
+            <p class="section-desc">Checklist de integración post-ingreso:</p>
+            <div class="checklist-icons">
+              <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoFirmado')">Firma</span>
+              <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoOms')">Alta OMS</span>
+              <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'induccion')">Inducción</span>
+            </div>
+          } @else {
+            <p class="section-desc">Mueve al candidato a Oferta o Contratado para habilitar sus checklists.</p>
+          }
+        </div>
+
+        <div class="panel-section">
+          <h4>📎 Documentos del Expediente</h4>
+          <p class="section-desc">Sube INE, contratos, actas, etc.</p>
+          
+          <div class="upload-area">
+            <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png">
+            <label for="docUpload" class="upload-btn">
+              <span>+ Agregar documento</span>
+            </label>
+          </div>
+          
+          <div class="doc-list">
+            @if (candidatoSeleccionado.cvUrl) {
+              <a [href]="candidatoSeleccionado.cvUrl" target="_blank" class="doc-item">
+                <span class="doc-icon">📄</span> Curriculum Vitae
+              </a>
+            }
+          </div>
+        </div>
+      </div>
     </div>
   }
 </div>
