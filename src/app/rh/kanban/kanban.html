@@ -131,34 +131,12 @@
           <p class="section-desc" style="margin-top: 16px; font-weight: 600; color: #334155;">2. Contratación e Ingreso</p>
           <div class="checklist-icons">
             <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoFirmado')">Firma Contrato</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoOms')">Alta IMS</span>
+            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoOms')">Alta OMS</span>
             <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'induccion')">Inducción</span>
           </div>
         </div>
 
         <div class="panel-section">
-          <h4>📎 Documentos del Expediente</h4>
-          <p class="section-desc">Sube INE, contratos, actas, etc.</p>
-          
-          <div class="upload-area">
-            <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png">
-            <label for="docUpload" class="upload-btn">
-              <span>+ Agregar documento</span>
-            </label>
-          </div>
-          
-          <div class="doc-list">
-            @if (candidatoSeleccionado.cvUrl) {
-              <a [href]="candidatoSeleccionado.cvUrl" target="_blank" class="doc-item">
-                <span class="doc-icon">📄</span> Curriculum Vitae
-              </a>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-</div><div class="panel-section">
           <h4>📎 Documentos del Expediente</h4>
           <p class="section-desc">Sube INE, contratos, actas, etc.</p>
           
@@ -185,3 +163,7 @@
             }
           </div>
         </div>
+      </div>
+    </div>
+  }
+</div>
