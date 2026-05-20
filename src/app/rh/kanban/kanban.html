@@ -81,13 +81,19 @@
                     <div class="progress-bar-container">
                       <div class="progress-bar" [style.width.%]="getProgresoOferta(candidato)"></div>
                     </div>
-                    <div class="checklist-icons">
-                      <span class="icon-status" [class]="candidato.ofertaChecklist?.ofertaAceptada || 'gris'" (click)="cambiarEstadoIcono(candidato, 'ofertaAceptada')" title="Oferta">💰</span>
-                      <span class="icon-status" [class]="candidato.ofertaChecklist?.documentacion || 'gris'" (click)="cambiarEstadoIcono(candidato, 'documentacion')" title="Docs">📄</span>
-                      <span class="icon-status" [class]="candidato.ofertaChecklist?.aprobacionJefe || 'gris'" (click)="cambiarEstadoIcono(candidato, 'aprobacionJefe')" title="Jefe">👨‍💼</span>
-                      <span class="icon-status" [class]="candidato.ofertaChecklist?.fechaIngreso || 'gris'" (click)="cambiarEstadoIcono(candidato, 'fechaIngreso')" title="Fecha">📅</span>
-                      <span class="icon-status" [class]="candidato.ofertaChecklist?.confirmacionFinal || 'gris'" (click)="cambiarEstadoIcono(candidato, 'confirmacionFinal')" title="Conf.">📞</span>
-                    </div>
+                  <div class="checklist-icons">
+  <span class="text-status" [class]="candidato.ofertaChecklist?.ofertaAceptada || 'gris'" (click)="cambiarEstadoIcono(candidato, 'ofertaAceptada')">Oferta</span>
+  <span class="text-status" [class]="candidato.ofertaChecklist?.documentacion || 'gris'" (click)="cambiarEstadoIcono(candidato, 'documentacion')">Docs</span>
+  <span class="text-status" [class]="candidato.ofertaChecklist?.aprobacionJefe || 'gris'" (click)="cambiarEstadoIcono(candidato, 'aprobacionJefe')">VoBo Jefe</span>
+  <span class="text-status" [class]="candidato.ofertaChecklist?.fechaIngreso || 'gris'" (click)="cambiarEstadoIcono(candidato, 'fechaIngreso')">Fecha</span>
+  <span class="text-status" [class]="candidato.ofertaChecklist?.confirmacionFinal || 'gris'" (click)="cambiarEstadoIcono(candidato, 'confirmacionFinal')">Confirma</span>
+</div>
+
+<div class="checklist-icons" style="justify-content: flex-start; gap: 6px;">
+  <span class="text-status" [class]="candidato.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoFirmado')">Firma</span>
+  <span class="text-status" [class]="candidato.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'contratoOms')">Alta OMS</span>
+  <span class="text-status" [class]="candidato.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidato, 'induccion')">Inducción</span>
+</div>
                   </div>
                 }
                 
