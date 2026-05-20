@@ -4,6 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
 
+// Interfaz para el NUEVO sistema de control (PRIMER CONTACTO)
+interface ContactoChecklist {
+  validacionExperiencia: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  escolaridad: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  zonaResidencia: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  sueldoEsperado: 'gris' | 'amarillo' | 'verde' | 'rojo';
+  documentacionPreliminar: 'gris' | 'amarillo' | 'verde' | 'rojo';
+}
+
 // Interfaz para el sistema de control de riesgos (OFERTA)
 interface OfertaChecklist {
   ofertaAceptada: 'gris' | 'amarillo' | 'verde' | 'rojo';
@@ -135,14 +144,25 @@ export class KanbanComponent implements OnInit {
     }
   }
 
-  // --- LÓGICA DE AUDITORÍA: OFERTA ---
-  getProgresoOferta(candidato: any): number {
-    if (!candidato.ofertaChecklist) return 0;
-    const items = Object.values(candidato.ofertaChecklist);
-    const completados = items.filter(val => val === 'verde').length;
-    return (completados / items.length) * 100;
+  // --- LÓGICA DE AUDITORÍA: CONTACTO ---
+  async cambiarEstadoIconoContacto(candidato: any, key: keyof ContactoChecklist) {
+    if (!candidato.contactoChecklist) return;
+    const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
+    const actual = candidato.contactoChecklist[key];
+    const indexActual = estados.indexOf(actual);
+    const siguienteIndex = (indexActual + 1) % estados.length;
+
+    candidato.contactoChecklist[key] = estados[siguienteIndex];
+    try {
+      await this.candidateService.updateCandidate(candidato.id, {
+        contactoChecklist: candidato.contactoChecklist
+      });
+    } catch (error) {
+      candidato.contactoChecklist[key] = actual;
+    }
   }
 
+  // --- LÓGICA DE AUDITORÍA: OFERTA ---
   async cambiarEstadoIcono(candidato: any, key: keyof OfertaChecklist) {
     if (!candidato.ofertaChecklist) return;
     const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
@@ -155,20 +175,12 @@ export class KanbanComponent implements OnInit {
       await this.candidateService.updateCandidate(candidato.id, {
         ofertaChecklist: candidato.ofertaChecklist
       });
-      this.getProgresoOferta(candidato);
     } catch (error) {
       candidato.ofertaChecklist[key] = actual;
     }
   }
 
   // --- LÓGICA DE AUDITORÍA: CONTRATADO ---
-  getProgresoContratado(candidato: any): number {
-    if (!candidato.contratadoChecklist) return 0;
-    const items = Object.values(candidato.contratadoChecklist);
-    const completados = items.filter(val => val === 'verde').length;
-    return (completados / items.length) * 100;
-  }
-
   async cambiarEstadoIconoContratado(candidato: any, key: keyof ContratadoChecklist) {
     if (!candidato.contratadoChecklist) return;
     const estados: ('gris' | 'amarillo' | 'verde' | 'rojo')[] = ['gris', 'amarillo', 'verde', 'rojo'];
@@ -181,7 +193,6 @@ export class KanbanComponent implements OnInit {
       await this.candidateService.updateCandidate(candidato.id, {
         contratadoChecklist: candidato.contratadoChecklist
       });
-      this.getProgresoContratado(candidato);
     } catch (error) {
       candidato.contratadoChecklist[key] = actual;
     }
@@ -271,10 +282,21 @@ export class KanbanComponent implements OnInit {
     const index = this.candidatos.findIndex(c => c.id === id);
     if (index === -1) return;
     if (this.candidatos[index].status === columnaDestinoId) return;
+    
     const estatusAnterior = this.candidatos[index].status;
     this.candidatos[index].status = columnaDestinoId;
     const actualizacionData: any = { status: columnaDestinoId };
     
+    // AUTOMATIZACIÓN: Checklist Primer Contacto
+    if (columnaDestinoId === 'contacto_pendiente' && !this.candidatos[index].contactoChecklist) {
+      actualizacionData.contactoChecklist = {
+        validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris',
+        sueldoEsperado: 'gris', documentacionPreliminar: 'gris'
+      };
+      this.candidatos[index].contactoChecklist = actualizacionData.contactoChecklist;
+    }
+
+    // AUTOMATIZACIÓN: Checklist Oferta
     if (columnaDestinoId === 'oferta' && !this.candidatos[index].ofertaChecklist) {
       actualizacionData.ofertaChecklist = {
         ofertaAceptada: 'gris', documentacion: 'gris', aprobacionJefe: 'gris',
@@ -283,6 +305,7 @@ export class KanbanComponent implements OnInit {
       this.candidatos[index].ofertaChecklist = actualizacionData.ofertaChecklist;
     }
 
+    // AUTOMATIZACIÓN: Checklist Contratado
     if (columnaDestinoId === 'contratado') {
       actualizacionData.hiredAt = Timestamp.now();
       if (!this.candidatos[index].contratadoChecklist) {
@@ -296,6 +319,7 @@ export class KanbanComponent implements OnInit {
     }
 
     if (columnaDestinoId === 'rechazado') actualizacionData.rejectedAt = Timestamp.now();
+    
     try {
       this.filtrarYArmarTablero();
       await this.candidateService.updateCandidate(id, actualizacionData);
