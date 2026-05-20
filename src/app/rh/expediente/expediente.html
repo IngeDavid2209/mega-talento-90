@@ -1,0 +1,104 @@
+<div class="page-wrapper">
+  @if (cargando) {
+    <div class="loading">Cargando expediente...</div>
+  } @else {
+    
+    <header class="expediente-header">
+      <button class="btn-back" (click)="volver()">← Volver al Tablero</button>
+      <div class="profile-info">
+        <div class="avatar">{{ candidato.nombre.charAt(0) }}</div>
+        <div>
+          <h2>{{ candidato.nombre }}</h2>
+          <p>{{ candidato.puesto }} | 📍 {{ candidato.ciudad || 'Sin ciudad' }}</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="stepper-card">
+      <div class="stepper-container">
+        @for (step of statusConfig; track step.id; let idx = $index) {
+          <div class="stepper-step" 
+               [class.active]="candidato.status === step.id"
+               [class.completed]="getStepIndex(candidato.status) > idx"
+               (click)="moverEtapaDirecto(step.id)">
+            <div class="stepper-circle">
+              @if (getStepIndex(candidato.status) > idx) { ✓ } @else { {{ idx + 1 }} }
+            </div>
+            <span class="stepper-label">{{ step.title }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="content-grid">
+      
+      <div class="section-card">
+        <h3>☑️ Auditoría de Proceso</h3>
+        
+        <p class="section-subtitle">1. Primer Contacto</p>
+        <div class="checklist-list">
+          <div class="check-item" [class.completado]="candidato.contactoChecklist?.validacionExperiencia === 'verde'" (click)="toggleCheck('contactoChecklist', 'validacionExperiencia')">
+            <div class="check-box">@if(candidato.contactoChecklist?.validacionExperiencia === 'verde'){✓}</div>
+            <span>Validación de Experiencia</span>
+          </div>
+          <div class="check-item" [class.completado]="candidato.contactoChecklist?.escolaridad === 'verde'" (click)="toggleCheck('contactoChecklist', 'escolaridad')">
+            <div class="check-box">@if(candidato.contactoChecklist?.escolaridad === 'verde'){✓}</div>
+            <span>Escolaridad</span>
+          </div>
+          <div class="check-item" [class.completado]="candidato.contactoChecklist?.zonaResidencia === 'verde'" (click)="toggleCheck('contactoChecklist', 'zonaResidencia')">
+            <div class="check-box">@if(candidato.contactoChecklist?.zonaResidencia === 'verde'){✓}</div>
+            <span>Zona de residencia</span>
+          </div>
+          <div class="check-item" [class.completado]="candidato.contactoChecklist?.sueldoEsperado === 'verde'" (click)="toggleCheck('contactoChecklist', 'sueldoEsperado')">
+            <div class="check-box">@if(candidato.contactoChecklist?.sueldoEsperado === 'verde'){✓}</div>
+            <span>Sueldo esperado</span>
+          </div>
+          <div class="check-item" [class.completado]="candidato.contactoChecklist?.documentacionPreliminar === 'verde'" (click)="toggleCheck('contactoChecklist', 'documentacionPreliminar')">
+            <div class="check-box">@if(candidato.contactoChecklist?.documentacionPreliminar === 'verde'){✓}</div>
+            <span>Documentación Preliminar</span>
+          </div>
+        </div>
+
+        <p class="section-subtitle">2. Contratación e Ingreso</p>
+        <div class="checklist-list">
+          <div class="check-item" [class.completado]="candidato.contratadoChecklist?.contratoFirmado === 'verde'" (click)="toggleCheck('contratadoChecklist', 'contratoFirmado')">
+            <div class="check-box">@if(candidato.contratadoChecklist?.contratoFirmado === 'verde'){✓}</div>
+            <span>Firma de Contrato</span>
+          </div>
+          <div class="check-item" [class.completado]="candidato.contratadoChecklist?.contratoOms === 'verde'" (click)="toggleCheck('contratadoChecklist', 'contratoOms')">
+            <div class="check-box">@if(candidato.contratadoChecklist?.contratoOms === 'verde'){✓}</div>
+            <span>Alta en el OMS</span>
+          </div>
+          <div class="check-item" [class.completado]="candidato.contratadoChecklist?.induccion === 'verde'" (click)="toggleCheck('contratadoChecklist', 'induccion')">
+            <div class="check-box">@if(candidato.contratadoChecklist?.induccion === 'verde'){✓}</div>
+            <span>Inducción Completa</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3>📎 Documentos del Expediente</h3>
+        <p class="text-muted">Sube INE, contratos, actas, etc.</p>
+        
+        <div class="upload-area">
+          <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
+          <label for="docUpload" class="upload-btn" [style.opacity]="subiendoDoc ? '0.5' : '1'">
+            <span>{{ subiendoDoc ? '⏳ Subiendo...' : '+ Agregar documento' }}</span>
+          </label>
+        </div>
+        
+        <div class="doc-list">
+          @if (candidato.cvUrl) {
+            <a [href]="candidato.cvUrl" target="_blank" class="doc-item"><span class="doc-icon">📄</span> CV Inicial</a>
+          }
+          @if (candidato.documentos) {
+            @for (doc of candidato.documentos; track doc.url) {
+              <a [href]="doc.url" target="_blank" class="doc-item"><span class="doc-icon">📎</span> {{ doc.nombre }}</a>
+            }
+          }
+        </div>
+      </div>
+
+    </div>
+  }
+</div>

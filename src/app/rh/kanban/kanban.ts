@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
-
+import { Router } from '@angular/router';
 interface ContactoChecklist {
   validacionExperiencia: 'gris' | 'amarillo' | 'verde' | 'rojo';
   escolaridad: 'gris' | 'amarillo' | 'verde' | 'rojo';
@@ -43,7 +43,7 @@ interface KanbanColumn {
 export class KanbanComponent implements OnInit {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
-
+private router = inject(Router);
   cargando = true;
   candidatos: any[] = [];
   columnas: KanbanColumn[] = [];
@@ -132,14 +132,8 @@ export class KanbanComponent implements OnInit {
     }
   }
 
-  abrirExpediente(candidato: any) {
-    if (!candidato.contactoChecklist) {
-      candidato.contactoChecklist = { validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris' };
-    }
-    if (!candidato.contratadoChecklist) {
-      candidato.contratadoChecklist = { contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris' };
-    }
-    this.candidatoSeleccionado = candidato;
+abrirExpediente(candidato: any) {
+    this.router.navigate(['/rh/expediente', candidato.id]);
   }
 
   cerrarExpediente() {

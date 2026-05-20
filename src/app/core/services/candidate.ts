@@ -64,4 +64,17 @@ export class CandidateService {
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   }
+  // Agrega esta importación arriba si no la tienes: import { doc, onSnapshot } from 'firebase/firestore';
+
+  listenToCandidate(id: string, callback: (candidato: any) => void) {
+    const docRef = doc(db, 'candidates', id);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() });
+      }
+    }, (error) => {
+      console.error("Error al cargar el expediente:", error);
+    });
+    return unsubscribe;
+  }
 }
