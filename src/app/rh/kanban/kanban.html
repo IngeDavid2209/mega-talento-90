@@ -1,38 +1,69 @@
 <div class="kanban-wrapper">
+
+  <!-- ENCABEZADO -->
   <div class="kanban-header">
     <div>
-      <h2>Embudo de talento Mega</h2>
-      <p class="subtitle">Gestiona el flujo de reclutamiento</p>
+      <h2>Embudo de Talento</h2>
+      <p class="subtitle">Proceso estandarizado de selección · 9 fases controladas</p>
+    </div>
+    <div class="header-tag">
+      <span class="tag-pulse"></span> En vivo
     </div>
   </div>
 
+  <!-- BARRA DE KPIs -->
   <div class="metrics-bar">
     <div class="metric-card">
-      <span class="metric-label">Total Candidatos</span>
-      <span class="metric-value">{{ kpiTotalCandidatos | number }}</span>
+      <span class="metric-icon" style="background:#dbeafe; color:#1e40af;">👥</span>
+      <div>
+        <span class="metric-label">Total Candidatos</span>
+        <span class="metric-value">{{ kpiTotalCandidatos | number }}</span>
+      </div>
     </div>
     <div class="metric-card">
-      <span class="metric-label">Tasa de Conversión</span>
-      <span class="metric-value">{{ kpiTasaConversion | number:'1.0-1' }}%</span>
+      <span class="metric-icon" style="background:#fef3c7; color:#b45309;">🔥</span>
+      <div>
+        <span class="metric-label">Activos en proceso</span>
+        <span class="metric-value">{{ kpiActivos | number }}</span>
+      </div>
     </div>
     <div class="metric-card">
-      <span class="metric-label">Tiempo Promedio (días)</span>
-      <span class="metric-value">{{ kpiTiempoPromedio | number }}</span>
+      <span class="metric-icon" style="background:#dcfce7; color:#166534;">✅</span>
+      <div>
+        <span class="metric-label">Contratados este mes</span>
+        <span class="metric-value">{{ kpiContratadosMes | number }}</span>
+      </div>
     </div>
-    <div class="metric-card" style="border-right: none;">
-      <span class="metric-label">Meta Contrataciones</span>
-      <span class="metric-value">{{ kpiMetaContrataciones }}</span>
+    <div class="metric-card">
+      <span class="metric-icon" style="background:#f3e8ff; color:#6b21a8;">📈</span>
+      <div>
+        <span class="metric-label">Tasa Conversión</span>
+        <span class="metric-value">{{ kpiTasaConversion | number:'1.0-1' }}%</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <span class="metric-icon" style="background:#ffe4e6; color:#9f1239;">⏱️</span>
+      <div>
+        <span class="metric-label">Tiempo Promedio</span>
+        <span class="metric-value">{{ kpiTiempoPromedio }} días</span>
+      </div>
     </div>
   </div>
 
+  <!-- FILTROS -->
   <div class="filter-bar">
-    <input type="text" class="filter-input" placeholder=" 🔍 Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
-    <input type="text" class="filter-input" placeholder=" 📍 Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="🔍  Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="📍  Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="🌐  Fuente..." [(ngModel)]="filtroFuente" (input)="filtrarYArmarTablero()">
     <input type="date" class="filter-input" [(ngModel)]="filtroFecha" (input)="filtrarYArmarTablero()">
   </div>
 
+  <!-- TABLERO -->
   @if (cargando) {
-    <p class="loading-tablero">Abriendo embudo de talentos...</p>
+    <div class="loading-tablero">
+      <div class="spinner"></div>
+      <p>Abriendo embudo de talento...</p>
+    </div>
   } @else {
     <div class="board-container">
       @for (columna of columnas; track columna.id) {
@@ -41,9 +72,12 @@
              (dragover)="onDragOver($event, columna.id)"
              (drop)="onDrop($event, columna.id)">
 
-          <div class="column-header">
-            <h3>{{ columna.title }}</h3>
-            <span class="badge">{{ columna.count }}</span>
+          <div class="column-header" [style.border-bottom-color]="columna.color">
+            <div class="column-title">
+              <span class="column-icon">{{ columna.icon }}</span>
+              <h3>{{ columna.title }}</h3>
+            </div>
+            <span class="badge" [style.background-color]="columna.color + '22'" [style.color]="columna.color">{{ columna.count }}</span>
           </div>
 
           <div class="column-content">
@@ -54,43 +88,57 @@
                    (dragstart)="onDragStart($event, candidato.id)"
                    (dragend)="onDragEnd($event)">
 
+                @if (isCandidatoAlerta(candidato)) {
+                  <span class="card-alert-flag" title="SLA vencido — requiere atención">⚠️ Atención</span>
+                }
+
                 <div class="card-body">
                   <div class="card-avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
-                    {{ candidato.nombre.charAt(0) }}
+                    {{ getInitials(candidato.nombre) }}
                   </div>
                   <div class="card-info">
                     <p class="card-title">{{ candidato.nombre }}</p>
-                    <p class="card-subtitle">{{ candidato.puesto }}</p>
-                    <div class="card-score">
-                      <span class="dot active"></span>
-                      <span class="dot active"></span>
-                      <span class="dot active"></span>
-                      <span class="dot"></span>
-                      <span class="dot"></span>
-                    </div>
+                    <p class="card-subtitle">{{ candidato.puesto || 'Sin puesto' }}</p>
                   </div>
                 </div>
 
+                @if (getProgresoEtapa(candidato); as p) {
+                  @if (p.total > 0) {
+                    <div class="progress-row">
+                      <div class="progress-bar">
+                        <div class="progress-fill" [style.width.%]="p.pct" [style.background-color]="columna.color"></div>
+                      </div>
+                      <span class="progress-text">{{ p.hechos }}/{{ p.total }}</span>
+                    </div>
+                  }
+                }
+
                 <div class="card-footer">
-                  <span class="card-meta"> 📍 {{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
+                  <span class="card-meta">📍 {{ candidato.ciudad || candidato.sucursal || 'S/C' }}</span>
                   <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
                 </div>
 
-                @if (candidato.status === 'contratado') {
+                @if (candidato.status === ID_ETAPAS.CONTRATADO) {
                   <div class="permanencia-badge" [ngClass]="getClasePermanencia(getDiasPermanencia(candidato.hiredAt))">
                     {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
                   </div>
                 }
-                
+
                 <div class="card-actions">
-                  <button class="action-btn view" (click)="abrirExpediente(candidato)" style="background-color: #3b82f6; color: white;">
-                    📂 Abrir Expediente
+                  <button class="action-btn view" (click)="abrirExpediente(candidato)">
+                    📂 Expediente
                   </button>
-                  <button class="action-btn contact" (click)="contactarWhatsApp(candidato.telefono)">📞 Contactar</button>
+                  <button class="action-btn contact" (click)="contactarWhatsApp(candidato)">
+                    💬 WhatsApp
+                  </button>
                 </div>
               </div>
             } @empty {
-              <p class="empty-column-text">Arrastra aquí</p>
+              <div class="empty-column">
+                <span class="empty-icon">📥</span>
+                <p>Sin candidatos</p>
+                <small>Arrastra aquí</small>
+              </div>
             }
           </div>
         </div>
@@ -98,86 +146,27 @@
     </div>
   }
 
-  @if (candidatoSeleccionado) {
-    <div class="panel-overlay" (click)="cerrarExpediente()"></div>
-    
-    <div class="side-panel">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <div class="panel-avatar" [style.background-color]="getAvatarColor(candidatoSeleccionado.nombre)">
-            {{ candidatoSeleccionado.nombre.charAt(0) }}
-          </div>
-          <div>
-            <h3>{{ candidatoSeleccionado.nombre }}</h3>
-            <p>{{ candidatoSeleccionado.puesto }} | {{ candidatoSeleccionado.ciudad || 'Sin ciudad' }}</p>
-          </div>
-        </div>
-        <button class="btn-close" (click)="cerrarExpediente()">✖</button>
+  <!-- MODAL DE BLOQUEO -->
+  @if (mensajeBloqueo) {
+    <div class="block-overlay" (click)="cerrarBloqueo()"></div>
+    <div class="block-modal" role="dialog" aria-modal="true">
+      <div class="block-header">
+        <span class="block-icon">🚫</span>
+        <h3>{{ mensajeBloqueo.titulo }}</h3>
       </div>
-
-      <div class="stepper-container">
-        @for (step of statusConfig; track step.id; let idx = $index) {
-          <div class="stepper-step" 
-               [class.active]="candidatoSeleccionado.status === step.id"
-               [class.completed]="getStepIndex(candidatoSeleccionado.status) > idx"
-               (click)="moverEtapaDirecto(candidatoSeleccionado, step.id)">
-            <div class="stepper-circle">
-              @if (getStepIndex(candidatoSeleccionado.status) > idx) { ✓ } @else { {{ idx + 1 }} }
-            </div>
-            <span class="stepper-label">{{ step.title }}</span>
-          </div>
+      <p class="block-text">
+        Antes de mover a <strong>Contratado</strong> debes completar la <strong>etapa Oferta</strong>.
+        Falta validar:
+      </p>
+      <ul class="block-list">
+        @for (item of mensajeBloqueo.faltantes; track item) {
+          <li>❌ {{ item }}</li>
         }
-      </div>
-
-      <div class="panel-content">
-        <div class="panel-section">
-          <h4>☑️ Auditoría de Proceso</h4>
-          
-          <p class="section-desc" style="margin-top: 12px; font-weight: 600; color: #334155;">1. Primer Contacto</p>
-          <div class="checklist-icons">
-            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.validacionExperiencia || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'validacionExperiencia')">Experiencia</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.escolaridad || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'escolaridad')">Escolaridad</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.zonaResidencia || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'zonaResidencia')">Zona</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.sueldoEsperado || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'sueldoEsperado')">Sueldo</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contactoChecklist?.documentacionPreliminar || 'gris'" (click)="cambiarEstadoIconoContacto(candidatoSeleccionado, 'documentacionPreliminar')">Docs Preliminar</span>
-          </div>
-
-          <p class="section-desc" style="margin-top: 16px; font-weight: 600; color: #334155;">2. Contratación e Ingreso</p>
-          <div class="checklist-icons">
-            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoFirmado || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoFirmado')">Firma Contrato</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.contratoOms || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'contratoOms')">Alta OMS</span>
-            <span class="text-status" [class]="candidatoSeleccionado.contratadoChecklist?.induccion || 'gris'" (click)="cambiarEstadoIconoContratado(candidatoSeleccionado, 'induccion')">Inducción</span>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <h4>📎 Documentos del Expediente</h4>
-          <p class="section-desc">Sube INE, contratos, actas, etc.</p>
-          
-          <div class="upload-area">
-            <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
-            <label for="docUpload" class="upload-btn" [style.opacity]="subiendoDoc ? '0.5' : '1'">
-              <span>{{ subiendoDoc ? '⏳ Subiendo a la nube...' : '+ Agregar documento' }}</span>
-            </label>
-          </div>
-          
-          <div class="doc-list">
-            @if (candidatoSeleccionado.cvUrl) {
-              <a [href]="candidatoSeleccionado.cvUrl" target="_blank" class="doc-item">
-                <span class="doc-icon">📄</span> Curriculum Vitae (Inicial)
-              </a>
-            }
-
-            @if (candidatoSeleccionado.documentos) {
-              @for (doc of candidatoSeleccionado.documentos; track doc.url) {
-                <a [href]="doc.url" target="_blank" class="doc-item">
-                  <span class="doc-icon">📎</span> {{ doc.nombre }}
-                </a>
-              }
-            }
-          </div>
-        </div>
-      </div>
+      </ul>
+      <p class="block-hint">
+        Abre el expediente del candidato, marca cada validación en verde y vuelve a intentarlo.
+      </p>
+      <button class="block-btn" (click)="cerrarBloqueo()">Entendido</button>
     </div>
   }
 </div>

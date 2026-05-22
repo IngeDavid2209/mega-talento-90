@@ -1,88 +1,84 @@
 <div class="dashboard-container">
   <div class="header">
-    <h2>Historial de Candidatos</h2>
-    <p>Base de datos completa y registro de solicitudes pasadas</p>
-  </div>
-  
-  <div class="stats-grid" style="grid-template-columns: 1fr;">
-    <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <h3>Total Histórico de Registros</h3>
-        <p class="stat-number">{{ candidatos.length }}</p>
-      </div>
-      <div style="text-align: right;">
-        <span style="background-color: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 13px;">
-          Base de Datos Maestra
-        </span>
-      </div>
+    <div>
+      <h2>Historial de Candidatos</h2>
+      <p>Base de datos completa · {{ candidatos.length }} registros</p>
     </div>
+    <span class="hist-tag">📚 Base maestra</span>
   </div>
-  
+
   <div class="table-card">
     <div class="table-toolbar">
-      <input type="text"
-             class="search-input"
-             placeholder=" 🔍  Buscar en todo el historial..."
-             [(ngModel)]="terminoBusqueda"
-             (input)="filtrarCandidatos()">
-
-      <button class="btn-excel" (click)="exportarExcel()" title="Descargar todo el historial">
-        📊  Exportar Historial a Excel
-      </button>
+      <div class="toolbar-search">
+        <input type="text" class="search-input"
+               placeholder="🔍 Buscar por nombre, puesto o ciudad..."
+               [(ngModel)]="terminoBusqueda" (input)="aplicarFiltros()">
+        <select class="filter-select" [(ngModel)]="filtroEstatus" (change)="aplicarFiltros()">
+          <option value="">Todas las etapas</option>
+          @for (e of ETAPAS; track e.id) {
+            <option [value]="e.id">{{ e.icon }} {{ e.title }}</option>
+          }
+        </select>
+      </div>
+      <button class="btn-excel" (click)="exportarExcel()">📊 Exportar a Excel</button>
     </div>
-    
+
     @if (cargando) {
-      <div class="loading-state">Extrayendo registros históricos...</div>
+      <div class="loading-state">
+        <div class="spinner"></div>
+        Cargando registros históricos...
+      </div>
     } @else if (candidatosFiltrados.length === 0) {
-      <div class="empty-state">No se encontraron registros en el historial.</div>
+      <div class="empty-state">
+        <span style="font-size:36px;">📭</span>
+        <p>No se encontraron registros</p>
+      </div>
     } @else {
       <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
               <th>FECHA</th>
-              <th>NOMBRE</th>
+              <th>CANDIDATO</th>
               <th>TELÉFONO</th>
               <th>CIUDAD</th>
               <th>PUESTO</th>
+              <th>FUENTE</th>
               <th>CV</th>
               <th>ESTATUS</th>
             </tr>
           </thead>
-
           <tbody>
-            @for (candidato of candidatosFiltrados; track candidato.id) {
+            @for (c of candidatosFiltrados; track c.id) {
               <tr>
-                <td data-label="FECHA">{{ formatearFecha(candidato.createdAt) }}</td>
-                <td data-label="NOMBRE">
+                <td>{{ formatearFecha(c.createdAt) }}</td>
+                <td>
                   <div class="user-info">
-                    <div class="avatar" style="background-color: #64748b;">{{ candidato.nombre.charAt(0) }}</div>
-                    <span>{{ candidato.nombre }}</span>
+                    <div class="avatar-mini" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
+                    <span class="user-name">{{ c.nombre }}</span>
                   </div>
                 </td>
-                <td data-label="TELÉFONO">
-                  <div class="phone-action-cell">
-                    <span>{{ candidato.telefono }}</span>
-                    <button class="btn-whatsapp" (click)="contactarWhatsApp(candidato)">
-                      📲  WhatsApp
-                    </button>
+                <td>
+                  <div class="phone-cell">
+                    <span>{{ c.telefono }}</span>
+                    <button class="btn-whatsapp" (click)="contactarWhatsApp(c)">💬</button>
                   </div>
                 </td>
-                <td data-label="CIUDAD">{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
-                <td data-label="PUESTO">{{ candidato.puesto }}</td>
-                <td data-label="CV">
-                  @if (candidato.cvUrl) {
-                    <a [href]="candidato.cvUrl" target="_blank" class="btn-cv"> 📄  Ver PDF</a>
+                <td>{{ c.ciudad || c.sucursal || '—' }}</td>
+                <td>{{ c.puesto }}</td>
+                <td><span class="chip-mini">{{ c.fuente || '—' }}</span></td>
+                <td>
+                  @if (c.cvUrl) {
+                    <a [href]="c.cvUrl" target="_blank" class="btn-cv">📄</a>
                   } @else {
-                    <span class="no-cv">Sin archivo</span>
+                    <span class="no-cv">—</span>
                   }
                 </td>
-                <td data-label="ESTATUS">
-                  <select class="status-select" [class]="candidato.status" (change)="cambiarEstatus(candidato.id, $event)" translate="no">
-                    <option value="nuevo" [selected]="candidato.status === 'nuevo'">Nueva solicitud</option>
-                    <option value="contacto_pendiente" [selected]="candidato.status === 'contacto_pendiente'">Contacto pendiente</option>
-                    <option value="entrevista" [selected]="candidato.status === 'entrevista'">Entrevista</option>
-                    <option value="contratado" [selected]="candidato.status === 'contratado'">Contratado</option>
+                <td>
+                  <select class="status-select" (change)="cambiarEstatus(c.id, $event)">
+                    @for (e of ETAPAS; track e.id) {
+                      <option [value]="e.id" [selected]="c.status === e.id">{{ e.icon }} {{ e.title }}</option>
+                    }
                   </select>
                 </td>
               </tr>

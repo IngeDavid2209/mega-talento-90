@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
+import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -14,112 +15,104 @@ import * as XLSX from 'xlsx';
 export class HistorialComponent implements OnInit {
   private candidateService = inject(CandidateService);
 
+  ETAPAS = ETAPAS;
+  ID_ETAPAS = ID_ETAPAS;
+
   candidatos: any[] = [];
   candidatosFiltrados: any[] = [];
-
-  cargando: boolean = true;
-  terminoBusqueda: string = '';
+  cargando = true;
+  terminoBusqueda = '';
+  filtroEstatus = '';
 
   async ngOnInit() {
-    await this.cargarHistorialCompleto();
+    await this.cargarHistorial();
   }
 
-  async cargarHistorialCompleto() {
+  async cargarHistorial() {
     try {
       this.cargando = true;
       const todos = await this.candidateService.getCandidates();
-
-      // Aquí NO hay filtro de 48 horas. Pasan todos directo.
-      // CORRECCIÓN: Le decimos a TypeScript que 'a' y 'b' son de tipo 'any'
       this.candidatos = todos.sort((a: any, b: any) => {
-        const dateA = a.createdAt?.toDate() || 0;
-        const dateB = b.createdAt?.toDate() || 0;
-        return (dateB as any) - (dateA as any);
+        const da = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+        const db = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+        return db.getTime() - da.getTime();
       });
-
-      this.candidatosFiltrados = [...this.candidatos];
-
-    } catch (error) {
-      console.error('Error cargando el historial:', error);
+      this.aplicarFiltros();
     } finally {
       this.cargando = false;
     }
   }
 
-  filtrarCandidatos() {
-    const termino = this.terminoBusqueda.toLowerCase().trim();
-
-    if (!termino) {
-      this.candidatosFiltrados = [...this.candidatos];
-      return;
-    }
-
-    this.candidatosFiltrados = this.candidatos.filter(c =>
-      c.nombre.toLowerCase().includes(termino) ||
-      c.puesto.toLowerCase().includes(termino) ||
-      (c.ciudad && c.ciudad.toLowerCase().includes(termino))
-    );
+  aplicarFiltros() {
+    const t = this.terminoBusqueda.toLowerCase().trim();
+    this.candidatosFiltrados = this.candidatos.filter(c => {
+      const matchTexto = !t ||
+        (c.nombre || '').toLowerCase().includes(t) ||
+        (c.puesto || '').toLowerCase().includes(t) ||
+        (c.ciudad || '').toLowerCase().includes(t);
+      const matchEstatus = !this.filtroEstatus || c.status === this.filtroEstatus;
+      return matchTexto && matchEstatus;
+    });
   }
 
   exportarExcel() {
-    const datosParaExcel = this.candidatosFiltrados.map(c => ({
-      'Fecha de Registro': this.formatearFecha(c.createdAt),
-      'Nombre Completo': c.nombre,
+    const datos = this.candidatosFiltrados.map(c => ({
+      'Fecha Registro': this.formatearFecha(c.createdAt),
+      'Nombre': c.nombre,
       'Teléfono': c.telefono,
-      'Ciudad / Sucursal': c.ciudad || c.sucursal || 'Sin registro',
+      'Ciudad / Sucursal': c.ciudad || c.sucursal || '',
       'Puesto Solicitado': c.puesto,
-      'Estatus Actual': c.status === 'nuevo' ? 'Nueva solicitud' : c.status
+      'Fuente': c.fuente || '',
+      'Estatus Actual': this.getNombreEtapa(c.status),
+      'Fecha Contratación': c.hiredAt ? this.formatearFecha(c.hiredAt) : '',
+      'Fecha Rechazo': c.rejectedAt ? this.formatearFecha(c.rejectedAt) : ''
     }));
-
-    const hoja = XLSX.utils.json_to_sheet(datosParaExcel);
+    const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Historial_Completo');
-    XLSX.writeFile(libro, 'Historial_Candidatos_MegaDulces.xlsx');
+    XLSX.utils.book_append_sheet(libro, hoja, 'Historial');
+    XLSX.writeFile(libro, 'Historial_MegaTalento.xlsx');
+  }
+
+  getNombreEtapa(id: string): string {
+    return ETAPAS.find(e => e.id === id)?.title || id || 'Sin estatus';
+  }
+
+  getColorEtapa(id: string): string {
+    return ETAPAS.find(e => e.id === id)?.color || '#94a3b8';
   }
 
   formatearFecha(timestamp: any): string {
     if (!timestamp) return 'Sin fecha';
-    const date = timestamp.toDate();
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  async contactarWhatsApp(candidato: any) {
-    // 1. Abrimos la pestaña de WhatsApp (como ya lo hacíamos)
-    const numeroLimpio = candidato.telefono.replace(/\D/g, '');
-    const mensaje = `Hola ${candidato.nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu historial y nos gustaría platicar contigo sobre una nueva vacante.`;
-    const url = `https://wa.me/52${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
+  async contactarWhatsApp(c: any) {
+    const numero = (c.telefono || '').replace(/\D/g, '');
+    const msg = `Hola ${c.nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu historial y nos gustaría platicar contigo sobre una nueva vacante.`;
+    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
 
-    // 2. LA MAGIA: Si el candidato era "nuevo", lo pasamos a "contacto_pendiente" automáticamente
-    if (candidato.status === 'nuevo') {
+    if (c.status === ID_ETAPAS.NUEVO) {
       try {
-        // Actualizamos en la base de datos (Firebase)
-        await this.candidateService.updateCandidate(candidato.id, { status: 'contacto_pendiente' });
-
-        // Actualizamos visualmente en la tabla al instante (sin tener que recargar la página)
-        candidato.status = 'contacto_pendiente';
-
-      } catch (error) {
-        console.error('Error al automatizar el estatus:', error);
-      }
+        await this.candidateService.updateCandidate(c.id, { status: ID_ETAPAS.FILTRO });
+        c.status = ID_ETAPAS.FILTRO;
+      } catch {}
     }
   }
-  async cambiarEstatus(idCandidato: string, event: any) {
-    const nuevoEstatus = event.target.value;
+
+  async cambiarEstatus(id: string, event: any) {
+    const nuevo = event.target.value;
     try {
-      // 1. Actualizamos el estatus en Firebase
-      await this.candidateService.updateCandidate(idCandidato, { status: nuevoEstatus });
-
-      // 2. Actualizamos el estatus visualmente en tu tabla local
-      const index = this.candidatosFiltrados.findIndex(c => c.id === idCandidato);
-      if (index !== -1) {
-        this.candidatosFiltrados[index].status = nuevoEstatus;
-      }
-    } catch (error) {
-      console.error('Error al actualizar el estatus desde el selector:', error);
+      await this.candidateService.updateCandidate(id, { status: nuevo });
+      const idx = this.candidatosFiltrados.findIndex(c => c.id === id);
+      if (idx !== -1) this.candidatosFiltrados[idx].status = nuevo;
+    } catch (e) {
+      console.error('Error al actualizar estatus:', e);
     }
   }
 
-  
-
+  getInitials(nombre: string): string {
+    if (!nombre) return '?';
+    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+  }
 }

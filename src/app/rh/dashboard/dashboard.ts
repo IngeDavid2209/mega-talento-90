@@ -1,120 +1,220 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // <-- NECESARIO PARA EL BUSCADOR
+import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
-import * as XLSX from 'xlsx'; // <-- LIBRERÍA DE EXCEL
+import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule], // <-- AGREGADO AQUÍ
+  imports: [CommonModule, FormsModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })
 export class DashboardComponent implements OnInit {
   private candidateService = inject(CandidateService);
-  
+  private ngZone = inject(NgZone);
+
+  ETAPAS = ETAPAS;
+  ID_ETAPAS = ID_ETAPAS;
+
+  cargando = true;
   candidatos: any[] = [];
-  candidatosFiltrados: any[] = []; // <-- ARREGLO PARA EL BUSCADOR
-  
-  cargando: boolean = true;
-  totalLeads: number = 0;
-  terminoBusqueda: string = ''; // <-- LO QUE ESCRIBE EL USUARIO
+  candidatos48h: any[] = [];
+  candidatosFiltrados: any[] = [];
+  terminoBusqueda = '';
+
+  // KPIs maestros
+  kpiTotal = 0;
+  kpiNuevos48h = 0;
+  kpiActivos = 0;
+  kpiContratados = 0;
+  kpiContratadosMes = 0;
+  kpiTiempoCobertura = 0;          // días promedio creación -> contratado
+  kpiTasaAprobados = 0;            // % candidatos no rechazados
+  kpiCostoPorContratacion = 0;     // (placeholder)
+  kpiRetencion7 = 0;
+  kpiRetencion30 = 0;
+
+  // Distribución por etapa
+  distribucionEtapas: { id: string; title: string; count: number; icon: string; color: string; pct: number }[] = [];
+
+  // Fuentes
+  fuentes: { nombre: string; total: number; contratados: number; efectividad: number }[] = [];
 
   async ngOnInit() {
-    await this.cargarCandidatos();
+    this.candidateService.listenToCandidates(datos => {
+      this.ngZone.run(() => {
+        this.candidatos = datos;
+        this.calcularKpis();
+        this.armarTabla();
+        this.cargando = false;
+      });
+    });
   }
 
-  async cargarCandidatos() {
-    try {
-      this.cargando = true;
-      const todosLosCandidatos = await this.candidateService.getCandidates();
-      
-      const ahora = new Date().getTime();
-      const limite48Horas = 48 * 60 * 60 * 1000; 
+  calcularKpis() {
+    const ahora = new Date();
+    const ms48h = 48 * 3600 * 1000;
 
-      // Filtro de 48 horas
-      this.candidatos = todosLosCandidatos.filter((candidato: any) => {
-        if (!candidato.createdAt) return false; 
-        const fechaCandidato = candidato.createdAt.toDate().getTime();
-        return (ahora - fechaCandidato) <= limite48Horas; 
-      });
+    this.kpiTotal = this.candidatos.length;
+    this.candidatos48h = this.candidatos.filter(c => {
+      if (!c.createdAt) return false;
+      const f = typeof c.createdAt.toDate === 'function' ? c.createdAt.toDate() : new Date(c.createdAt);
+      return ahora.getTime() - f.getTime() <= ms48h;
+    });
+    this.kpiNuevos48h = this.candidatos48h.length;
 
-      this.totalLeads = this.candidatos.length;
+    const contratados = this.candidatos.filter(c => c.status === ID_ETAPAS.CONTRATADO);
+    const rechazados = this.candidatos.filter(c => c.status === ID_ETAPAS.RECHAZADO);
+    this.kpiContratados = contratados.length;
+    this.kpiContratadosMes = contratados.filter(c => {
+      if (!c.hiredAt) return false;
+      const f = typeof c.hiredAt.toDate === 'function' ? c.hiredAt.toDate() : new Date(c.hiredAt);
+      return f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear();
+    }).length;
 
-      this.candidatos.sort((a, b) => {
-        const dateA = a.createdAt?.toDate() || 0;
-        const dateB = b.createdAt?.toDate() || 0;
-        return (dateB as any) - (dateA as any);
-      });
+    this.kpiActivos = this.candidatos.filter(c =>
+      c.status !== ID_ETAPAS.CONTRATADO && c.status !== ID_ETAPAS.RECHAZADO
+    ).length;
 
-      // Al inicio, los filtrados son todos los de las últimas 48h
-      this.candidatosFiltrados = [...this.candidatos];
+    // Tiempo de cobertura (días promedio entre createdAt y hiredAt)
+    let dias = 0, n = 0;
+    contratados.forEach(c => {
+      if (!c.createdAt || !c.hiredAt) return;
+      const ini = typeof c.createdAt.toDate === 'function' ? c.createdAt.toDate() : new Date(c.createdAt);
+      const fin = typeof c.hiredAt.toDate === 'function' ? c.hiredAt.toDate() : new Date(c.hiredAt);
+      dias += Math.ceil((fin.getTime() - ini.getTime()) / 86400000);
+      n++;
+    });
+    this.kpiTiempoCobertura = n > 0 ? Math.round(dias / n) : 0;
 
-    } catch (error) {
-      console.error('Error cargando los candidatos:', error);
-    } finally {
-      this.cargando = false;
-    }
+    // % aprobados (avanzaron sin descarte)
+    this.kpiTasaAprobados = this.kpiTotal > 0
+      ? Math.round(((this.kpiTotal - rechazados.length) / this.kpiTotal) * 100)
+      : 0;
+
+    // Retención 7 y 30 días
+    const r7 = this.calcularRetencion(contratados, 7);
+    const r30 = this.calcularRetencion(contratados, 30);
+    this.kpiRetencion7 = r7;
+    this.kpiRetencion30 = r30;
+
+    // Distribución embudo
+    this.distribucionEtapas = ETAPAS.map(e => {
+      const count = this.candidatos.filter(c => c.status === e.id).length;
+      return {
+        id: e.id,
+        title: e.title,
+        icon: e.icon,
+        color: e.color,
+        count,
+        pct: this.kpiTotal > 0 ? Math.round((count / this.kpiTotal) * 100) : 0
+      };
+    });
+
+    // Efectividad por fuente
+    const mapFuentes = new Map<string, { total: number; contratados: number }>();
+    this.candidatos.forEach(c => {
+      const f = (c.fuente || 'Sin fuente').toString();
+      if (!mapFuentes.has(f)) mapFuentes.set(f, { total: 0, contratados: 0 });
+      const obj = mapFuentes.get(f)!;
+      obj.total++;
+      if (c.status === ID_ETAPAS.CONTRATADO) obj.contratados++;
+    });
+    this.fuentes = Array.from(mapFuentes.entries())
+      .map(([nombre, v]) => ({
+        nombre,
+        total: v.total,
+        contratados: v.contratados,
+        efectividad: v.total > 0 ? Math.round((v.contratados / v.total) * 100) : 0
+      }))
+      .sort((a, b) => b.total - a.total);
   }
 
-  // FUNCIÓN 1: BUSCADOR EN TIEMPO REAL
+  /** Retención: contratados que llevan >= N días desde hiredAt y siguen como contratados */
+  calcularRetencion(contratados: any[], dias: number): number {
+    const hoy = new Date();
+    const elegibles = contratados.filter(c => {
+      if (!c.hiredAt) return false;
+      const f = typeof c.hiredAt.toDate === 'function' ? c.hiredAt.toDate() : new Date(c.hiredAt);
+      return (hoy.getTime() - f.getTime()) / 86400000 >= dias;
+    });
+    if (elegibles.length === 0) return 0;
+    const retenidos = elegibles.filter(c => c.status === ID_ETAPAS.CONTRATADO && !c.bajaAt).length;
+    return Math.round((retenidos / elegibles.length) * 100);
+  }
+
+  armarTabla() {
+    this.candidatos48h.sort((a, b) => {
+      const da = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+      const db = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+      return db.getTime() - da.getTime();
+    });
+    this.candidatosFiltrados = [...this.candidatos48h];
+  }
+
   filtrarCandidatos() {
-    const termino = this.terminoBusqueda.toLowerCase().trim();
-    
-    if (!termino) {
-      this.candidatosFiltrados = [...this.candidatos];
+    const t = this.terminoBusqueda.toLowerCase().trim();
+    if (!t) {
+      this.candidatosFiltrados = [...this.candidatos48h];
       return;
     }
-
-    this.candidatosFiltrados = this.candidatos.filter(c => 
-      c.nombre.toLowerCase().includes(termino) ||
-      c.puesto.toLowerCase().includes(termino) ||
-      (c.ciudad && c.ciudad.toLowerCase().includes(termino))
+    this.candidatosFiltrados = this.candidatos48h.filter(c =>
+      (c.nombre || '').toLowerCase().includes(t) ||
+      (c.puesto || '').toLowerCase().includes(t) ||
+      (c.ciudad || '').toLowerCase().includes(t)
     );
   }
 
-  // FUNCIÓN 2: EXPORTAR A EXCEL
   exportarExcel() {
-    // 1. Preparamos los datos limpios para el Excel
-    const datosParaExcel = this.candidatosFiltrados.map(c => ({
-      'Fecha de Registro': this.formatearFecha(c.createdAt),
-      'Nombre Completo': c.nombre,
+    const datos = this.candidatosFiltrados.map(c => ({
+      'Fecha': this.formatearFecha(c.createdAt),
+      'Nombre': c.nombre,
       'Teléfono': c.telefono,
-      'Ciudad / Sucursal': c.ciudad || c.sucursal || 'Sin registro',
-      'Puesto Solicitado': c.puesto,
-      'Estatus Actual': c.status === 'nuevo' ? 'Nueva solicitud' : c.status
+      'Ciudad': c.ciudad || c.sucursal || '',
+      'Puesto': c.puesto,
+      'Fuente': c.fuente || '',
+      'Estatus': this.getNombreEtapa(c.status)
     }));
-
-    // 2. Construimos y descargamos el archivo
-    const hoja = XLSX.utils.json_to_sheet(datosParaExcel);
+    const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, 'Candidatos');
-    XLSX.writeFile(libro, 'Reporte_MegaDulces.xlsx');
+    XLSX.writeFile(libro, 'Reporte_MegaTalento.xlsx');
+  }
+
+  getNombreEtapa(id: string): string {
+    return ETAPAS.find(e => e.id === id)?.title || id || 'Sin estatus';
   }
 
   formatearFecha(timestamp: any): string {
-    if (!timestamp) return 'Sin fecha';
-    const date = timestamp.toDate();
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (!timestamp) return 'S/F';
+    const d = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  contactarWhatsApp(telefono: string, nombre: string) {
-    const numeroLimpio = telefono.replace(/\D/g, '');
-    const mensaje = `Hola ${nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu solicitud y nos gustaría platicar contigo.`;
-    const url = `https://wa.me/52${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
+  contactarWhatsApp(c: any) {
+    const numero = (c.telefono || '').replace(/\D/g, '');
+    const msg = `Hola ${c.nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu solicitud y nos gustaría platicar contigo.`;
+    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
   async cambiarEstatus(idCandidato: string, event: any) {
-    const nuevoEstatus = event.target.value;
+    const nuevo = event.target.value;
     try {
-      await this.candidateService.updateCandidate(idCandidato, { status: nuevoEstatus });
-      // Actualizamos en la vista
-      const index = this.candidatosFiltrados.findIndex(c => c.id === idCandidato);
-      if (index !== -1) this.candidatosFiltrados[index].status = nuevoEstatus;
-    } catch (error) {
-      console.error('Error al actualizar el estatus:', error);
+      await this.candidateService.updateCandidate(idCandidato, { status: nuevo });
+    } catch (e) {
+      console.error('Error al cambiar estatus:', e);
     }
+  }
+
+  getInitials(nombre: string): string {
+    if (!nombre) return '?';
+    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+  }
+
+  getColorEtapa(id: string): string {
+    return ETAPAS.find(e => e.id === id)?.color || '#94a3b8';
   }
 }

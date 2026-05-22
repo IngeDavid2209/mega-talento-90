@@ -1,94 +1,204 @@
 <div class="dashboard-container">
+
+  <!-- HEADER -->
   <div class="header">
-    <h2>Panel de Control - Mega Talento</h2>
-    <p>Vista general de solicitudes entrantes</p>
+    <div>
+      <h2>Panel de Control RH</h2>
+      <p>KPIs del proceso de selección · Mega Dulces</p>
+    </div>
+    <span class="live-tag">
+      <span class="live-pulse"></span> En vivo
+    </span>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <h3>Total de Solicitudes (Últimas 48h)</h3>
-      <p class="stat-number">{{ candidatos.length }}</p>
+  @if (cargando) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      Cargando indicadores...
     </div>
-    <div class="stat-card">
-      <h3>Última actualización</h3>
-      <p class="stat-number" style="font-size: 18px; margin-top: 18px; color: #16a34a;">En vivo</p>
-    </div>
-  </div>
+  } @else {
 
-  <div class="table-card">
-    
-    <div class="table-toolbar">
-      <input type="text" 
-             class="search-input" 
-             placeholder="🔍 Buscar por nombre, puesto o ciudad..." 
-             [(ngModel)]="terminoBusqueda" 
-             (input)="filtrarCandidatos()">
-             
-      <button class="btn-excel" (click)="exportarExcel()" title="Descargar lista actual">
-        📊 Exportar a Excel
-      </button>
+    <!-- KPIs PRINCIPALES -->
+    <div class="kpi-grid">
+      <div class="kpi-card primary">
+        <div class="kpi-icon">📥</div>
+        <div>
+          <span class="kpi-label">Nuevos 48h</span>
+          <span class="kpi-value">{{ kpiNuevos48h }}</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">👥</div>
+        <div>
+          <span class="kpi-label">Total candidatos</span>
+          <span class="kpi-value">{{ kpiTotal }}</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔥</div>
+        <div>
+          <span class="kpi-label">Activos en proceso</span>
+          <span class="kpi-value">{{ kpiActivos }}</span>
+        </div>
+      </div>
+      <div class="kpi-card success">
+        <div class="kpi-icon">✅</div>
+        <div>
+          <span class="kpi-label">Contratados (mes)</span>
+          <span class="kpi-value">{{ kpiContratadosMes }}</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">⏱️</div>
+        <div>
+          <span class="kpi-label">Tiempo Cobertura</span>
+          <span class="kpi-value">{{ kpiTiempoCobertura }}<small>días</small></span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📈</div>
+        <div>
+          <span class="kpi-label">% Aprobados</span>
+          <span class="kpi-value">{{ kpiTasaAprobados }}<small>%</small></span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🛡️</div>
+        <div>
+          <span class="kpi-label">Retención 7 días</span>
+          <span class="kpi-value">{{ kpiRetencion7 }}<small>%</small></span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🏆</div>
+        <div>
+          <span class="kpi-label">Retención 30 días</span>
+          <span class="kpi-value">{{ kpiRetencion30 }}<small>%</small></span>
+        </div>
+      </div>
     </div>
 
-    @if (cargando) {
-      <div class="loading-state">Conectando con la base de datos...</div>
-    } @else if (candidatosFiltrados.length === 0) {
-      <div class="empty-state">No se encontraron candidatos.</div>
-    } @else {
-      <div class="table-responsive">
-        <table class="data-table">
+    <!-- ROW: DISTRIBUCIÓN + FUENTES -->
+    <div class="dual-grid">
+      <div class="panel-card">
+        <h3>🚦 Distribución del Embudo</h3>
+        <p class="panel-desc">Candidatos por etapa del proceso</p>
+        <div class="distrib-list">
+          @for (e of distribucionEtapas; track e.id) {
+            <div class="distrib-row">
+              <span class="distrib-label">
+                <span class="distrib-dot" [style.background-color]="e.color"></span>
+                {{ e.icon }} {{ e.title }}
+              </span>
+              <div class="distrib-bar">
+                <div class="distrib-fill" [style.width.%]="e.pct" [style.background-color]="e.color"></div>
+              </div>
+              <span class="distrib-num">{{ e.count }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>🌐 Efectividad por Fuente</h3>
+        <p class="panel-desc">% de candidatos que llegan a contratado</p>
+        <table class="fuentes-table">
           <thead>
-            <tr>
-              <th>FECHA</th>
-              <th>NOMBRE</th>
-              <th>TELÉFONO</th>
-              <th>CIUDAD</th>
-              <th>PUESTO</th>
-              <th>CV</th> <th>ESTATUS</th>
-            </tr>
+            <tr><th>Fuente</th><th>Total</th><th>Cont.</th><th>%</th></tr>
           </thead>
-          
           <tbody>
-            @for (candidato of candidatosFiltrados; track candidato.id) {
+            @for (f of fuentes; track f.nombre) {
               <tr>
-                <td>{{ formatearFecha(candidato.createdAt) }}</td>
+                <td>{{ f.nombre }}</td>
+                <td>{{ f.total }}</td>
+                <td>{{ f.contratados }}</td>
                 <td>
-                  <div class="user-info">
-                    <div class="avatar">{{ candidato.nombre.charAt(0) }}</div>
-                    <span>{{ candidato.nombre }}</span>
-                  </div>
-                </td>
-                <td>
-                  <div class="phone-action-cell">
-                    <span>{{ candidato.telefono }}</span>
-                    <button class="btn-whatsapp" (click)="contactarWhatsApp(candidato.telefono, candidato.nombre)">
-                      📲 WhatsApp
-                    </button>
-                  </div>
-                </td>
-                <td>{{ candidato.ciudad || candidato.sucursal || 'Sin registro' }}</td>
-                <td>{{ candidato.puesto }}</td>
-                
-                <td>
-                  @if (candidato.cvUrl) {
-                    <a [href]="candidato.cvUrl" target="_blank" class="btn-cv" title="Abrir Currículum">📄 Ver PDF</a>
-                  } @else {
-                    <span class="no-cv">Sin archivo</span>
-                  }
-                </td>
-
-                <td>
-                  <select class="status-select" [class]="candidato.status" (change)="cambiarEstatus(candidato.id, $event)" translate="no">
-                    <option value="nuevo" [selected]="candidato.status === 'nuevo'">Nueva solicitud</option>
-                    <option value="contacto_pendiente" [selected]="candidato.status === 'contacto_pendiente'">Contacto pendiente</option>
-                    <option value="entrevista" [selected]="candidato.status === 'entrevista'">Entrevista</option>
-                    <option value="contratado" [selected]="candidato.status === 'contratado'">Contratado</option>
-                  </select>
+                  <span class="fuente-pct" [class.alto]="f.efectividad >= 30" [class.medio]="f.efectividad >= 10 && f.efectividad < 30">
+                    {{ f.efectividad }}%
+                  </span>
                 </td>
               </tr>
+            } @empty {
+              <tr><td colspan="4" class="empty-row">Sin datos de fuente registrados</td></tr>
             }
           </tbody>
         </table>
       </div>
-    }
-  </div>
+    </div>
+
+    <!-- TABLA DE CANDIDATOS 48H -->
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div>
+          <h3>Solicitudes recientes (últimas 48h)</h3>
+          <p class="panel-desc">Atención prioritaria: SLA 24-72h</p>
+        </div>
+        <div class="toolbar-actions">
+          <input type="text" class="search-input"
+                 placeholder="🔍 Buscar por nombre, puesto o ciudad..."
+                 [(ngModel)]="terminoBusqueda" (input)="filtrarCandidatos()">
+          <button class="btn-excel" (click)="exportarExcel()">📊 Exportar</button>
+        </div>
+      </div>
+
+      @if (candidatosFiltrados.length === 0) {
+        <div class="empty-state">
+          <span style="font-size:36px;">📭</span>
+          <p>No hay solicitudes en las últimas 48 horas</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>FECHA</th>
+                <th>CANDIDATO</th>
+                <th>TELÉFONO</th>
+                <th>CIUDAD</th>
+                <th>PUESTO</th>
+                <th>CV</th>
+                <th>ESTATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of candidatosFiltrados; track c.id) {
+                <tr>
+                  <td>{{ formatearFecha(c.createdAt) }}</td>
+                  <td>
+                    <div class="user-info">
+                      <div class="avatar-mini" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
+                      <span class="user-name">{{ c.nombre }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="phone-cell">
+                      <span>{{ c.telefono }}</span>
+                      <button class="btn-whatsapp" (click)="contactarWhatsApp(c)">💬</button>
+                    </div>
+                  </td>
+                  <td>{{ c.ciudad || c.sucursal || '—' }}</td>
+                  <td>{{ c.puesto }}</td>
+                  <td>
+                    @if (c.cvUrl) {
+                      <a [href]="c.cvUrl" target="_blank" class="btn-cv">📄</a>
+                    } @else {
+                      <span class="no-cv">—</span>
+                    }
+                  </td>
+                  <td>
+                    <select class="status-select" (change)="cambiarEstatus(c.id, $event)">
+                      @for (e of ETAPAS; track e.id) {
+                        <option [value]="e.id" [selected]="c.status === e.id">{{ e.icon }} {{ e.title }}</option>
+                      }
+                    </select>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+  }
 </div>

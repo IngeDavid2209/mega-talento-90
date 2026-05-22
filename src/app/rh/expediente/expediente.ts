@@ -1,13 +1,22 @@
 import { Component, inject, OnInit, NgZone, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from '@angular/fire/firestore';
+import {
+  ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EstadoCheck,
+  CHECKLIST_FILTRO, COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
+  PSICOMETRIA_ITEMS, CHECKLIST_JEFE, CHECKLIST_DOCUMENTAL,
+  CHECKLIST_OFERTA, CHECKLIST_CONTRATADO, AREAS_DICTAMEN,
+  ItemChecklist, ResultadoDictamen,
+  checklistCompleto, itemsFaltantes, progresoChecklist
+} from '../../core/models/proceso.model';
 
 @Component({
   selector: 'app-expediente',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './expediente.html',
   styleUrl: './expediente.css'
 })
@@ -17,19 +26,30 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
 
+  // Constantes expuestas al template
+  ETAPAS = ETAPAS;
+  ID_ETAPAS = ID_ETAPAS;
+  FLUJO_LINEAL = FLUJO_LINEAL;
+  CHECKLIST_FILTRO = CHECKLIST_FILTRO;
+  COMPETENCIAS_STAR = COMPETENCIAS_STAR;
+  APTITUDES_POR_TIPO = APTITUDES_POR_TIPO;
+  PSICOMETRIA_ITEMS = PSICOMETRIA_ITEMS;
+  CHECKLIST_JEFE = CHECKLIST_JEFE;
+  CHECKLIST_DOCUMENTAL = CHECKLIST_DOCUMENTAL;
+  CHECKLIST_OFERTA = CHECKLIST_OFERTA;
+  CHECKLIST_CONTRATADO = CHECKLIST_CONTRATADO;
+  AREAS_DICTAMEN = AREAS_DICTAMEN;
+
   candidato: any = null;
   cargando = true;
   subiendoDoc = false;
-  private unsubscribeFn: any;
+  tabActiva: string = 'resumen';
+  mensajeBloqueo: { titulo: string; faltantes: string[] } | null = null;
 
-  statusConfig = [
-    { id: 'nuevo', title: 'Nuevo' },
-    { id: 'contacto_pendiente', title: 'Contacto' },
-    { id: 'entrevista', title: 'Entrevista' },
-    { id: 'oferta', title: 'Oferta' },
-    { id: 'contratado', title: 'Contratado' },
-    { id: 'rechazado', title: 'No Viable' }
-  ];
+  // Tipo de vacante para aptitudes
+  tipoVacante: 'operativo' | 'administrativo' | 'ventas' | 'jefatura' = 'operativo';
+
+  private unsubscribeFn: any;
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -37,14 +57,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       this.unsubscribeFn = this.candidateService.listenToCandidate(id, (data) => {
         this.ngZone.run(() => {
           this.candidato = data;
-          
-          // Aseguramos que existan las listas
-          if (!this.candidato.contactoChecklist) {
-            this.candidato.contactoChecklist = { validacionExperiencia: 'gris', escolaridad: 'gris', zonaResidencia: 'gris', sueldoEsperado: 'gris', documentacionPreliminar: 'gris' };
-          }
-          if (!this.candidato.contratadoChecklist) {
-            this.candidato.contratadoChecklist = { contratoFirmado: 'gris', contratoOms: 'gris', induccion: 'gris' };
-          }
+          this.inicializarChecklists();
+          this.tipoVacante = this.candidato.tipoVacante || 'operativo';
           this.cargando = false;
         });
       });
@@ -55,42 +69,158 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     if (this.unsubscribeFn) this.unsubscribeFn();
   }
 
-  volver() {
-    this.router.navigate(['/rh/kanban']); // Ajusta esta ruta a donde esté tu tablero
+  inicializarChecklists() {
+    if (!this.candidato) return;
+    const vacio = (items: ItemChecklist[]) => items.reduce((a, i) => ({ ...a, [i.key]: 'gris' }), {});
+    this.candidato.filtroChecklist       ||= vacio(CHECKLIST_FILTRO);
+    this.candidato.starChecklist         ||= vacio(COMPETENCIAS_STAR);
+    this.candidato.starNotas             ||= {};
+    this.candidato.aptitudesResultados   ||= { puntaje: 0, tiempo: '', aprobado: false, notas: '' };
+    this.candidato.psicometriaChecklist  ||= vacio(PSICOMETRIA_ITEMS);
+    this.candidato.psicometriaRiesgos    ||= '';
+    this.candidato.jefeChecklist         ||= vacio(CHECKLIST_JEFE);
+    this.candidato.jefeNotas             ||= '';
+    this.candidato.documentalChecklist   ||= vacio(CHECKLIST_DOCUMENTAL);
+    this.candidato.ofertaChecklist       ||= vacio(CHECKLIST_OFERTA);
+    this.candidato.contratadoChecklist   ||= vacio(CHECKLIST_CONTRATADO);
+    this.candidato.dictamen              ||= {
+      rh: 'pendiente', competencias: 0, aptitudes: 0,
+      psicometria: 'sin_riesgo', jefe: 'pendiente',
+      documentos: 'incompleta', resultado: 'pendiente', notas: ''
+    };
   }
 
-  // --- STEPPER VISUAL ---
+  volver() { this.router.navigate(['/app/kanban']); }
+
+  // STEPPER
   getStepIndex(statusId: string): number {
-    return this.statusConfig.findIndex(s => s.id === statusId);
+    return FLUJO_LINEAL.indexOf(statusId);
   }
 
-  async moverEtapaDirecto(nuevaColumnaId: string) {
-    if (this.candidato.status === nuevaColumnaId) return;
+  puedeMoverA(nuevaEtapa: string): { ok: boolean; faltan: string[] } {
+    if (nuevaEtapa !== ID_ETAPAS.CONTRATADO) return { ok: true, faltan: [] };
+    if (checklistCompleto(this.candidato.ofertaChecklist, CHECKLIST_OFERTA)) return { ok: true, faltan: [] };
+    return {
+      ok: false,
+      faltan: itemsFaltantes(this.candidato.ofertaChecklist, CHECKLIST_OFERTA).map(i => i.label)
+    };
+  }
+
+  async moverEtapaDirecto(nuevaEtapa: string) {
+    if (!this.candidato || this.candidato.status === nuevaEtapa) return;
+
+    const v = this.puedeMoverA(nuevaEtapa);
+    if (!v.ok) {
+      this.mensajeBloqueo = { titulo: `No se puede contratar a ${this.candidato.nombre}`, faltantes: v.faltan };
+      return;
+    }
+
+    const actualizacion: any = { status: nuevaEtapa };
+    if (nuevaEtapa === ID_ETAPAS.CONTRATADO) actualizacion.hiredAt = Timestamp.now();
+    if (nuevaEtapa === ID_ETAPAS.RECHAZADO) actualizacion.rejectedAt = Timestamp.now();
     try {
-      let actualizacion: any = { status: nuevaColumnaId };
-      if (nuevaColumnaId === 'contratado') actualizacion.hiredAt = Timestamp.now();
-      if (nuevaColumnaId === 'rechazado') actualizacion.rejectedAt = Timestamp.now();
       await this.candidateService.updateCandidate(this.candidato.id, actualizacion);
     } catch (error) {
-      console.error("Error al cambiar etapa", error);
+      console.error('Error al cambiar etapa:', error);
     }
   }
 
-  // --- NUEVO DISEÑO CHECKLIST (BINARIO SIN COLORES) ---
-  async toggleCheck(listName: string, key: string) {
-    const currentState = this.candidato[listName][key] || 'gris';
-    // Si estaba verde (completado), lo pasamos a gris. Si estaba gris, a verde.
-    const newState = currentState === 'verde' ? 'gris' : 'verde';
-    this.candidato[listName][key] = newState;
+  cerrarBloqueo() { this.mensajeBloqueo = null; }
 
+  // CHECKLISTS: ciclo gris → verde → rojo → gris
+  async ciclarEstado(listName: string, key: string) {
+    if (!this.candidato[listName]) this.candidato[listName] = {};
+    const orden: EstadoCheck[] = ['gris', 'verde', 'rojo'];
+    const actual = (this.candidato[listName][key] || 'gris') as EstadoCheck;
+    const next = orden[(orden.indexOf(actual) + 1) % orden.length];
+    this.candidato[listName][key] = next;
     try {
       await this.candidateService.updateCandidate(this.candidato.id, { [listName]: this.candidato[listName] });
     } catch (error) {
-      this.candidato[listName][key] = currentState; // Revertir si hay error
+      this.candidato[listName][key] = actual;
     }
   }
 
-  // --- SUBIR DOCUMENTOS ---
+  // PROGRESO
+  progresoFiltro() { return progresoChecklist(this.candidato?.filtroChecklist, CHECKLIST_FILTRO); }
+  progresoStar() { return progresoChecklist(this.candidato?.starChecklist, COMPETENCIAS_STAR); }
+  progresoPsicom() { return progresoChecklist(this.candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS); }
+  progresoJefe() { return progresoChecklist(this.candidato?.jefeChecklist, CHECKLIST_JEFE); }
+  progresoDocs() { return progresoChecklist(this.candidato?.documentalChecklist, CHECKLIST_DOCUMENTAL); }
+  progresoOferta() { return progresoChecklist(this.candidato?.ofertaChecklist, CHECKLIST_OFERTA); }
+  progresoContratado() { return progresoChecklist(this.candidato?.contratadoChecklist, CHECKLIST_CONTRATADO); }
+
+  // GUARDADOS DE NOTAS
+  async guardarNota(campo: string, valor: any) {
+    try {
+      await this.candidateService.updateCandidate(this.candidato.id, { [campo]: valor });
+    } catch (e) {
+      console.error('Error al guardar:', e);
+    }
+  }
+
+  async guardarNotaCompetencia(key: string, valor: string) {
+    if (!this.candidato.starNotas) this.candidato.starNotas = {};
+    this.candidato.starNotas[key] = valor;
+    await this.guardarNota('starNotas', this.candidato.starNotas);
+  }
+
+  async guardarDictamen() {
+    await this.guardarNota('dictamen', this.candidato.dictamen);
+  }
+
+  async cambiarTipoVacante(tipo: string) {
+    this.tipoVacante = tipo as any;
+    await this.guardarNota('tipoVacante', tipo);
+  }
+
+  // APTITUDES por tipo
+  getAptitudesActivas(): string[] {
+    return APTITUDES_POR_TIPO[this.tipoVacante] || [];
+  }
+
+  // DICTAMEN: resultado final calculado
+  calcularResultadoSugerido(): ResultadoDictamen {
+    const d = this.candidato.dictamen || {};
+    const todoOk =
+      d.rh === 'aprobado' &&
+      d.jefe === 'aprobado' &&
+      d.documentos === 'completa' &&
+      d.psicometria !== 'alto_riesgo' &&
+      (d.competencias || 0) >= 70 &&
+      (d.aptitudes || 0) >= 70;
+    if (todoOk) return 'contratar';
+    if (d.psicometria === 'alto_riesgo' || d.rh === 'rechazado' || d.jefe === 'rechazado') return 'rechazar';
+    return 'bolsa';
+  }
+
+  aplicarResultadoSugerido() {
+    const r = this.calcularResultadoSugerido();
+    this.candidato.dictamen.resultado = r;
+    this.guardarDictamen();
+  }
+
+  // PERMANENCIA
+  getDiasPermanencia(): number {
+    if (!this.candidato?.hiredAt) return 0;
+    const f = typeof this.candidato.hiredAt.toDate === 'function' ? this.candidato.hiredAt.toDate() : new Date(this.candidato.hiredAt);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    f.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((hoy.getTime() - f.getTime()) / 86400000));
+  }
+
+  getHitosPermanencia(): { label: string; dia: number; alcanzado: boolean }[] {
+    const dias = this.getDiasPermanencia();
+    return [
+      { label: 'Día 1',   dia: 1,  alcanzado: dias >= 1 },
+      { label: '3 días',  dia: 3,  alcanzado: dias >= 3 },
+      { label: '7 días',  dia: 7,  alcanzado: dias >= 7 },
+      { label: '15 días', dia: 15, alcanzado: dias >= 15 },
+      { label: '30 días', dia: 30, alcanzado: dias >= 30 }
+    ];
+  }
+
+  // SUBIDA DOCS
   async subirDocumento(event: any) {
     const file = event.target.files[0];
     if (!file || !this.candidato) return;
@@ -98,15 +228,35 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     this.subiendoDoc = true;
     try {
       const url = await this.candidateService.uploadDocument(file, this.candidato.id);
-      const nuevoDoc = { nombre: file.name, url: url, fecha: new Date().toISOString() };
-      const documentosActuales = this.candidato.documentos || [];
-      documentosActuales.push(nuevoDoc);
-      await this.candidateService.updateCandidate(this.candidato.id, { documentos: documentosActuales });
+      const nuevoDoc = { nombre: file.name, url, fecha: new Date().toISOString() };
+      const documentos = this.candidato.documentos || [];
+      documentos.push(nuevoDoc);
+      await this.candidateService.updateCandidate(this.candidato.id, { documentos });
     } catch (error) {
-      alert("Hubo un error al subir el archivo.");
+      alert('Hubo un error al subir el archivo.');
     } finally {
       this.subiendoDoc = false;
       event.target.value = '';
     }
+  }
+
+  // WHATSAPP rapport
+  contactarWhatsApp() {
+    if (!this.candidato) return;
+    const numero = (this.candidato.telefono || '').replace(/\D/g, '');
+    const msg =
+`Hola ${this.candidato.nombre}, te contacto del equipo de RH de Mega Dulces. ¿Cómo te encuentras?`;
+    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  getInitials(nombre: string): string {
+    if (!nombre) return '?';
+    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+  }
+
+  getAvatarColor(nombre: string): string {
+    if (!nombre) return '#64748b';
+    const colores = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#22d3ee', '#818cf8', '#c084fc', '#f472b6'];
+    return colores[nombre.charCodeAt(0) % colores.length];
   }
 }

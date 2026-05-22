@@ -4,7 +4,7 @@
 
   <header class="top-bar">
     <div class="left-section">
-      <button class="hamburger-btn" (click)="toggleMenu()" aria-label="Abrir menú de navegación">
+      <button class="hamburger-btn" (click)="toggleMenu()" aria-label="Abrir menú">
         <span class="bar"></span>
         <span class="bar"></span>
         <span class="bar"></span>
@@ -12,48 +12,64 @@
 
       <div class="brand-section">
         <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png"
-          alt="Logo Mega Dulces" class="app-logo-img">
-        <h1 class="app-title">MEGA TALENTO 90</h1>
+             alt="Mega Dulces" class="app-logo-img">
+        <div class="brand-text">
+          <h1 class="app-title">MEGA TALENTO 90</h1>
+          <span class="app-subtitle">Sistema de selección estandarizado</span>
+        </div>
       </div>
     </div>
 
     <div class="actions-section">
+      <span class="env-badge">v2.0 · Pro</span>
     </div>
   </header>
 
-<nav class="side-drawer" [class.show]="isMenuOpen">
+  <nav class="side-drawer" [class.show]="isMenuOpen">
     <div class="drawer-header">
       <span class="drawer-title">NAVEGACIÓN</span>
       <button class="close-btn" (click)="isMenuOpen = false">✕</button>
     </div>
 
-    <ul class="nav-list" style="padding: 0; list-style: none; margin: 0;">
-      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
-        <a routerLink="/app/dashboard" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Panel</a>
+    <ul class="nav-list">
+      <li (click)="isMenuOpen = false">
+        <a routerLink="/app/dashboard" routerLinkActive="active">
+          <span class="nav-icon">📊</span> Panel de control
+        </a>
       </li>
-      
-      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
-        <a routerLink="/app/kanban" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Embudo de talento</a>
+      <li (click)="isMenuOpen = false">
+        <a routerLink="/app/kanban" routerLinkActive="active">
+          <span class="nav-icon">🎯</span> Embudo de talento
+        </a>
       </li>
-      
-      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
-        <a routerLink="/app/usuarios" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Gestión de Usuarios</a>
+      <li (click)="isMenuOpen = false">
+        <a routerLink="/app/historial" routerLinkActive="active">
+          <span class="nav-icon">📚</span> Historial
+        </a>
+      </li>
+      <li (click)="isMenuOpen = false">
+        <a routerLink="/app/usuarios" routerLinkActive="active">
+          <span class="nav-icon">👥</span> Gestión de Usuarios
+        </a>
+      </li>
+      <li (click)="isMenuOpen = false">
+        <a routerLink="/unete" routerLinkActive="active">
+          <span class="nav-icon">🌐</span> Formulario público
+        </a>
       </li>
 
-      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
-        <a routerLink="/app/historial" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Historial</a>
-      </li>
+      <li class="divider"></li>
 
-      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
-        <a routerLink="/unete" routerLinkActive="active" style="display: block; width: 100%; padding: 15px 20px;">Ver Formulario público</a>
-      </li>
-      
-      <li class="divider" style="height: 1px; background-color: #e2e8f0; margin: 10px 0;"></li>
-      
-      <li (click)="isMenuOpen = false" style="width: 100%; cursor: pointer;">
-        <a routerLink="/login" class="logout-link" style="display: block; width: 100%; padding: 15px 20px; color: #ef4444;">Salir</a>
+      <li (click)="isMenuOpen = false">
+        <a routerLink="/login" class="logout-link">
+          <span class="nav-icon">🚪</span> Cerrar sesión
+        </a>
       </li>
     </ul>
+
+    <div class="drawer-footer">
+      <small>Mega Dulces · {{ year }}</small>
+    </div>
   </nav>
 
   <main class="content-area">

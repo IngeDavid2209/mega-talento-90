@@ -10,9 +10,10 @@ import { RouterOutlet, RouterModule } from '@angular/router';
   styleUrl: './layout.css'
 })
 export class LayoutComponent {
-  isMenuOpen: boolean = false; 
+  isMenuOpen: boolean = false;
+  year: number = new Date().getFullYear();
 
   toggleMenu() {
-    this.isMenuOpen = !this.isMenuOpen; 
+    this.isMenuOpen = !this.isMenuOpen;
   }
 }
