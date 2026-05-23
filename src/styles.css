@@ -1,42 +1,90 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
+  /* Lienzo */
   --bg: #F7F6F2;
   --surface: #FFFFFF;
   --surface2: #F0EEE8;
-  --border: rgba(0,0,0,0.08);
-  --border-med: rgba(0,0,0,0.14);
+  --surface3: #FAF9F5;
+
+  /* Bordes */
+  --border: rgba(15, 14, 12, 0.08);
+  --border-med: rgba(15, 14, 12, 0.14);
+  --border-strong: rgba(15, 14, 12, 0.22);
+
+  /* Tipografía */
   --text: #1A1916;
-  --text2: #6B6860;
-  --text3: #A09E99;
-  --blue: #1A5FD4;
-  --blue-bg: #EBF1FD;
-  --blue-text: #1040A0;
-  --green: #1A8F5A;
-  --green-bg: #E6F5EE;
-  --green-text: #0E5E3A;
-  --amber: #B87010;
-  --amber-bg: #FDF3E0;
-  --amber-text: #7A4A00;
-  --red: #CC3333;
-  --red-bg: #FCEAEA;
-  --red-text: #8B1A1A;
-  --purple: #6644CC;
-  --purple-bg: #F0ECFD;
-  --purple-text: #3D2299;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --text2: #57544D;
+  --text3: #8A867E;
+  --text4: #B5B1A8;
+
+  /* Identidad corporativa */
+  --ink: #0E0D0B;            /* carbón */
+  --ink-soft: #25231F;
+  --brand: #8B1A1A;          /* rojo institucional Mega Dulces */
+  --brand-deep: #6B0F0F;
+  --brand-bg: #F8ECEC;
+  --gold: #8C6D1F;           /* dorado profundo */
+  --gold-bg: #FAF2DF;
+
+  /* Estados semánticos (sobrios) */
+  --blue: #1A4FB0;
+  --blue-bg: #EAF0FB;
+  --blue-text: #0E2F75;
+  --green: #1F7A4C;
+  --green-bg: #E6F2EC;
+  --green-text: #0D4A2A;
+  --amber: #A26209;
+  --amber-bg: #F9EFD6;
+  --amber-text: #6B3D02;
+  --red: #A12626;
+  --red-bg: #F8E6E6;
+  --red-text: #6B1414;
+  --slate: #475569;
+  --slate-bg: #EEF0F2;
+
+  /* Forma */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  /* Sombra (suaves, sin gradiente colorido) */
+  --shadow-xs: 0 1px 1px rgba(15,14,12,0.04);
+  --shadow: 0 1px 2px rgba(15,14,12,0.05), 0 1px 1px rgba(15,14,12,0.03);
+  --shadow-md: 0 4px 12px -4px rgba(15,14,12,0.10), 0 2px 4px -2px rgba(15,14,12,0.06);
+  --shadow-lg: 0 12px 28px -12px rgba(15,14,12,0.18);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  color: var(--text);
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   background: var(--bg);
-  line-height: 1.5;
 }
 
-/* Copia aquí el resto de las clases del CSS que me pasaste (.sidebar, .nav-item, .card, .metrics-grid, etc.) */
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+/* Tipografía utilitaria */
+h1, h2, h3, h4, h5 {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(15,14,12,0.12); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(15,14,12,0.22); }

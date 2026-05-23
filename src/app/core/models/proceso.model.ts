@@ -20,18 +20,19 @@ export interface EtapaConfig {
 // Filtro inicial → Entrevista RH → Aptitudes → Psicometría →
 // Entrevista técnica/Jefe → Documental → Dictamen → Contratado → Onboarding
 // Plus la columna "No Viable" como descarte transversal.
+// Paleta corporativa sobria (sin tonos "alegres"): carbón + dorado + rojo Mega + estados discretos.
 export const ETAPAS: EtapaConfig[] = [
-  { id: 'nuevo',            title: 'Nuevo',                shortLabel: 'Nuevo',       icon: '📥', color: '#3b82f6', description: 'Solicitud recibida del formulario público.', slaHoras: 24 },
-  { id: 'filtro_inicial',   title: 'Filtro Inicial',       shortLabel: 'Filtro',      icon: '📞', color: '#8b5cf6', description: 'Primer contacto y validación mínima por WhatsApp.', slaHoras: 24 },
-  { id: 'entrevista_rh',    title: 'Entrevista RH',        shortLabel: 'RH',          icon: '👥', color: '#06b6d4', description: 'Trayectoria, estabilidad y competencias conductuales (STAR).', slaHoras: 48 },
-  { id: 'aptitudes',        title: 'Pruebas Aptitudes',    shortLabel: 'Aptitudes',   icon: '🧠', color: '#0ea5e9', description: 'Pruebas prácticas según vacante (operativo/admin/ventas/jefatura).', slaHoras: 48 },
-  { id: 'psicometria',      title: 'Psicometría',          shortLabel: 'Psicom.',     icon: '🧪', color: '#14b8a6', description: 'Personalidad, honestidad, inteligencia y compatibilidad (apoyo, no decisión).', slaHoras: 72 },
-  { id: 'entrevista_jefe',  title: 'Entrevista Jefe',      shortLabel: 'Jefe',        icon: '👔', color: '#f59e0b', description: 'Validación técnica con el jefe directo del área.', slaHoras: 72 },
-  { id: 'documental',       title: 'Val. Documental',      shortLabel: 'Docs',        icon: '📂', color: '#ef4444', description: 'INE, CURP, RFC, NSS, comprobante, acta, constancias, etc.', slaHoras: 24 },
-  { id: 'oferta',           title: 'Oferta',               shortLabel: 'Oferta',      icon: '💰', color: '#a855f7', description: 'Validación pre-ingreso: oferta aceptada, jefe aprueba, fecha, contrato.', slaHoras: 48 },
-  { id: 'dictamen',         title: 'Dictamen Final',       shortLabel: 'Dictamen',    icon: '📊', color: '#6366f1', description: 'Hoja resumen multiárea: contratar, bolsa o rechazar.', slaHoras: 24 },
-  { id: 'contratado',       title: 'Contratado',           shortLabel: 'Contratado',  icon: '✅', color: '#10b981', description: 'Ingreso formal, alta, onboarding y permanencia inicial.' },
-  { id: 'rechazado',        title: 'No Viable',            shortLabel: 'No viable',   icon: '🚫', color: '#94a3b8', description: 'Descartado con motivo documentado.' }
+  { id: 'nuevo',            title: 'Solicitud',            shortLabel: 'Solicitud',   icon: 'I',    color: '#475569', description: 'Solicitud recibida del formulario público.', slaHoras: 24 },
+  { id: 'filtro_inicial',   title: 'Filtro Inicial',       shortLabel: 'Filtro',      icon: 'II',   color: '#1F4E8C', description: 'Primer contacto y validación mínima por WhatsApp.', slaHoras: 24 },
+  { id: 'entrevista_rh',    title: 'Entrevista RH',        shortLabel: 'RH',          icon: 'III',  color: '#1A4FB0', description: 'Trayectoria, estabilidad y competencias conductuales (STAR).', slaHoras: 48 },
+  { id: 'aptitudes',        title: 'Pruebas Aptitudes',    shortLabel: 'Aptitudes',   icon: 'IV',   color: '#2A5A8A', description: 'Pruebas prácticas según vacante (operativo / administrativo / ventas / jefatura).', slaHoras: 48 },
+  { id: 'psicometria',      title: 'Psicometría',          shortLabel: 'Psicometría', icon: 'V',    color: '#3F5C7A', description: 'Personalidad, honestidad, inteligencia y compatibilidad (apoyo, no decisión).', slaHoras: 72 },
+  { id: 'entrevista_jefe',  title: 'Entrevista Técnica',   shortLabel: 'Jefe',        icon: 'VI',   color: '#8C6D1F', description: 'Validación técnica con el jefe directo del área.', slaHoras: 72 },
+  { id: 'documental',       title: 'Validación Documental',shortLabel: 'Documental',  icon: 'VII',  color: '#A26209', description: 'INE, CURP, RFC, NSS, comprobante, acta, constancias.', slaHoras: 24 },
+  { id: 'oferta',           title: 'Oferta',               shortLabel: 'Oferta',      icon: 'VIII', color: '#6B3D02', description: 'Validación pre-ingreso: oferta aceptada, aprobación del jefe, fecha, contrato.', slaHoras: 48 },
+  { id: 'dictamen',         title: 'Dictamen Final',       shortLabel: 'Dictamen',    icon: 'IX',   color: '#25231F', description: 'Hoja resumen multiárea: contratar, bolsa o rechazar.', slaHoras: 24 },
+  { id: 'contratado',       title: 'Contratado',           shortLabel: 'Contratado',  icon: '✓',    color: '#1F7A4C', description: 'Ingreso formal, alta, onboarding y permanencia inicial.' },
+  { id: 'rechazado',        title: 'No Viable',            shortLabel: 'No viable',   icon: '—',    color: '#8A867E', description: 'Descartado con motivo documentado.' }
 ];
 
 export const ID_ETAPAS = {

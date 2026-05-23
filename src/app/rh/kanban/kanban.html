@@ -1,60 +1,47 @@
 <div class="kanban-wrapper">
 
-  <!-- ENCABEZADO -->
+  <!-- HEADER -->
   <div class="kanban-header">
     <div>
-      <h2>Embudo de Talento</h2>
-      <p class="subtitle">Proceso estandarizado de selección · 9 fases controladas</p>
+      <span class="eyebrow">Proceso de Selección</span>
+      <h1>Embudo de Talento</h1>
+      <p class="subtitle">Nueve fases estandarizadas con validación obligatoria antes de contratación</p>
     </div>
-    <div class="header-tag">
-      <span class="tag-pulse"></span> En vivo
+    <div class="header-meta">
+      <span class="meta-dot"></span>
+      <span class="meta-text">Sincronización activa</span>
     </div>
   </div>
 
-  <!-- BARRA DE KPIs -->
+  <!-- KPIs -->
   <div class="metrics-bar">
     <div class="metric-card">
-      <span class="metric-icon" style="background:#dbeafe; color:#1e40af;">👥</span>
-      <div>
-        <span class="metric-label">Total Candidatos</span>
-        <span class="metric-value">{{ kpiTotalCandidatos | number }}</span>
-      </div>
+      <span class="metric-label">Total Candidatos</span>
+      <span class="metric-value">{{ kpiTotalCandidatos | number }}</span>
     </div>
     <div class="metric-card">
-      <span class="metric-icon" style="background:#fef3c7; color:#b45309;">🔥</span>
-      <div>
-        <span class="metric-label">Activos en proceso</span>
-        <span class="metric-value">{{ kpiActivos | number }}</span>
-      </div>
+      <span class="metric-label">Activos en proceso</span>
+      <span class="metric-value">{{ kpiActivos | number }}</span>
     </div>
     <div class="metric-card">
-      <span class="metric-icon" style="background:#dcfce7; color:#166534;">✅</span>
-      <div>
-        <span class="metric-label">Contratados este mes</span>
-        <span class="metric-value">{{ kpiContratadosMes | number }}</span>
-      </div>
+      <span class="metric-label">Contratados del mes</span>
+      <span class="metric-value">{{ kpiContratadosMes | number }}</span>
     </div>
     <div class="metric-card">
-      <span class="metric-icon" style="background:#f3e8ff; color:#6b21a8;">📈</span>
-      <div>
-        <span class="metric-label">Tasa Conversión</span>
-        <span class="metric-value">{{ kpiTasaConversion | number:'1.0-1' }}%</span>
-      </div>
+      <span class="metric-label">Tasa de Conversión</span>
+      <span class="metric-value">{{ kpiTasaConversion | number:'1.0-1' }}<small>%</small></span>
     </div>
     <div class="metric-card">
-      <span class="metric-icon" style="background:#ffe4e6; color:#9f1239;">⏱️</span>
-      <div>
-        <span class="metric-label">Tiempo Promedio</span>
-        <span class="metric-value">{{ kpiTiempoPromedio }} días</span>
-      </div>
+      <span class="metric-label">Tiempo Promedio</span>
+      <span class="metric-value">{{ kpiTiempoPromedio }}<small> días</small></span>
     </div>
   </div>
 
   <!-- FILTROS -->
   <div class="filter-bar">
-    <input type="text" class="filter-input" placeholder="🔍  Puesto..." [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
-    <input type="text" class="filter-input" placeholder="📍  Ciudad..." [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
-    <input type="text" class="filter-input" placeholder="🌐  Fuente..." [(ngModel)]="filtroFuente" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="Puesto" [(ngModel)]="filtroPuesto" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="Ciudad" [(ngModel)]="filtroCiudad" (input)="filtrarYArmarTablero()">
+    <input type="text" class="filter-input" placeholder="Fuente" [(ngModel)]="filtroFuente" (input)="filtrarYArmarTablero()">
     <input type="date" class="filter-input" [(ngModel)]="filtroFecha" (input)="filtrarYArmarTablero()">
   </div>
 
@@ -62,7 +49,7 @@
   @if (cargando) {
     <div class="loading-tablero">
       <div class="spinner"></div>
-      <p>Abriendo embudo de talento...</p>
+      <p>Cargando embudo de talento...</p>
     </div>
   } @else {
     <div class="board-container">
@@ -72,12 +59,13 @@
              (dragover)="onDragOver($event, columna.id)"
              (drop)="onDrop($event, columna.id)">
 
-          <div class="column-header" [style.border-bottom-color]="columna.color">
+          <div class="column-header">
+            <span class="column-mark" [style.background-color]="columna.color"></span>
             <div class="column-title">
-              <span class="column-icon">{{ columna.icon }}</span>
+              <span class="column-roman">{{ columna.icon }}</span>
               <h3>{{ columna.title }}</h3>
             </div>
-            <span class="badge" [style.background-color]="columna.color + '22'" [style.color]="columna.color">{{ columna.count }}</span>
+            <span class="badge">{{ columna.count }}</span>
           </div>
 
           <div class="column-content">
@@ -89,7 +77,7 @@
                    (dragend)="onDragEnd($event)">
 
                 @if (isCandidatoAlerta(candidato)) {
-                  <span class="card-alert-flag" title="SLA vencido — requiere atención">⚠️ Atención</span>
+                  <span class="card-alert-flag" title="SLA vencido">SLA vencido</span>
                 }
 
                 <div class="card-body">
@@ -98,7 +86,7 @@
                   </div>
                   <div class="card-info">
                     <p class="card-title">{{ candidato.nombre }}</p>
-                    <p class="card-subtitle">{{ candidato.puesto || 'Sin puesto' }}</p>
+                    <p class="card-subtitle">{{ candidato.puesto || 'Sin puesto definido' }}</p>
                   </div>
                 </div>
 
@@ -114,7 +102,7 @@
                 }
 
                 <div class="card-footer">
-                  <span class="card-meta">📍 {{ candidato.ciudad || candidato.sucursal || 'S/C' }}</span>
+                  <span class="card-meta">{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
                   <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
                 </div>
 
@@ -126,18 +114,18 @@
 
                 <div class="card-actions">
                   <button class="action-btn view" (click)="abrirExpediente(candidato)">
-                    📂 Expediente
+                    Expediente
                   </button>
                   <button class="action-btn contact" (click)="contactarWhatsApp(candidato)">
-                    💬 WhatsApp
+                    Contactar
                   </button>
                 </div>
               </div>
             } @empty {
               <div class="empty-column">
-                <span class="empty-icon">📥</span>
+                <span class="empty-rule"></span>
                 <p>Sin candidatos</p>
-                <small>Arrastra aquí</small>
+                <small>Arrastra una tarjeta aquí</small>
               </div>
             }
           </div>
@@ -146,25 +134,25 @@
     </div>
   }
 
-  <!-- MODAL DE BLOQUEO -->
+  <!-- BLOQUEO -->
   @if (mensajeBloqueo) {
     <div class="block-overlay" (click)="cerrarBloqueo()"></div>
     <div class="block-modal" role="dialog" aria-modal="true">
       <div class="block-header">
-        <span class="block-icon">🚫</span>
+        <span class="block-mark"></span>
         <h3>{{ mensajeBloqueo.titulo }}</h3>
       </div>
       <p class="block-text">
-        Antes de mover a <strong>Contratado</strong> debes completar la <strong>etapa Oferta</strong>.
-        Falta validar:
+        Para mover a <strong>Contratado</strong> es obligatorio cerrar la <strong>etapa Oferta</strong>.
+        Validaciones pendientes:
       </p>
       <ul class="block-list">
         @for (item of mensajeBloqueo.faltantes; track item) {
-          <li>❌ {{ item }}</li>
+          <li>{{ item }}</li>
         }
       </ul>
       <p class="block-hint">
-        Abre el expediente del candidato, marca cada validación en verde y vuelve a intentarlo.
+        Abre el expediente del candidato, valida cada punto y reintenta.
       </p>
       <button class="block-btn" (click)="cerrarBloqueo()">Entendido</button>
     </div>

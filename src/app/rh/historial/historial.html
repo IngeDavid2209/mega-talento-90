@@ -1,57 +1,57 @@
 <div class="dashboard-container">
-  <div class="header">
+  <div class="page-header">
     <div>
-      <h2>Historial de Candidatos</h2>
-      <p>Base de datos completa · {{ candidatos.length }} registros</p>
+      <span class="eyebrow">Base de datos</span>
+      <h1>Historial de Candidatos</h1>
+      <p class="page-desc">Registro completo · {{ candidatos.length }} candidatos en base maestra</p>
     </div>
-    <span class="hist-tag">📚 Base maestra</span>
+    <span class="hist-tag">Acumulado total</span>
   </div>
 
-  <div class="table-card">
-    <div class="table-toolbar">
+  <div class="panel-card">
+    <header class="panel-header">
       <div class="toolbar-search">
         <input type="text" class="search-input"
-               placeholder="🔍 Buscar por nombre, puesto o ciudad..."
+               placeholder="Buscar por nombre, puesto o ciudad"
                [(ngModel)]="terminoBusqueda" (input)="aplicarFiltros()">
         <select class="filter-select" [(ngModel)]="filtroEstatus" (change)="aplicarFiltros()">
           <option value="">Todas las etapas</option>
           @for (e of ETAPAS; track e.id) {
-            <option [value]="e.id">{{ e.icon }} {{ e.title }}</option>
+            <option [value]="e.id">{{ e.title }}</option>
           }
         </select>
       </div>
-      <button class="btn-excel" (click)="exportarExcel()">📊 Exportar a Excel</button>
-    </div>
+      <button class="btn-secondary" (click)="exportarExcel()">Exportar a Excel</button>
+    </header>
 
     @if (cargando) {
-      <div class="loading-state">
+      <div class="state-block">
         <div class="spinner"></div>
-        Cargando registros históricos...
+        <p>Cargando registros históricos...</p>
       </div>
     } @else if (candidatosFiltrados.length === 0) {
-      <div class="empty-state">
-        <span style="font-size:36px;">📭</span>
-        <p>No se encontraron registros</p>
+      <div class="state-block">
+        <p class="muted">No se encontraron registros con los filtros aplicados.</p>
       </div>
     } @else {
       <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
-              <th>FECHA</th>
-              <th>CANDIDATO</th>
-              <th>TELÉFONO</th>
-              <th>CIUDAD</th>
-              <th>PUESTO</th>
-              <th>FUENTE</th>
+              <th>Fecha</th>
+              <th>Candidato</th>
+              <th>Teléfono</th>
+              <th>Ciudad</th>
+              <th>Puesto</th>
+              <th>Fuente</th>
               <th>CV</th>
-              <th>ESTATUS</th>
+              <th>Etapa</th>
             </tr>
           </thead>
           <tbody>
             @for (c of candidatosFiltrados; track c.id) {
               <tr>
-                <td>{{ formatearFecha(c.createdAt) }}</td>
+                <td class="cell-muted">{{ formatearFecha(c.createdAt) }}</td>
                 <td>
                   <div class="user-info">
                     <div class="avatar-mini" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
@@ -61,7 +61,7 @@
                 <td>
                   <div class="phone-cell">
                     <span>{{ c.telefono }}</span>
-                    <button class="btn-whatsapp" (click)="contactarWhatsApp(c)">💬</button>
+                    <button class="btn-icon" (click)="contactarWhatsApp(c)" title="Contactar por WhatsApp">WA</button>
                   </div>
                 </td>
                 <td>{{ c.ciudad || c.sucursal || '—' }}</td>
@@ -69,15 +69,15 @@
                 <td><span class="chip-mini">{{ c.fuente || '—' }}</span></td>
                 <td>
                   @if (c.cvUrl) {
-                    <a [href]="c.cvUrl" target="_blank" class="btn-cv">📄</a>
+                    <a [href]="c.cvUrl" target="_blank" class="link-cv">Ver PDF</a>
                   } @else {
-                    <span class="no-cv">—</span>
+                    <span class="muted">—</span>
                   }
                 </td>
                 <td>
-                  <select class="status-select" (change)="cambiarEstatus(c.id, $event)">
+                  <select class="etapa-select" (change)="cambiarEstatus(c.id, $event)">
                     @for (e of ETAPAS; track e.id) {
-                      <option [value]="e.id" [selected]="c.status === e.id">{{ e.icon }} {{ e.title }}</option>
+                      <option [value]="e.id" [selected]="c.status === e.id">{{ e.title }}</option>
                     }
                   </select>
                 </td>

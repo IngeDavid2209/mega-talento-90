@@ -1,14 +1,14 @@
 <div class="page-wrapper">
   @if (cargando) {
-    <div class="loading">
-      <div class="spinner-big"></div>
+    <div class="state-block">
+      <div class="spinner"></div>
       <p>Cargando expediente...</p>
     </div>
   } @else if (candidato) {
 
     <!-- HEADER -->
     <header class="expediente-header">
-      <button class="btn-back" (click)="volver()">← Volver al Tablero</button>
+      <button class="btn-back" (click)="volver()">← Volver al tablero</button>
 
       <div class="profile-row">
         <div class="profile-info">
@@ -16,24 +16,28 @@
             {{ getInitials(candidato.nombre) }}
           </div>
           <div>
+            <span class="eyebrow">Expediente</span>
             <h2>{{ candidato.nombre }}</h2>
-            <p>
-              <span class="chip">💼 {{ candidato.puesto || 'Sin puesto' }}</span>
-              <span class="chip">📍 {{ candidato.ciudad || candidato.sucursal || 'S/C' }}</span>
+            <p class="profile-meta">
+              <span>{{ candidato.puesto || 'Sin puesto' }}</span>
+              <span class="dot-sep">·</span>
+              <span>{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
               @if (candidato.telefono) {
-                <span class="chip">📱 {{ candidato.telefono }}</span>
+                <span class="dot-sep">·</span>
+                <span>{{ candidato.telefono }}</span>
               }
               @if (candidato.fuente) {
-                <span class="chip">🌐 {{ candidato.fuente }}</span>
+                <span class="dot-sep">·</span>
+                <span>{{ candidato.fuente }}</span>
               }
             </p>
           </div>
         </div>
 
         <div class="profile-actions">
-          <button class="btn-wpp" (click)="contactarWhatsApp()">💬 WhatsApp</button>
+          <button class="btn-secondary" (click)="contactarWhatsApp()">Contactar</button>
           @if (candidato.cvUrl) {
-            <a [href]="candidato.cvUrl" target="_blank" class="btn-cv">📄 Ver CV</a>
+            <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">Ver CV</a>
           }
         </div>
       </div>
@@ -48,8 +52,8 @@
                  [class.active]="candidato.status === step"
                  [class.completed]="getStepIndex(candidato.status) > idx"
                  (click)="moverEtapaDirecto(step)">
-              <div class="stepper-circle" [style.--accent]="eta.color">
-                @if (getStepIndex(candidato.status) > idx) { ✓ } @else { {{ eta.icon }} }
+              <div class="stepper-circle">
+                <span class="step-num">{{ eta.icon }}</span>
               </div>
               <span class="stepper-label">{{ eta.shortLabel }}</span>
             </div>
@@ -60,57 +64,60 @@
 
     <!-- TABS -->
     <div class="tabs-bar">
-      <button class="tab" [class.active]="tabActiva === 'resumen'"     (click)="tabActiva = 'resumen'">📋 Resumen</button>
-      <button class="tab" [class.active]="tabActiva === 'filtro'"      (click)="tabActiva = 'filtro'">📞 Filtro</button>
-      <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">👥 RH / STAR</button>
-      <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">🧠 Aptitudes</button>
-      <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">🧪 Psicometría</button>
-      <button class="tab" [class.active]="tabActiva === 'jefe'"        (click)="tabActiva = 'jefe'">👔 Jefe</button>
-      <button class="tab" [class.active]="tabActiva === 'docs'"        (click)="tabActiva = 'docs'">📂 Documental</button>
-      <button class="tab" [class.active]="tabActiva === 'oferta'"      (click)="tabActiva = 'oferta'">💰 Oferta</button>
-      <button class="tab" [class.active]="tabActiva === 'dictamen'"    (click)="tabActiva = 'dictamen'">📊 Dictamen</button>
-      <button class="tab" [class.active]="tabActiva === 'contratado'"  (click)="tabActiva = 'contratado'">✅ Ingreso</button>
-      <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">📎 Archivos</button>
+      <button class="tab" [class.active]="tabActiva === 'resumen'"     (click)="tabActiva = 'resumen'">Resumen</button>
+      <button class="tab" [class.active]="tabActiva === 'filtro'"      (click)="tabActiva = 'filtro'">Filtro inicial</button>
+      <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista RH</button>
+      <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes</button>
+      <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicometría</button>
+      <button class="tab" [class.active]="tabActiva === 'jefe'"        (click)="tabActiva = 'jefe'">Entrevista técnica</button>
+      <button class="tab" [class.active]="tabActiva === 'docs'"        (click)="tabActiva = 'docs'">Documental</button>
+      <button class="tab" [class.active]="tabActiva === 'oferta'"      (click)="tabActiva = 'oferta'">Oferta</button>
+      <button class="tab" [class.active]="tabActiva === 'dictamen'"    (click)="tabActiva = 'dictamen'">Dictamen</button>
+      <button class="tab" [class.active]="tabActiva === 'contratado'"  (click)="tabActiva = 'contratado'">Ingreso</button>
+      <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Archivos</button>
     </div>
 
     <!-- ============== TAB: RESUMEN ============== -->
     @if (tabActiva === 'resumen') {
       <div class="section-card">
-        <h3>📋 Estado General del Proceso</h3>
+        <header class="section-head">
+          <h3>Estado general del proceso</h3>
+          <p class="section-desc">Avance consolidado por etapa</p>
+        </header>
         <div class="resumen-grid">
           <div class="resumen-item">
-            <span class="resumen-label">📞 Filtro Inicial</span>
+            <span class="resumen-label">Filtro Inicial</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoFiltro().pct"></div></div>
             <span class="resumen-num">{{ progresoFiltro().hechos }}/{{ progresoFiltro().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">👥 Competencias STAR</span>
+            <span class="resumen-label">Competencias STAR</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoStar().pct"></div></div>
             <span class="resumen-num">{{ progresoStar().hechos }}/{{ progresoStar().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">🧪 Psicometría</span>
+            <span class="resumen-label">Psicometría</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoPsicom().pct"></div></div>
             <span class="resumen-num">{{ progresoPsicom().hechos }}/{{ progresoPsicom().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">👔 Entrevista Jefe</span>
+            <span class="resumen-label">Entrevista Técnica</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoJefe().pct"></div></div>
             <span class="resumen-num">{{ progresoJefe().hechos }}/{{ progresoJefe().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">📂 Documental</span>
+            <span class="resumen-label">Documental</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoDocs().pct"></div></div>
             <span class="resumen-num">{{ progresoDocs().hechos }}/{{ progresoDocs().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">💰 Oferta</span>
+            <span class="resumen-label">Oferta</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoOferta().pct"></div></div>
             <span class="resumen-num">{{ progresoOferta().hechos }}/{{ progresoOferta().total }}</span>
           </div>
           @if (candidato.status === ID_ETAPAS.CONTRATADO) {
             <div class="resumen-item">
-              <span class="resumen-label">✅ Ingreso</span>
+              <span class="resumen-label">Ingreso</span>
               <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoContratado().pct"></div></div>
               <span class="resumen-num">{{ progresoContratado().hechos }}/{{ progresoContratado().total }}</span>
             </div>
@@ -122,10 +129,10 @@
     <!-- ============== TAB: FILTRO INICIAL ============== -->
     @if (tabActiva === 'filtro') {
       <div class="section-card">
-        <h3>📞 Filtro Inicial — Primer Contacto</h3>
-        <p class="section-desc">
-          Validación rápida antes de invertir tiempo operativo. Objetivo: filtrar rápido y dar buena imagen.
-        </p>
+        <header class="section-head">
+          <h3>Filtro Inicial · Primer contacto</h3>
+          <p class="section-desc">Validación obligatoria antes de invertir tiempo operativo en el candidato.</p>
+        </header>
 
         <div class="check-grid">
           @for (item of CHECKLIST_FILTRO; track item.key) {
@@ -133,7 +140,6 @@
                  [class.completado]="candidato.filtroChecklist?.[item.key] === 'verde'"
                  [class.rechazado]="candidato.filtroChecklist?.[item.key] === 'rojo'"
                  (click)="ciclarEstado('filtroChecklist', item.key)">
-              <span class="check-icon">{{ item.icon }}</span>
               <span class="check-label">{{ item.label }}</span>
               <span class="check-state">
                 @switch (candidato.filtroChecklist?.[item.key]) {
@@ -147,8 +153,8 @@
         </div>
 
         <div class="hint-box">
-          <strong>Regla crítica:</strong> NO cites a entrevista a quien no haya confirmado horario,
-          sueldo, ubicación y experiencia mínima.
+          <span class="hint-tag">Regla crítica</span>
+          No agendar entrevista a candidatos que no hayan confirmado horario, sueldo, ubicación y experiencia mínima.
         </div>
       </div>
     }
@@ -156,10 +162,10 @@
     <!-- ============== TAB: ENTREVISTA RH (STAR) ============== -->
     @if (tabActiva === 'rh') {
       <div class="section-card">
-        <h3>👥 Entrevista RH — Competencias STAR</h3>
-        <p class="section-desc">
-          Situación · Tarea · Acción · Resultado. Profundiza con preguntas reales y registra evidencia.
-        </p>
+        <header class="section-head">
+          <h3>Entrevista RH · Competencias STAR</h3>
+          <p class="section-desc">Situación · Tarea · Acción · Resultado. Documenta evidencia por competencia.</p>
+        </header>
 
         <div class="star-list">
           @for (comp of COMPETENCIAS_STAR; track comp.key) {
@@ -168,7 +174,6 @@
                    [class.completado]="candidato.starChecklist?.[comp.key] === 'verde'"
                    [class.rechazado]="candidato.starChecklist?.[comp.key] === 'rojo'"
                    (click)="ciclarEstado('starChecklist', comp.key)">
-                <span class="check-icon">{{ comp.icon }}</span>
                 <span class="check-label">{{ comp.label }}</span>
                 @if (!comp.obligatorio) { <span class="opcional">opcional</span> }
                 <span class="check-state">
@@ -179,7 +184,7 @@
               </div>
               <textarea class="star-notes"
                         rows="2"
-                        placeholder="Ejemplo (STAR): &quot;Cuéntame una ocasión donde tuviste un problema fuerte con un cliente y cómo lo resolviste...&quot;"
+                        placeholder="Describe la situación, la tarea, la acción y el resultado observado."
                         [ngModel]="candidato.starNotas?.[comp.key] || ''"
                         (ngModelChange)="guardarNotaCompetencia(comp.key, $event)"></textarea>
             </div>
@@ -191,8 +196,10 @@
     <!-- ============== TAB: APTITUDES ============== -->
     @if (tabActiva === 'aptitudes') {
       <div class="section-card">
-        <h3>🧠 Pruebas de Aptitudes</h3>
-        <p class="section-desc">Define el tipo de vacante y aplica las pruebas correspondientes.</p>
+        <header class="section-head">
+          <h3>Pruebas de Aptitudes</h3>
+          <p class="section-desc">Define el tipo de vacante y aplica las pruebas correspondientes.</p>
+        </header>
 
         <div class="tipo-vacante-row">
           <label>Tipo de vacante:</label>
@@ -206,7 +213,7 @@
         <div class="aptitudes-list">
           @for (apt of getAptitudesActivas(); track apt) {
             <div class="aptitud-item">
-              <span class="aptitud-bullet">●</span>
+              <span class="aptitud-bullet"></span>
               <span>{{ apt }}</span>
             </div>
           }
@@ -230,18 +237,19 @@
               <input type="checkbox"
                      [(ngModel)]="candidato.aptitudesResultados.aprobado"
                      (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)">
-              ✅ Aprobado
+              Aprobado
             </label>
           </div>
         </div>
 
         <label>Observaciones</label>
-        <textarea rows="3" placeholder="Evidencias, anotaciones, áreas de oportunidad..."
+        <textarea rows="3" placeholder="Evidencias, anotaciones y áreas de oportunidad."
                   [(ngModel)]="candidato.aptitudesResultados.notas"
                   (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)"></textarea>
 
         <div class="hint-box">
-          <strong>Importante:</strong> tiempo definido, criterio de aprobación claro y evidencia guardada.
+          <span class="hint-tag">Importante</span>
+          Las pruebas deben tener tiempo definido, criterio de aprobación claro y evidencia archivada.
         </div>
       </div>
     }
@@ -249,10 +257,10 @@
     <!-- ============== TAB: PSICOMETRÍA ============== -->
     @if (tabActiva === 'psicometria') {
       <div class="section-card">
-        <h3>🧪 Psicometría — Herramienta de apoyo</h3>
-        <p class="section-desc">
-          La psicometría es <strong>complemento</strong>, no decisión absoluta. Sirve para detectar riesgos y validar conducta.
-        </p>
+        <header class="section-head">
+          <h3>Psicometría · Herramienta de apoyo</h3>
+          <p class="section-desc">La psicometría es complemento, no decisión absoluta. Detecta riesgos y valida conducta.</p>
+        </header>
 
         <div class="check-grid">
           @for (item of PSICOMETRIA_ITEMS; track item.key) {
@@ -260,7 +268,6 @@
                  [class.completado]="candidato.psicometriaChecklist?.[item.key] === 'verde'"
                  [class.rechazado]="candidato.psicometriaChecklist?.[item.key] === 'rojo'"
                  (click)="ciclarEstado('psicometriaChecklist', item.key)">
-              <span class="check-icon">{{ item.icon }}</span>
               <span class="check-label">{{ item.label }}</span>
               @if (!item.obligatorio) { <span class="opcional">opcional</span> }
               <span class="check-state">
@@ -273,7 +280,7 @@
         </div>
 
         <label>Riesgos detectados e interpretación</label>
-        <textarea rows="4" placeholder="Resumen de resultados, riesgos detectados, compatibilidad con el puesto..."
+        <textarea rows="4" placeholder="Resumen de resultados, riesgos detectados, compatibilidad con el puesto."
                   [(ngModel)]="candidato.psicometriaRiesgos"
                   (change)="guardarNota('psicometriaRiesgos', candidato.psicometriaRiesgos)"></textarea>
       </div>
@@ -282,8 +289,10 @@
     <!-- ============== TAB: ENTREVISTA JEFE ============== -->
     @if (tabActiva === 'jefe') {
       <div class="section-card">
-        <h3>👔 Entrevista Técnica / Jefe Directo</h3>
-        <p class="section-desc">Validación de capacidad operativa real y compatibilidad con el equipo.</p>
+        <header class="section-head">
+          <h3>Entrevista técnica · Jefe directo</h3>
+          <p class="section-desc">Validación de capacidad operativa real y compatibilidad con el equipo.</p>
+        </header>
 
         <div class="check-grid">
           @for (item of CHECKLIST_JEFE; track item.key) {
@@ -291,7 +300,6 @@
                  [class.completado]="candidato.jefeChecklist?.[item.key] === 'verde'"
                  [class.rechazado]="candidato.jefeChecklist?.[item.key] === 'rojo'"
                  (click)="ciclarEstado('jefeChecklist', item.key)">
-              <span class="check-icon">{{ item.icon }}</span>
               <span class="check-label">{{ item.label }}</span>
               <span class="check-state">
                 @switch (candidato.jefeChecklist?.[item.key]) {
@@ -303,7 +311,7 @@
         </div>
 
         <label>Notas del jefe directo</label>
-        <textarea rows="4" placeholder="Dominio técnico, aprendizaje, ritmo, recomendaciones..."
+        <textarea rows="4" placeholder="Dominio técnico, capacidad de aprendizaje, ritmo y recomendaciones."
                   [(ngModel)]="candidato.jefeNotas"
                   (change)="guardarNota('jefeNotas', candidato.jefeNotas)"></textarea>
       </div>
@@ -312,8 +320,10 @@
     <!-- ============== TAB: DOCUMENTAL ============== -->
     @if (tabActiva === 'docs') {
       <div class="section-card">
-        <h3>📂 Validación Documental</h3>
-        <p class="section-desc">Prevenir incidencias legales y administrativas.</p>
+        <header class="section-head">
+          <h3>Validación documental</h3>
+          <p class="section-desc">Prevención de incidencias legales y administrativas.</p>
+        </header>
 
         <div class="check-grid">
           @for (item of CHECKLIST_DOCUMENTAL; track item.key) {
@@ -321,7 +331,6 @@
                  [class.completado]="candidato.documentalChecklist?.[item.key] === 'verde'"
                  [class.rechazado]="candidato.documentalChecklist?.[item.key] === 'rojo'"
                  (click)="ciclarEstado('documentalChecklist', item.key)">
-              <span class="check-icon">{{ item.icon }}</span>
               <span class="check-label">{{ item.label }}</span>
               @if (!item.obligatorio) { <span class="opcional">opcional</span> }
               <span class="check-state">
@@ -338,22 +347,23 @@
     <!-- ============== TAB: OFERTA ============== -->
     @if (tabActiva === 'oferta') {
       <div class="section-card">
-        <h3>💰 Oferta — Validación Pre-Ingreso</h3>
-        <p class="section-desc">
-          <strong>Regla crítica:</strong> sin completar TODAS estas validaciones no se puede pasar a Contratado.
-        </p>
+        <header class="section-head">
+          <h3>Oferta · Validación pre-ingreso</h3>
+          <p class="section-desc">Regla crítica: sin completar estas validaciones, no se puede contratar.</p>
+        </header>
 
         <div class="oferta-progress">
           <div class="oferta-counter">
-            <strong>{{ progresoOferta().hechos }}/{{ progresoOferta().total }}</strong> validaciones
+            <span class="oferta-num">{{ progresoOferta().hechos }}/{{ progresoOferta().total }}</span>
+            <span class="oferta-text">validaciones completadas</span>
           </div>
           <div class="big-bar">
             <div class="big-fill" [style.width.%]="progresoOferta().pct"></div>
           </div>
           @if (progresoOferta().pct === 100) {
-            <span class="oferta-ok">✅ Listo para contratar</span>
+            <span class="oferta-status ok">Listo para contratar</span>
           } @else {
-            <span class="oferta-pending">⚠️ Faltan validaciones</span>
+            <span class="oferta-status pending">Faltan validaciones</span>
           }
         </div>
 
@@ -363,7 +373,6 @@
                  [class.completado]="candidato.ofertaChecklist?.[item.key] === 'verde'"
                  [class.rechazado]="candidato.ofertaChecklist?.[item.key] === 'rojo'"
                  (click)="ciclarEstado('ofertaChecklist', item.key)">
-              <span class="check-icon big">{{ item.icon }}</span>
               <span class="check-label">{{ item.label }}</span>
               <span class="check-state">
                 @switch (candidato.ofertaChecklist?.[item.key]) {
@@ -379,8 +388,10 @@
     <!-- ============== TAB: DICTAMEN ============== -->
     @if (tabActiva === 'dictamen') {
       <div class="section-card">
-        <h3>📊 Dictamen Final — Hoja Resumen</h3>
-        <p class="section-desc">Evita decisiones subjetivas. Captura el resultado de cada área y deja la decisión final documentada.</p>
+        <header class="section-head">
+          <h3>Dictamen final · Hoja resumen</h3>
+          <p class="section-desc">Evita decisiones subjetivas. Captura el resultado de cada área y documenta la decisión.</p>
+        </header>
 
         <table class="dictamen-table">
           <thead>
@@ -426,7 +437,7 @@
               </td>
             </tr>
             <tr>
-              <td>Jefe Directo</td>
+              <td>Jefe directo</td>
               <td>
                 <select [(ngModel)]="candidato.dictamen.jefe" (change)="guardarDictamen()">
                   <option value="pendiente">Pendiente</option>
@@ -449,7 +460,7 @@
         </table>
 
         <label>Notas del dictamen</label>
-        <textarea rows="3" placeholder="Justificación, observaciones finales..."
+        <textarea rows="3" placeholder="Justificación y observaciones finales."
                   [(ngModel)]="candidato.dictamen.notas"
                   (change)="guardarDictamen()"></textarea>
 
@@ -459,22 +470,22 @@
             <strong [class]="'badge-' + calcularResultadoSugerido()">
               {{ calcularResultadoSugerido() | titlecase }}
             </strong>
-            <button class="btn-sugerir" (click)="aplicarResultadoSugerido()">Aplicar</button>
+            <button class="btn-mini" (click)="aplicarResultadoSugerido()">Aplicar</button>
           </div>
 
           <label>Resultado final</label>
           <div class="radio-group">
             <label class="radio-card" [class.active]="candidato.dictamen.resultado === 'contratar'">
               <input type="radio" value="contratar" [(ngModel)]="candidato.dictamen.resultado" (change)="guardarDictamen()">
-              ✅ Contratar
+              <span>Contratar</span>
             </label>
             <label class="radio-card" [class.active]="candidato.dictamen.resultado === 'bolsa'">
               <input type="radio" value="bolsa" [(ngModel)]="candidato.dictamen.resultado" (change)="guardarDictamen()">
-              📁 Bolsa de trabajo
+              <span>Bolsa de trabajo</span>
             </label>
-            <label class="radio-card" [class.active]="candidato.dictamen.resultado === 'rechazar'">
+            <label class="radio-card danger" [class.active]="candidato.dictamen.resultado === 'rechazar'">
               <input type="radio" value="rechazar" [(ngModel)]="candidato.dictamen.resultado" (change)="guardarDictamen()">
-              🚫 Rechazar
+              <span>Rechazar</span>
             </label>
           </div>
         </div>
@@ -484,10 +495,10 @@
     <!-- ============== TAB: CONTRATADO ============== -->
     @if (tabActiva === 'contratado') {
       <div class="section-card">
-        <h3>✅ Ingreso y Permanencia</h3>
-        <p class="section-desc">
-          "Contratado" significa ingreso formal completado, expediente completo, alta realizada y onboarding iniciado.
-        </p>
+        <header class="section-head">
+          <h3>Ingreso y permanencia</h3>
+          <p class="section-desc">"Contratado" significa ingreso formal completado, expediente cerrado, alta realizada y onboarding iniciado.</p>
+        </header>
 
         <div class="check-grid">
           @for (item of CHECKLIST_CONTRATADO; track item.key) {
@@ -495,7 +506,6 @@
                  [class.completado]="candidato.contratadoChecklist?.[item.key] === 'verde'"
                  [class.rechazado]="candidato.contratadoChecklist?.[item.key] === 'rojo'"
                  (click)="ciclarEstado('contratadoChecklist', item.key)">
-              <span class="check-icon big">{{ item.icon }}</span>
               <span class="check-label">{{ item.label }}</span>
               <span class="check-state">
                 @switch (candidato.contratadoChecklist?.[item.key]) {
@@ -507,18 +517,19 @@
         </div>
 
         @if (candidato.status === ID_ETAPAS.CONTRATADO) {
-          <h4 class="mt-32">⏳ Trazabilidad de Permanencia</h4>
-          <p class="section-desc">Lleva: <strong>{{ getDiasPermanencia() }} días</strong> desde el ingreso.</p>
+          <h4 class="mt-32">Trazabilidad de permanencia</h4>
+          <p class="section-desc">Lleva <strong>{{ getDiasPermanencia() }} días</strong> desde el ingreso.</p>
           <div class="hitos-row">
             @for (h of getHitosPermanencia(); track h.label) {
               <div class="hito" [class.alcanzado]="h.alcanzado">
-                <span class="hito-circle">{{ h.alcanzado ? '✓' : '○' }}</span>
+                <span class="hito-circle">{{ h.alcanzado ? '✓' : '' }}</span>
                 <span class="hito-label">{{ h.label }}</span>
               </div>
             }
           </div>
           <div class="hint-box">
-            <strong>Importante:</strong> contratación sin permanencia NO sirve. Mide día 3, 7, 15 y 30.
+            <span class="hint-tag">Importante</span>
+            Contratación sin permanencia no sirve. Mide día 3, 7, 15 y 30.
           </div>
         }
       </div>
@@ -527,22 +538,23 @@
     <!-- ============== TAB: ARCHIVOS ============== -->
     @if (tabActiva === 'archivos') {
       <div class="section-card">
-        <h3>📎 Documentos del Expediente</h3>
-        <p class="section-desc">Sube INE, contratos, actas, comprobantes...</p>
+        <header class="section-head">
+          <h3>Documentos del expediente</h3>
+          <p class="section-desc">INE, contratos, actas, comprobantes y demás respaldo.</p>
+        </header>
 
         <div class="upload-area">
           <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
           <label for="docUpload" class="upload-btn" [style.opacity]="subiendoDoc ? '0.5' : '1'">
-            <span class="upload-icon">📤</span>
-            <span>{{ subiendoDoc ? 'Subiendo a la nube...' : 'Agregar documento' }}</span>
-            <small>PDF, JPG o PNG</small>
+            <span class="upload-title">{{ subiendoDoc ? 'Subiendo a la nube...' : 'Agregar documento' }}</span>
+            <small>Formatos: PDF, JPG o PNG</small>
           </label>
         </div>
 
         <div class="doc-list">
           @if (candidato.cvUrl) {
             <a [href]="candidato.cvUrl" target="_blank" class="doc-item">
-              <span class="doc-icon">📄</span>
+              <div class="doc-thumb">CV</div>
               <div>
                 <strong>Curriculum Vitae</strong>
                 <small>Documento inicial</small>
@@ -552,7 +564,7 @@
           @if (candidato.documentos) {
             @for (doc of candidato.documentos; track doc.url) {
               <a [href]="doc.url" target="_blank" class="doc-item">
-                <span class="doc-icon">📎</span>
+                <div class="doc-thumb">PDF</div>
                 <div>
                   <strong>{{ doc.nombre }}</strong>
                   <small>{{ doc.fecha | date:'dd/MM/yyyy' }}</small>
@@ -571,12 +583,12 @@
     <div class="block-overlay" (click)="cerrarBloqueo()"></div>
     <div class="block-modal">
       <div class="block-header">
-        <span class="block-icon">🚫</span>
+        <span class="block-mark"></span>
         <h3>{{ mensajeBloqueo.titulo }}</h3>
       </div>
-      <p class="block-text">Antes de mover a <strong>Contratado</strong>, completa la <strong>etapa Oferta</strong>. Falta:</p>
+      <p class="block-text">Para mover a <strong>Contratado</strong> es obligatorio cerrar la <strong>etapa Oferta</strong>. Validaciones pendientes:</p>
       <ul class="block-list">
-        @for (item of mensajeBloqueo.faltantes; track item) { <li>❌ {{ item }}</li> }
+        @for (item of mensajeBloqueo.faltantes; track item) { <li>{{ item }}</li> }
       </ul>
       <button class="block-btn" (click)="cerrarBloqueo()">Entendido</button>
     </div>
