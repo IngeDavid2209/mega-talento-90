@@ -120,7 +120,7 @@
   border-color: var(--ink);
 }
 
-/* STEPPER */
+/* STEPPER · llenado por progreso real */
 .stepper-card {
   background: var(--surface);
   padding: 26px 32px;
@@ -155,20 +155,53 @@
   transition: transform 0.18s;
 }
 .stepper-step:hover { transform: translateY(-1px); }
+
 .stepper-circle {
-  width: 36px; height: 36px;
+  position: relative;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--border-med);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.18s;
 }
+
+/* Anillo de progreso SVG — solo visible en fases parciales */
+.ring-progress {
+  position: absolute;
+  inset: -2px;
+  width: 40px;
+  height: 40px;
+  transform: rotate(-90deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ring-bg {
+  fill: none;
+  stroke: transparent;
+}
+.ring-fill {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+.stepper-step.parcial .ring-progress { opacity: 1; }
+.stepper-step.parcial .stepper-circle { border-color: transparent; }
+
 .step-num {
+  position: relative;
+  z-index: 1;
   font-family: 'DM Mono', monospace;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text2);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
 .stepper-label {
   margin-top: 10px;
@@ -179,18 +212,49 @@
   white-space: nowrap;
   letter-spacing: 0.02em;
 }
+
+/* COMPLETADO · negro relleno con ✓ */
 .stepper-step.completed .stepper-circle {
   background: var(--ink);
   border-color: var(--ink);
 }
-.stepper-step.completed .step-num { color: #fff; }
+.stepper-step.completed .step-num {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.stepper-step.completed .ring-progress { opacity: 0; }
+.stepper-step.completed .stepper-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ACTIVO · borde rojo institucional con halo */
 .stepper-step.active .stepper-circle {
   background: var(--surface);
   border: 2px solid var(--brand);
   box-shadow: 0 0 0 4px var(--brand-bg);
 }
-.stepper-step.active .step-num { color: var(--brand); font-weight: 600; }
-.stepper-step.active .stepper-label { color: var(--ink); font-weight: 600; }
+.stepper-step.active .step-num {
+  color: var(--brand);
+  font-weight: 600;
+}
+.stepper-step.active.completed .stepper-circle {
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-bg);
+}
+.stepper-step.active.completed .step-num { color: #fff; }
+.stepper-step.active .stepper-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* PARCIAL · anillo de progreso visible */
+.stepper-step.parcial .step-num {
+  color: var(--ink);
+  font-weight: 600;
+}
 
 /* TABS */
 .tabs-bar {

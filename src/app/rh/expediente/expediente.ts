@@ -102,6 +102,59 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return FLUJO_LINEAL.indexOf(statusId);
   }
 
+  /**
+   * Devuelve true si la fase está realmente completa (no por orden secuencial,
+   * sino por contenido validado). Permite ver de un vistazo qué quedó cerrado y
+   * qué no, aunque el candidato ya esté en una etapa posterior.
+   */
+  etapaCompletada(etapaId: string): boolean {
+    if (!this.candidato) return false;
+    switch (etapaId) {
+      case ID_ETAPAS.NUEVO:
+        // Recibida → se considera "lista" en cuanto exista el candidato
+        return true;
+      case ID_ETAPAS.FILTRO:
+        return checklistCompleto(this.candidato.filtroChecklist, CHECKLIST_FILTRO);
+      case ID_ETAPAS.RH:
+        return this.progresoStar().pct === 100;
+      case ID_ETAPAS.APTITUDES:
+        return this.calcularPuntajeAptitudes().aprobado;
+      case ID_ETAPAS.PSICOMETRIA:
+        return checklistCompleto(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS);
+      case ID_ETAPAS.JEFE:
+        return checklistCompleto(this.candidato.jefeChecklist, CHECKLIST_JEFE);
+      case ID_ETAPAS.DOCUMENTAL:
+        return checklistCompleto(this.candidato.documentalChecklist, CHECKLIST_DOCUMENTAL);
+      case ID_ETAPAS.OFERTA:
+        return checklistCompleto(this.candidato.ofertaChecklist, CHECKLIST_OFERTA);
+      case ID_ETAPAS.DICTAMEN:
+        return this.candidato.dictamen?.resultado && this.candidato.dictamen.resultado !== 'pendiente';
+      case ID_ETAPAS.CONTRATADO:
+        return checklistCompleto(this.candidato.contratadoChecklist, CHECKLIST_CONTRATADO);
+      default:
+        return false;
+    }
+  }
+
+  /** Progreso 0-100 de una fase específica — para llenar parcialmente el círculo del stepper */
+  etapaProgreso(etapaId: string): number {
+    if (!this.candidato) return 0;
+    switch (etapaId) {
+      case ID_ETAPAS.NUEVO:        return 100;
+      case ID_ETAPAS.FILTRO:       return progresoChecklist(this.candidato.filtroChecklist, CHECKLIST_FILTRO).pct;
+      case ID_ETAPAS.RH:           return this.progresoStar().pct;
+      case ID_ETAPAS.APTITUDES:    return this.calcularPuntajeAptitudes().puntaje;
+      case ID_ETAPAS.PSICOMETRIA:  return progresoChecklist(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS).pct;
+      case ID_ETAPAS.JEFE:         return progresoChecklist(this.candidato.jefeChecklist, CHECKLIST_JEFE).pct;
+      case ID_ETAPAS.DOCUMENTAL:   return progresoChecklist(this.candidato.documentalChecklist, CHECKLIST_DOCUMENTAL).pct;
+      case ID_ETAPAS.OFERTA:       return progresoChecklist(this.candidato.ofertaChecklist, CHECKLIST_OFERTA).pct;
+      case ID_ETAPAS.DICTAMEN:
+        return (this.candidato.dictamen?.resultado && this.candidato.dictamen.resultado !== 'pendiente') ? 100 : 0;
+      case ID_ETAPAS.CONTRATADO:   return progresoChecklist(this.candidato.contratadoChecklist, CHECKLIST_CONTRATADO).pct;
+      default: return 0;
+    }
+  }
+
   puedeMoverA(nuevaEtapa: string): { ok: boolean; faltan: string[] } {
     if (nuevaEtapa !== ID_ETAPAS.CONTRATADO) return { ok: true, faltan: [] };
     if (checklistCompleto(this.candidato.ofertaChecklist, CHECKLIST_OFERTA)) return { ok: true, faltan: [] };
