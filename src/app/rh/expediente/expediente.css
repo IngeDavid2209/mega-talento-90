@@ -335,98 +335,134 @@
   color: var(--ink);
 }
 
-/* CHECK GRID */
-.check-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.check-item {
+/* CHECK LIST · Tabla compacta institucional */
+.check-list {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 14px;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.16s;
-  font-size: 13px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px 13px 18px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  background: var(--surface);
+  transition: all 0.16s ease;
+  font-size: 13.5px;
   color: var(--text);
   font-weight: 500;
 }
-.check-item:hover { border-color: var(--border-strong); background: var(--surface3); }
-.check-item.big { padding: 14px 16px; font-size: 13.5px; }
-.check-label { flex: 1; }
-.check-state {
-  width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: var(--surface2);
-  color: var(--text3);
-  font-weight: 600;
-  font-size: 12px;
-  flex-shrink: 0;
+.check-row:last-child { border-bottom: none; }
+.check-row:hover { background: var(--surface3); }
+.check-row.row-si {
+  border-left-color: var(--green);
+  background: linear-gradient(90deg, var(--green-bg) 0%, var(--surface) 35%);
 }
-.check-item.completado {
-  background: var(--green-bg);
-  border-color: var(--green);
+.check-row.row-no {
+  border-left-color: var(--red);
+  background: linear-gradient(90deg, var(--red-bg) 0%, var(--surface) 35%);
 }
-.check-item.completado .check-state {
-  background: var(--green);
-  color: #fff;
+
+.check-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
-.check-item.rechazado {
-  background: var(--red-bg);
-  border-color: var(--red);
-}
-.check-item.rechazado .check-state {
-  background: var(--red);
-  color: #fff;
+.check-label {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 500;
 }
 .opcional {
-  font-size: 9px;
-  padding: 2px 6px;
+  font-size: 9.5px;
+  padding: 2px 7px;
   background: var(--surface2);
   color: var(--text3);
   border-radius: 2px;
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.06em;
+  flex-shrink: 0;
 }
 
-/* STAR */
-.star-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+/* Grupo de botones Sí / No */
+.yn-group {
+  display: inline-flex;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.btn-yn {
+  background: var(--surface);
+  border: none;
+  padding: 7px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: all 0.16s ease;
+  min-width: 52px;
+}
+.btn-yn + .btn-yn { border-left: 1px solid var(--border-med); }
+.btn-yn:hover { background: var(--surface3); color: var(--ink); }
+
+.btn-yn.btn-si.active {
+  background: var(--green);
+  color: #fff;
+}
+.btn-yn.btn-no.active {
+  background: var(--red);
+  color: #fff;
+}
+.btn-yn.btn-si.active:hover { background: #1A6E43; }
+.btn-yn.btn-no.active:hover { background: #8E2222; }
+
+/* STAR — usa check-row pero embebido en un bloque con textarea de evidencia */
+.star-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 12px; }
 .star-block {
-  background: var(--surface3);
-  padding: 14px;
+  background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  overflow: hidden;
 }
-.star-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.16s;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
+.check-row.star-row {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface3);
 }
-.star-header:hover { border-color: var(--border-strong); }
-.star-header.completado { background: var(--green-bg); border-color: var(--green); }
-.star-header.completado .check-state { background: var(--green); color: #fff; }
-.star-header.rechazado { background: var(--red-bg); border-color: var(--red); }
-.star-header.rechazado .check-state { background: var(--red); color: #fff; }
+.check-row.star-row.row-si {
+  background: linear-gradient(90deg, var(--green-bg) 0%, var(--surface3) 35%);
+}
+.check-row.star-row.row-no {
+  background: linear-gradient(90deg, var(--red-bg) 0%, var(--surface3) 35%);
+}
 .star-notes {
+  display: block;
+  width: 100%;
+  border: none !important;
+  border-radius: 0 !important;
   background: var(--surface) !important;
+  padding: 12px 16px !important;
   font-size: 12.5px !important;
+  resize: vertical;
+  min-height: 50px;
+  box-sizing: border-box;
+}
+.star-notes:focus {
+  box-shadow: inset 0 0 0 2px var(--ink) !important;
 }
 
 /* APTITUDES */
@@ -1106,7 +1142,8 @@
   .tab { padding: 8px 11px; font-size: 11.5px; }
   .section-head { padding: 16px 18px 12px; }
   .section-card > *:not(.section-head) { padding-left: 18px; padding-right: 18px; }
-  .check-grid { grid-template-columns: 1fr; }
+  .check-row { padding: 11px 14px 11px 16px; font-size: 13px; }
+  .btn-yn { padding: 6px 14px; min-width: 44px; font-size: 12px; }
   .dictamen-table { font-size: 12px; }
   .dictamen-table td:first-child { width: auto; }
   .dictamen-table input, .dictamen-table select { width: 100% !important; }

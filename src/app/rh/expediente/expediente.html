@@ -134,20 +134,20 @@
           <p class="section-desc">Validación obligatoria antes de invertir tiempo operativo en el candidato.</p>
         </header>
 
-        <div class="check-grid">
+        <div class="check-list">
           @for (item of CHECKLIST_FILTRO; track item.key) {
-            <div class="check-item"
-                 [class.completado]="candidato.filtroChecklist?.[item.key] === 'verde'"
-                 [class.rechazado]="candidato.filtroChecklist?.[item.key] === 'rojo'"
-                 (click)="ciclarEstado('filtroChecklist', item.key)">
+            <div class="check-row"
+                 [class.row-si]="candidato.filtroChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.filtroChecklist?.[item.key] === 'rojo'">
               <span class="check-label">{{ item.label }}</span>
-              <span class="check-state">
-                @switch (candidato.filtroChecklist?.[item.key]) {
-                  @case ('verde')  { ✓ }
-                  @case ('rojo')   { ✗ }
-                  @default { · }
-                }
-              </span>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.filtroChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('filtroChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.filtroChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('filtroChecklist', item.key, 'rojo')">No</button>
+              </div>
             </div>
           }
         </div>
@@ -170,17 +170,21 @@
         <div class="star-list">
           @for (comp of COMPETENCIAS_STAR; track comp.key) {
             <div class="star-block">
-              <div class="star-header"
-                   [class.completado]="candidato.starChecklist?.[comp.key] === 'verde'"
-                   [class.rechazado]="candidato.starChecklist?.[comp.key] === 'rojo'"
-                   (click)="ciclarEstado('starChecklist', comp.key)">
-                <span class="check-label">{{ comp.label }}</span>
-                @if (!comp.obligatorio) { <span class="opcional">opcional</span> }
-                <span class="check-state">
-                  @switch (candidato.starChecklist?.[comp.key]) {
-                    @case ('verde') { ✓ } @case ('rojo') { ✗ } @default { · }
-                  }
-                </span>
+              <div class="check-row star-row"
+                   [class.row-si]="candidato.starChecklist?.[comp.key] === 'verde'"
+                   [class.row-no]="candidato.starChecklist?.[comp.key] === 'rojo'">
+                <div class="check-label-wrap">
+                  <span class="check-label">{{ comp.label }}</span>
+                  @if (!comp.obligatorio) { <span class="opcional">opcional</span> }
+                </div>
+                <div class="yn-group">
+                  <button type="button" class="btn-yn btn-si"
+                          [class.active]="candidato.starChecklist?.[comp.key] === 'verde'"
+                          (click)="setEstadoCheck('starChecklist', comp.key, 'verde')">Sí</button>
+                  <button type="button" class="btn-yn btn-no"
+                          [class.active]="candidato.starChecklist?.[comp.key] === 'rojo'"
+                          (click)="setEstadoCheck('starChecklist', comp.key, 'rojo')">No</button>
+                </div>
               </div>
               <textarea class="star-notes"
                         rows="2"
@@ -299,19 +303,23 @@
           <p class="section-desc">La psicometría es complemento, no decisión absoluta. Detecta riesgos y valida conducta.</p>
         </header>
 
-        <div class="check-grid">
+        <div class="check-list">
           @for (item of PSICOMETRIA_ITEMS; track item.key) {
-            <div class="check-item"
-                 [class.completado]="candidato.psicometriaChecklist?.[item.key] === 'verde'"
-                 [class.rechazado]="candidato.psicometriaChecklist?.[item.key] === 'rojo'"
-                 (click)="ciclarEstado('psicometriaChecklist', item.key)">
-              <span class="check-label">{{ item.label }}</span>
-              @if (!item.obligatorio) { <span class="opcional">opcional</span> }
-              <span class="check-state">
-                @switch (candidato.psicometriaChecklist?.[item.key]) {
-                  @case ('verde') { ✓ } @case ('rojo') { ✗ } @default { · }
-                }
-              </span>
+            <div class="check-row"
+                 [class.row-si]="candidato.psicometriaChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.psicometriaChecklist?.[item.key] === 'rojo'">
+              <div class="check-label-wrap">
+                <span class="check-label">{{ item.label }}</span>
+                @if (!item.obligatorio) { <span class="opcional">opcional</span> }
+              </div>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.psicometriaChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('psicometriaChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.psicometriaChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('psicometriaChecklist', item.key, 'rojo')">No</button>
+              </div>
             </div>
           }
         </div>
@@ -331,18 +339,20 @@
           <p class="section-desc">Validación de capacidad operativa real y compatibilidad con el equipo.</p>
         </header>
 
-        <div class="check-grid">
+        <div class="check-list">
           @for (item of CHECKLIST_JEFE; track item.key) {
-            <div class="check-item"
-                 [class.completado]="candidato.jefeChecklist?.[item.key] === 'verde'"
-                 [class.rechazado]="candidato.jefeChecklist?.[item.key] === 'rojo'"
-                 (click)="ciclarEstado('jefeChecklist', item.key)">
+            <div class="check-row"
+                 [class.row-si]="candidato.jefeChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.jefeChecklist?.[item.key] === 'rojo'">
               <span class="check-label">{{ item.label }}</span>
-              <span class="check-state">
-                @switch (candidato.jefeChecklist?.[item.key]) {
-                  @case ('verde') { ✓ } @case ('rojo') { ✗ } @default { · }
-                }
-              </span>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.jefeChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('jefeChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.jefeChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('jefeChecklist', item.key, 'rojo')">No</button>
+              </div>
             </div>
           }
         </div>
@@ -362,19 +372,23 @@
           <p class="section-desc">Prevención de incidencias legales y administrativas.</p>
         </header>
 
-        <div class="check-grid">
+        <div class="check-list">
           @for (item of CHECKLIST_DOCUMENTAL; track item.key) {
-            <div class="check-item"
-                 [class.completado]="candidato.documentalChecklist?.[item.key] === 'verde'"
-                 [class.rechazado]="candidato.documentalChecklist?.[item.key] === 'rojo'"
-                 (click)="ciclarEstado('documentalChecklist', item.key)">
-              <span class="check-label">{{ item.label }}</span>
-              @if (!item.obligatorio) { <span class="opcional">opcional</span> }
-              <span class="check-state">
-                @switch (candidato.documentalChecklist?.[item.key]) {
-                  @case ('verde') { ✓ } @case ('rojo') { ✗ } @default { · }
-                }
-              </span>
+            <div class="check-row"
+                 [class.row-si]="candidato.documentalChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.documentalChecklist?.[item.key] === 'rojo'">
+              <div class="check-label-wrap">
+                <span class="check-label">{{ item.label }}</span>
+                @if (!item.obligatorio) { <span class="opcional">opcional</span> }
+              </div>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.documentalChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('documentalChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.documentalChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('documentalChecklist', item.key, 'rojo')">No</button>
+              </div>
             </div>
           }
         </div>
@@ -404,18 +418,20 @@
           }
         </div>
 
-        <div class="check-grid">
+        <div class="check-list">
           @for (item of CHECKLIST_OFERTA; track item.key) {
-            <div class="check-item big"
-                 [class.completado]="candidato.ofertaChecklist?.[item.key] === 'verde'"
-                 [class.rechazado]="candidato.ofertaChecklist?.[item.key] === 'rojo'"
-                 (click)="ciclarEstado('ofertaChecklist', item.key)">
+            <div class="check-row"
+                 [class.row-si]="candidato.ofertaChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.ofertaChecklist?.[item.key] === 'rojo'">
               <span class="check-label">{{ item.label }}</span>
-              <span class="check-state">
-                @switch (candidato.ofertaChecklist?.[item.key]) {
-                  @case ('verde') { ✓ } @case ('rojo') { ✗ } @default { · }
-                }
-              </span>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.ofertaChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('ofertaChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.ofertaChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('ofertaChecklist', item.key, 'rojo')">No</button>
+              </div>
             </div>
           }
         </div>
@@ -537,18 +553,20 @@
           <p class="section-desc">"Contratado" significa ingreso formal completado, expediente cerrado, alta realizada y onboarding iniciado.</p>
         </header>
 
-        <div class="check-grid">
+        <div class="check-list">
           @for (item of CHECKLIST_CONTRATADO; track item.key) {
-            <div class="check-item big"
-                 [class.completado]="candidato.contratadoChecklist?.[item.key] === 'verde'"
-                 [class.rechazado]="candidato.contratadoChecklist?.[item.key] === 'rojo'"
-                 (click)="ciclarEstado('contratadoChecklist', item.key)">
+            <div class="check-row"
+                 [class.row-si]="candidato.contratadoChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.contratadoChecklist?.[item.key] === 'rojo'">
               <span class="check-label">{{ item.label }}</span>
-              <span class="check-state">
-                @switch (candidato.contratadoChecklist?.[item.key]) {
-                  @case ('verde') { ✓ } @case ('rojo') { ✗ } @default { · }
-                }
-              </span>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.contratadoChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('contratadoChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.contratadoChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('contratadoChecklist', item.key, 'rojo')">No</button>
+              </div>
             </div>
           }
         </div>

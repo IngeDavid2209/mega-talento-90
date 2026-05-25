@@ -132,12 +132,11 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   cerrarBloqueo() { this.mensajeBloqueo = null; }
 
-  // CHECKLISTS: ciclo gris → verde → rojo → gris
-  async ciclarEstado(listName: string, key: string) {
+  // CHECKLISTS: set directo de Sí/No. Si vuelve a tocar el mismo botón, deselecciona.
+  async setEstadoCheck(listName: string, key: string, nuevo: EstadoCheck) {
     if (!this.candidato[listName]) this.candidato[listName] = {};
-    const orden: EstadoCheck[] = ['gris', 'verde', 'rojo'];
     const actual = (this.candidato[listName][key] || 'gris') as EstadoCheck;
-    const next = orden[(orden.indexOf(actual) + 1) % orden.length];
+    const next: EstadoCheck = actual === nuevo ? 'gris' : nuevo;
     this.candidato[listName][key] = next;
     try {
       await this.candidateService.updateCandidate(this.candidato.id, { [listName]: this.candidato[listName] });
