@@ -193,14 +193,15 @@
       </div>
     }
 
-    <!-- ============== TAB: APTITUDES ============== -->
+    <!-- ============== TAB: APTITUDES (rúbrica con cálculo automático) ============== -->
     @if (tabActiva === 'aptitudes') {
       <div class="section-card">
         <header class="section-head">
           <h3>Pruebas de Aptitudes</h3>
-          <p class="section-desc">Define el tipo de vacante y aplica las pruebas correspondientes.</p>
+          <p class="section-desc">Selecciona el tipo de vacante y califica cada aptitud observada. El puntaje se calcula automáticamente.</p>
         </header>
 
+        <!-- Tipo de vacante -->
         <div class="tipo-vacante-row">
           <label>Tipo de vacante:</label>
           @for (tipo of ['operativo','administrativo','ventas','jefatura']; track tipo) {
@@ -210,35 +211,71 @@
           }
         </div>
 
-        <div class="aptitudes-list">
-          @for (apt of getAptitudesActivas(); track apt) {
-            <div class="aptitud-item">
-              <span class="aptitud-bullet"></span>
-              <span>{{ apt }}</span>
+        <!-- TARJETA DE PUNTAJE CALCULADO -->
+        @if (calcularPuntajeAptitudes(); as r) {
+          <div class="puntaje-card" [class.aprobado]="r.aprobado" [class.incompleto]="r.calificadas < r.total">
+            <div class="puntaje-main">
+              <div class="puntaje-num-wrap">
+                <span class="puntaje-num">{{ r.puntaje }}</span>
+                <span class="puntaje-max">/100</span>
+              </div>
+              <div class="puntaje-info">
+                <span class="puntaje-status">
+                  @if (r.calificadas < r.total) {
+                    Califica las {{ r.total - r.calificadas }} aptitudes restantes
+                  } @else if (r.aprobado) {
+                    Aprobado · cumple el umbral de {{ UMBRAL_APROBACION }}/100
+                  } @else {
+                    No aprobado · puntaje por debajo de {{ UMBRAL_APROBACION }}/100
+                  }
+                </span>
+                <span class="puntaje-progreso">{{ r.calificadas }}/{{ r.total }} aptitudes calificadas</span>
+              </div>
+            </div>
+            <div class="desglose-row">
+              <span class="desglose-chip nivel-excelente"><strong>{{ r.desglose.excelente }}</strong> Excelente</span>
+              <span class="desglose-chip nivel-bueno"><strong>{{ r.desglose.bueno }}</strong> Bueno</span>
+              <span class="desglose-chip nivel-regular"><strong>{{ r.desglose.regular }}</strong> Regular</span>
+              <span class="desglose-chip nivel-bajo"><strong>{{ r.desglose.bajo }}</strong> Bajo</span>
+            </div>
+          </div>
+        }
+
+        <!-- RÚBRICA: cada aptitud con sus 4 niveles -->
+        <div class="rubrica-list">
+          @for (apt of getAptitudesActivas(); track apt.key) {
+            <div class="rubrica-item">
+              <div class="rubrica-header">
+                <strong class="rubrica-label">{{ apt.label }}</strong>
+                <p class="rubrica-criterio">{{ apt.criterio }}</p>
+              </div>
+              <div class="rubrica-niveles">
+                @for (nivel of NIVELES_RUBRICA; track nivel.id) {
+                  <button type="button"
+                          class="nivel-btn"
+                          [class.active]="getNivelSeleccionado(apt.key) === nivel.id"
+                          [attr.data-nivel]="nivel.id"
+                          (click)="seleccionarNivel(apt.key, nivel.id)">
+                    <span class="nivel-peso">{{ nivel.peso }}</span>
+                    <span class="nivel-label">{{ nivel.label }}</span>
+                  </button>
+                }
+              </div>
             </div>
           }
         </div>
 
-        <div class="form-grid">
-          <div>
-            <label>Puntaje (0-100)</label>
-            <input type="number" min="0" max="100"
-                   [(ngModel)]="candidato.aptitudesResultados.puntaje"
-                   (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)">
-          </div>
+        <!-- Campos adicionales (no autocalculados) -->
+        <div class="form-grid two-col">
           <div>
             <label>Tiempo aplicado</label>
             <input type="text" placeholder="ej. 45 min"
                    [(ngModel)]="candidato.aptitudesResultados.tiempo"
                    (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)">
           </div>
-          <div class="form-checkbox">
-            <label>
-              <input type="checkbox"
-                     [(ngModel)]="candidato.aptitudesResultados.aprobado"
-                     (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)">
-              Aprobado
-            </label>
+          <div>
+            <label>Puntaje (calculado)</label>
+            <input type="number" [value]="candidato.aptitudesResultados.puntaje" readonly>
           </div>
         </div>
 
@@ -248,8 +285,8 @@
                   (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)"></textarea>
 
         <div class="hint-box">
-          <span class="hint-tag">Importante</span>
-          Las pruebas deben tener tiempo definido, criterio de aprobación claro y evidencia archivada.
+          <span class="hint-tag">Cómo se calcula</span>
+          Cada nivel pesa: Excelente 4 · Bueno 3 · Regular 2 · Bajo 1. El puntaje se normaliza a 0-100 según el peso total alcanzado. Se aprueba al llegar a <strong>{{ UMBRAL_APROBACION }}/100</strong> (equivalente a promedio "Bueno") con todas las aptitudes calificadas.
         </div>
       </div>
     }

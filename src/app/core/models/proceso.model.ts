@@ -92,13 +92,87 @@ export const COMPETENCIAS_STAR: ItemChecklist[] = [
   { key: 'liderazgo',        label: 'Liderazgo (si aplica)',   icon: '🏆', obligatorio: false }
 ];
 
-// 3. PRUEBAS DE APTITUDES — Variable según vacante
-export const APTITUDES_POR_TIPO = {
-  operativo:      ['Atención', 'Rapidez', 'Seguimiento de instrucciones', 'Orden'],
-  administrativo: ['Excel', 'Análisis', 'Redacción', 'Organización'],
-  ventas:         ['Negociación', 'Comunicación', 'Manejo de objeciones'],
-  jefatura:       ['Liderazgo', 'Toma de decisiones', 'Planeación']
+// 3. PRUEBAS DE APTITUDES — Rúbrica por nivel, calificada por el reclutador
+// Cada aptitud tiene un criterio observable; cada nivel pesa: 4/3/2/1
+// El puntaje final se normaliza a 0-100 y el sistema decide si aprueba (umbral 70).
+
+export type NivelRubrica = 'excelente' | 'bueno' | 'regular' | 'bajo';
+
+export interface NivelConfig {
+  id: NivelRubrica;
+  label: string;
+  peso: number;       // 4-1
+  color: string;      // tono CSS para el botón seleccionado
+}
+
+export const NIVELES_RUBRICA: NivelConfig[] = [
+  { id: 'excelente', label: 'Excelente', peso: 4, color: '#047857' },
+  { id: 'bueno',     label: 'Bueno',     peso: 3, color: '#0E7490' },
+  { id: 'regular',   label: 'Regular',   peso: 2, color: '#B45309' },
+  { id: 'bajo',      label: 'Bajo',      peso: 1, color: '#B91C1C' }
+];
+
+export interface AptitudItem {
+  key: string;
+  label: string;
+  criterio: string;   // descripción observable que ayuda al reclutador a calificar
+}
+
+export const APTITUDES_POR_TIPO: Record<string, AptitudItem[]> = {
+  operativo: [
+    { key: 'atencion',     label: 'Atención al detalle',         criterio: 'Detecta errores en producto, empaque o etiquetado sin necesidad de que se le indique.' },
+    { key: 'rapidez',      label: 'Rapidez de ejecución',        criterio: 'Completa las tareas dentro del tiempo esperado y mantiene el ritmo.' },
+    { key: 'seguimiento',  label: 'Seguimiento de instrucciones',criterio: 'Ejecuta paso a paso lo solicitado, sin omitir ni improvisar fuera de protocolo.' },
+    { key: 'orden',        label: 'Orden y limpieza',            criterio: 'Mantiene su espacio y herramientas organizados durante y después de la tarea.' }
+  ],
+  administrativo: [
+    { key: 'excel',        label: 'Manejo de Excel',             criterio: 'Usa fórmulas, filtros, ordenamientos y formato condicional sin asistencia.' },
+    { key: 'analisis',     label: 'Capacidad de análisis',       criterio: 'Interpreta datos, detecta patrones y propone conclusiones claras.' },
+    { key: 'redaccion',    label: 'Redacción y ortografía',      criterio: 'Comunica por escrito de forma clara, ordenada y sin errores ortográficos básicos.' },
+    { key: 'organizacion', label: 'Organización del trabajo',    criterio: 'Planea, prioriza y entrega tareas dentro de los plazos acordados.' }
+  ],
+  ventas: [
+    { key: 'negociacion',  label: 'Negociación',                 criterio: 'Maneja objeciones de precio, condiciones y cierra acuerdos beneficiosos.' },
+    { key: 'comunicacion', label: 'Comunicación con el cliente', criterio: 'Se expresa con claridad, empatía y adapta el mensaje al perfil del cliente.' },
+    { key: 'objeciones',   label: 'Manejo de objeciones',        criterio: 'Convierte un "no" inicial en una oportunidad de venta o seguimiento.' },
+    { key: 'servicio',     label: 'Servicio al cliente',         criterio: 'Genera una experiencia positiva incluso ante quejas o devoluciones.' }
+  ],
+  jefatura: [
+    { key: 'liderazgo',    label: 'Liderazgo de equipo',         criterio: 'Inspira, dirige y mantiene cohesionado a un equipo de trabajo.' },
+    { key: 'decisiones',   label: 'Toma de decisiones',          criterio: 'Decide con criterio bajo presión, asume responsabilidad de los resultados.' },
+    { key: 'planeacion',   label: 'Planeación y organización',   criterio: 'Define objetivos, asigna recursos y establece rutas de acción claras.' },
+    { key: 'conflictos',   label: 'Resolución de conflictos',    criterio: 'Maneja tensiones del equipo y mantiene el ambiente productivo.' }
+  ]
 };
+
+export const UMBRAL_APROBACION_APTITUDES = 70; // 0-100
+
+/** Calcula puntaje normalizado 0-100 a partir de la rúbrica del candidato */
+export function calcularPuntajeRubrica(
+  rubrica: Record<string, NivelRubrica> | undefined,
+  aptitudes: AptitudItem[]
+): { puntaje: number; aprobado: boolean; calificadas: number; total: number; desglose: Record<NivelRubrica, number> } {
+  const desglose: Record<NivelRubrica, number> = { excelente: 0, bueno: 0, regular: 0, bajo: 0 };
+  if (!rubrica || aptitudes.length === 0) {
+    return { puntaje: 0, aprobado: false, calificadas: 0, total: aptitudes.length, desglose };
+  }
+  let suma = 0;
+  let calificadas = 0;
+  aptitudes.forEach(a => {
+    const nivel = rubrica[a.key];
+    if (!nivel) return;
+    const config = NIVELES_RUBRICA.find(n => n.id === nivel);
+    if (!config) return;
+    suma += config.peso;
+    calificadas++;
+    desglose[nivel]++;
+  });
+  // Normalización: suma actual / (peso máximo * total aptitudes) * 100
+  const maxPosible = 4 * aptitudes.length;
+  const puntaje = maxPosible > 0 ? Math.round((suma / maxPosible) * 100) : 0;
+  const aprobado = calificadas === aptitudes.length && puntaje >= UMBRAL_APROBACION_APTITUDES;
+  return { puntaje, aprobado, calificadas, total: aptitudes.length, desglose };
+}
 
 // 4. PSICOMETRÍA — Pruebas estándar
 export const PSICOMETRIA_ITEMS: ItemChecklist[] = [

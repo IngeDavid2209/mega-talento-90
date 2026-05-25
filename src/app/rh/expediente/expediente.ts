@@ -9,7 +9,9 @@ import {
   CHECKLIST_FILTRO, COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
   PSICOMETRIA_ITEMS, CHECKLIST_JEFE, CHECKLIST_DOCUMENTAL,
   CHECKLIST_OFERTA, CHECKLIST_CONTRATADO, AREAS_DICTAMEN,
-  ItemChecklist, ResultadoDictamen,
+  ItemChecklist, ResultadoDictamen, AptitudItem,
+  NIVELES_RUBRICA, NivelRubrica, UMBRAL_APROBACION_APTITUDES,
+  calcularPuntajeRubrica,
   checklistCompleto, itemsFaltantes, progresoChecklist
 } from '../../core/models/proceso.model';
 
@@ -33,6 +35,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   CHECKLIST_FILTRO = CHECKLIST_FILTRO;
   COMPETENCIAS_STAR = COMPETENCIAS_STAR;
   APTITUDES_POR_TIPO = APTITUDES_POR_TIPO;
+  NIVELES_RUBRICA = NIVELES_RUBRICA;
+  UMBRAL_APROBACION = UMBRAL_APROBACION_APTITUDES;
   PSICOMETRIA_ITEMS = PSICOMETRIA_ITEMS;
   CHECKLIST_JEFE = CHECKLIST_JEFE;
   CHECKLIST_DOCUMENTAL = CHECKLIST_DOCUMENTAL;
@@ -76,6 +80,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     this.candidato.starChecklist         ||= vacio(COMPETENCIAS_STAR);
     this.candidato.starNotas             ||= {};
     this.candidato.aptitudesResultados   ||= { puntaje: 0, tiempo: '', aprobado: false, notas: '' };
+    this.candidato.rubricaAptitudes      ||= {}; // { [aptitudKey]: NivelRubrica }
     this.candidato.psicometriaChecklist  ||= vacio(PSICOMETRIA_ITEMS);
     this.candidato.psicometriaRiesgos    ||= '';
     this.candidato.jefeChecklist         ||= vacio(CHECKLIST_JEFE);
@@ -171,12 +176,51 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   async cambiarTipoVacante(tipo: string) {
     this.tipoVacante = tipo as any;
-    await this.guardarNota('tipoVacante', tipo);
+    // Recalcular puntaje al cambiar el set de aptitudes activas
+    const calc = this.calcularPuntajeAptitudes();
+    this.candidato.aptitudesResultados.puntaje  = calc.puntaje;
+    this.candidato.aptitudesResultados.aprobado = calc.aprobado;
+    await this.candidateService.updateCandidate(this.candidato.id, {
+      tipoVacante: tipo,
+      aptitudesResultados: this.candidato.aptitudesResultados
+    });
   }
 
-  // APTITUDES por tipo
-  getAptitudesActivas(): string[] {
+  // APTITUDES por tipo — ahora regresan objetos {key, label, criterio}
+  getAptitudesActivas(): AptitudItem[] {
     return APTITUDES_POR_TIPO[this.tipoVacante] || [];
+  }
+
+  // === Rúbrica: el reclutador marca un nivel por aptitud y el puntaje se calcula solo ===
+  async seleccionarNivel(aptitudKey: string, nivel: NivelRubrica) {
+    if (!this.candidato.rubricaAptitudes) this.candidato.rubricaAptitudes = {};
+    // Si vuelve a tocar el mismo nivel, lo desmarca (toggle)
+    if (this.candidato.rubricaAptitudes[aptitudKey] === nivel) {
+      delete this.candidato.rubricaAptitudes[aptitudKey];
+    } else {
+      this.candidato.rubricaAptitudes[aptitudKey] = nivel;
+    }
+    // Recalcular puntaje y aprobado, y sincronizar con aptitudesResultados (para el dictamen)
+    const calc = this.calcularPuntajeAptitudes();
+    this.candidato.aptitudesResultados.puntaje  = calc.puntaje;
+    this.candidato.aptitudesResultados.aprobado = calc.aprobado;
+    // Persistir ambos campos
+    try {
+      await this.candidateService.updateCandidate(this.candidato.id, {
+        rubricaAptitudes: this.candidato.rubricaAptitudes,
+        aptitudesResultados: this.candidato.aptitudesResultados
+      });
+    } catch (e) {
+      console.error('Error al guardar rúbrica:', e);
+    }
+  }
+
+  calcularPuntajeAptitudes() {
+    return calcularPuntajeRubrica(this.candidato?.rubricaAptitudes, this.getAptitudesActivas());
+  }
+
+  getNivelSeleccionado(aptitudKey: string): NivelRubrica | null {
+    return this.candidato?.rubricaAptitudes?.[aptitudKey] || null;
   }
 
   // DICTAMEN: resultado final calculado

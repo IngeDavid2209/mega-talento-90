@@ -897,6 +897,199 @@
 }
 .block-btn:hover { background: var(--ink-soft); }
 
+/* ============================================================
+   RÚBRICA DE APTITUDES — tarjeta de puntaje + niveles seleccionables
+   ============================================================ */
+.puntaje-card {
+  margin: 4px 0 22px;
+  padding: 22px 24px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--slate);
+  border-radius: var(--radius-lg);
+  transition: all 0.25s ease;
+}
+.puntaje-card.aprobado {
+  background: var(--green-bg);
+  border-color: var(--green);
+  border-left-color: var(--green);
+}
+.puntaje-card.incompleto {
+  border-left-color: var(--amber);
+  background: var(--gold-bg);
+}
+
+.puntaje-main {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.puntaje-num-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.puntaje-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 48px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.puntaje-card.aprobado .puntaje-num { color: var(--green-text); }
+.puntaje-card.incompleto .puntaje-num { color: var(--amber-text); }
+.puntaje-max {
+  font-family: 'DM Mono', monospace;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text3);
+}
+.puntaje-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.puntaje-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.puntaje-card.aprobado .puntaje-status { color: var(--green-text); }
+.puntaje-card.incompleto .puntaje-status { color: var(--amber-text); }
+.puntaje-progreso {
+  font-size: 11.5px;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+}
+
+.desglose-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.desglose-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text2);
+}
+.desglose-chip strong {
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  color: var(--ink);
+}
+.desglose-chip.nivel-excelente strong { color: #047857; }
+.desglose-chip.nivel-bueno strong     { color: #0E7490; }
+.desglose-chip.nivel-regular strong   { color: #B45309; }
+.desglose-chip.nivel-bajo strong      { color: #B91C1C; }
+
+/* Lista de aptitudes con sus niveles */
+.rubrica-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.rubrica-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: border-color 0.18s;
+}
+.rubrica-item:hover { border-color: var(--border-med); }
+
+.rubrica-header { margin-bottom: 12px; }
+.rubrica-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.rubrica-criterio {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.rubrica-niveles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.nivel-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-med);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.16s ease;
+  font-family: inherit;
+}
+.nivel-btn:hover {
+  border-color: var(--ink);
+  background: var(--surface3);
+  transform: translateY(-1px);
+}
+.nivel-peso {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.02em;
+}
+.nivel-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 0.01em;
+}
+
+/* Estado activo según nivel — colores semánticos del modelo */
+.nivel-btn.active {
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 10px -4px rgba(15,14,12,0.25);
+}
+.nivel-btn.active .nivel-peso,
+.nivel-btn.active .nivel-label { color: #fff; }
+
+.nivel-btn[data-nivel="excelente"].active { background: #047857; }
+.nivel-btn[data-nivel="bueno"].active     { background: #0E7490; }
+.nivel-btn[data-nivel="regular"].active   { background: #B45309; }
+.nivel-btn[data-nivel="bajo"].active      { background: #B91C1C; }
+
+/* Form grid de 2 columnas para tiempo + puntaje readonly */
+.form-grid.two-col {
+  grid-template-columns: 1fr 1fr;
+}
+.form-grid input[readonly] {
+  background: var(--surface3);
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .page-wrapper { padding: 18px; }
@@ -917,4 +1110,8 @@
   .dictamen-table { font-size: 12px; }
   .dictamen-table td:first-child { width: auto; }
   .dictamen-table input, .dictamen-table select { width: 100% !important; }
+  .puntaje-main { gap: 14px; }
+  .puntaje-num { font-size: 38px; }
+  .rubrica-niveles { grid-template-columns: repeat(2, 1fr); }
+  .form-grid.two-col { grid-template-columns: 1fr; }
 }
