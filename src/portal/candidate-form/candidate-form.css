@@ -1,185 +1,324 @@
-/* =========================================
-   FONDO Y CENTRADO DE LA PANTALLA
-   ========================================= */
+/* ============================================================
+   FORMULARIO PÚBLICO DE POSTULACIÓN
+   Diseño cálido con header coral, iconos por campo y footer de privacidad
+   ============================================================ */
+
 .form-wrapper {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   min-height: 100vh;
-  width: 100vw;
-  background-color: #f4f4f5;
-  font-family: system-ui, -apple-system, sans-serif;
-  padding: 20px;
+  width: 100%;
+  background: linear-gradient(180deg, #f4f4f5 0%, #e9e9eb 100%);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  padding: 28px 16px;
   box-sizing: border-box;
 }
 
-/* =========================================
-   LA TARJETA BLANCA
-   ========================================= */
+/* TARJETA */
 .form-card {
   background: #FFFFFF;
-  border-radius: 20px;
-  padding: 32px;
+  border-radius: 22px;
   width: 100%;
-  max-width: 480px; 
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 500px;
+  border: 1px solid #f1f1f3;
+  box-shadow:
+    0 25px 50px -15px rgba(0, 0, 0, 0.18),
+    0 10px 20px -10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
 
-/* =========================================
-   TEXTOS Y ENCABEZADOS
-   ========================================= */
+/* HEADER coral con icono blanco */
 .form-header {
+  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  color: #fff;
   text-align: center;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 36px 28px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.form-header::after {
+  /* Acento decorativo sutil */
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+.form-header::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  left: -50px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
 }
 
-.brand-logo {
-  max-width: 180px;
-  height: auto;
-  margin-bottom: 16px;
+.header-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(4px);
+  position: relative;
+  z-index: 1;
+}
+.header-icon svg {
+  width: 32px;
+  height: 32px;
+  color: #fff;
 }
 
 .form-header h2 {
   margin: 0;
-  color: #0f172a;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
+  color: #fff;
+  position: relative;
+  z-index: 1;
 }
 
-.welcome-message {
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 12px auto 0;
-  max-width: 90%;
+.subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 400;
+  position: relative;
+  z-index: 1;
+}
+.required-star {
+  color: #fde68a;
+  font-weight: 700;
+}
+.form-header .required-star { color: #fef3c7; }
+
+/* CUERPO */
+.form-body {
+  padding: 28px 28px 24px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 label {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #4b4b4b;
+  color: #334155;
   margin-bottom: 8px;
   transition: color 0.2s;
 }
+label .required-star { color: #DC2626; }
+label.label-error { color: #DC2626; }
 
-/* =========================================
-   INPUTS Y SELECTS
-   ========================================= */
-input, select {
+.optional-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+/* INPUTS con icono */
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.field-icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.input-icon-wrap input,
+.input-icon-wrap select {
   width: 100%;
-  border: 2px solid #e5e7eb;
+  border: 1.5px solid #e2e8f0;
   border-radius: 10px;
-  padding: 12px 14px;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 15px;
-  color: #1a1916;
-  background-color: #f9fafb;
+  padding: 12px 14px 12px 44px;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: #0f172a;
+  background-color: #f8fafc;
   box-sizing: border-box;
   transition: all 0.2s ease-in-out;
-}
-
-input:focus, select:focus {
   outline: none;
-  border-color: #1a1916;
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(26, 25, 22, 0.05);
+}
+.input-icon-wrap input::placeholder { color: #94a3b8; }
+
+.input-icon-wrap select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding-right: 40px;
+  cursor: pointer;
 }
 
-/* =========================================
-   BOTÓN PRINCIPAL
-   ========================================= */
+.input-icon-wrap input:focus,
+.input-icon-wrap select:focus {
+  border-color: #DC2626;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+.input-icon-wrap input:focus + .field-icon,
+.input-icon-wrap:focus-within .field-icon {
+  color: #DC2626;
+}
+
+/* CV upload */
+.hidden-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.file-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0;
+}
+.file-upload-area:hover {
+  border-color: #DC2626;
+  background-color: #fef2f2;
+}
+.file-upload-icon {
+  width: 28px;
+  height: 28px;
+  color: #DC2626;
+  flex-shrink: 0;
+}
+.file-upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.file-upload-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.file-upload-hint {
+  font-size: 12px;
+  color: #64748b;
+}
+.file-hint {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 8px 0 0;
+}
+
+/* BOTÓN */
 .btn-submit {
   width: 100%;
-  background: #1a1916;
-  color: white;
-  padding: 14px;
-  border-radius: 10px;
+  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: 12px;
   border: none;
-  font-size: 16px;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 15px;
-  transition: transform 0.2s, background 0.2s;
+  margin-top: 22px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 16px -6px rgba(220, 38, 38, 0.45);
 }
-
+.btn-submit svg {
+  width: 18px;
+  height: 18px;
+}
 .btn-submit:hover:not(:disabled) {
-  background: #33322e;
   transform: translateY(-1px);
+  box-shadow: 0 10px 22px -8px rgba(220, 38, 38, 0.55);
 }
-
 .btn-submit:active:not(:disabled) {
   transform: translateY(0);
 }
-
-button:disabled, .btn-submit:disabled {
-  background-color: #cbd5e1 !important;
-  color: #64748b !important;
+.btn-submit:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
   cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
+  box-shadow: none;
+  transform: none;
 }
 
-/* =========================================
-   INPUT PARA ARCHIVOS (CV)
-   ========================================= */
-.file-input {
-  width: 100%;
-  padding: 10px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 8px;
-  background-color: #f8fafc;
-  color: #475569;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
+/* FOOTER privacidad */
+.privacy-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #ECFDF5;
+  border-top: 1px solid #d1fae5;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.privacy-footer svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #10B981;
 }
 
-.file-input:hover {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
-}
-
-.file-input::file-selector-button {
-  background-color: #e2e8f0;
-  color: #334155;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-right: 12px;
-  transition: background-color 0.2s;
-}
-
-.file-input::file-selector-button:hover {
-  background-color: #cbd5e1;
-}
-
-/* =========================================
-   ANIMACIÓN PARA LOS CAMPOS CONDICIONALES ("OTRO")
-   ========================================= */
+/* ANIMACIÓN campos condicionales */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.conditional-input {
+  animation: fadeIn 0.25s ease-out forwards;
 }
 
-.conditional-input {
-  margin-top: -10px; /* Reduce el espacio para que se vea como parte del campo anterior */
-  animation: fadeIn 0.3s ease-out forwards;
+/* RESPONSIVE */
+@media (max-width: 480px) {
+  .form-wrapper { padding: 14px 12px; }
+  .form-card { border-radius: 18px; }
+  .form-header { padding: 28px 22px 22px; }
+  .header-icon { width: 56px; height: 56px; margin-bottom: 12px; }
+  .header-icon svg { width: 28px; height: 28px; }
+  .form-header h2 { font-size: 19px; }
+  .form-body { padding: 22px 20px 20px; }
+  .input-icon-wrap input,
+  .input-icon-wrap select { padding: 11px 12px 11px 40px; font-size: 14px; }
+  .field-icon { left: 12px; width: 16px; height: 16px; }
+  .privacy-footer { padding: 12px 18px; font-size: 11.5px; }
 }
