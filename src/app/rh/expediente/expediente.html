@@ -169,22 +169,13 @@
 
         <div class="star-list">
           @for (comp of COMPETENCIAS_STAR; track comp.key) {
-            <div class="star-block">
-              <div class="check-row star-row"
-                   [class.row-si]="candidato.starChecklist?.[comp.key] === 'verde'"
-                   [class.row-no]="candidato.starChecklist?.[comp.key] === 'rojo'">
-                <div class="check-label-wrap">
-                  <span class="check-label">{{ comp.label }}</span>
-                  @if (!comp.obligatorio) { <span class="opcional">opcional</span> }
-                </div>
-                <div class="yn-group">
-                  <button type="button" class="btn-yn btn-si"
-                          [class.active]="candidato.starChecklist?.[comp.key] === 'verde'"
-                          (click)="setEstadoCheck('starChecklist', comp.key, 'verde')">Sí</button>
-                  <button type="button" class="btn-yn btn-no"
-                          [class.active]="candidato.starChecklist?.[comp.key] === 'rojo'"
-                          (click)="setEstadoCheck('starChecklist', comp.key, 'rojo')">No</button>
-                </div>
+            <div class="star-block" [class.con-evidencia]="(candidato.starNotas?.[comp.key] || '').trim().length > 0">
+              <div class="star-row-head">
+                <span class="check-label">{{ comp.label }}</span>
+                @if (!comp.obligatorio) { <span class="opcional">opcional</span> }
+                @if ((candidato.starNotas?.[comp.key] || '').trim().length > 0) {
+                  <span class="evidencia-tag">Evidencia registrada</span>
+                }
               </div>
               <textarea class="star-notes"
                         rows="2"

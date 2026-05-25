@@ -147,7 +147,14 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   // PROGRESO
   progresoFiltro() { return progresoChecklist(this.candidato?.filtroChecklist, CHECKLIST_FILTRO); }
-  progresoStar() { return progresoChecklist(this.candidato?.starChecklist, COMPETENCIAS_STAR); }
+  /** STAR: el progreso se cuenta por las competencias que tienen evidencia escrita */
+  progresoStar() {
+    const obligatorias = COMPETENCIAS_STAR.filter(c => c.obligatorio);
+    const notas = this.candidato?.starNotas || {};
+    const hechos = obligatorias.filter(c => (notas[c.key] || '').trim().length > 0).length;
+    const total = obligatorias.length;
+    return { hechos, total, pct: total === 0 ? 100 : Math.round((hechos / total) * 100) };
+  }
   progresoPsicom() { return progresoChecklist(this.candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS); }
   progresoJefe() { return progresoChecklist(this.candidato?.jefeChecklist, CHECKLIST_JEFE); }
   progresoDocs() { return progresoChecklist(this.candidato?.documentalChecklist, CHECKLIST_DOCUMENTAL); }
