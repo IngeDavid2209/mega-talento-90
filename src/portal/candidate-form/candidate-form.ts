@@ -17,7 +17,9 @@ export class CandidateFormComponent {
   private candidateService = inject(CandidateService);
   
   archivoCV: File | null = null;
-  subiendo = false; 
+  subiendo = false;
+  // Modal de feedback dentro de la app (reemplaza alert() nativo del browser)
+  modal: { tipo: 'exito' | 'error'; titulo: string; mensaje: string } | null = null;
 
   candidate = {
     nombre: '',
@@ -107,16 +109,27 @@ export class CandidateFormComponent {
         console.log("B. Mandando paquete estructurado al servicio...", datosCandidatoCompleto);
         await this.candidateService.createCandidate(datosCandidatoCompleto);
 
-        console.log("C. Alerta de éxito disparada.");
-        alert('¡Gracias! Tu solicitud para Mega Talento 90 ha sido recibida de manera exitosa.');
+        this.modal = {
+          tipo: 'exito',
+          titulo: '¡Solicitud enviada!',
+          mensaje: 'Se ha enviado tu información correctamente. Nuestro equipo de Reclutamiento te contactará pronto.'
+        };
         this.resetForm();
       } catch (error) {
         console.error('ERROR CRÍTICO EN EL PROCESO DE REGISTRO:', error);
-        alert('Hubo un error al procesar o enviar tu solicitud. Por favor, intenta de nuevo.');
+        this.modal = {
+          tipo: 'error',
+          titulo: 'No pudimos enviar tu solicitud',
+          mensaje: 'Hubo un problema al procesar tu información. Por favor, intenta de nuevo en unos momentos.'
+        };
       } finally {
         this.subiendo = false;
       }
     }
+  }
+
+  cerrarModal() {
+    this.modal = null;
   }
 
   resetForm() {

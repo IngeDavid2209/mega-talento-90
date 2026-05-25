@@ -154,4 +154,27 @@
     </div>
 
   </div>
+
+  <!-- MODAL DE FEEDBACK (reemplaza el alert nativo del browser) -->
+  @if (modal) {
+    <div class="modal-overlay" (click)="cerrarModal()"></div>
+    <div class="modal-card" [class.modal-error]="modal.tipo === 'error'" role="dialog" aria-modal="true">
+      <div class="modal-icon">
+        @if (modal.tipo === 'exito') {
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        }
+      </div>
+      <h3 class="modal-title">{{ modal.titulo }}</h3>
+      <p class="modal-message">{{ modal.mensaje }}</p>
+      <button type="button" class="modal-btn" (click)="cerrarModal()">Aceptar</button>
+    </div>
+  }
 </div>
