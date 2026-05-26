@@ -256,24 +256,16 @@
 }
 .is-dragging { opacity: 0.5; }
 .card-alerta {
-  border-color: var(--red);
-  background: linear-gradient(to right, var(--red-bg), var(--surface) 25%);
+  border-color: var(--red-bg);
+  border-left: 3px solid var(--red);
 }
 
-.card-alert-flag {
-  position: absolute;
-  top: 10px; right: 10px;
-  background: var(--red);
-  color: #fff;
-  font-size: 9px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* Cabecera: avatar + identidad + punto de alerta */
+.card-head {
+  display: flex;
+  gap: 11px;
+  align-items: center;
 }
-
-.card-body { display: flex; gap: 12px; align-items: center; }
 .card-avatar {
   width: 38px; height: 38px;
   border-radius: 50%;
@@ -293,12 +285,65 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 .card-subtitle {
   margin: 2px 0 0;
   color: var(--text2);
   font-size: 12px;
   font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.alert-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--red-bg);
+}
+
+/* Fila de metadatos en chips */
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+.meta-chip {
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 500;
+  background: var(--surface2);
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 65%;
+}
+.meta-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Etiqueta SLA en su propia línea */
+.sla-tag {
+  display: inline-block;
+  margin-top: 10px;
+  background: var(--red-bg);
+  color: var(--red-text);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .progress-row {
@@ -326,24 +371,12 @@
   white-space: nowrap;
 }
 
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-}
-.card-meta, .card-date {
-  font-size: 11px;
-  color: var(--text2);
-  font-weight: 500;
-}
-.card-date { font-family: 'DM Mono', monospace; }
-
 .card-actions {
   display: flex;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 .action-btn {
   flex: 1;

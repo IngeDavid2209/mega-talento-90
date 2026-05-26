@@ -76,11 +76,8 @@
                    (dragstart)="onDragStart($event, candidato.id)"
                    (dragend)="onDragEnd($event)">
 
-                @if (isCandidatoAlerta(candidato)) {
-                  <span class="card-alert-flag" title="SLA vencido">SLA vencido</span>
-                }
-
-                <div class="card-body">
+                <!-- Cabecera: avatar + identidad -->
+                <div class="card-head">
                   <div class="card-avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
                     {{ getInitials(candidato.nombre) }}
                   </div>
@@ -88,8 +85,22 @@
                     <p class="card-title">{{ candidato.nombre }}</p>
                     <p class="card-subtitle">{{ candidato.puesto || 'Sin puesto definido' }}</p>
                   </div>
+                  @if (isCandidatoAlerta(candidato)) {
+                    <span class="alert-dot" title="SLA vencido — requiere atención"></span>
+                  }
                 </div>
 
+                <!-- Metadatos -->
+                <div class="card-meta-row">
+                  <span class="meta-chip">{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
+                  <span class="meta-date">{{ formatearFecha(candidato.createdAt) }}</span>
+                </div>
+
+                @if (isCandidatoAlerta(candidato)) {
+                  <span class="sla-tag">SLA vencido</span>
+                }
+
+                <!-- Progreso de la etapa -->
                 @if (getProgresoEtapa(candidato); as p) {
                   @if (p.total > 0) {
                     <div class="progress-row">
@@ -101,17 +112,13 @@
                   }
                 }
 
-                <div class="card-footer">
-                  <span class="card-meta">{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
-                  <span class="card-date">{{ formatearFecha(candidato.createdAt) }}</span>
-                </div>
-
                 @if (candidato.status === ID_ETAPAS.CONTRATADO) {
                   <div class="permanencia-badge" [ngClass]="getClasePermanencia(getDiasPermanencia(candidato.hiredAt))">
                     {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
                   </div>
                 }
 
+                <!-- Acciones -->
                 <div class="card-actions">
                   <button class="action-btn view" (click)="abrirExpediente(candidato)">
                     Expediente
