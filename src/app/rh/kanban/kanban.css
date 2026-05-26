@@ -238,57 +238,54 @@
   display: block;
 }
 
-/* TARJETAS */
+/* TARJETAS · compactas y limpias */
 .kanban-card {
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 12px 13px;
   border: 1px solid var(--border);
-  cursor: grab;
+  cursor: pointer;
   transition: all 0.16s ease;
   position: relative;
 }
-.kanban-card:active { cursor: grabbing; }
 .kanban-card:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
 }
 .is-dragging { opacity: 0.5; }
 .card-alerta {
-  border-color: var(--red-bg);
   border-left: 3px solid var(--red);
+  padding-left: 11px;
 }
 
-/* Cabecera: avatar + identidad + punto de alerta */
-.card-head {
+/* Nombre + punto de alerta */
+.card-top {
   display: flex;
-  gap: 11px;
   align-items: center;
+  gap: 8px;
 }
-.card-avatar {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 12.5px;
-  flex-shrink: 0;
-  letter-spacing: 0.01em;
-}
-.card-info { flex: 1; min-width: 0; }
-.card-title {
-  margin: 0;
+.card-name {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   color: var(--ink);
   font-size: 13.5px;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.3;
 }
-.card-subtitle {
-  margin: 2px 0 0;
+.alert-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--red-bg);
+}
+
+/* Puesto · Ciudad en una línea */
+.card-sub {
+  margin: 3px 0 0;
   color: var(--text2);
   font-size: 12px;
   font-weight: 400;
@@ -296,61 +293,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.alert-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--red);
-  flex-shrink: 0;
-  box-shadow: 0 0 0 3px var(--red-bg);
-}
+.sub-sep { color: var(--text4); margin: 0 2px; }
 
-/* Fila de metadatos en chips */
-.card-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 12px;
-}
-.meta-chip {
-  font-size: 11px;
-  color: var(--text2);
-  font-weight: 500;
-  background: var(--surface2);
-  padding: 3px 9px;
-  border-radius: 999px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 65%;
-}
-.meta-date {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--text3);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-/* Etiqueta SLA en su propia línea */
-.sla-tag {
-  display: inline-block;
-  margin-top: 10px;
-  background: var(--red-bg);
-  color: var(--red-text);
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
+/* Progreso */
 .progress-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 9px;
+  margin-top: 11px;
 }
 .progress-bar {
   flex: 1;
@@ -371,42 +321,43 @@
   white-space: nowrap;
 }
 
-.card-actions {
+/* Footer: fecha + acciones de ícono */
+.card-foot {
   display: flex;
-  gap: 6px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 11px;
 }
-.action-btn {
-  flex: 1;
-  padding: 7px 8px;
-  border-radius: var(--radius-sm);
+.foot-date {
+  font-family: 'DM Mono', monospace;
   font-size: 11px;
+  color: var(--text3);
   font-weight: 500;
+}
+.foot-actions {
+  display: flex;
+  gap: 4px;
+}
+.icon-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text2);
   cursor: pointer;
   transition: all 0.16s;
-  letter-spacing: 0.02em;
-  font-family: inherit;
+  padding: 0;
 }
-.action-btn.view {
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--border-med);
-}
-.action-btn.view:hover {
+.icon-btn svg { width: 15px; height: 15px; }
+.icon-btn:hover {
   background: var(--ink);
   color: #fff;
   border-color: var(--ink);
 }
-.action-btn.contact {
-  background: var(--green-bg);
-  color: var(--green-text);
-  border: 1px solid transparent;
-}
-.action-btn.contact:hover {
+.icon-btn.contact:hover {
   background: var(--green);
-  color: #fff;
+  border-color: var(--green);
 }
 
 /* LOADING */

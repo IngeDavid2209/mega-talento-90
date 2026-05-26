@@ -74,33 +74,25 @@
                    [class.card-alerta]="isCandidatoAlerta(candidato)"
                    draggable="true"
                    (dragstart)="onDragStart($event, candidato.id)"
-                   (dragend)="onDragEnd($event)">
+                   (dragend)="onDragEnd($event)"
+                   (click)="abrirExpediente(candidato)">
 
-                <!-- Cabecera: avatar + identidad -->
-                <div class="card-head">
-                  <div class="card-avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
-                    {{ getInitials(candidato.nombre) }}
-                  </div>
-                  <div class="card-info">
-                    <p class="card-title">{{ candidato.nombre }}</p>
-                    <p class="card-subtitle">{{ candidato.puesto || 'Sin puesto definido' }}</p>
-                  </div>
+                <!-- Nombre + alerta -->
+                <div class="card-top">
+                  <span class="card-name">{{ candidato.nombre }}</span>
                   @if (isCandidatoAlerta(candidato)) {
-                    <span class="alert-dot" title="SLA vencido — requiere atención"></span>
+                    <span class="alert-dot" title="SLA vencido"></span>
                   }
                 </div>
 
-                <!-- Metadatos -->
-                <div class="card-meta-row">
-                  <span class="meta-chip">{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
-                  <span class="meta-date">{{ formatearFecha(candidato.createdAt) }}</span>
-                </div>
+                <!-- Puesto · Ciudad en una sola línea -->
+                <p class="card-sub">
+                  {{ candidato.puesto || 'Sin puesto' }}
+                  <span class="sub-sep">·</span>
+                  {{ candidato.ciudad || candidato.sucursal || 'S/C' }}
+                </p>
 
-                @if (isCandidatoAlerta(candidato)) {
-                  <span class="sla-tag">SLA vencido</span>
-                }
-
-                <!-- Progreso de la etapa -->
+                <!-- Progreso (solo si la etapa lo tiene) -->
                 @if (getProgresoEtapa(candidato); as p) {
                   @if (p.total > 0) {
                     <div class="progress-row">
@@ -118,14 +110,23 @@
                   </div>
                 }
 
-                <!-- Acciones -->
-                <div class="card-actions">
-                  <button class="action-btn view" (click)="abrirExpediente(candidato)">
-                    Expediente
-                  </button>
-                  <button class="action-btn contact" (click)="contactarWhatsApp(candidato)">
-                    Contactar
-                  </button>
+                <!-- Footer: fecha + acciones compactas -->
+                <div class="card-foot">
+                  <span class="foot-date">{{ formatearFecha(candidato.createdAt) }}</span>
+                  <div class="foot-actions">
+                    <button class="icon-btn" title="Abrir expediente"
+                            (click)="$event.stopPropagation(); abrirExpediente(candidato)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                    </button>
+                    <button class="icon-btn contact" title="Contactar por WhatsApp"
+                            (click)="$event.stopPropagation(); contactarWhatsApp(candidato)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             } @empty {
