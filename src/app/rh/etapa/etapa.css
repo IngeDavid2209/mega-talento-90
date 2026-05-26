@@ -1,0 +1,263 @@
+/* ============================================================
+   VISTA DE ETAPA · lista de candidatos de una fase
+   ============================================================ */
+.etapa-wrapper {
+  padding: 32px 44px 60px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* HEADER */
+.etapa-header {
+  margin-bottom: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.etapa-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.etapa-num {
+  width: 40px; height: 40px;
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 4px;
+}
+.etapa-title-row h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+}
+.etapa-count {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 16px;
+}
+.etapa-desc {
+  margin: 14px 0 0;
+  color: var(--text2);
+  font-size: 13.5px;
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+/* TOOLBAR */
+.etapa-toolbar {
+  margin-bottom: 22px;
+}
+.search-input {
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-med);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: all 0.18s;
+  font-family: inherit;
+}
+.search-input::placeholder { color: var(--text3); }
+.search-input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(15,14,12,0.06);
+}
+
+/* STATE */
+.state-block {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.state-block.empty {
+  background: var(--surface);
+  border: 1px dashed var(--border-med);
+  border-radius: var(--radius-lg);
+}
+.empty-rule {
+  width: 28px; height: 1px;
+  background: var(--border-med);
+  margin-bottom: 6px;
+}
+.muted { color: var(--text2); font-weight: 500; }
+.state-block small { color: var(--text3); font-size: 12px; }
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* GRID de tarjetas */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.etapa-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.etapa-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.card-alerta {
+  border-left: 3px solid var(--red);
+  padding-left: 16px;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.alert-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--red-bg);
+}
+.card-sub {
+  margin: 4px 0 0;
+  color: var(--text2);
+  font-size: 12.5px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sub-sep { color: var(--text4); margin: 0 3px; }
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+}
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+.progress-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.permanencia-badge {
+  margin-top: 12px;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+.badge-critico    { background: var(--red-bg); color: var(--red-text); }
+.badge-estable    { background: var(--amber-bg); color: var(--amber-text); }
+.badge-avanzado   { background: var(--blue-bg); color: var(--blue-text); }
+.badge-consolidado{ background: var(--green-bg); color: var(--green-text); }
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.foot-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+}
+.foot-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.16s;
+  padding: 0;
+}
+.icon-btn svg { width: 15px; height: 15px; }
+.icon-btn:hover {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.icon-btn.contact:hover {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .etapa-wrapper { padding: 20px 16px; }
+  .etapa-title-row h1 { font-size: 20px; }
+  .etapa-num { width: 34px; height: 34px; font-size: 14px; }
+  .etapa-count { font-size: 18px; padding: 4px 12px; }
+  .search-input { max-width: 100%; }
+  .card-grid { grid-template-columns: 1fr; }
+}

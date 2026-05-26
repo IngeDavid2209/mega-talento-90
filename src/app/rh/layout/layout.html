@@ -31,41 +31,63 @@
       <button class="close-btn" (click)="isMenuOpen = false">✕</button>
     </div>
 
-    <ul class="nav-list">
-      <li (click)="isMenuOpen = false">
-        <a routerLink="/app/dashboard" routerLinkActive="active">
-          <span class="nav-icon">▣</span> Panel de control
-        </a>
-      </li>
-      <li (click)="isMenuOpen = false">
-        <a routerLink="/app/kanban" routerLinkActive="active">
-          <span class="nav-icon">⊞</span> Embudo de talento
-        </a>
-      </li>
-      <li (click)="isMenuOpen = false">
-        <a routerLink="/app/historial" routerLinkActive="active">
-          <span class="nav-icon">≡</span> Historial
-        </a>
-      </li>
-      <li (click)="isMenuOpen = false">
-        <a routerLink="/app/usuarios" routerLinkActive="active">
-          <span class="nav-icon">◉</span> Gestión de usuarios
-        </a>
-      </li>
-      <li (click)="isMenuOpen = false">
-        <a routerLink="/unete" routerLinkActive="active">
-          <span class="nav-icon">↗</span> Formulario público
-        </a>
-      </li>
+    <div class="nav-scroll">
+      <!-- PANEL -->
+      <span class="nav-section">Panel</span>
+      <ul class="nav-list">
+        <li (click)="isMenuOpen = false">
+          <a routerLink="/app/dashboard" routerLinkActive="active">
+            <span class="nav-icon">▣</span> Panel de control
+          </a>
+        </li>
+      </ul>
 
-      <li class="divider"></li>
+      <!-- PROCESO DE SELECCIÓN -->
+      <span class="nav-section">Proceso de selección</span>
+      <ul class="nav-list">
+        @for (etapa of ETAPAS; track etapa.id) {
+          <li (click)="isMenuOpen = false">
+            <a [routerLink]="['/app/etapa', etapa.id]" routerLinkActive="active">
+              <span class="nav-num" [style.background-color]="etapa.color">{{ etapa.icon }}</span>
+              <span class="nav-text">{{ etapa.title }}</span>
+              @if (conteos[etapa.id]) {
+                <span class="nav-count">{{ conteos[etapa.id] }}</span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
 
-      <li (click)="isMenuOpen = false">
-        <a routerLink="/login" class="logout-link">
-          <span class="nav-icon">⎋</span> Cerrar sesión
-        </a>
-      </li>
-    </ul>
+      <!-- GESTIÓN -->
+      <span class="nav-section">Gestión</span>
+      <ul class="nav-list">
+        <li (click)="isMenuOpen = false">
+          <a routerLink="/app/historial" routerLinkActive="active">
+            <span class="nav-icon">≡</span> Historial
+          </a>
+        </li>
+        <li (click)="isMenuOpen = false">
+          <a routerLink="/app/usuarios" routerLinkActive="active">
+            <span class="nav-icon">◉</span> Gestión de usuarios
+          </a>
+        </li>
+        <li (click)="isMenuOpen = false">
+          <a routerLink="/unete" routerLinkActive="active">
+            <span class="nav-icon">↗</span> Formulario público
+          </a>
+        </li>
+      </ul>
+
+      <div class="nav-divider"></div>
+
+      <ul class="nav-list">
+        <li (click)="isMenuOpen = false">
+          <a routerLink="/login" class="logout-link">
+            <span class="nav-icon">⎋</span> Cerrar sesión
+          </a>
+        </li>
+      </ul>
+    </div>
 
     <div class="drawer-footer">
       <small>Mega Dulces · {{ year }}</small>

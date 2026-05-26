@@ -95,7 +95,17 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     };
   }
 
-  volver() { this.router.navigate(['/app/kanban']); }
+  volver() {
+    // Regresa a la vista de la etapa donde está el candidato (o al dashboard)
+    const etapa = this.candidato?.status;
+    if (etapa && etapa !== ID_ETAPAS.RECHAZADO) {
+      this.router.navigate(['/app/etapa', etapa]);
+    } else if (etapa === ID_ETAPAS.RECHAZADO) {
+      this.router.navigate(['/app/etapa', ID_ETAPAS.RECHAZADO]);
+    } else {
+      this.router.navigate(['/app/dashboard']);
+    }
+  }
 
   // STEPPER
   getStepIndex(statusId: string): number {

@@ -1,12 +1,11 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './rh/layout/layout';
 import { DashboardComponent } from './rh/dashboard/dashboard';
-import { KanbanComponent } from './rh/kanban/kanban';
-// 1. IMPORTAMOS EL NUEVO COMPONENTE DE EXPEDIENTE
-import { ExpedienteComponent } from './rh/expediente/expediente'; 
+import { EtapaComponent } from './rh/etapa/etapa';
+import { ExpedienteComponent } from './rh/expediente/expediente';
 import { CandidateFormComponent } from '../portal/candidate-form/candidate-form';
 import { LoginComponent } from './rh/login/login';
-import { authGuard } from './core/guards/auth.guard'; 
+import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
 import { HistorialComponent } from './rh/historial/historial';
 
@@ -20,13 +19,19 @@ export const routes: Routes = [
     canActivate: [authGuard], // <-- Nuestro "cadenero" validando la sesión en Firebase
     children: [
       { path: 'dashboard', component: DashboardComponent },
-      { path: 'kanban', component: KanbanComponent },
+
+      // Cada etapa del proceso es ahora su propia vista (accesible desde el menú)
+      { path: 'etapa/:etapaId', component: EtapaComponent },
+
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'historial', component: HistorialComponent },
-      
-      // 2. NUEVA RUTA DEL EXPEDIENTE (Adentro para que conserve el menú y seguridad)
+
+      // Expediente del candidato (conserva menú y seguridad)
       { path: 'expediente/:id', component: ExpedienteComponent },
-      
+
+      // Compatibilidad: el viejo embudo redirige al dashboard
+      { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },
+
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
