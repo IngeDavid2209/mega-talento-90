@@ -95,16 +95,22 @@ export class UsuariosService {
    */
   async obtenerEmailLogin(entrada: string): Promise<string> {
     const v = entrada.trim().toLowerCase();
-    if (v.includes('@')) return v;
+    if (v.includes('@')) return v; // ya escribió un correo
+
+    // Buscar el correo real por nombre de usuario en Firestore
     try {
       const snap = await getDocs(query(collection(db, 'usuarios'), where('username', '==', v)));
       if (!snap.empty) {
         const perfil = snap.docs[0].data() as any;
         if (perfil.email) return perfil.email;
+      } else {
+        console.warn(`Login: no se encontró un usuario con alias "${v}".`);
       }
     } catch (e) {
-      console.warn('No se pudo resolver el correo por usuario:', e);
+      console.warn('Login: no se pudo leer la tabla de usuarios (revisa reglas de Firestore):', e);
     }
+
+    // Último recurso para cuentas heredadas sin perfil (ej. admin original)
     return `${v}@megadulces.com`;
   }
 
