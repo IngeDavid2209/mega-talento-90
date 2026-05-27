@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { subirACloudinary } from './cloudinary';
 
 const firebaseConfig = {
@@ -57,6 +57,11 @@ export class CandidateService {
   // === SUBIR ARCHIVOS DEL EXPEDIENTE (a Cloudinary, no Firebase Storage) ===
   async uploadDocument(file: File, candidateId: string): Promise<string> {
     return await subirACloudinary(file, `expedientes/${candidateId}`);
+  }
+
+  // === ELIMINAR CANDIDATO ===
+  async eliminarCandidato(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'candidates', id));
   }
 
   listenToCandidate(id: string, callback: (candidato: any) => void) {

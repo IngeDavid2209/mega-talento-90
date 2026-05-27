@@ -369,6 +369,25 @@
 }
 .etapa-select:hover { background-color: var(--surface3); }
 
+/* Botón eliminar candidato */
+.btn-delete {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.16s;
+  padding: 0;
+}
+.btn-delete svg { width: 15px; height: 15px; }
+.btn-delete:hover {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
 /* STATE */
 .state-block {
   text-align: center;

@@ -208,6 +208,16 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  async borrarCandidato(c: any) {
+    if (!confirm(`¿Eliminar definitivamente a ${c.nombre}? Se borrará del sistema por completo y no se puede deshacer.`)) return;
+    try {
+      await this.candidateService.eliminarCandidato(c.id);
+    } catch (e) {
+      console.error('Error al eliminar candidato:', e);
+      alert('No se pudo eliminar el candidato. Intenta de nuevo.');
+    }
+  }
+
   getInitials(nombre: string): string {
     if (!nombre) return '?';
     return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
