@@ -113,8 +113,9 @@
                       @if (user.activo === false) {
                         <button class="btn-link" (click)="reactivarUsuario(user)">Reactivar</button>
                       } @else {
-                        <button class="btn-link danger" (click)="eliminarUsuario(user)">Desactivar</button>
+                        <button class="btn-link" (click)="eliminarUsuario(user)">Desactivar</button>
                       }
+                      <button class="btn-link danger" (click)="borrarUsuario(user)">Borrar</button>
                     </td>
                   </tr>
                 }

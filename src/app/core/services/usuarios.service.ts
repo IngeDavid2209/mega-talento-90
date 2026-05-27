@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 import {
-  getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, getDocs, query, where
+  getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, query, where
 } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
@@ -97,6 +97,15 @@ export class UsuariosService {
   }
 
   /**
+   * Elimina el perfil del usuario (sale de la lista para siempre).
+   * Como las cuentas del sistema usan el dominio interno, al no tener perfil
+   * el login las bloquea (ver puedeIniciarSesion).
+   */
+  async eliminarUsuario(uid: string): Promise<void> {
+    await deleteDoc(doc(db, 'usuarios', uid));
+  }
+
+  /**
    * Resuelve el correo real con el que se autentica en Firebase.
    * - Si el usuario escribió un correo completo (con @), se usa tal cual.
    * - Si escribió un alias corto (username), busca su correo real en Firestore
@@ -132,9 +141,13 @@ export class UsuariosService {
     const correo = email.trim().toLowerCase();
     try {
       const snap = await getDocs(query(collection(db, 'usuarios'), where('email', '==', correo)));
-      if (snap.empty) return true; // sin perfil → cuenta heredada, se permite
-      const perfil = snap.docs[0].data() as any;
-      return perfil.activo !== false;
+      if (!snap.empty) {
+        const perfil = snap.docs[0].data() as any;
+        return perfil.activo !== false;
+      }
+      // Sin perfil: si es una cuenta del sistema (dominio interno) que fue
+      // borrada, se bloquea. Si es una cuenta heredada (otro dominio), se permite.
+      return !correo.endsWith('@' + DOMINIO_INTERNO);
     } catch {
       return true; // ante error de lectura, no bloquear
     }

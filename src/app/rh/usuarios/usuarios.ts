@@ -88,6 +88,15 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     }
   }
 
+  async borrarUsuario(user: any) {
+    if (!confirm(`¿Eliminar definitivamente a ${user.nombre}? Saldrá del sistema y ya no podrá iniciar sesión. Esta acción no se puede deshacer.`)) return;
+    try {
+      await this.usuariosService.eliminarUsuario(user.id || user.uid);
+    } catch (error) {
+      this.mensajeError = 'No se pudo eliminar el usuario.';
+    }
+  }
+
   private traducirError(code: string): string {
     switch (code) {
       case 'auth/email-already-in-use':
