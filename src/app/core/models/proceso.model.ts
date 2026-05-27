@@ -24,7 +24,7 @@ export interface EtapaConfig {
 export const ETAPAS: EtapaConfig[] = [
   { id: 'nuevo',            title: 'Solicitud',            shortLabel: 'Solicitud',   icon: '1',  color: '#475569', description: 'Solicitud recibida del formulario público.', slaHoras: 24 },
   { id: 'filtro_inicial',   title: 'Filtro Inicial',       shortLabel: 'Filtro',      icon: '2',  color: '#1F4E8C', description: 'Primer contacto y validación mínima por WhatsApp.', slaHoras: 24 },
-  { id: 'entrevista_rh',    title: 'Entrevista RH',        shortLabel: 'RH',          icon: '3',  color: '#1A4FB0', description: 'Trayectoria, estabilidad y competencias conductuales (STAR).', slaHoras: 48 },
+  { id: 'entrevista_rh',    title: 'Entrevista Conductual', shortLabel: 'Conductual', icon: '3',  color: '#1A4FB0', description: 'Trayectoria, estabilidad y competencias conductuales (STAR).', slaHoras: 48 },
   { id: 'aptitudes',        title: 'Pruebas Aptitudes',    shortLabel: 'Aptitudes',   icon: '4',  color: '#2A5A8A', description: 'Pruebas prácticas según vacante (operativo / administrativo / ventas / jefatura).', slaHoras: 48 },
   { id: 'psicometria',      title: 'Psicometría',          shortLabel: 'Psicometría', icon: '5',  color: '#3F5C7A', description: 'Personalidad, honestidad, inteligencia y compatibilidad (apoyo, no decisión).', slaHoras: 72 },
   { id: 'entrevista_jefe',  title: 'Entrevista Técnica',   shortLabel: 'Jefe',        icon: '6',  color: '#8C6D1F', description: 'Validación técnica con el jefe directo del área.', slaHoras: 72 },

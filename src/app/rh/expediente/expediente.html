@@ -77,7 +77,7 @@
     <div class="tabs-bar">
       <button class="tab" [class.active]="tabActiva === 'resumen'"     (click)="tabActiva = 'resumen'">Resumen</button>
       <button class="tab" [class.active]="tabActiva === 'filtro'"      (click)="tabActiva = 'filtro'">Filtro inicial</button>
-      <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista RH</button>
+      <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista Conductual</button>
       <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes</button>
       <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicometría</button>
       <button class="tab" [class.active]="tabActiva === 'jefe'"        (click)="tabActiva = 'jefe'">Entrevista técnica</button>
@@ -174,7 +174,7 @@
     @if (tabActiva === 'rh') {
       <div class="section-card">
         <header class="section-head">
-          <h3>Entrevista RH · Competencias STAR</h3>
+          <h3>Entrevista Conductual · Competencias STAR</h3>
           <p class="section-desc">Situación · Tarea · Acción · Resultado. Documenta evidencia por competencia.</p>
         </header>
 
