@@ -215,11 +215,42 @@
 .badge-avanzado   { background: var(--blue-bg); color: var(--blue-text); }
 .badge-consolidado{ background: var(--green-bg); color: var(--green-text); }
 
+/* Indicador de CV */
+.cv-row {
+  margin-top: 12px;
+}
+.cv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-decoration: none;
+  background: var(--blue-bg);
+  color: var(--blue-text);
+  border: 1px solid transparent;
+  transition: all 0.16s;
+}
+.cv-chip svg { width: 13px; height: 13px; }
+.cv-chip:hover { border-color: var(--blue); }
+.cv-chip.cv-foto {
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+.cv-chip.cv-foto:hover { border-color: var(--green); }
+.cv-chip.sin-cv {
+  background: var(--surface2);
+  color: var(--text3);
+  font-weight: 500;
+}
+
 .card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
+  margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }

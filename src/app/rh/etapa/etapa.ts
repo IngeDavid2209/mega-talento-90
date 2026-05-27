@@ -10,6 +10,7 @@ import {
   CHECKLIST_DOCUMENTAL, CHECKLIST_OFERTA, CHECKLIST_CONTRATADO,
   progresoChecklist
 } from '../../core/models/proceso.model';
+import { urlWhatsApp } from '../../core/models/puestos.model';
 
 @Component({
   selector: 'app-etapa',
@@ -151,21 +152,16 @@ export class EtapaComponent implements OnInit, OnDestroy {
   }
 
   contactarWhatsApp(c: any) {
-    const numero = (c.telefono || '').replace(/\D/g, '');
-    const plantilla =
-`Hola, buen día. Mi nombre es Lupita, de Recursos Humanos de Mega Dulces de Los Altos.
+    window.open(urlWhatsApp(c), '_blank');
+  }
 
-Recibimos tu solicitud para la vacante de ${c.puesto || '[PUESTO]'}. Antes de agendar entrevista, necesito confirmar algunos datos:
-
-1. ¿Sigues interesado/a en la vacante?
-2. ¿En qué colonia o ciudad vives?
-3. ¿Tienes disponibilidad para laborar en el horario?
-4. ¿Tienes experiencia en el área?
-5. ¿Cuál fue tu último empleo y motivo de salida?
-6. ¿Cuál es tu expectativa salarial?
-
-Quedo atenta para revisar si tu perfil coincide con la vacante.`;
-    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(plantilla)}`, '_blank');
+  /** Detecta si el candidato envió CV y de qué tipo (pdf / foto) */
+  tipoCV(c: any): 'pdf' | 'foto' | null {
+    const url = (c?.cvUrl || '').toLowerCase();
+    if (!url) return null;
+    if (url.includes('.pdf')) return 'pdf';
+    if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.webp')) return 'foto';
+    return 'pdf'; // por defecto, asumimos documento
   }
 
   formatearFecha(timestamp: any): string {

@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; 
+import { FormsModule } from '@angular/forms';
+import { UsuariosService } from '../../core/services/usuarios.service';
 
 @Component({
   selector: 'app-usuarios',
@@ -9,9 +10,10 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './usuarios.html',
   styleUrl: './usuarios.css'
 })
-export class UsuariosComponent {
-  
-  // 1. AHORA INCLUYE 'EMAIL'
+export class UsuariosComponent implements OnInit, OnDestroy {
+  private usuariosService = inject(UsuariosService);
+  private ngZone = inject(NgZone);
+
   nuevoUsuario = {
     nombreCompleto: '',
     email: '',
@@ -22,37 +24,80 @@ export class UsuariosComponent {
 
   cargando = false;
   mensajeExito = '';
-  
-  // Lista temporal actualizada
-  listaUsuarios = [
-    { nombre: 'Administrador Supremo', email: 'admin@megadulces.com', username: 'admin', rol: 'Administrador' }
-  ];
+  mensajeError = '';
 
-  crearUsuario() {
+  usuarios: any[] = [];
+  private unsubscribeFn: any;
+
+  ngOnInit() {
+    this.unsubscribeFn = this.usuariosService.listarUsuarios((lista) => {
+      this.ngZone.run(() => {
+        // Más recientes primero
+        this.usuarios = lista.sort((a, b) => {
+          const da = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+          const db = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+          return db.getTime() - da.getTime();
+        });
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.unsubscribeFn) this.unsubscribeFn();
+  }
+
+  async crearUsuario() {
     this.cargando = true;
     this.mensajeExito = '';
+    this.mensajeError = '';
 
-    const correoLimpio = this.nuevoUsuario.email.trim().toLowerCase();
-    const usuarioLimpio = this.nuevoUsuario.username.trim().toLowerCase();
-
-    // Simulamos la conexión a Firebase
-    setTimeout(() => {
-      
-      // Lo agregamos a la tabla visual
-      this.listaUsuarios.push({
-        nombre: this.nuevoUsuario.nombreCompleto,
-        email: correoLimpio,
-        username: usuarioLimpio,
-        rol: this.nuevoUsuario.rol === 'admin' ? 'Administrador' : 'Reclutador'
-      });
-
-      // Avisamos que salió bien y limpiamos el formulario
-      this.mensajeExito = `¡El usuario "${usuarioLimpio}" fue creado con éxito!`;
-      this.nuevoUsuario = { nombreCompleto: '', email: '', username: '', rol: 'reclutador', password: '' };
+    // Validación mínima de contraseña (Firebase exige 6+)
+    if (this.nuevoUsuario.password.length < 6) {
+      this.mensajeError = 'La contraseña debe tener al menos 6 caracteres.';
       this.cargando = false;
+      return;
+    }
 
-      setTimeout(() => this.mensajeExito = '', 3000);
+    try {
+      await this.usuariosService.crearUsuario(this.nuevoUsuario);
+      this.mensajeExito = `Cuenta creada. ${this.nuevoUsuario.nombreCompleto} ya puede iniciar sesión con su correo.`;
+      this.nuevoUsuario = { nombreCompleto: '', email: '', username: '', rol: 'reclutador', password: '' };
+      setTimeout(() => this.mensajeExito = '', 5000);
+    } catch (error: any) {
+      this.mensajeError = this.traducirError(error?.code);
+    } finally {
+      this.cargando = false;
+    }
+  }
 
-    }, 1000);
+  async eliminarUsuario(user: any) {
+    if (!confirm(`¿Desactivar el acceso de ${user.nombre}? No podrá volver a iniciar sesión.`)) return;
+    try {
+      await this.usuariosService.desactivarUsuario(user.id || user.uid);
+    } catch (error) {
+      this.mensajeError = 'No se pudo desactivar el usuario.';
+    }
+  }
+
+  async reactivarUsuario(user: any) {
+    try {
+      await this.usuariosService.reactivarUsuario(user.id || user.uid);
+    } catch (error) {
+      this.mensajeError = 'No se pudo reactivar el usuario.';
+    }
+  }
+
+  private traducirError(code: string): string {
+    switch (code) {
+      case 'auth/email-already-in-use': return 'Ese correo ya tiene una cuenta registrada.';
+      case 'auth/invalid-email':        return 'El correo no tiene un formato válido.';
+      case 'auth/weak-password':        return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+      default:                          return 'No se pudo crear la cuenta. Verifica los datos e intenta de nuevo.';
+    }
+  }
+
+  getInitials(nombre: string): string {
+    if (!nombre) return '?';
+    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
   }
 }

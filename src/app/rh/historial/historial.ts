@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
+import { urlWhatsApp } from '../../core/models/puestos.model';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -88,9 +89,7 @@ export class HistorialComponent implements OnInit {
   }
 
   async contactarWhatsApp(c: any) {
-    const numero = (c.telefono || '').replace(/\D/g, '');
-    const msg = `Hola ${c.nombre}, te contactamos del equipo de Reclutamiento de Mega Dulces. Revisamos tu historial y nos gustaría platicar contigo sobre una nueva vacante.`;
-    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(urlWhatsApp(c), '_blank');
 
     if (c.status === ID_ETAPAS.NUEVO) {
       try {

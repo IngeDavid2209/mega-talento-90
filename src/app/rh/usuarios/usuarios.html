@@ -1,104 +1,134 @@
 <div class="page-container">
-  
+
   <div class="page-header">
+    <span class="eyebrow">Administración</span>
     <h2>Gestión de Accesos</h2>
-    <p class="subtitle">Crea y administra las cuentas de Recursos Humanos</p>
+    <p class="subtitle">Crea y administra las cuentas del equipo de Recursos Humanos</p>
   </div>
 
   <div class="content-grid">
-    
+
+    <!-- FORMULARIO -->
     <div class="card">
       <div class="card-header">
-        <h3>Nuevo Usuario</h3>
+        <h3>Nuevo usuario</h3>
       </div>
-      
+
       <div class="card-body">
-        
+
         @if (mensajeExito) {
           <div class="alert-success">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             {{ mensajeExito }}
+          </div>
+        }
+        @if (mensajeError) {
+          <div class="alert-error">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            {{ mensajeError }}
           </div>
         }
 
         <form (ngSubmit)="crearUsuario()" #usuarioForm="ngForm">
-          
+
           <div class="form-group">
-            <label>Nombre Completo</label>
+            <label>Nombre completo</label>
             <input type="text" [(ngModel)]="nuevoUsuario.nombreCompleto" name="nombreCompleto" required placeholder="Ej. Ana Pérez">
           </div>
 
           <div class="form-group">
-            <label>Correo Electrónico</label>
+            <label>Correo electrónico</label>
             <input type="email" [(ngModel)]="nuevoUsuario.email" name="email" required placeholder="Ej. ana.perez@megadulces.com">
-            <small>Se usará para la seguridad de la cuenta y recuperación de contraseña.</small>
+            <small>Con este correo iniciará sesión en el sistema.</small>
           </div>
 
           <div class="form-group">
-            <label>Usuario (Corto)</label>
+            <label>Usuario (alias corto)</label>
             <input type="text" [(ngModel)]="nuevoUsuario.username" name="username" required placeholder="Ej. aperez">
-            <small>Alias interno para identificar al reclutador en el sistema.</small>
+            <small>Identificador interno del reclutador.</small>
           </div>
 
           <div class="form-group">
             <label>Rol en el sistema</label>
             <select [(ngModel)]="nuevoUsuario.rol" name="rol">
               <option value="reclutador">Reclutador / RH</option>
-              <option value="admin">Administrador General</option>
+              <option value="admin">Administrador general</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label>Contraseña Temporal</label>
+            <label>Contraseña temporal</label>
             <input type="password" [(ngModel)]="nuevoUsuario.password" name="password" required placeholder="Mínimo 6 caracteres">
           </div>
 
           <button type="submit" class="btn-primary" [disabled]="usuarioForm.invalid || cargando">
-            {{ cargando ? 'Creando...' : 'Crear Cuenta' }}
+            {{ cargando ? 'Creando cuenta...' : 'Crear cuenta' }}
           </button>
         </form>
       </div>
     </div>
 
+    <!-- LISTA -->
     <div class="card">
       <div class="card-header">
-        <h3>Usuarios Activos</h3>
-        <span class="badge">{{ listaUsuarios.length }}</span>
+        <h3>Usuarios del sistema</h3>
+        <span class="badge">{{ usuarios.length }}</span>
       </div>
-      
+
       <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="users-table">
-            <thead>
-              <tr>
-                <th>NOMBRE</th>
-                <th>CORREO / USUARIO</th>
-                <th>ROL</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (user of listaUsuarios; track user.username) {
+        @if (usuarios.length === 0) {
+          <div class="empty-users">
+            <p class="muted">Aún no hay usuarios registrados.</p>
+            <small>Crea la primera cuenta con el formulario de la izquierda.</small>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="users-table">
+              <thead>
                 <tr>
-                  <td>
-                    <div class="user-info">
-                      <div class="avatar">{{ user.nombre.charAt(0) }}</div>
-                      <span>{{ user.nombre }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style="color: #0f172a; font-size: 13px;">{{ user.email }}</div>
-                    <div style="color: #64748b; font-size: 12px; margin-top: 2px;" class="font-mono">@{{ user.username }}</div>
-                  </td>
-                  <td>
-                    <span class="role-tag" [class.tag-admin]="user.rol === 'Administrador'">
-                      {{ user.rol }}
-                    </span>
-                  </td>
+                  <th>Nombre</th>
+                  <th>Correo / usuario</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th></th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                @for (user of usuarios; track user.id) {
+                  <tr [class.row-inactivo]="user.activo === false">
+                    <td>
+                      <div class="user-info">
+                        <div class="avatar">{{ getInitials(user.nombre) }}</div>
+                        <span>{{ user.nombre }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-email">{{ user.email }}</div>
+                      <div class="user-alias">&#64;{{ user.username }}</div>
+                    </td>
+                    <td>
+                      <span class="role-tag" [class.tag-admin]="user.rol === 'Administrador'">{{ user.rol }}</span>
+                    </td>
+                    <td>
+                      @if (user.activo === false) {
+                        <span class="estado estado-off">Desactivado</span>
+                      } @else {
+                        <span class="estado estado-on">Activo</span>
+                      }
+                    </td>
+                    <td class="acciones-cell">
+                      @if (user.activo === false) {
+                        <button class="btn-link" (click)="reactivarUsuario(user)">Reactivar</button>
+                      } @else {
+                        <button class="btn-link danger" (click)="eliminarUsuario(user)">Desactivar</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </div>
     </div>
 

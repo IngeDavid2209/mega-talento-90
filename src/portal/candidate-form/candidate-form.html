@@ -129,8 +129,8 @@
             <span class="file-upload-hint">{{ archivoCV ? archivoCV.name : 'Sin archivos seleccionados' }}</span>
           </div>
         </label>
-        <input type="file" id="cv" class="hidden-file-input" (change)="onFileSelected($event)" accept=".pdf" />
-        <p class="file-hint">* Opcional. Solo formato PDF (Máximo 5MB).</p>
+        <input type="file" id="cv" class="hidden-file-input" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" />
+        <p class="file-hint">* Opcional. PDF o foto (JPG/PNG). Máximo 5MB.</p>
       </div>
 
       <!-- BOTÓN -->
