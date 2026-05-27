@@ -31,8 +31,8 @@
       <form (ngSubmit)="onLogin()" #loginForm="ngForm">
 
         <div class="form-group">
-          <label>USUARIO</label>
-          <input type="text" [(ngModel)]="credentials.username" name="username" required placeholder="Ej. admin">
+          <label>CORREO ELECTRÓNICO</label>
+          <input type="text" [(ngModel)]="credentials.username" name="username" required placeholder="correo@megadulces.com" autocomplete="username">
         </div>
 
         <div class="form-group">
