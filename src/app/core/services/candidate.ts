@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
-// Importamos las herramientas para guardar archivos
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { subirACloudinary } from './cloudinary';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
@@ -15,7 +14,6 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app); // Inicializamos el disco duro
 
 @Injectable({ providedIn: 'root' })
 export class CandidateService {
@@ -56,15 +54,10 @@ export class CandidateService {
     }
   }
 
-  // === FUNCIÓN PARA SUBIR ARCHIVOS AL EXPEDIENTE ===
+  // === SUBIR ARCHIVOS DEL EXPEDIENTE (a Cloudinary, no Firebase Storage) ===
   async uploadDocument(file: File, candidateId: string): Promise<string> {
-    const filePath = `expedientes/${candidateId}/${new Date().getTime()}_${file.name}`;
-    const storageRef = ref(storage, filePath);
-
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+    return await subirACloudinary(file, `expedientes/${candidateId}`);
   }
-  // Agrega esta importación arriba si no la tienes: import { doc, onSnapshot } from 'firebase/firestore';
 
   listenToCandidate(id: string, callback: (candidato: any) => void) {
     const docRef = doc(db, 'candidates', id);

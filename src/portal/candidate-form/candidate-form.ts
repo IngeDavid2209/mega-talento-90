@@ -2,8 +2,8 @@ import { Component, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { CandidateService } from '../../app/core/services/candidate'; 
-import { getStorage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
+import { CandidateService } from '../../app/core/services/candidate';
+import { subirACloudinary } from '../../app/core/services/cloudinary';
 
 @Component({
   selector: 'app-candidate-form',
@@ -83,13 +83,8 @@ export class CandidateFormComponent {
 
       try {
         if (this.archivoCV) {
-          console.log("A.1 Subiendo CV a Firebase Storage...");
-          const storage = getStorage();
-          const nombreUnico = `${new Date().getTime()}_${this.archivoCV.name}`;
-          const storageRef = ref(storage, `cvs/${nombreUnico}`);
-
-          await uploadBytes(storageRef, this.archivoCV);
-          urlDelPDF = await getDownloadURL(storageRef);
+          console.log("A.1 Subiendo CV a Cloudinary...");
+          urlDelPDF = await subirACloudinary(this.archivoCV, 'cvs');
           console.log("A.2 Archivo subido con éxito. URL generada.");
         }
 
