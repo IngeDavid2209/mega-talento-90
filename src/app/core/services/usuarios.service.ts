@@ -80,15 +80,41 @@ export class UsuariosService {
   }
 
   /**
+   * Resuelve el correo real con el que se autentica en Firebase.
+   * - Si el usuario escribió un correo completo (con @), se usa tal cual.
+   * - Si escribió un alias corto (username), busca su correo real en Firestore
+   *   (así no importa el dominio: .com, .com.mx, gmail, etc.).
+   * - Si no se encuentra, cae al dominio por defecto como último recurso.
+   */
+  async obtenerEmailLogin(entrada: string): Promise<string> {
+    const v = entrada.trim().toLowerCase();
+    if (v.includes('@')) return v;
+    try {
+      const snap = await getDocs(query(collection(db, 'usuarios'), where('username', '==', v)));
+      if (!snap.empty) {
+        const perfil = snap.docs[0].data() as any;
+        if (perfil.email) return perfil.email;
+      }
+    } catch (e) {
+      console.warn('No se pudo resolver el correo por usuario:', e);
+    }
+    return `${v}@megadulces.com`;
+  }
+
+  /**
    * Verifica si un correo está habilitado para entrar.
    * Tolerante: si NO existe perfil en Firestore (cuentas viejas como el admin
    * original), se permite el acceso. Solo bloquea perfiles marcados activo:false.
    */
   async puedeIniciarSesion(email: string): Promise<boolean> {
     const correo = email.trim().toLowerCase();
-    const snap = await getDocs(query(collection(db, 'usuarios'), where('email', '==', correo)));
-    if (snap.empty) return true; // sin perfil → cuenta heredada, se permite
-    const perfil = snap.docs[0].data() as any;
-    return perfil.activo !== false;
+    try {
+      const snap = await getDocs(query(collection(db, 'usuarios'), where('email', '==', correo)));
+      if (snap.empty) return true; // sin perfil → cuenta heredada, se permite
+      const perfil = snap.docs[0].data() as any;
+      return perfil.activo !== false;
+    } catch {
+      return true; // ante error de lectura, no bloquear
+    }
   }
 }

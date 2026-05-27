@@ -29,16 +29,14 @@ export class LoginComponent {
     this.cargando = true;
     this.mensajeError = '';
 
-    let correoFinal = this.credentials.username.trim().toLowerCase();
-    if (!correoFinal.includes('@')) {
-      correoFinal = `${correoFinal}@megadulces.com`;
-    }
-
     try {
-      // 1. Validar credenciales en Firebase Auth
+      // 1. Resolver el correo real del usuario (por alias o correo completo)
+      const correoFinal = await this.usuariosService.obtenerEmailLogin(this.credentials.username);
+
+      // 2. Validar credenciales en Firebase Auth
       await signInWithEmailAndPassword(this.auth, correoFinal, this.credentials.password);
 
-      // 2. Verificar que la cuenta no esté desactivada por un administrador
+      // 3. Verificar que la cuenta no esté desactivada por un administrador
       const habilitado = await this.usuariosService.puedeIniciarSesion(correoFinal);
       if (!habilitado) {
         await signOut(this.auth);
