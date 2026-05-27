@@ -37,15 +37,9 @@
           </div>
 
           <div class="form-group">
-            <label>Correo electrónico</label>
-            <input type="email" [(ngModel)]="nuevoUsuario.email" name="email" required placeholder="Ej. ana.perez@megadulces.com">
-            <small>Con este correo iniciará sesión en el sistema.</small>
-          </div>
-
-          <div class="form-group">
-            <label>Usuario (alias corto)</label>
-            <input type="text" [(ngModel)]="nuevoUsuario.username" name="username" required placeholder="Ej. aperez">
-            <small>Identificador interno del reclutador.</small>
+            <label>Usuario</label>
+            <input type="text" [(ngModel)]="nuevoUsuario.username" name="username" required placeholder="Ej. ana.perez" autocomplete="off">
+            <small>Con este usuario iniciará sesión. Sin espacios (ej. nombre.apellido).</small>
           </div>
 
           <div class="form-group">
@@ -87,7 +81,7 @@
               <thead>
                 <tr>
                   <th>Nombre</th>
-                  <th>Correo / usuario</th>
+                  <th>Usuario de acceso</th>
                   <th>Rol</th>
                   <th>Estado</th>
                   <th></th>
@@ -103,8 +97,7 @@
                       </div>
                     </td>
                     <td>
-                      <div class="user-email">{{ user.email }}</div>
-                      <div class="user-alias">&#64;{{ user.username }}</div>
+                      <div class="user-email">{{ user.username }}</div>
                     </td>
                     <td>
                       <span class="role-tag" [class.tag-admin]="user.rol === 'Administrador'">{{ user.rol }}</span>

@@ -17,9 +17,17 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Dominio interno con el que se genera el correo técnico a partir del alias.
+// El usuario nunca lo ve: inicia sesión solo con su nombre de usuario.
+export const DOMINIO_INTERNO = 'megatalento.app';
+
+/** Convierte un alias en el correo técnico usado por Firebase Auth */
+export function aliasAEmail(alias: string): string {
+  return `${alias.trim().toLowerCase()}@${DOMINIO_INTERNO}`;
+}
+
 export interface NuevoUsuario {
   nombreCompleto: string;
-  email: string;
   username: string;
   rol: string;       // 'reclutador' | 'admin'
   password: string;
@@ -35,7 +43,9 @@ export class UsuariosService {
    * inicia sesión automáticamente con el nuevo usuario en la instancia donde corre).
    */
   async crearUsuario(datos: NuevoUsuario): Promise<void> {
-    const email = datos.email.trim().toLowerCase();
+    const username = datos.username.trim().toLowerCase();
+    // El correo se genera del alias: el usuario solo necesita su nombre de usuario.
+    const email = aliasAEmail(username);
     const secondaryName = 'UserCreation-' + Date.now();
     const secondaryApp = initializeApp(firebaseConfig, secondaryName);
     const secondaryAuth = getAuth(secondaryApp);
@@ -51,7 +61,7 @@ export class UsuariosService {
           uid: cred.user.uid,
           nombre: datos.nombreCompleto.trim(),
           email,
-          username: datos.username.trim().toLowerCase(),
+          username,
           rol: datos.rol === 'admin' ? 'Administrador' : 'Reclutador',
           activo: true,
           createdAt: new Date()
@@ -95,23 +105,22 @@ export class UsuariosService {
    */
   async obtenerEmailLogin(entrada: string): Promise<string> {
     const v = entrada.trim().toLowerCase();
-    if (v.includes('@')) return v; // ya escribió un correo
+    if (v.includes('@')) return v; // ya escribió un correo completo
 
-    // Buscar el correo real por nombre de usuario en Firestore
+    // Si existe un perfil con ese alias y un correo distinto (cuentas antiguas
+    // con correo personalizado), se respeta ese correo.
     try {
       const snap = await getDocs(query(collection(db, 'usuarios'), where('username', '==', v)));
       if (!snap.empty) {
         const perfil = snap.docs[0].data() as any;
         if (perfil.email) return perfil.email;
-      } else {
-        console.warn(`Login: no se encontró un usuario con alias "${v}".`);
       }
     } catch (e) {
-      console.warn('Login: no se pudo leer la tabla de usuarios (revisa reglas de Firestore):', e);
+      console.warn('Login: no se pudo leer la tabla de usuarios:', e);
     }
 
-    // Último recurso para cuentas heredadas sin perfil (ej. admin original)
-    return `${v}@megadulces.com`;
+    // Caso normal: el correo se deriva del alias con el dominio interno.
+    return aliasAEmail(v);
   }
 
   /**

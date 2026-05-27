@@ -16,7 +16,6 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   nuevoUsuario = {
     nombreCompleto: '',
-    email: '',
     username: '',
     rol: 'reclutador',
     password: ''
@@ -59,9 +58,10 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     }
 
     try {
+      const alias = this.nuevoUsuario.username.trim().toLowerCase();
       await this.usuariosService.crearUsuario(this.nuevoUsuario);
-      this.mensajeExito = `Cuenta creada. ${this.nuevoUsuario.nombreCompleto} ya puede iniciar sesión con su correo.`;
-      this.nuevoUsuario = { nombreCompleto: '', email: '', username: '', rol: 'reclutador', password: '' };
+      this.mensajeExito = `Cuenta creada. ${this.nuevoUsuario.nombreCompleto} ya puede entrar con el usuario "${alias}".`;
+      this.nuevoUsuario = { nombreCompleto: '', username: '', rol: 'reclutador', password: '' };
       setTimeout(() => this.mensajeExito = '', 6000);
     } catch (error: any) {
       console.error('Error al crear usuario:', error);
