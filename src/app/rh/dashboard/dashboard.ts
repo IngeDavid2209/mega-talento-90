@@ -208,13 +208,28 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  async borrarCandidato(c: any) {
-    if (!confirm(`¿Eliminar definitivamente a ${c.nombre}? Se borrará del sistema por completo y no se puede deshacer.`)) return;
+  // Confirmación de borrado con modal propio (no el confirm() del navegador)
+  candidatoAEliminar: any = null;
+  borrando = false;
+
+  pedirBorrar(c: any) {
+    this.candidatoAEliminar = c;
+  }
+
+  cancelarBorrar() {
+    this.candidatoAEliminar = null;
+  }
+
+  async confirmarBorrar() {
+    if (!this.candidatoAEliminar) return;
+    this.borrando = true;
     try {
-      await this.candidateService.eliminarCandidato(c.id);
+      await this.candidateService.eliminarCandidato(this.candidatoAEliminar.id);
+      this.candidatoAEliminar = null;
     } catch (e) {
       console.error('Error al eliminar candidato:', e);
-      alert('No se pudo eliminar el candidato. Intenta de nuevo.');
+    } finally {
+      this.borrando = false;
     }
   }
 
