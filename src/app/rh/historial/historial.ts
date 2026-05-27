@@ -110,6 +110,34 @@ export class HistorialComponent implements OnInit {
     }
   }
 
+  // Confirmación de borrado con modal propio
+  candidatoAEliminar: any = null;
+  borrando = false;
+
+  pedirBorrar(c: any) {
+    this.candidatoAEliminar = c;
+  }
+
+  cancelarBorrar() {
+    this.candidatoAEliminar = null;
+  }
+
+  async confirmarBorrar() {
+    if (!this.candidatoAEliminar) return;
+    this.borrando = true;
+    const id = this.candidatoAEliminar.id;
+    try {
+      await this.candidateService.eliminarCandidato(id);
+      this.candidatos = this.candidatos.filter(c => c.id !== id);
+      this.aplicarFiltros();
+      this.candidatoAEliminar = null;
+    } catch (e) {
+      console.error('Error al eliminar candidato:', e);
+    } finally {
+      this.borrando = false;
+    }
+  }
+
   getInitials(nombre: string): string {
     if (!nombre) return '?';
     return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
