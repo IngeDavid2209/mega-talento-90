@@ -62,8 +62,9 @@ export class UsuariosComponent implements OnInit, OnDestroy {
       await this.usuariosService.crearUsuario(this.nuevoUsuario);
       this.mensajeExito = `Cuenta creada. ${this.nuevoUsuario.nombreCompleto} ya puede iniciar sesión con su correo.`;
       this.nuevoUsuario = { nombreCompleto: '', email: '', username: '', rol: 'reclutador', password: '' };
-      setTimeout(() => this.mensajeExito = '', 5000);
+      setTimeout(() => this.mensajeExito = '', 6000);
     } catch (error: any) {
+      console.error('Error al crear usuario:', error);
       this.mensajeError = this.traducirError(error?.code);
     } finally {
       this.cargando = false;
@@ -89,10 +90,20 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   private traducirError(code: string): string {
     switch (code) {
-      case 'auth/email-already-in-use': return 'Ese correo ya tiene una cuenta registrada.';
-      case 'auth/invalid-email':        return 'El correo no tiene un formato válido.';
-      case 'auth/weak-password':        return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
-      default:                          return 'No se pudo crear la cuenta. Verifica los datos e intenta de nuevo.';
+      case 'auth/email-already-in-use':
+        return 'Ese correo ya tiene una cuenta registrada.';
+      case 'auth/invalid-email':
+        return 'El correo no tiene un formato válido.';
+      case 'auth/weak-password':
+        return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+      case 'auth/operation-not-allowed':
+        return 'El acceso por correo/contraseña está desactivado en Firebase. Actívalo en Authentication → Método de acceso → Correo electrónico/contraseña.';
+      case 'auth/admin-restricted-operation':
+        return 'Firebase rechazó la operación. Revisa que el registro por correo esté habilitado en Authentication.';
+      case 'auth/network-request-failed':
+        return 'Sin conexión con Firebase. Revisa tu internet e intenta de nuevo.';
+      default:
+        return `No se pudo crear la cuenta${code ? ' (' + code + ')' : ''}. Verifica los datos e intenta de nuevo.`;
     }
   }
 

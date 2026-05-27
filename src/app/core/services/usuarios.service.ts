@@ -41,19 +41,26 @@ export class UsuariosService {
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
+      // 1. Crear la cuenta en Firebase Auth (esto es lo crítico para poder entrar)
       const cred = await createUserWithEmailAndPassword(secondaryAuth, email, datos.password);
 
-      await setDoc(doc(db, 'usuarios', cred.user.uid), {
-        uid: cred.user.uid,
-        nombre: datos.nombreCompleto.trim(),
-        email,
-        username: datos.username.trim().toLowerCase(),
-        rol: datos.rol === 'admin' ? 'Administrador' : 'Reclutador',
-        activo: true,
-        createdAt: new Date()
-      });
+      // 2. Guardar el perfil en Firestore. Si las reglas lo bloquean, NO es fatal:
+      //    la cuenta ya existe en Auth y el usuario puede iniciar sesión.
+      try {
+        await setDoc(doc(db, 'usuarios', cred.user.uid), {
+          uid: cred.user.uid,
+          nombre: datos.nombreCompleto.trim(),
+          email,
+          username: datos.username.trim().toLowerCase(),
+          rol: datos.rol === 'admin' ? 'Administrador' : 'Reclutador',
+          activo: true,
+          createdAt: new Date()
+        });
+      } catch (firestoreError) {
+        console.warn('Cuenta creada en Auth, pero no se pudo guardar el perfil en Firestore:', firestoreError);
+      }
 
-      await signOut(secondaryAuth);
+      await signOut(secondaryAuth).catch(() => {});
     } finally {
       // Limpiar la instancia secundaria siempre
       await deleteApp(secondaryApp).catch(() => {});
