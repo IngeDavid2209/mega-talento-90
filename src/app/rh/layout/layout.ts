@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { NotificacionesService, EstadoNotif } from '../../core/services/notificaciones.service';
+import { UpdateCheckerService } from '../../core/services/update-checker.service';
 import { ETAPAS, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
 
 @Component({
@@ -17,6 +18,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private notificaciones = inject(NotificacionesService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
+  // Público para que el template pueda leer el signal hayActualizacion()
+  updateChecker = inject(UpdateCheckerService);
 
   isMenuOpen = false;
   year = new Date().getFullYear();
@@ -39,6 +42,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     // Verificar el estado actual del permiso (sin pedirlo aún)
     this.estadoNotif = this.notificaciones.getEstado();
+
+    // Iniciar el chequeo de nuevas versiones desplegadas en Vercel
+    this.updateChecker.iniciar();
 
     this.unsubscribeFn = this.candidateService.listenToCandidates((datos) => {
       this.ngZone.run(() => {
