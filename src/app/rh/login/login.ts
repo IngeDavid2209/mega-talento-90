@@ -29,12 +29,26 @@ export class LoginComponent {
     this.cargando = true;
     this.mensajeError = '';
 
+    const entrada = this.credentials.username.trim().toLowerCase();
+    let correoFinal = '';
+
     try {
       // 1. Resolver el correo real del usuario (por alias o correo completo)
-      const correoFinal = await this.usuariosService.obtenerEmailLogin(this.credentials.username);
+      correoFinal = await this.usuariosService.obtenerEmailLogin(entrada);
 
       // 2. Validar credenciales en Firebase Auth
-      await signInWithEmailAndPassword(this.auth, correoFinal, this.credentials.password);
+      try {
+        await signInWithEmailAndPassword(this.auth, correoFinal, this.credentials.password);
+      } catch (firstErr) {
+        // Respaldo: si fue un alias que cayó al dominio interno y falló, probar
+        // con el dominio antiguo (cuentas heredadas como admin@megadulces.com).
+        if (!entrada.includes('@') && correoFinal.endsWith('@megatalento.app')) {
+          correoFinal = `${entrada}@megadulces.com`;
+          await signInWithEmailAndPassword(this.auth, correoFinal, this.credentials.password);
+        } else {
+          throw firstErr;
+        }
+      }
 
       // 3. Verificar que la cuenta no esté desactivada por un administrador
       const habilitado = await this.usuariosService.puedeIniciarSesion(correoFinal);
