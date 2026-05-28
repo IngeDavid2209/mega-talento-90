@@ -5,9 +5,18 @@ import { Injectable } from '@angular/core';
  * Funcionan mientras el navegador esté abierto, aunque la pestaña
  * de la app esté en background o minimizada.
  */
+export type EstadoNotif = 'granted' | 'denied' | 'default' | 'no-soportado';
+
 @Injectable({ providedIn: 'root' })
 export class NotificacionesService {
   permitido = false;
+
+  /** Devuelve el estado actual sin pedir permiso */
+  getEstado(): EstadoNotif {
+    if (!('Notification' in window)) return 'no-soportado';
+    this.permitido = Notification.permission === 'granted';
+    return Notification.permission as EstadoNotif;
+  }
 
   /** Pide permiso al navegador. Solo la primera vez muestra el popup nativo. */
   async pedirPermiso(): Promise<boolean> {

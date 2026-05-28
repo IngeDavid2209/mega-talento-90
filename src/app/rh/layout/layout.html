@@ -96,7 +96,54 @@
 
   <main class="content-area">
     <router-outlet></router-outlet>
-    
+
   </main>
+
+  <!-- MODAL BLOQUEANTE: activar notificaciones (no se puede usar la app sin permiso) -->
+  @if (estadoNotif !== 'granted') {
+    <div class="notif-block-overlay">
+      <div class="notif-block-card">
+        <div class="notif-block-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </div>
+
+        @if (estadoNotif === 'default') {
+          <h2>Activa las notificaciones</h2>
+          <p>
+            Para usar Mega Talento es necesario permitir las notificaciones del navegador.
+            Cada vez que llegue un nuevo candidato te avisaremos al instante para que no se te escape ninguno.
+          </p>
+          <button class="notif-block-btn" (click)="activarNotificaciones()" [disabled]="activando">
+            {{ activando ? 'Pidiendo permiso...' : 'Activar notificaciones' }}
+          </button>
+          <small class="notif-hint">El navegador te mostrará un pequeño popup pidiendo confirmación. Pulsa "Permitir".</small>
+        }
+
+        @if (estadoNotif === 'denied') {
+          <h2>Notificaciones bloqueadas</h2>
+          <p>
+            Bloqueaste las notificaciones en tu navegador. Para usar Mega Talento debes volver a activarlas manualmente.
+          </p>
+          <div class="notif-pasos">
+            <div class="paso"><span class="paso-num">1</span> Haz click en el ícono de candado <strong>🔒</strong> o información <strong>ⓘ</strong> a la izquierda de la dirección web (arriba).</div>
+            <div class="paso"><span class="paso-num">2</span> Busca <strong>"Notificaciones"</strong> en el menú que aparece.</div>
+            <div class="paso"><span class="paso-num">3</span> Cámbialo a <strong>"Permitir"</strong>.</div>
+            <div class="paso"><span class="paso-num">4</span> Pulsa el botón de abajo para recargar.</div>
+          </div>
+          <button class="notif-block-btn" (click)="recargarPagina()">Recargar página</button>
+        }
+
+        @if (estadoNotif === 'no-soportado') {
+          <h2>Navegador no compatible</h2>
+          <p>
+            Tu navegador no soporta notificaciones. Para usar Mega Talento, abre la app en <strong>Google Chrome, Microsoft Edge o Firefox</strong> en su versión más reciente.
+          </p>
+        }
+      </div>
+    </div>
+  }
 
 </div>

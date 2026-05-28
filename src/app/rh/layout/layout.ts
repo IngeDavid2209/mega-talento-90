@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
-import { NotificacionesService } from '../../core/services/notificaciones.service';
+import { NotificacionesService, EstadoNotif } from '../../core/services/notificaciones.service';
 import { ETAPAS, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
 
 @Component({
@@ -27,14 +27,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Conteo de candidatos por etapa (badge en el menú)
   conteos: Record<string, number> = {};
 
+  // Estado del permiso de notificaciones (bloquea la app si no está concedido)
+  estadoNotif: EstadoNotif = 'default';
+  activando = false;
+
   // Detección de candidatos nuevos para notificar
   private idsConocidos = new Set<string>();
   private primeraCarga = true;
   private unsubscribeFn: any;
 
   async ngOnInit() {
-    // Pedir permiso para notificaciones del navegador (solo la primera vez)
-    await this.notificaciones.pedirPermiso();
+    // Verificar el estado actual del permiso (sin pedirlo aún)
+    this.estadoNotif = this.notificaciones.getEstado();
 
     this.unsubscribeFn = this.candidateService.listenToCandidates((datos) => {
       this.ngZone.run(() => {
@@ -42,6 +46,17 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.detectarNuevos(datos);
       });
     });
+  }
+
+  async activarNotificaciones() {
+    this.activando = true;
+    await this.notificaciones.pedirPermiso();
+    this.estadoNotif = this.notificaciones.getEstado();
+    this.activando = false;
+  }
+
+  recargarPagina() {
+    window.location.reload();
   }
 
   ngOnDestroy() {
