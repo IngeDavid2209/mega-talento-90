@@ -255,3 +255,96 @@ small {
   font-weight: 600;
   font-family: 'DM Mono', monospace;
 }
+
+/* MODAL DE EDICIÓN */
+.edit-overlay {
+  position: fixed; inset: 0;
+  background: rgba(14, 13, 11, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: editIn 0.2s ease;
+}
+.edit-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--surface);
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px 22px;
+  width: calc(100% - 32px);
+  max-width: 460px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  animation: editScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.edit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.edit-head h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.edit-close {
+  width: 28px; height: 28px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.18s;
+}
+.edit-close:hover { background: var(--surface2); color: var(--ink); }
+
+.edit-hint {
+  margin: 6px 0 18px;
+  padding: 10px 12px;
+  background: var(--surface3);
+  border-left: 2px solid var(--text3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+}
+.btn-cancel, .btn-save {
+  flex: 1;
+  padding: 11px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+.btn-cancel {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-med);
+}
+.btn-cancel:hover:not(:disabled) { background: var(--surface3); }
+.btn-save {
+  background: var(--ink);
+  color: #fff;
+  border: 1px solid var(--ink);
+}
+.btn-save:hover:not(:disabled) { background: var(--ink-soft); }
+.btn-save:disabled, .btn-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@keyframes editIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes editScaleIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}

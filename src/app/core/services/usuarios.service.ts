@@ -97,6 +97,23 @@ export class UsuariosService {
   }
 
   /**
+   * Actualiza el perfil del usuario en Firestore (nombre, alias y rol).
+   * NO toca Firebase Auth (correo/contraseña): para cambiar contraseña, el
+   * admin debe enviar reset o re-crear la cuenta.
+   */
+  async actualizarPerfilUsuario(
+    uid: string,
+    datos: { nombre?: string; username?: string; rol?: string }
+  ): Promise<void> {
+    const payload: Record<string, any> = {};
+    if (datos.nombre !== undefined)   payload['nombre']   = datos.nombre.trim();
+    if (datos.username !== undefined) payload['username'] = datos.username.trim().toLowerCase();
+    if (datos.rol !== undefined)      payload['rol']      = datos.rol === 'admin' ? 'Administrador' : 'Reclutador';
+    if (Object.keys(payload).length === 0) return;
+    await updateDoc(doc(db, 'usuarios', uid), payload);
+  }
+
+  /**
    * Elimina el perfil del usuario (sale de la lista para siempre).
    * Como las cuentas del sistema usan el dominio interno, al no tener perfil
    * el login las bloquea (ver puedeIniciarSesion).

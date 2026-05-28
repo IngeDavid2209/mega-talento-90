@@ -97,6 +97,64 @@ export class UsuariosComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ============================
+  // EDICIÓN DE USUARIO
+  // ============================
+  usuarioEditando: any = null;
+  edicion = { nombre: '', username: '', rol: 'reclutador' };
+  guardandoEdicion = false;
+  errorEdicion = '';
+
+  abrirEditar(user: any) {
+    this.usuarioEditando = user;
+    this.edicion = {
+      nombre: user.nombre || '',
+      username: user.username || '',
+      rol: user.rol === 'Administrador' ? 'admin' : 'reclutador'
+    };
+    this.errorEdicion = '';
+  }
+
+  cerrarEditar() {
+    this.usuarioEditando = null;
+    this.errorEdicion = '';
+  }
+
+  /** Sanitiza el alias al escribir: solo letras minúsculas, números, puntos y guiones */
+  sanitizarUsername(valor: string): string {
+    return (valor || '').toLowerCase().replace(/[^a-z0-9._-]/g, '');
+  }
+
+  async guardarEdicion() {
+    if (!this.usuarioEditando) return;
+    this.errorEdicion = '';
+
+    const username = this.sanitizarUsername(this.edicion.username);
+    if (!this.edicion.nombre.trim()) {
+      this.errorEdicion = 'El nombre no puede estar vacío.';
+      return;
+    }
+    if (!username) {
+      this.errorEdicion = 'El usuario debe tener letras, números, puntos o guiones.';
+      return;
+    }
+
+    this.guardandoEdicion = true;
+    try {
+      await this.usuariosService.actualizarPerfilUsuario(this.usuarioEditando.id || this.usuarioEditando.uid, {
+        nombre: this.edicion.nombre,
+        username,
+        rol: this.edicion.rol
+      });
+      this.usuarioEditando = null;
+    } catch (e) {
+      console.error('Error al actualizar usuario:', e);
+      this.errorEdicion = 'No se pudieron guardar los cambios.';
+    } finally {
+      this.guardandoEdicion = false;
+    }
+  }
+
   private traducirError(code: string): string {
     switch (code) {
       case 'auth/email-already-in-use':

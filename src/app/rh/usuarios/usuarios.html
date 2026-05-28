@@ -38,8 +38,8 @@
 
           <div class="form-group">
             <label>Usuario</label>
-            <input type="text" [(ngModel)]="nuevoUsuario.username" name="username" required placeholder="Ej. ana.perez" autocomplete="off">
-            <small>Con este usuario iniciará sesión. Sin espacios (ej. nombre.apellido).</small>
+            <input type="text" [ngModel]="nuevoUsuario.username" (ngModelChange)="nuevoUsuario.username = sanitizarUsername($event)" name="username" required placeholder="Ej. ana.perez" autocomplete="off">
+            <small>Con este usuario iniciará sesión. Solo letras, números, puntos y guiones (sin espacios ni comas).</small>
           </div>
 
           <div class="form-group">
@@ -110,6 +110,7 @@
                       }
                     </td>
                     <td class="acciones-cell">
+                      <button class="btn-link" (click)="abrirEditar(user)">Editar</button>
                       @if (user.activo === false) {
                         <button class="btn-link" (click)="reactivarUsuario(user)">Reactivar</button>
                       } @else {
@@ -127,4 +128,54 @@
     </div>
 
   </div>
+
+  <!-- MODAL DE EDICIÓN DE USUARIO -->
+  @if (usuarioEditando) {
+    <div class="edit-overlay" (click)="cerrarEditar()"></div>
+    <div class="edit-modal" role="dialog" aria-modal="true">
+      <div class="edit-head">
+        <h3>Editar usuario</h3>
+        <button class="edit-close" (click)="cerrarEditar()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorEdicion) {
+        <div class="alert-error">{{ errorEdicion }}</div>
+      }
+
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" [(ngModel)]="edicion.nombre" placeholder="Nombre y apellido">
+      </div>
+
+      <div class="form-group">
+        <label>Usuario (alias de acceso)</label>
+        <input type="text"
+               [ngModel]="edicion.username"
+               (ngModelChange)="edicion.username = sanitizarUsername($event)"
+               placeholder="Ej. lesly.berber"
+               autocomplete="off">
+        <small>Solo letras, números, puntos y guiones. Con este alias inicia sesión.</small>
+      </div>
+
+      <div class="form-group">
+        <label>Rol</label>
+        <select [(ngModel)]="edicion.rol">
+          <option value="reclutador">Reclutador / RH</option>
+          <option value="admin">Administrador general</option>
+        </select>
+      </div>
+
+      <div class="edit-hint">
+        Para cambiar la contraseña, elimina al usuario y vuelve a crearlo. Por seguridad de Firebase
+        no es posible cambiarla desde aquí.
+      </div>
+
+      <div class="edit-actions">
+        <button class="btn-cancel" (click)="cerrarEditar()" [disabled]="guardandoEdicion">Cancelar</button>
+        <button class="btn-save" (click)="guardarEdicion()" [disabled]="guardandoEdicion">
+          {{ guardandoEdicion ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </div>
+  }
 </div>
