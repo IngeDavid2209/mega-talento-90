@@ -1,7 +1,8 @@
 import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterModule } from '@angular/router';
+import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
+import { NotificacionesService } from '../../core/services/notificaciones.service';
 import { ETAPAS, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
 
 @Component({
@@ -13,6 +14,8 @@ import { ETAPAS, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model
 })
 export class LayoutComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
+  private notificaciones = inject(NotificacionesService);
+  private router = inject(Router);
   private ngZone = inject(NgZone);
 
   isMenuOpen = false;
@@ -23,16 +26,47 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   // Conteo de candidatos por etapa (badge en el menú)
   conteos: Record<string, number> = {};
+
+  // Detección de candidatos nuevos para notificar
+  private idsConocidos = new Set<string>();
+  private primeraCarga = true;
   private unsubscribeFn: any;
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Pedir permiso para notificaciones del navegador (solo la primera vez)
+    await this.notificaciones.pedirPermiso();
+
     this.unsubscribeFn = this.candidateService.listenToCandidates((datos) => {
-      this.ngZone.run(() => this.calcularConteos(datos));
+      this.ngZone.run(() => {
+        this.calcularConteos(datos);
+        this.detectarNuevos(datos);
+      });
     });
   }
 
   ngOnDestroy() {
     if (this.unsubscribeFn) this.unsubscribeFn();
+  }
+
+  /**
+   * Primera carga: registrar todos los IDs como "conocidos" sin notificar.
+   * Cargas siguientes: cualquier ID que no esté en la lista es un candidato nuevo.
+   */
+  private detectarNuevos(datos: any[]) {
+    if (this.primeraCarga) {
+      datos.forEach(c => this.idsConocidos.add(c.id));
+      this.primeraCarga = false;
+      return;
+    }
+    for (const c of datos) {
+      if (this.idsConocidos.has(c.id)) continue;
+      this.idsConocidos.add(c.id);
+      this.notificaciones.notificar(
+        'Nuevo candidato · Mega Talento',
+        `${c.nombre || 'Alguien'} aplicó para ${c.puesto || 'una vacante'}.`,
+        () => this.router.navigate(['/app/etapa', ID_ETAPAS.NUEVO])
+      );
+    }
   }
 
   private calcularConteos(datos: any[]) {
