@@ -22,13 +22,16 @@ export class DashboardComponent implements OnInit {
 
   cargando = true;
   candidatos: any[] = [];
-  candidatos48h: any[] = [];
+  candidatosRecientes: any[] = [];
   candidatosFiltrados: any[] = [];
   terminoBusqueda = '';
 
+  // Ventana de "Solicitudes recientes" (cambiar aquí si se quiere otro período)
+  private readonly DIAS_RECIENTES = 14;
+
   // KPIs maestros
   kpiTotal = 0;
-  kpiNuevos48h = 0;
+  kpiNuevosRecientes = 0;
   kpiActivos = 0;
   kpiContratados = 0;
   kpiContratadosMes = 0;
@@ -57,15 +60,15 @@ export class DashboardComponent implements OnInit {
 
   calcularKpis() {
     const ahora = new Date();
-    const ms48h = 48 * 3600 * 1000;
+    const msVentana = this.DIAS_RECIENTES * 24 * 3600 * 1000;
 
     this.kpiTotal = this.candidatos.length;
-    this.candidatos48h = this.candidatos.filter(c => {
+    this.candidatosRecientes = this.candidatos.filter(c => {
       if (!c.createdAt) return false;
       const f = typeof c.createdAt.toDate === 'function' ? c.createdAt.toDate() : new Date(c.createdAt);
-      return ahora.getTime() - f.getTime() <= ms48h;
+      return ahora.getTime() - f.getTime() <= msVentana;
     });
-    this.kpiNuevos48h = this.candidatos48h.length;
+    this.kpiNuevosRecientes = this.candidatosRecientes.length;
 
     const contratados = this.candidatos.filter(c => c.status === ID_ETAPAS.CONTRATADO);
     const rechazados = this.candidatos.filter(c => c.status === ID_ETAPAS.RECHAZADO);
@@ -148,21 +151,21 @@ export class DashboardComponent implements OnInit {
   }
 
   armarTabla() {
-    this.candidatos48h.sort((a, b) => {
+    this.candidatosRecientes.sort((a: any, b: any) => {
       const da = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
       const db = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
       return db.getTime() - da.getTime();
     });
-    this.candidatosFiltrados = [...this.candidatos48h];
+    this.candidatosFiltrados = [...this.candidatosRecientes];
   }
 
   filtrarCandidatos() {
     const t = this.terminoBusqueda.toLowerCase().trim();
     if (!t) {
-      this.candidatosFiltrados = [...this.candidatos48h];
+      this.candidatosFiltrados = [...this.candidatosRecientes];
       return;
     }
-    this.candidatosFiltrados = this.candidatos48h.filter(c =>
+    this.candidatosFiltrados = this.candidatosRecientes.filter((c: any) =>
       (c.nombre || '').toLowerCase().includes(t) ||
       (c.puesto || '').toLowerCase().includes(t) ||
       (c.ciudad || '').toLowerCase().includes(t)
