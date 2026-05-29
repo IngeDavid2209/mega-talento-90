@@ -86,6 +86,7 @@
       <button class="tab" [class.active]="tabActiva === 'dictamen'"    (click)="tabActiva = 'dictamen'">Dictamen</button>
       <button class="tab" [class.active]="tabActiva === 'contratado'"  (click)="tabActiva = 'contratado'">Ingreso</button>
       <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Archivos</button>
+      <button class="tab" [class.active]="tabActiva === 'solicitud'"   (click)="tabActiva = 'solicitud'">Solicitud</button>
     </div>
 
     <!-- ============== TAB: RESUMEN ============== -->
@@ -630,6 +631,124 @@
             }
           }
         </div>
+      </div>
+    }
+
+    <!-- ============== TAB: SOLICITUD ELECTRÓNICA ============== -->
+    @if (tabActiva === 'solicitud') {
+      <div class="section-card">
+        <header class="section-head">
+          <h3>Solicitud electrónica</h3>
+          <p class="section-desc">Formulario completo que el candidato llena desde su celular para reemplazar el CV.</p>
+        </header>
+
+        @if (!tieneSolicitud) {
+          <!-- ====== Sin solicitud todavía ====== -->
+          <div class="sol-pendiente">
+            <div class="sol-pend-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <h4>El candidato aún no ha llenado la solicitud</h4>
+            <p>Envíale el link por WhatsApp para que pueda completarla desde su celular. Toma ~5 minutos.</p>
+            <div class="sol-acciones">
+              <button class="btn-secondary" (click)="enviarSolicitudPorWhatsApp()">Enviar por WhatsApp</button>
+              <button class="btn-outline" (click)="copiarLinkSolicitud()">Copiar link</button>
+            </div>
+          </div>
+        } @else {
+          <!-- ====== Solicitud recibida: mostrar datos ====== -->
+          <div class="sol-recibida-banner">
+            <span class="sol-rb-tag">Recibida el {{ fechaEnvioSolicitud() }}</span>
+          </div>
+
+          @if (candidato.solicitudElectronica; as s) {
+            <div class="sol-vista">
+
+              <h4 class="sol-vista-titulo">Datos personales</h4>
+              <dl class="sol-dl">
+                <dt>Nombre</dt><dd>{{ s.datosPersonales.nombre || '—' }}</dd>
+                <dt>Fecha de nacimiento</dt><dd>{{ s.datosPersonales.fechaNacimiento || '—' }}</dd>
+                <dt>Sexo</dt><dd>{{ s.datosPersonales.sexo || '—' }}</dd>
+                <dt>Estado civil</dt><dd>{{ s.datosPersonales.estadoCivil || '—' }}</dd>
+                <dt>Nacionalidad</dt><dd>{{ s.datosPersonales.nacionalidad || '—' }}</dd>
+                <dt>Lugar de nacimiento</dt><dd>{{ s.datosPersonales.lugarNacimiento || '—' }}</dd>
+              </dl>
+
+              <h4 class="sol-vista-titulo">Identificación</h4>
+              <dl class="sol-dl">
+                <dt>CURP</dt><dd>{{ s.identificacion.curp || '—' }}</dd>
+                <dt>RFC</dt><dd>{{ s.identificacion.rfc || '—' }}</dd>
+                <dt>NSS</dt><dd>{{ s.identificacion.nss || '—' }}</dd>
+                <dt>Clave INE</dt><dd>{{ s.identificacion.ineFolio || '—' }}</dd>
+              </dl>
+
+              <h4 class="sol-vista-titulo">Domicilio</h4>
+              <dl class="sol-dl">
+                <dt>Dirección</dt><dd>{{ s.domicilio.calle }} {{ s.domicilio.numero }}, Col. {{ s.domicilio.colonia }}</dd>
+                <dt>Ciudad / Estado</dt><dd>{{ s.domicilio.ciudad }}, {{ s.domicilio.estado }}</dd>
+                <dt>Código Postal</dt><dd>{{ s.domicilio.codigoPostal || '—' }}</dd>
+              </dl>
+
+              <h4 class="sol-vista-titulo">Contacto</h4>
+              <dl class="sol-dl">
+                <dt>Teléfono</dt><dd>{{ s.contacto.telefono || '—' }}</dd>
+                <dt>Correo</dt><dd>{{ s.contacto.correo || '—' }}</dd>
+                <dt>Contacto de emergencia</dt><dd>{{ s.contacto.contactoEmergencia || '—' }} ({{ s.contacto.parentescoEmergencia || '—' }}) · {{ s.contacto.telefonoEmergencia || '—' }}</dd>
+              </dl>
+
+              <h4 class="sol-vista-titulo">Escolaridad</h4>
+              <dl class="sol-dl">
+                <dt>Nivel máximo</dt><dd>{{ s.escolaridad.nivelMaximo || '—' }}</dd>
+                <dt>Institución</dt><dd>{{ s.escolaridad.institucion || '—' }}</dd>
+                <dt>Carrera / Especialidad</dt><dd>{{ s.escolaridad.carreraEspecialidad || '—' }}</dd>
+                <dt>Año de término</dt><dd>{{ s.escolaridad.anioTermino || '—' }}</dd>
+                <dt>Certificado</dt><dd>{{ s.escolaridad.certificado ? 'Sí' : 'No' }}</dd>
+              </dl>
+
+              <h4 class="sol-vista-titulo">Experiencia laboral</h4>
+              @for (e of s.experiencia; track $index) {
+                <div class="sol-emp">
+                  <strong>{{ e.puesto || 'Sin puesto' }} · {{ e.empresa || 'Sin empresa' }}</strong>
+                  <small>{{ e.fechaInicio || '?' }} → {{ e.fechaFin || 'actual' }} · Sueldo: {{ e.sueldoMensual || '—' }}</small>
+                  @if (e.jefeDirecto) {
+                    <small>Jefe: {{ e.jefeDirecto }} · {{ e.telefonoJefe || 'sin tel' }}</small>
+                  }
+                  @if (e.motivoSalida) {
+                    <small>Motivo de salida: {{ e.motivoSalida }}</small>
+                  }
+                </div>
+              }
+
+              <h4 class="sol-vista-titulo">Referencias personales</h4>
+              @for (r of s.referencias; track $index) {
+                @if (r.nombre) {
+                  <div class="sol-emp">
+                    <strong>{{ r.nombre }}</strong>
+                    <small>{{ r.parentesco || 'Conocido' }} · {{ r.telefono || 'sin tel' }} · {{ r.aniosConocer || '?' }} años</small>
+                  </div>
+                }
+              }
+
+              <h4 class="sol-vista-titulo">Puesto deseado</h4>
+              <dl class="sol-dl">
+                <dt>Puesto</dt><dd>{{ s.puestoDeseado.puesto || '—' }}</dd>
+                <dt>Sueldo esperado</dt><dd>{{ s.puestoDeseado.sueldoEsperado || '—' }}</dd>
+                <dt>Disponible desde</dt><dd>{{ s.puestoDeseado.fechaDisponibilidad || '—' }}</dd>
+                <dt>Turno</dt><dd>{{ s.puestoDeseado.turnoPreferido || '—' }}</dd>
+                @if (s.puestoDeseado.motivoInteres) {
+                  <dt>Motivo de interés</dt><dd>{{ s.puestoDeseado.motivoInteres }}</dd>
+                }
+              </dl>
+
+              <div class="sol-acciones" style="margin-top: 20px;">
+                <button class="btn-outline" (click)="enviarSolicitudPorWhatsApp()">Reenviar link</button>
+              </div>
+            </div>
+          }
+        }
       </div>
     }
 

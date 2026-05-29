@@ -1,0 +1,451 @@
+/* ============================================================
+   SOLICITUD ELECTRÓNICA · Wizard público mobile-first
+   ============================================================ */
+
+.sol-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(180deg, #f4f4f5 0%, #e9e9eb 100%);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  padding: 24px 14px 60px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.sol-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 20px;
+  color: #57544d;
+}
+.sol-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #DC2626;
+  border-radius: 50%;
+  animation: sol-spin 0.8s linear infinite;
+  margin-bottom: 14px;
+}
+@keyframes sol-spin { to { transform: rotate(360deg); } }
+
+/* CARD principal */
+.sol-card {
+  background: #fff;
+  border-radius: 22px;
+  width: 100%;
+  max-width: 620px;
+  border: 1px solid #f1f1f3;
+  box-shadow:
+    0 25px 50px -15px rgba(0, 0, 0, 0.18),
+    0 10px 20px -10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* HEADER coral */
+.sol-header {
+  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  color: #fff;
+  text-align: center;
+  padding: 32px 26px 26px;
+  position: relative;
+  overflow: hidden;
+}
+.sol-header::after {
+  content: '';
+  position: absolute;
+  bottom: -50px; right: -50px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  pointer-events: none;
+}
+.sol-header::before {
+  content: '';
+  position: absolute;
+  top: -60px; left: -60px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  pointer-events: none;
+}
+.sol-header-icon {
+  width: 60px; height: 60px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 1;
+}
+.sol-header-icon svg { width: 28px; height: 28px; color: #fff; }
+.sol-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+}
+.sol-subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+}
+
+/* PROGRESO */
+.sol-progress {
+  padding: 18px 26px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sol-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.sol-progress-info strong { color: #0f172a; }
+.sol-progress-bar {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sol-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #E11D48, #DC2626);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* BODY del paso */
+.sol-body {
+  padding: 24px 26px 8px;
+}
+.sol-step-title {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+.sol-step-desc {
+  margin: 0 0 22px;
+  color: #64748b;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.sol-subsection {
+  margin: 28px 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  padding-top: 16px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* FIELDS */
+.sol-field {
+  margin-bottom: 16px;
+  flex: 1;
+}
+.sol-field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+.req { color: #DC2626; font-weight: 700; }
+.sol-field input,
+.sol-field select,
+.sol-field textarea {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: #0f172a;
+  background-color: #f8fafc;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+.sol-field input:focus,
+.sol-field select:focus,
+.sol-field textarea:focus {
+  border-color: #DC2626;
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+.sol-field textarea { resize: vertical; min-height: 70px; }
+.sol-field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 38px;
+}
+.sol-field small {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+/* ROW de 2 columnas en desktop, stack en mobile */
+.sol-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.sol-row .flex-2 { grid-column: span 1; }
+@media (max-width: 540px) {
+  .sol-row { grid-template-columns: 1fr; }
+}
+
+/* CHECKBOXES */
+.sol-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.sol-check-row input[type="checkbox"] {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: #DC2626;
+}
+.sol-check-row label {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+/* BLOQUE (empleos, referencias) */
+.sol-block {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.sol-block-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13.5px;
+  color: #0f172a;
+}
+.sol-block > strong {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+  color: #0f172a;
+}
+.sol-link-danger {
+  background: none;
+  border: none;
+  color: #DC2626;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.18s;
+}
+.sol-link-danger:hover { background: #fef2f2; }
+
+.sol-btn-add {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  color: #DC2626;
+  border: 1.5px dashed #DC2626;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+.sol-btn-add:hover {
+  background: #fef2f2;
+}
+
+/* AVISO DE PRIVACIDAD */
+.sol-aviso {
+  background: #fef9f0;
+  border: 1px solid #f1c89e;
+  border-left: 3px solid #d97706;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: #78350f;
+  line-height: 1.55;
+}
+.sol-aviso strong { color: #92400e; }
+
+/* NAVEGACIÓN */
+.sol-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 26px 26px;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+.sol-btn-primary, .sol-btn-secondary {
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  min-width: 120px;
+}
+.sol-btn-primary {
+  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px -6px rgba(220, 38, 38, 0.45);
+}
+.sol-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -8px rgba(220, 38, 38, 0.55);
+}
+.sol-btn-primary:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.sol-btn-secondary {
+  background: #fff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+}
+.sol-btn-secondary:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+/* CARD FINAL (ya enviada) */
+.sol-card-final {
+  text-align: center;
+  padding: 50px 30px 40px;
+}
+.sol-icon-ok {
+  width: 80px; height: 80px;
+  margin: 0 auto 18px;
+  background: #ecfdf5;
+  color: #10B981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sol-icon-ok svg { width: 40px; height: 40px; }
+.sol-card-final h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  color: #0f172a;
+}
+.sol-card-final p {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* MODAL */
+.sol-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: sol-fade 0.2s ease;
+}
+.sol-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 18px;
+  padding: 30px 28px 26px;
+  width: calc(100% - 32px);
+  max-width: 400px;
+  text-align: center;
+  z-index: 1001;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  animation: sol-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sol-modal-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #10B981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sol-modal-icon.error {
+  background: #fef2f2;
+  color: #DC2626;
+}
+.sol-modal-icon svg { width: 32px; height: 32px; }
+.sol-modal h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #0f172a;
+}
+.sol-modal p {
+  margin: 0 0 20px;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+@keyframes sol-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sol-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@media (max-width: 540px) {
+  .sol-wrapper { padding: 14px 10px 40px; }
+  .sol-card { border-radius: 16px; }
+  .sol-header { padding: 26px 20px 22px; }
+  .sol-header h1 { font-size: 19px; }
+  .sol-progress { padding: 14px 20px 12px; }
+  .sol-body { padding: 20px 20px 6px; }
+  .sol-step-title { font-size: 17px; }
+  .sol-nav { padding: 14px 20px 20px; flex-direction: column; }
+  .sol-btn-primary, .sol-btn-secondary { width: 100%; min-width: 0; }
+  .sol-nav span:empty { display: none; }
+}

@@ -4,6 +4,7 @@ import { DashboardComponent } from './rh/dashboard/dashboard';
 import { EtapaComponent } from './rh/etapa/etapa';
 import { ExpedienteComponent } from './rh/expediente/expediente';
 import { CandidateFormComponent } from '../portal/candidate-form/candidate-form';
+import { SolicitudComponent } from '../portal/solicitud/solicitud';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
@@ -37,11 +38,15 @@ export const routes: Routes = [
   },
   
   { path: 'unete', component: CandidateFormComponent },
-  
+
+  // Solicitud de empleo electrónica (público, con o sin ID de candidato)
+  { path: 'solicitud/:id', component: SolicitudComponent },
+  { path: 'solicitud',     component: SolicitudComponent },
+
   { path: 'login', component: LoginComponent },
-  
+
   { path: '', redirectTo: 'unete', pathMatch: 'full' },
-  
+
   { path: '**', redirectTo: 'unete' }
   // (Se eliminó la ruta duplicada de historial que estaba aquí al final)
 ];

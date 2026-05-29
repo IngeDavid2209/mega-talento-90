@@ -1,0 +1,456 @@
+<div class="sol-wrapper">
+
+  @if (cargando) {
+    <div class="sol-loading">
+      <div class="sol-spinner"></div>
+      <p>Cargando tu solicitud...</p>
+    </div>
+  } @else if (yaEnviada && !modal) {
+    <!-- Ya envió antes -->
+    <div class="sol-card sol-card-final">
+      <div class="sol-icon-ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h2>Solicitud ya recibida</h2>
+      <p>Ya recibimos tu información. El equipo de Reclutamiento te contactará pronto. ¡Gracias por tu interés en Mega Dulces!</p>
+    </div>
+  } @else {
+    <div class="sol-card">
+
+      <!-- HEADER -->
+      <header class="sol-header">
+        <div class="sol-header-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8" fill="none" stroke="#fff" stroke-width="2"/></svg>
+        </div>
+        <h1>Solicitud de Empleo</h1>
+        <p class="sol-subtitle">Completa estos {{ TOTAL_PASOS }} pasos. Tu información se enviará directamente al equipo de Recursos Humanos.</p>
+      </header>
+
+      <!-- BARRA DE PROGRESO -->
+      <div class="sol-progress">
+        <div class="sol-progress-info">
+          <span>Paso <strong>{{ paso }}</strong> de {{ TOTAL_PASOS }}</span>
+          <span>{{ progresoPorcentaje }}%</span>
+        </div>
+        <div class="sol-progress-bar">
+          <div class="sol-progress-fill" [style.width.%]="progresoPorcentaje"></div>
+        </div>
+      </div>
+
+      <!-- CONTENIDO POR PASO -->
+      <div class="sol-body">
+
+        <!-- PASO 1: DATOS PERSONALES -->
+        @if (paso === 1) {
+          <h2 class="sol-step-title">Datos personales</h2>
+          <p class="sol-step-desc">Información básica sobre ti.</p>
+
+          <div class="sol-field">
+            <label>Nombre completo <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="solicitud.datosPersonales.nombre" placeholder="Como aparece en tu INE">
+          </div>
+
+          <div class="sol-row">
+            <div class="sol-field">
+              <label>Fecha de nacimiento <span class="req">*</span></label>
+              <input type="date" [(ngModel)]="solicitud.datosPersonales.fechaNacimiento">
+            </div>
+            <div class="sol-field">
+              <label>Sexo <span class="req">*</span></label>
+              <select [(ngModel)]="solicitud.datosPersonales.sexo">
+                <option value="" disabled>Selecciona...</option>
+                <option value="masculino">Masculino</option>
+                <option value="femenino">Femenino</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sol-row">
+            <div class="sol-field">
+              <label>Estado civil</label>
+              <select [(ngModel)]="solicitud.datosPersonales.estadoCivil">
+                <option value="" disabled>Selecciona...</option>
+                @for (e of ESTADOS_CIVILES; track e.id) {
+                  <option [value]="e.id">{{ e.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="sol-field">
+              <label>Nacionalidad</label>
+              <input type="text" [(ngModel)]="solicitud.datosPersonales.nacionalidad" placeholder="Mexicana">
+            </div>
+          </div>
+
+          <div class="sol-field">
+            <label>Lugar de nacimiento</label>
+            <input type="text" [(ngModel)]="solicitud.datosPersonales.lugarNacimiento" placeholder="Ej. La Piedad, Michoacán">
+          </div>
+        }
+
+        <!-- PASO 2: IDENTIFICACIÓN -->
+        @if (paso === 2) {
+          <h2 class="sol-step-title">Identificación oficial</h2>
+          <p class="sol-step-desc">Datos de tus documentos oficiales (los puedes copiar de tu INE/CURP).</p>
+
+          <div class="sol-field">
+            <label>CURP <span class="req">*</span></label>
+            <input type="text"
+                   [ngModel]="solicitud.identificacion.curp"
+                   (ngModelChange)="solicitud.identificacion.curp = sanitizarCurp($event)"
+                   placeholder="18 caracteres" maxlength="18">
+            <small>Lo encuentras en tu INE o consultando en gob.mx/curp</small>
+          </div>
+
+          <div class="sol-field">
+            <label>RFC (si lo tienes)</label>
+            <input type="text"
+                   [ngModel]="solicitud.identificacion.rfc"
+                   (ngModelChange)="solicitud.identificacion.rfc = sanitizarRfc($event)"
+                   placeholder="13 caracteres" maxlength="13">
+          </div>
+
+          <div class="sol-field">
+            <label>NSS · Número de Seguridad Social</label>
+            <input type="text"
+                   [ngModel]="solicitud.identificacion.nss"
+                   (ngModelChange)="solicitud.identificacion.nss = soloNumeros($event, 11)"
+                   placeholder="11 dígitos" inputmode="numeric">
+            <small>Si nunca has trabajado formalmente, déjalo en blanco.</small>
+          </div>
+
+          <div class="sol-field">
+            <label>Clave del INE / Folio</label>
+            <input type="text" [(ngModel)]="solicitud.identificacion.ineFolio" placeholder="Aparece en tu credencial">
+          </div>
+        }
+
+        <!-- PASO 3: DOMICILIO -->
+        @if (paso === 3) {
+          <h2 class="sol-step-title">Domicilio</h2>
+          <p class="sol-step-desc">Tu dirección actual.</p>
+
+          <div class="sol-row">
+            <div class="sol-field flex-2">
+              <label>Calle <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="solicitud.domicilio.calle" placeholder="Av. Hidalgo">
+            </div>
+            <div class="sol-field">
+              <label>Número</label>
+              <input type="text" [(ngModel)]="solicitud.domicilio.numero" placeholder="123">
+            </div>
+          </div>
+
+          <div class="sol-field">
+            <label>Colonia <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="solicitud.domicilio.colonia" placeholder="Centro">
+          </div>
+
+          <div class="sol-row">
+            <div class="sol-field">
+              <label>Ciudad <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="solicitud.domicilio.ciudad" placeholder="La Piedad">
+            </div>
+            <div class="sol-field">
+              <label>Estado <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="solicitud.domicilio.estado" placeholder="Michoacán">
+            </div>
+          </div>
+
+          <div class="sol-field">
+            <label>Código Postal</label>
+            <input type="text"
+                   [ngModel]="solicitud.domicilio.codigoPostal"
+                   (ngModelChange)="solicitud.domicilio.codigoPostal = soloNumeros($event, 5)"
+                   placeholder="5 dígitos" inputmode="numeric">
+          </div>
+        }
+
+        <!-- PASO 4: CONTACTO -->
+        @if (paso === 4) {
+          <h2 class="sol-step-title">Datos de contacto</h2>
+          <p class="sol-step-desc">¿Cómo te localizamos?</p>
+
+          <div class="sol-field">
+            <label>Teléfono celular (WhatsApp) <span class="req">*</span></label>
+            <input type="tel"
+                   [ngModel]="solicitud.contacto.telefono"
+                   (ngModelChange)="solicitud.contacto.telefono = soloNumeros($event, 10)"
+                   placeholder="10 dígitos" inputmode="numeric">
+          </div>
+
+          <div class="sol-field">
+            <label>Correo electrónico</label>
+            <input type="email" [(ngModel)]="solicitud.contacto.correo" placeholder="tucorreo@ejemplo.com">
+          </div>
+
+          <h3 class="sol-subsection">En caso de emergencia</h3>
+
+          <div class="sol-field">
+            <label>Nombre del contacto de emergencia</label>
+            <input type="text" [(ngModel)]="solicitud.contacto.contactoEmergencia" placeholder="Familiar o conocido cercano">
+          </div>
+
+          <div class="sol-row">
+            <div class="sol-field">
+              <label>Parentesco</label>
+              <input type="text" [(ngModel)]="solicitud.contacto.parentescoEmergencia" placeholder="Madre, esposo, etc.">
+            </div>
+            <div class="sol-field">
+              <label>Teléfono de emergencia</label>
+              <input type="tel"
+                     [ngModel]="solicitud.contacto.telefonoEmergencia"
+                     (ngModelChange)="solicitud.contacto.telefonoEmergencia = soloNumeros($event, 10)"
+                     placeholder="10 dígitos" inputmode="numeric">
+            </div>
+          </div>
+        }
+
+        <!-- PASO 5: ESCOLARIDAD -->
+        @if (paso === 5) {
+          <h2 class="sol-step-title">Escolaridad</h2>
+          <p class="sol-step-desc">Tu nivel máximo de estudios.</p>
+
+          <div class="sol-field">
+            <label>Nivel máximo <span class="req">*</span></label>
+            <select [(ngModel)]="solicitud.escolaridad.nivelMaximo">
+              <option value="" disabled>Selecciona tu nivel...</option>
+              @for (n of NIVELES_ESCOLARIDAD; track n.id) {
+                <option [value]="n.id">{{ n.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="sol-field">
+            <label>Institución / Escuela</label>
+            <input type="text" [(ngModel)]="solicitud.escolaridad.institucion" placeholder="Nombre de tu escuela">
+          </div>
+
+          <div class="sol-row">
+            <div class="sol-field flex-2">
+              <label>Carrera o especialidad</label>
+              <input type="text" [(ngModel)]="solicitud.escolaridad.carreraEspecialidad" placeholder="Si aplica">
+            </div>
+            <div class="sol-field">
+              <label>Año de término</label>
+              <input type="text"
+                     [ngModel]="solicitud.escolaridad.anioTermino"
+                     (ngModelChange)="solicitud.escolaridad.anioTermino = soloNumeros($event, 4)"
+                     placeholder="2023" inputmode="numeric">
+            </div>
+          </div>
+
+          <div class="sol-check-row">
+            <input type="checkbox" id="certif" [(ngModel)]="solicitud.escolaridad.certificado">
+            <label for="certif">Tengo certificado / título que acredita estos estudios</label>
+          </div>
+        }
+
+        <!-- PASO 6: EXPERIENCIA LABORAL -->
+        @if (paso === 6) {
+          <h2 class="sol-step-title">Experiencia laboral</h2>
+          <p class="sol-step-desc">Tus últimos 3 empleos (empezando por el más reciente). Si nunca has trabajado, deja vacíos los campos.</p>
+
+          @for (e of solicitud.experiencia; track $index; let i = $index) {
+            <div class="sol-block">
+              <div class="sol-block-head">
+                <strong>Empleo {{ i + 1 }}{{ i === 0 ? ' (más reciente)' : '' }}</strong>
+                @if (i > 0) {
+                  <button type="button" class="sol-link-danger" (click)="quitarEmpleo(i)">Quitar</button>
+                }
+              </div>
+
+              <div class="sol-field">
+                <label>Empresa</label>
+                <input type="text" [(ngModel)]="e.empresa" [name]="'empresa-'+i" placeholder="Nombre de la empresa">
+              </div>
+
+              <div class="sol-field">
+                <label>Puesto</label>
+                <input type="text" [(ngModel)]="e.puesto" [name]="'puesto-'+i" placeholder="Tu puesto desempeñado">
+              </div>
+
+              <div class="sol-row">
+                <div class="sol-field">
+                  <label>Inicio</label>
+                  <input type="month" [(ngModel)]="e.fechaInicio" [name]="'fini-'+i">
+                </div>
+                <div class="sol-field">
+                  <label>Fin</label>
+                  <input type="month" [(ngModel)]="e.fechaFin" [name]="'ffin-'+i">
+                  <small>Deja vacío si sigues ahí</small>
+                </div>
+              </div>
+
+              <div class="sol-row">
+                <div class="sol-field">
+                  <label>Jefe directo</label>
+                  <input type="text" [(ngModel)]="e.jefeDirecto" [name]="'jefe-'+i" placeholder="Nombre">
+                </div>
+                <div class="sol-field">
+                  <label>Teléfono del jefe</label>
+                  <input type="tel"
+                         [ngModel]="e.telefonoJefe"
+                         (ngModelChange)="e.telefonoJefe = soloNumeros($event, 10)"
+                         [name]="'tel-'+i" placeholder="10 dígitos" inputmode="numeric">
+                </div>
+              </div>
+
+              <div class="sol-row">
+                <div class="sol-field">
+                  <label>Sueldo mensual</label>
+                  <input type="text" [(ngModel)]="e.sueldoMensual" [name]="'sueldo-'+i" placeholder="$">
+                </div>
+                <div class="sol-field flex-2">
+                  <label>Motivo de salida</label>
+                  <input type="text" [(ngModel)]="e.motivoSalida" [name]="'motivo-'+i" placeholder="Ej. Mejora salarial">
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (solicitud.experiencia.length < 3) {
+            <button type="button" class="sol-btn-add" (click)="agregarEmpleo()">+ Agregar otro empleo</button>
+          }
+        }
+
+        <!-- PASO 7: REFERENCIAS -->
+        @if (paso === 7) {
+          <h2 class="sol-step-title">Referencias personales</h2>
+          <p class="sol-step-desc">Dos personas que te conozcan bien (que NO sean familiares directos).</p>
+
+          @for (r of solicitud.referencias; track $index; let i = $index) {
+            <div class="sol-block">
+              <strong>Referencia {{ i + 1 }}{{ i === 0 ? ' (obligatoria)' : '' }}</strong>
+
+              <div class="sol-field">
+                <label>Nombre completo{{ i === 0 ? ' *' : '' }}</label>
+                <input type="text" [(ngModel)]="r.nombre" [name]="'rn-'+i" placeholder="Nombre y apellido">
+              </div>
+
+              <div class="sol-row">
+                <div class="sol-field">
+                  <label>Teléfono{{ i === 0 ? ' *' : '' }}</label>
+                  <input type="tel"
+                         [ngModel]="r.telefono"
+                         (ngModelChange)="r.telefono = soloNumeros($event, 10)"
+                         [name]="'rt-'+i" placeholder="10 dígitos" inputmode="numeric">
+                </div>
+                <div class="sol-field">
+                  <label>Relación</label>
+                  <input type="text" [(ngModel)]="r.parentesco" [name]="'rp-'+i" placeholder="Amigo, vecino, etc.">
+                </div>
+              </div>
+
+              <div class="sol-field">
+                <label>¿Cuánto tiempo de conocerlo/a? (años)</label>
+                <input type="text"
+                       [ngModel]="r.aniosConocer"
+                       (ngModelChange)="r.aniosConocer = soloNumeros($event, 2)"
+                       [name]="'ra-'+i" placeholder="Ej. 5" inputmode="numeric">
+              </div>
+            </div>
+          }
+        }
+
+        <!-- PASO 8: PUESTO DESEADO Y ACEPTACIÓN LEGAL -->
+        @if (paso === 8) {
+          <h2 class="sol-step-title">Puesto solicitado</h2>
+          <p class="sol-step-desc">Últimos datos para terminar.</p>
+
+          <div class="sol-field">
+            <label>Puesto al que aplicas <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="solicitud.puestoDeseado.puesto" placeholder="Ej. Cajero, Vendedor, Auxiliar">
+          </div>
+
+          <div class="sol-row">
+            <div class="sol-field">
+              <label>Sueldo mensual esperado</label>
+              <input type="text" [(ngModel)]="solicitud.puestoDeseado.sueldoEsperado" placeholder="$">
+            </div>
+            <div class="sol-field">
+              <label>Disponible desde</label>
+              <input type="date" [(ngModel)]="solicitud.puestoDeseado.fechaDisponibilidad">
+            </div>
+          </div>
+
+          <div class="sol-field">
+            <label>Turno preferido</label>
+            <select [(ngModel)]="solicitud.puestoDeseado.turnoPreferido">
+              <option value="" disabled>Selecciona...</option>
+              @for (t of TURNOS; track t.id) {
+                <option [value]="t.id">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="sol-field">
+            <label>¿Por qué te interesa trabajar en Mega Dulces?</label>
+            <textarea rows="3" [(ngModel)]="solicitud.puestoDeseado.motivoInteres" placeholder="Cuéntanos brevemente..."></textarea>
+          </div>
+
+          <h3 class="sol-subsection">Aviso de privacidad y declaración</h3>
+
+          <div class="sol-aviso">
+            <p>
+              <strong>Mega Dulces de Los Altos</strong> es el responsable del tratamiento de los datos personales que nos proporciones.
+              Estos datos se usarán únicamente con fines de reclutamiento y selección. Tus documentos
+              y datos se almacenarán de forma segura y no se compartirán con terceros sin tu autorización.
+            </p>
+          </div>
+
+          <div class="sol-check-row">
+            <input type="checkbox" id="aviso" [(ngModel)]="solicitud.aceptaAvisoPrivacidad">
+            <label for="aviso">He leído y acepto el <strong>aviso de privacidad</strong> <span class="req">*</span></label>
+          </div>
+
+          <div class="sol-check-row">
+            <input type="checkbox" id="veracidad" [(ngModel)]="solicitud.aceptaVeracidad">
+            <label for="veracidad">Declaro bajo protesta de decir verdad que los datos proporcionados son <strong>verdaderos y completos</strong> <span class="req">*</span></label>
+          </div>
+        }
+
+      </div>
+
+      <!-- NAVEGACIÓN -->
+      <div class="sol-nav">
+        @if (paso > 1) {
+          <button type="button" class="sol-btn-secondary" (click)="anterior()" [disabled]="enviando">← Anterior</button>
+        } @else {
+          <span></span>
+        }
+
+        @if (paso < TOTAL_PASOS) {
+          <button type="button" class="sol-btn-primary" (click)="siguiente()" [disabled]="!pasoValido(paso)">
+            Siguiente →
+          </button>
+        } @else {
+          <button type="button" class="sol-btn-primary" (click)="enviar()" [disabled]="enviando || !pasoValido(8)">
+            {{ enviando ? 'Enviando...' : 'Enviar solicitud' }}
+          </button>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- MODAL DE FEEDBACK -->
+  @if (modal) {
+    <div class="sol-modal-overlay" (click)="cerrarModal()"></div>
+    <div class="sol-modal" role="dialog">
+      <div class="sol-modal-icon" [class.error]="modal.tipo === 'error'">
+        @if (modal.tipo === 'exito') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        }
+      </div>
+      <h3>{{ modal.titulo }}</h3>
+      <p>{{ modal.mensaje }}</p>
+      <button class="sol-btn-primary" (click)="cerrarModal()">Aceptar</button>
+    </div>
+  }
+
+</div>

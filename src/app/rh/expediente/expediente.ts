@@ -362,6 +362,45 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
+  /** Envía por WhatsApp el link único para que el candidato llene la solicitud electrónica */
+  enviarSolicitudPorWhatsApp() {
+    if (!this.candidato) return;
+    const numero = (this.candidato.telefono || '').replace(/\D/g, '');
+    const link = `${window.location.origin}/solicitud/${this.candidato.id}`;
+    const msg =
+`Hola ${this.candidato.nombre}, soy del equipo de Recursos Humanos de Mega Dulces de Los Altos.
+
+Para continuar con tu proceso de selección, te pedimos completar tu Solicitud de Empleo electrónica en el siguiente enlace:
+
+${link}
+
+Son 8 pasos breves (≈ 5 minutos). Tu información se enviará directamente a nuestro equipo. ¡Gracias!`;
+    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  /** Copia el link de la solicitud al portapapeles */
+  copiarLinkSolicitud() {
+    if (!this.candidato) return;
+    const link = `${window.location.origin}/solicitud/${this.candidato.id}`;
+    navigator.clipboard?.writeText(link).then(
+      () => alert('Link copiado al portapapeles'),
+      () => alert('No se pudo copiar el link')
+    );
+  }
+
+  /** True si el candidato ya envió su solicitud electrónica */
+  get tieneSolicitud(): boolean {
+    return !!this.candidato?.solicitudElectronica?.enviadaAt;
+  }
+
+  /** Formatea la fecha de envío de la solicitud */
+  fechaEnvioSolicitud(): string {
+    const t = this.candidato?.solicitudElectronica?.enviadaAt;
+    if (!t) return '';
+    const d = typeof t.toDate === 'function' ? t.toDate() : new Date(t);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
   getInitials(nombre: string): string {
     if (!nombre) return '?';
     return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
