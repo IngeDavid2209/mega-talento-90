@@ -11,6 +11,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
 import { HistorialComponent } from './rh/historial/historial';
 import { VacantesComponent } from './rh/vacantes/vacantes';
+import { DuplicadosComponent } from './rh/duplicados/duplicados';
 
 export const routes: Routes = [
   // ==========================================
@@ -29,6 +30,7 @@ export const routes: Routes = [
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'historial', component: HistorialComponent },
       { path: 'vacantes',  component: VacantesComponent },
+      { path: 'duplicados', component: DuplicadosComponent },
 
       // Expediente del candidato (conserva menú y seguridad)
       { path: 'expediente/:id', component: ExpedienteComponent },

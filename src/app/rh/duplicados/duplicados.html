@@ -1,0 +1,102 @@
+<div class="dup-wrapper">
+
+  <header class="dup-header">
+    <span class="eyebrow">Limpieza de datos</span>
+    <h2>Candidatos duplicados</h2>
+    <p class="dup-desc">
+      Detectamos automáticamente postulaciones con el mismo teléfono o el mismo nombre completo.
+      Revisa cada grupo y elige qué registro conservar — los demás se eliminarán.
+    </p>
+  </header>
+
+  @if (cargando) {
+    <div class="state-block">
+      <div class="spinner"></div>
+      <p>Analizando candidatos...</p>
+    </div>
+  } @else if (grupos.length === 0) {
+    <div class="state-block empty">
+      <div class="state-icon-ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h3>No se detectaron duplicados</h3>
+      <p>Todos los candidatos tienen teléfono y nombre únicos. Si en el futuro se cuela alguno, aparecerá aquí.</p>
+    </div>
+  } @else {
+    <div class="dup-resumen">
+      <strong>{{ grupos.length }}</strong> {{ grupos.length === 1 ? 'grupo' : 'grupos' }} con duplicados detectados
+    </div>
+
+    @for (g of grupos; track g.valor + g.motivo) {
+      <div class="grupo-card">
+        <div class="grupo-head">
+          <div>
+            <span class="grupo-tag">{{ g.motivo === 'telefono' ? 'Mismo teléfono' : 'Mismo nombre' }}</span>
+            <strong>{{ g.motivo === 'telefono' ? formatearTelefono(g.valor) : g.candidatos[0].nombre }}</strong>
+          </div>
+          <span class="grupo-count">{{ g.candidatos.length }} registros</span>
+        </div>
+
+        <div class="grupo-grid">
+          @for (c of g.candidatos; track c.id; let primero = $first) {
+            <div class="cand-card" [class.cand-mas-viejo]="primero">
+              @if (primero) {
+                <span class="cand-tag-viejo">Más antiguo</span>
+              }
+
+              <div class="cand-info">
+                <strong (click)="abrirExpediente(c)">{{ c.nombre }}</strong>
+                <small>{{ formatearTelefono(c.telefono) }}</small>
+              </div>
+
+              <dl class="cand-dl">
+                <dt>Puesto</dt><dd>{{ c.puesto || '—' }}</dd>
+                <dt>Ciudad</dt><dd>{{ c.ciudad || c.sucursal || '—' }}</dd>
+                <dt>Fuente</dt><dd>{{ c.fuente || '—' }}</dd>
+                <dt>Fecha</dt><dd>{{ formatearFecha(c.createdAt) }}</dd>
+                <dt>Etapa</dt>
+                <dd>
+                  <span class="etapa-dot" [style.background-color]="colorEtapa(c.status)"></span>
+                  {{ nombreEtapa(c.status) }}
+                </dd>
+              </dl>
+
+              <div class="cand-actions">
+                <button class="btn-conservar" (click)="pedirConservar(g, c)">Conservar este</button>
+                <button class="btn-borrar" (click)="pedirBorrarUno(c)" title="Eliminar solo este registro">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- MODAL DE CONFIRMACIÓN -->
+  @if (confirmacion) {
+    <div class="conf-overlay" (click)="cancelarConfirmacion()"></div>
+    <div class="conf-modal" role="dialog">
+      <div class="conf-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </div>
+      <h3>{{ confirmacion.titulo }}</h3>
+      <p>{{ confirmacion.mensaje }}</p>
+      <div class="conf-actions">
+        <button class="btn-cancel" (click)="cancelarConfirmacion()" [disabled]="procesando">Cancelar</button>
+        <button class="btn-confirm" (click)="ejecutarConfirmacion()" [disabled]="procesando">
+          {{ procesando ? 'Procesando...' : 'Sí, continuar' }}
+        </button>
+      </div>
+    </div>
+  }
+</div>
