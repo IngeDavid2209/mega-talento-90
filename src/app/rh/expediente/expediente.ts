@@ -14,6 +14,10 @@ import {
   calcularPuntajeRubrica,
   checklistCompleto, itemsFaltantes, progresoChecklist
 } from '../../core/models/proceso.model';
+import {
+  CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario,
+  calcularResultadoLiderazgo
+} from '../../core/models/cuestionario-liderazgo.model';
 
 @Component({
   selector: 'app-expediente',
@@ -43,6 +47,9 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   CHECKLIST_OFERTA = CHECKLIST_OFERTA;
   CHECKLIST_CONTRATADO = CHECKLIST_CONTRATADO;
   AREAS_DICTAMEN = AREAS_DICTAMEN;
+  // Cuestionario de Liderazgo (12 preguntas Likert) que reemplaza a STAR
+  CUESTIONARIO_LIDERAZGO = CUESTIONARIO_LIDERAZGO;
+  NIVELES_LIKERT = NIVELES_LIKERT;
 
   candidato: any = null;
   cargando = true;
@@ -88,11 +95,44 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     this.candidato.documentalChecklist   ||= vacio(CHECKLIST_DOCUMENTAL);
     this.candidato.ofertaChecklist       ||= vacio(CHECKLIST_OFERTA);
     this.candidato.contratadoChecklist   ||= vacio(CHECKLIST_CONTRATADO);
+    this.candidato.cuestionarioLiderazgo ||= {} as RespuestasCuestionario;
     this.candidato.dictamen              ||= {
       rh: 'pendiente', competencias: 0, aptitudes: 0,
       psicometria: 'sin_riesgo', jefe: 'pendiente',
       documentos: 'incompleta', resultado: 'pendiente', notas: ''
     };
+  }
+
+  // ====== CUESTIONARIO DE LIDERAZGO (reemplaza STAR) ======
+
+  /** Responde una pregunta del cuestionario y sincroniza el puntaje con el dictamen */
+  async responderPregunta(num: number, valor: number) {
+    if (!this.candidato.cuestionarioLiderazgo) this.candidato.cuestionarioLiderazgo = {};
+    this.candidato.cuestionarioLiderazgo[num] = valor;
+
+    // Sincronizar el porcentaje con dictamen.competencias para que el resultado
+    // sugerido del Dictamen Final ya lo tome en cuenta.
+    const r = this.resultadoLiderazgo();
+    this.candidato.dictamen.competencias = r.porcentaje;
+
+    try {
+      await this.candidateService.updateCandidate(this.candidato.id, {
+        cuestionarioLiderazgo: this.candidato.cuestionarioLiderazgo,
+        dictamen: this.candidato.dictamen
+      });
+    } catch (e) {
+      console.error('Error al guardar respuesta del cuestionario:', e);
+    }
+  }
+
+  /** Devuelve el resultado calculado (puntaje, %, nivel, interpretación) */
+  resultadoLiderazgo() {
+    return calcularResultadoLiderazgo(this.candidato?.cuestionarioLiderazgo);
+  }
+
+  /** Útil para marcar visualmente la opción seleccionada en una pregunta */
+  respuestaActual(num: number): number | undefined {
+    return this.candidato?.cuestionarioLiderazgo?.[num];
   }
 
   volver() {
@@ -210,13 +250,10 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   // PROGRESO
   progresoFiltro() { return progresoChecklist(this.candidato?.filtroChecklist, CHECKLIST_FILTRO); }
-  /** STAR: el progreso se cuenta por las competencias que tienen evidencia escrita */
+  /** Entrevista Conductual: el progreso se cuenta por las preguntas contestadas del cuestionario */
   progresoStar() {
-    const obligatorias = COMPETENCIAS_STAR.filter(c => c.obligatorio);
-    const notas = this.candidato?.starNotas || {};
-    const hechos = obligatorias.filter(c => (notas[c.key] || '').trim().length > 0).length;
-    const total = obligatorias.length;
-    return { hechos, total, pct: total === 0 ? 100 : Math.round((hechos / total) * 100) };
+    const r = this.resultadoLiderazgo();
+    return { hechos: r.contestadas, total: r.total, pct: r.total === 0 ? 100 : Math.round((r.contestadas / r.total) * 100) };
   }
   progresoPsicom() { return progresoChecklist(this.candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS); }
   progresoJefe() { return progresoChecklist(this.candidato?.jefeChecklist, CHECKLIST_JEFE); }

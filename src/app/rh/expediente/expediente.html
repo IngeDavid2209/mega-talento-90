@@ -176,24 +176,75 @@
       <div class="section-card">
         <header class="section-head">
           <h3 class="titulo-largo">MODELOS INTERACCIONISTAS DEL LIDERAZGO, CONDUCTA ORIENTADA A LA TAREA Y CONDUCTA ORIENTADA A LAS RELACIONES</h3>
-          <p class="section-desc">Situación · Tarea · Acción · Resultado. Documenta evidencia por competencia.</p>
+          <p class="section-desc">Marca para cada afirmación qué tan frecuentemente el candidato se comporta de esa manera.</p>
         </header>
 
-        <div class="star-list">
-          @for (comp of COMPETENCIAS_STAR; track comp.key) {
-            <div class="star-block" [class.con-evidencia]="(candidato.starNotas?.[comp.key] || '').trim().length > 0">
-              <div class="star-row-head">
-                <span class="check-label">{{ comp.label }}</span>
-                @if (!comp.obligatorio) { <span class="opcional">opcional</span> }
-                @if ((candidato.starNotas?.[comp.key] || '').trim().length > 0) {
-                  <span class="evidencia-tag">Evidencia registrada</span>
-                }
+        <!-- TARJETA DE PUNTAJE EN VIVO -->
+        @if (resultadoLiderazgo(); as r) {
+          <div class="lid-resumen" [class]="'nivel-' + r.nivel">
+            <div class="lid-resumen-main">
+              <div class="lid-puntaje">
+                <span class="lid-puntaje-num">{{ r.puntaje }}</span>
+                <span class="lid-puntaje-max">/{{ r.puntajeMax }}</span>
               </div>
-              <textarea class="star-notes"
-                        rows="2"
-                        placeholder="Describe la situación, la tarea, la acción y el resultado observado."
-                        [ngModel]="candidato.starNotas?.[comp.key] || ''"
-                        (ngModelChange)="guardarNotaCompetencia(comp.key, $event)"></textarea>
+              <div class="lid-resumen-info">
+                <span class="lid-resumen-pct">{{ r.porcentaje }}% completado</span>
+                <span class="lid-resumen-interpret">{{ r.interpretacion }}</span>
+              </div>
+            </div>
+            <div class="lid-dimensiones">
+              <span class="dim-chip">Orientación a la tarea: <strong>{{ r.puntajeTarea }}</strong></span>
+              <span class="dim-chip">Orientación a las relaciones: <strong>{{ r.puntajeRelaciones }}</strong></span>
+              <span class="dim-chip dim-contestadas">{{ r.contestadas }}/{{ r.total }} preguntas</span>
+            </div>
+          </div>
+        }
+
+        <!-- 12 PREGUNTAS · tarjetas tipo Evaluación de Liderazgo -->
+        <div class="lid-lista">
+          @for (p of CUESTIONARIO_LIDERAZGO; track p.num) {
+            <div class="lid-card" [class.lid-card-contestada]="respuestaActual(p.num)">
+              <!-- Header amarillo -->
+              <div class="lid-card-head">
+                <div class="lid-head-left">
+                  <div class="lid-head-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
+                  </div>
+                  <div class="lid-head-text">
+                    <strong>EVALUACIÓN DE LIDERAZGO</strong>
+                    <small>Modelo interaccionista del Liderazgo</small>
+                  </div>
+                </div>
+                <div class="lid-head-brand">Mega<br>Dulces</div>
+              </div>
+
+              <!-- Cuerpo azul -->
+              <div class="lid-card-body">
+                <div class="lid-numero">{{ p.num }}</div>
+                <p class="lid-pregunta">{{ p.texto }}</p>
+
+                <div class="lid-opciones">
+                  @for (n of NIVELES_LIKERT; track n.valor) {
+                    <label class="lid-opcion" [class.seleccionada]="respuestaActual(p.num) === n.valor">
+                      <span class="lid-op-num">{{ n.valor }}</span>
+                      <span class="lid-op-texto">
+                        <strong>{{ n.etiquetaCorta }}</strong>
+                        <small>se comporta de esa manera</small>
+                      </span>
+                      <input type="radio"
+                             [name]="'preg-' + p.num"
+                             [value]="n.valor"
+                             [checked]="respuestaActual(p.num) === n.valor"
+                             (change)="responderPregunta(p.num, n.valor)">
+                      <span class="lid-op-radio"></span>
+                    </label>
+                  }
+                </div>
+
+                <div class="lid-card-foot">
+                  <small>{{ p.dimension === 'tarea' ? 'CONDUCTA ORIENTADA A LA TAREA' : 'CONDUCTA ORIENTADA A LAS RELACIONES' }}</small>
+                </div>
+              </div>
             </div>
           }
         </div>

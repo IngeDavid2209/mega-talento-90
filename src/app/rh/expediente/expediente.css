@@ -329,6 +329,281 @@
   max-width: 720px;
   letter-spacing: -0.005em;
 }
+
+/* ============================================================
+   CUESTIONARIO DE LIDERAZGO · estilo Mega Dulces (azul + amarillo)
+   ============================================================ */
+
+/* Tarjeta-resumen de puntaje */
+.lid-resumen {
+  margin: 4px 0 24px;
+  padding: 22px 24px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--slate);
+  border-radius: var(--radius-lg);
+}
+.lid-resumen.nivel-destacado          { border-left-color: var(--green); background: var(--green-bg); }
+.lid-resumen.nivel-solido             { border-left-color: var(--blue);  background: var(--blue-bg); }
+.lid-resumen.nivel-en-desarrollo      { border-left-color: var(--amber); background: var(--amber-bg); }
+.lid-resumen.nivel-requiere-desarrollo{ border-left-color: var(--red);   background: var(--red-bg); }
+
+.lid-resumen-main { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.lid-puntaje { display: flex; align-items: baseline; gap: 2px; }
+.lid-puntaje-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 44px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.lid-puntaje-max {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  color: var(--text3);
+}
+.lid-resumen-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px; }
+.lid-resumen-pct {
+  font-size: 12px;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+}
+.lid-resumen-interpret {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.lid-dimensiones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.dim-chip {
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--text2);
+  font-weight: 500;
+}
+.dim-chip strong { color: var(--ink); font-family: 'DM Mono', monospace; }
+.dim-contestadas {
+  margin-left: auto;
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.dim-contestadas strong { color: #fff; }
+
+/* Lista de tarjetas */
+.lid-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+/* Tarjeta individual: azul + header amarillo */
+.lid-card {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px -4px rgba(15,14,12,0.18);
+  border: 1px solid #0a1e3d;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.lid-card.lid-card-contestada {
+  box-shadow: 0 8px 20px -6px rgba(15,14,12,0.25), 0 0 0 2px var(--green);
+}
+
+/* Header amarillo institucional */
+.lid-card-head {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.lid-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lid-head-icon {
+  width: 32px; height: 32px;
+  background: #fff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d97706;
+}
+.lid-head-icon svg { width: 18px; height: 18px; }
+.lid-head-text { display: flex; flex-direction: column; line-height: 1.2; }
+.lid-head-text strong {
+  font-size: 13px;
+  color: #1a1a1a;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.lid-head-text small {
+  font-size: 10px;
+  color: #4a4a4a;
+  font-weight: 500;
+}
+.lid-head-brand {
+  background: #fff;
+  color: #d97706;
+  font-weight: 800;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+/* Cuerpo azul */
+.lid-card-body {
+  background: linear-gradient(180deg, #0e2e63 0%, #0a1e3d 100%);
+  color: #fff;
+  padding: 18px 18px 14px;
+  position: relative;
+}
+.lid-numero {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 36px; height: 36px;
+  background: #fff;
+  color: #0e2e63;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+}
+.lid-pregunta {
+  margin: 0 0 14px 52px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Opciones Likert */
+.lid-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lid-opcion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #fff;
+  position: relative;
+}
+.lid-opcion:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.lid-opcion.seleccionada {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px -2px rgba(245, 158, 11, 0.5);
+}
+.lid-opcion input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.lid-op-num {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  background: #f59e0b;
+  color: #0a1e3d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+.lid-op-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.lid-op-texto strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+.lid-op-texto small {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.65);
+}
+.lid-op-radio {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  position: relative;
+}
+.lid-opcion.seleccionada .lid-op-radio {
+  border-color: #f59e0b;
+  background: #f59e0b;
+}
+.lid-opcion.seleccionada .lid-op-radio::after {
+  content: '';
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 6px; height: 6px;
+  background: #0a1e3d;
+  border-radius: 50%;
+}
+
+.lid-card-foot {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+.lid-card-foot small {
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 540px) {
+  .lid-pregunta { margin-left: 0; margin-top: 44px; font-size: 13px; }
+  .lid-resumen-main { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .lid-puntaje-num { font-size: 36px; }
+}
 .section-head h3 + .section-desc {
   margin-top: 4px;
 }
