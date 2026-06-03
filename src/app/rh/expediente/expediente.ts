@@ -399,6 +399,40 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
+  /** Envía por WhatsApp el link único para que el candidato llene la Evaluación de Liderazgo en vivo */
+  enviarEvaluacionPorWhatsApp() {
+    if (!this.candidato) return;
+    const numero = (this.candidato.telefono || '').replace(/\D/g, '');
+    const link = `${window.location.origin}/evaluacion/${this.candidato.id}`;
+    const msg =
+`Hola ${this.candidato.nombre}, soy del equipo de Reclutamiento de Mega Dulces.
+
+Para continuar con tu evaluación, te pedimos contestar el cuestionario de Liderazgo desde tu celular en el siguiente enlace mientras estamos en la videollamada:
+
+${link}
+
+Son 12 preguntas breves. Responde con honestidad — veremos tus respuestas en tiempo real. ¡Gracias!`;
+    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  /** Copia el link de la evaluación al portapapeles */
+  copiarLinkEvaluacion() {
+    if (!this.candidato) return;
+    const link = `${window.location.origin}/evaluacion/${this.candidato.id}`;
+    navigator.clipboard?.writeText(link).then(
+      () => alert('Link copiado al portapapeles'),
+      () => alert('No se pudo copiar el link')
+    );
+  }
+
+  /** True si el candidato está respondiendo en vivo (actividad < 30 segundos) */
+  get evaluacionEnVivo(): boolean {
+    const t = this.candidato?.ultimaActividadCuestionario;
+    if (!t) return false;
+    const d = typeof t.toDate === 'function' ? t.toDate() : new Date(t);
+    return (Date.now() - d.getTime()) < 30000;
+  }
+
   /** Envía por WhatsApp el link único para que el candidato llene la solicitud electrónica */
   enviarSolicitudPorWhatsApp() {
     if (!this.candidato) return;

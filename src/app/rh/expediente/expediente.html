@@ -176,8 +176,32 @@
       <div class="section-card">
         <header class="section-head">
           <h3 class="titulo-largo">MODELOS INTERACCIONISTAS DEL LIDERAZGO, CONDUCTA ORIENTADA A LA TAREA Y CONDUCTA ORIENTADA A LAS RELACIONES</h3>
-          <p class="section-desc">Marca para cada afirmación qué tan frecuentemente el candidato se comporta de esa manera.</p>
+          <p class="section-desc">Marca para cada afirmación qué tan frecuentemente el candidato se comporta de esa manera. También puedes mandarle el cuestionario para que él lo conteste en vivo durante la videollamada.</p>
         </header>
+
+        <!-- Panel para mandar la evaluación al candidato (en vivo) -->
+        <div class="ev-panel" [class.en-vivo]="evaluacionEnVivo">
+          @if (evaluacionEnVivo) {
+            <div class="ev-panel-vivo">
+              <span class="vivo-dot"></span>
+              <div>
+                <strong>El candidato está respondiendo en vivo</strong>
+                <small>Las respuestas se actualizan automáticamente en la rejilla</small>
+              </div>
+            </div>
+          } @else {
+            <div class="ev-panel-info">
+              <div>
+                <strong>Aplicar evaluación en vivo (videollamada)</strong>
+                <small>Mándale el link al candidato por WhatsApp. Mientras él contesta desde su celular, tú ves la rejilla moverse aquí en tiempo real.</small>
+              </div>
+              <div class="ev-panel-acciones">
+                <button class="btn-secondary" (click)="enviarEvaluacionPorWhatsApp()">Enviar por WhatsApp</button>
+                <button class="btn-outline" (click)="copiarLinkEvaluacion()">Copiar link</button>
+              </div>
+            </div>
+          }
+        </div>
 
         <!-- TARJETA DE PUNTAJE EN VIVO + GRID GERENCIAL -->
         @if (resultadoLiderazgo(); as r) {

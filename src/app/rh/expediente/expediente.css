@@ -334,6 +334,66 @@
    CUESTIONARIO DE LIDERAZGO · estilo Mega Dulces (azul + amarillo)
    ============================================================ */
 
+/* Panel de evaluación en vivo (envío del cuestionario al candidato) */
+.ev-panel {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 12px 0 22px;
+  transition: all 0.25s ease;
+}
+.ev-panel.en-vivo {
+  border-left-color: var(--green);
+  background: var(--green-bg);
+}
+.ev-panel-info,
+.ev-panel-vivo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.ev-panel-info > div:first-child,
+.ev-panel-vivo > div:not(.vivo-dot) {
+  flex: 1;
+  min-width: 240px;
+}
+.ev-panel strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.ev-panel small {
+  display: block;
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.ev-panel-acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vivo-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--green);
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(31, 122, 76, 0.5);
+  animation: vivo-pulse 1.4s infinite;
+}
+@keyframes vivo-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(31, 122, 76, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(31, 122, 76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(31, 122, 76, 0); }
+}
+
 /* Tarjeta-resumen de puntaje + Grid Gerencial */
 .lid-resumen {
   margin: 4px 0 24px;

@@ -1,0 +1,120 @@
+<div class="ev-wrapper">
+
+  @if (cargando) {
+    <div class="ev-loading">
+      <div class="ev-spinner"></div>
+      <p>Cargando tu evaluación...</p>
+    </div>
+  } @else if (error) {
+    <div class="ev-card ev-final">
+      <div class="ev-icon-error">!</div>
+      <h2>Algo salió mal</h2>
+      <p>{{ error }}</p>
+    </div>
+  } @else if (terminado) {
+    <!-- Pantalla final -->
+    <div class="ev-card ev-final">
+      <div class="ev-icon-ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h2>¡Gracias, {{ candidato?.nombre || 'candidato/a' }}!</h2>
+      <p>Tu evaluación se envió correctamente. El equipo de Reclutamiento ya tiene tus respuestas. ¡Gracias por tu tiempo!</p>
+      <small>Puedes cerrar esta ventana cuando quieras.</small>
+    </div>
+  } @else {
+    <div class="ev-card">
+
+      <!-- HEADER amarillo Mega Dulces -->
+      <header class="ev-head">
+        <div class="ev-head-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
+        </div>
+        <div class="ev-head-text">
+          <strong>EVALUACIÓN DE LIDERAZGO</strong>
+          <small>Modelo interaccionista del Liderazgo · Mega Dulces</small>
+        </div>
+      </header>
+
+      <!-- Saludo -->
+      <div class="ev-saludo">
+        <h1>Hola, {{ candidato?.nombre || 'candidato/a' }} 👋</h1>
+        <p>Responde con <strong>honestidad</strong> cada afirmación. Tu evaluador puede ver tus respuestas en vivo durante la videollamada.</p>
+      </div>
+
+      <!-- Progreso -->
+      <div class="ev-progreso">
+        <div class="ev-prog-info">
+          <span>Pregunta <strong>{{ paso }}</strong> de {{ TOTAL }}</span>
+          <span class="ev-prog-pct">{{ progreso }}%</span>
+        </div>
+        <div class="ev-prog-bar">
+          <div class="ev-prog-fill" [style.width.%]="progreso"></div>
+        </div>
+      </div>
+
+      <!-- Pregunta actual -->
+      <div class="ev-pregunta-box">
+        <div class="ev-num">{{ paso }}</div>
+        <p class="ev-pregunta-texto">{{ preguntaActual.texto }}</p>
+      </div>
+
+      <!-- Opciones grandes (tipo botones, tap-friendly) -->
+      <div class="ev-opciones">
+        @for (n of NIVELES_LIKERT; track n.valor) {
+          <button type="button"
+                  class="ev-opcion"
+                  [class.seleccionada]="respuestaActual === n.valor"
+                  [disabled]="guardando"
+                  (click)="responder(n.valor)">
+            <span class="ev-op-num">{{ n.valor }}</span>
+            <span class="ev-op-texto">
+              <strong>{{ n.etiquetaCorta }}</strong>
+              <small>se comporta de esa manera</small>
+            </span>
+            <span class="ev-op-check">
+              @if (respuestaActual === n.valor) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              }
+            </span>
+          </button>
+        }
+      </div>
+
+      <!-- Navegación entre preguntas -->
+      <div class="ev-nav">
+        <button type="button" class="ev-btn-back" [disabled]="paso === 1" (click)="anterior()">← Anterior</button>
+        @if (paso === TOTAL) {
+          <button type="button" class="ev-btn-finish" [disabled]="!todasContestadas()" (click)="siguiente()">
+            {{ todasContestadas() ? 'Terminar evaluación' : 'Faltan preguntas' }}
+          </button>
+        } @else {
+          <button type="button" class="ev-btn-next" (click)="siguiente()">Siguiente →</button>
+        }
+      </div>
+
+      <!-- Mini-stepper de salto rápido -->
+      <div class="ev-stepper">
+        @for (p of CUESTIONARIO_LIDERAZGO; track p.num) {
+          <button type="button"
+                  class="ev-step-btn"
+                  [class.activa]="paso === p.num"
+                  [class.contestada]="respuestas[p.num]"
+                  (click)="irAPaso(p.num)">
+            {{ p.num }}
+          </button>
+        }
+      </div>
+
+      <!-- Indicador en vivo -->
+      <div class="ev-vivo">
+        <span class="ev-vivo-dot"></span>
+        Conectado en vivo con el equipo de Reclutamiento
+      </div>
+
+    </div>
+  }
+</div>

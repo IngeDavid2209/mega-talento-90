@@ -6,6 +6,7 @@ import { ExpedienteComponent } from './rh/expediente/expediente';
 import { CandidateFormComponent } from '../portal/candidate-form/candidate-form';
 import { SolicitudComponent } from '../portal/solicitud/solicitud';
 import { EmpleosComponent } from '../portal/empleos/empleos';
+import { EvaluacionLiderazgoComponent } from '../portal/evaluacion-liderazgo/evaluacion-liderazgo';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
@@ -46,6 +47,9 @@ export const routes: Routes = [
 
   // Cartelera pública de vacantes
   { path: 'empleos', component: EmpleosComponent },
+
+  // Evaluación de Liderazgo en vivo (el candidato la llena durante la videollamada)
+  { path: 'evaluacion/:id', component: EvaluacionLiderazgoComponent },
 
   // Solicitud de empleo electrónica (público, con o sin ID de candidato)
   { path: 'solicitud/:id', component: SolicitudComponent },
