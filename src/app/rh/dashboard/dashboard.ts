@@ -30,7 +30,7 @@ export class DashboardComponent implements OnInit {
   terminoBusqueda = '';
 
   // Ventana de "Solicitudes recientes" (cambiar aquí si se quiere otro período)
-  private readonly DIAS_RECIENTES = 14;
+  private readonly DIAS_RECIENTES = 30;
 
   // KPIs maestros
   kpiTotal = 0;

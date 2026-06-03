@@ -23,7 +23,7 @@
     <!-- KPIs -->
     <section class="kpi-section">
       <div class="kpi-card">
-        <span class="kpi-label">Solicitudes (2 semanas)</span>
+        <span class="kpi-label">Solicitudes (último mes)</span>
         <span class="kpi-value">{{ kpiNuevosRecientes }}</span>
         <span class="kpi-foot">Ingresos recientes</span>
       </div>
@@ -125,7 +125,7 @@
       <header class="panel-header">
         <div>
           <h2>Solicitudes recientes</h2>
-          <p class="panel-desc">Últimas 2 semanas · atención prioritaria (SLA 24-72 h)</p>
+          <p class="panel-desc">Último mes · atención prioritaria (SLA 24-72 h)</p>
         </div>
         <div class="toolbar-actions">
           <input type="text" class="search-input"
@@ -137,7 +137,7 @@
 
       @if (candidatosFiltrados.length === 0) {
         <div class="state-block">
-          <p class="muted">No hay solicitudes en las últimas 2 semanas.</p>
+          <p class="muted">No hay solicitudes en el último mes.</p>
         </div>
       } @else {
         <div class="table-responsive">
