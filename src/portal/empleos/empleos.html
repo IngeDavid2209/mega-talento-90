@@ -1,0 +1,66 @@
+<div class="emp-wrapper">
+
+  <!-- HEADER coral -->
+  <header class="emp-header">
+    <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png"
+         alt="Mega Dulces" class="emp-logo">
+    <h1>Vacantes disponibles</h1>
+    <p class="emp-sub">Únete al equipo de <strong>Mega Dulces de Los Altos</strong>. Conoce nuestros puestos abiertos y postúlate al que se adapte a tu perfil.</p>
+  </header>
+
+  @if (cargando) {
+    <div class="emp-loading">
+      <div class="emp-spinner"></div>
+      <p>Cargando vacantes...</p>
+    </div>
+  } @else if (puestos.length === 0) {
+    <div class="emp-empty">
+      <div class="emp-empty-icon">📭</div>
+      <h2>No hay vacantes abiertas por el momento</h2>
+      <p>Vuelve pronto o déjanos tu solicitud para considerarte en futuras oportunidades.</p>
+      <a routerLink="/unete" class="emp-btn-outline">Dejar mi solicitud</a>
+    </div>
+  } @else {
+    <div class="emp-grid">
+      @for (p of puestos; track p.id) {
+        <article class="emp-card">
+          <div class="emp-card-head">
+            <h2>{{ p.nombre }}</h2>
+            <span class="emp-card-tag">Vacante abierta</span>
+          </div>
+
+          <p class="emp-card-desc">{{ p.descripcion }}</p>
+
+          <ul class="emp-card-meta">
+            @if (p.sucursales) {
+              <li><span class="emp-meta-label">Sucursales</span> {{ p.sucursales }}</li>
+            }
+            @if (p.sueldo) {
+              <li><span class="emp-meta-label">Sueldo</span> {{ p.sueldo }}</li>
+            }
+            @if (p.horario) {
+              <li><span class="emp-meta-label">Horario</span> {{ p.horario }}</li>
+            }
+          </ul>
+
+          <a [routerLink]="['/unete']" [queryParams]="{ puesto: p.nombre }" class="emp-btn-primary">
+            Postularme
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+        </article>
+      }
+    </div>
+
+    <div class="emp-footer-cta">
+      <p>¿No encuentras lo que buscas?</p>
+      <a routerLink="/unete" class="emp-btn-outline">Dejar mi solicitud general</a>
+    </div>
+  }
+
+  <footer class="emp-foot">
+    <small>Mega Dulces de Los Altos · Reclutamiento y selección</small>
+  </footer>
+</div>

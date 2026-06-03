@@ -5,10 +5,12 @@ import { EtapaComponent } from './rh/etapa/etapa';
 import { ExpedienteComponent } from './rh/expediente/expediente';
 import { CandidateFormComponent } from '../portal/candidate-form/candidate-form';
 import { SolicitudComponent } from '../portal/solicitud/solicitud';
+import { EmpleosComponent } from '../portal/empleos/empleos';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
 import { HistorialComponent } from './rh/historial/historial';
+import { VacantesComponent } from './rh/vacantes/vacantes';
 
 export const routes: Routes = [
   // ==========================================
@@ -26,6 +28,7 @@ export const routes: Routes = [
 
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'historial', component: HistorialComponent },
+      { path: 'vacantes',  component: VacantesComponent },
 
       // Expediente del candidato (conserva menú y seguridad)
       { path: 'expediente/:id', component: ExpedienteComponent },
@@ -38,6 +41,9 @@ export const routes: Routes = [
   },
   
   { path: 'unete', component: CandidateFormComponent },
+
+  // Cartelera pública de vacantes
+  { path: 'empleos', component: EmpleosComponent },
 
   // Solicitud de empleo electrónica (público, con o sin ID de candidato)
   { path: 'solicitud/:id', component: SolicitudComponent },

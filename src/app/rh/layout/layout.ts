@@ -4,6 +4,7 @@ import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { NotificacionesService, EstadoNotif } from '../../core/services/notificaciones.service';
 import { UpdateCheckerService } from '../../core/services/update-checker.service';
+import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import { ETAPAS, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
 
 @Component({
@@ -20,6 +21,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   // Público para que el template pueda leer el signal hayActualizacion()
   updateChecker = inject(UpdateCheckerService);
+  // Público para que el template lea el signal activo() del modo Capital Humano
+  capitalHumano = inject(CapitalHumanoService);
 
   isMenuOpen = false;
   year = new Date().getFullYear();

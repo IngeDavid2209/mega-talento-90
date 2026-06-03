@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { urlWhatsApp } from '../../core/models/puestos.model';
+import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -15,6 +16,8 @@ import * as XLSX from 'xlsx';
 })
 export class HistorialComponent implements OnInit {
   private candidateService = inject(CandidateService);
+  // Público para que el template use displayName() en la tabla
+  capitalHumano = inject(CapitalHumanoService);
 
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;

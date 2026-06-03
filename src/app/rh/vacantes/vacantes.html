@@ -1,0 +1,133 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">Administración</span>
+      <h2>Gestión de Vacantes</h2>
+      <p class="subtitle">Crea, edita y administra los puestos disponibles. Lo que captures aquí se ve en la cartelera pública y en el formulario.</p>
+    </div>
+    <button class="btn-primary" (click)="abrirNuevo()">+ Nueva vacante</button>
+  </div>
+
+  @if (cargando) {
+    <div class="state-block">
+      <div class="spinner"></div>
+      <p>Cargando vacantes...</p>
+    </div>
+  } @else if (puestos.length === 0) {
+    <div class="state-block empty">
+      <p class="muted">Aún no hay vacantes registradas.</p>
+      <small>Pulsa "Nueva vacante" para crear la primera.</small>
+    </div>
+  } @else {
+    <div class="vacantes-grid">
+      @for (p of puestos; track p.id) {
+        <div class="vacante-card" [class.inactivo]="!p.activo">
+          <div class="vacante-head">
+            <h3>{{ p.nombre }}</h3>
+            <span class="vacante-estado" [class.off]="!p.activo">
+              {{ p.activo ? 'Visible' : 'Oculta' }}
+            </span>
+          </div>
+
+          <p class="vacante-desc">{{ p.descripcion }}</p>
+
+          <div class="vacante-meta">
+            @if (p.sucursales) {
+              <span class="meta-chip">📍 {{ p.sucursales }}</span>
+            }
+            @if (p.sueldo) {
+              <span class="meta-chip">💰 {{ p.sueldo }}</span>
+            }
+            @if (p.horario) {
+              <span class="meta-chip">🕒 {{ p.horario }}</span>
+            }
+          </div>
+
+          <div class="vacante-actions">
+            <button class="btn-link" (click)="abrirEditar(p)">Editar</button>
+            <button class="btn-link" (click)="alternarActivo(p)">
+              {{ p.activo ? 'Ocultar' : 'Mostrar' }}
+            </button>
+            <button class="btn-link danger" (click)="pedirBorrar(p)">Borrar</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- EDITOR (modal) -->
+  @if (mostrarEditor) {
+    <div class="vac-overlay" (click)="cerrarEditor()"></div>
+    <div class="vac-modal" role="dialog">
+      <div class="vac-head">
+        <h3>{{ edicion.id ? 'Editar vacante' : 'Nueva vacante' }}</h3>
+        <button class="vac-close" (click)="cerrarEditor()">✕</button>
+      </div>
+
+      @if (errorEditor) {
+        <div class="alert-error">{{ errorEditor }}</div>
+      }
+
+      <div class="form-group">
+        <label>Nombre del puesto <span class="req">*</span></label>
+        <input type="text" [(ngModel)]="edicion.nombre" placeholder="Ej. Vendedor, Cajero, Chofer">
+      </div>
+
+      <div class="form-group">
+        <label>Descripción <span class="req">*</span></label>
+        <textarea rows="4" [(ngModel)]="edicion.descripcion" placeholder="En qué consiste el puesto. Este texto se manda al candidato por WhatsApp y aparece en la cartelera."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sucursales</label>
+          <input type="text" [(ngModel)]="edicion.sucursales" placeholder="Ej. La Piedad, Santa Ana">
+        </div>
+        <div class="form-group">
+          <label>Sueldo / rango</label>
+          <input type="text" [(ngModel)]="edicion.sueldo" placeholder="Ej. $7,500 - $9,000 mensual">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Horario</label>
+        <input type="text" [(ngModel)]="edicion.horario" placeholder="Ej. Lun-Sáb 9:00-18:00">
+      </div>
+
+      <div class="form-toggle">
+        <input type="checkbox" id="activo-toggle" [(ngModel)]="edicion.activo">
+        <label for="activo-toggle">Mostrar en la cartelera pública</label>
+      </div>
+
+      <div class="vac-actions">
+        <button class="btn-cancel" (click)="cerrarEditor()" [disabled]="guardando">Cancelar</button>
+        <button class="btn-save" (click)="guardar()" [disabled]="guardando">
+          {{ guardando ? 'Guardando...' : (edicion.id ? 'Guardar cambios' : 'Crear vacante') }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- CONFIRMACIÓN DE BORRADO -->
+  @if (puestoAEliminar) {
+    <div class="vac-overlay" (click)="cancelarBorrar()"></div>
+    <div class="vac-modal vac-modal-small" role="dialog">
+      <div class="del-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </div>
+      <h3>Eliminar vacante</h3>
+      <p>¿Seguro que quieres borrar <strong>{{ puestoAEliminar.nombre }}</strong>? Esta acción no se puede deshacer.</p>
+      <div class="vac-actions">
+        <button class="btn-cancel" (click)="cancelarBorrar()" [disabled]="borrando">Cancelar</button>
+        <button class="btn-delete" (click)="confirmarBorrar()" [disabled]="borrando">
+          {{ borrando ? 'Borrando...' : 'Sí, eliminar' }}
+        </button>
+      </div>
+    </div>
+  }
+
+</div>

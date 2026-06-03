@@ -1,9 +1,10 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject, ViewChild, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
 import { subirACloudinary } from '../../app/core/services/cloudinary';
+import { PuestosService } from '../../app/core/services/puestos.service';
 
 @Component({
   selector: 'app-candidate-form',
@@ -12,10 +13,13 @@ import { subirACloudinary } from '../../app/core/services/cloudinary';
   templateUrl: './candidate-form.html',
   styleUrl: './candidate-form.css'
 })
-export class CandidateFormComponent {
+export class CandidateFormComponent implements OnInit, OnDestroy {
   @ViewChild('talentoForm') talentoForm!: NgForm;
   private candidateService = inject(CandidateService);
-  
+  private puestosService = inject(PuestosService);
+  private route = inject(ActivatedRoute);
+  private unsubPuestos: any;
+
   archivoCV: File | null = null;
   subiendo = false;
   // Modal de feedback dentro de la app (reemplaza alert() nativo del browser)
@@ -24,10 +28,44 @@ export class CandidateFormComponent {
   candidate = {
     nombre: '',
     telefono: '',
-    ciudad: '',    
-    puesto: '',    
-    fuente: ''     
+    ciudad: '',
+    puesto: '',
+    fuente: ''
   };
+
+  ngOnInit() {
+    // Cargar los puestos activos en vivo desde Firestore (los que se administran
+    // desde /app/vacantes). Si el admin agrega o cambia uno, el dropdown se actualiza.
+    this.unsubPuestos = this.puestosService.listar((lista) => {
+      const activos = lista.filter(p => p.activo).map(p => p.nombre);
+      // Si la lista de Firestore aún está vacía (carga inicial), mantén el fallback
+      // estático del array `puestos` que ya está declarado abajo.
+      if (activos.length > 0) {
+        this.puestos = [...activos, 'Otro'];
+      }
+      this.aplicarQueryPuesto();
+    });
+
+    // Aplicar el query param también al instante por si la lista ya está cargada
+    this.aplicarQueryPuesto();
+  }
+
+  ngOnDestroy() {
+    if (this.unsubPuestos) this.unsubPuestos();
+  }
+
+  /** Si vienen desde la cartelera /empleos con ?puesto=X, pre-seleccionar el puesto */
+  private aplicarQueryPuesto() {
+    const puestoQuery = this.route.snapshot.queryParamMap.get('puesto');
+    if (!puestoQuery) return;
+    const match = this.puestos.find(p => p.toLowerCase() === puestoQuery.toLowerCase());
+    if (match) {
+      this.candidate.puesto = match;
+    } else {
+      this.candidate.puesto = 'Otro';
+      this.otroPuesto = puestoQuery;
+    }
+  }
 
   // Variables para capturar los textos manuales
   otraCiudad = '';

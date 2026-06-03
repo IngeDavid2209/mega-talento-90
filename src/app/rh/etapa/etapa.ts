@@ -11,6 +11,7 @@ import {
   progresoChecklist
 } from '../../core/models/proceso.model';
 import { urlWhatsApp } from '../../core/models/puestos.model';
+import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 
 @Component({
   selector: 'app-etapa',
@@ -24,6 +25,8 @@ export class EtapaComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private ngZone = inject(NgZone);
+  // Público para que el template lea el signal y use displayName()
+  capitalHumano = inject(CapitalHumanoService);
 
   ID_ETAPAS = ID_ETAPAS;
 

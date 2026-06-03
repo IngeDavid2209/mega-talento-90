@@ -161,7 +161,7 @@
                   <td>
                     <div class="user-info">
                       <div class="avatar-mini" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
-                      <span class="user-name">{{ c.nombre }}</span>
+                      <span class="user-name">{{ capitalHumano.displayName(c) }}</span>
                     </div>
                   </td>
                   <td>

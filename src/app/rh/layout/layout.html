@@ -80,6 +80,11 @@
           </a>
         </li>
         <li (click)="isMenuOpen = false">
+          <a routerLink="/app/vacantes" routerLinkActive="active">
+            <span class="nav-icon">⊠</span> Vacantes
+          </a>
+        </li>
+        <li (click)="isMenuOpen = false">
           <a routerLink="/app/usuarios" routerLinkActive="active">
             <span class="nav-icon">◉</span> Gestión de usuarios
           </a>
@@ -92,6 +97,17 @@
       </ul>
 
       <div class="nav-divider"></div>
+
+      <!-- TOGGLE Capital Humano (modo anónimo) -->
+      <div class="nav-toggle" (click)="capitalHumano.toggle()" [class.active]="capitalHumano.activo()">
+        <div class="nav-toggle-text">
+          <span class="nav-toggle-title">Modo Capital Humano</span>
+          <span class="nav-toggle-desc">Oculta nombres en listas para evaluar sin sesgos</span>
+        </div>
+        <div class="nav-toggle-switch" [class.on]="capitalHumano.activo()">
+          <span class="nav-toggle-knob"></span>
+        </div>
+      </div>
 
       <ul class="nav-list">
         <li (click)="isMenuOpen = false">

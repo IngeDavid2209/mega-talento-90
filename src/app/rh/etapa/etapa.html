@@ -43,7 +43,7 @@
              (click)="abrirExpediente(candidato)">
 
           <div class="card-top">
-            <span class="card-name">{{ candidato.nombre }}</span>
+            <span class="card-name">{{ capitalHumano.displayName(candidato) }}</span>
             @if (isCandidatoAlerta(candidato)) {
               <span class="alert-dot" title="SLA vencido"></span>
             }
