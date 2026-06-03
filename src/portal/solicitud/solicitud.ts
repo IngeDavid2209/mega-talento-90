@@ -148,7 +148,20 @@ export class SolicitudComponent implements OnInit {
           telefono: this.solicitud.contacto.telefono
         });
       } else {
-        // Sin candidato previo: crear uno nuevo con la solicitud
+        // Sin candidato previo: validar duplicados antes de crear
+        const duplicado = await this.candidateService.buscarDuplicado(
+          this.solicitud.contacto.telefono,
+          this.solicitud.datosPersonales.nombre
+        );
+        if (duplicado) {
+          this.modal = {
+            tipo: 'error',
+            titulo: 'Ya estás postulado/a',
+            mensaje: 'Detectamos que ya hay un candidato registrado con ese nombre o teléfono. Nuestro equipo de Reclutamiento ya tiene tus datos y te contactará pronto.'
+          };
+          this.enviando = false;
+          return;
+        }
         await this.candidateService.createCandidate({
           nombre: this.solicitud.datosPersonales.nombre,
           telefono: this.solicitud.contacto.telefono,

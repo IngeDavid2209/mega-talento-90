@@ -120,6 +120,21 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       let urlDelPDF = '';
 
       try {
+        // 0. Antes de subir CV o crear candidato, verificar que no esté repetido
+        const duplicado = await this.candidateService.buscarDuplicado(
+          this.candidate.telefono,
+          this.candidate.nombre
+        );
+        if (duplicado) {
+          this.modal = {
+            tipo: 'error',
+            titulo: 'Ya estás postulado/a',
+            mensaje: 'Detectamos que ya enviaste tu información anteriormente. Nuestro equipo de Reclutamiento ya tiene tus datos y te contactará pronto. No es necesario enviar otra postulación.'
+          };
+          this.subiendo = false;
+          return;
+        }
+
         if (this.archivoCV) {
           console.log("A.1 Subiendo CV a Cloudinary...");
           urlDelPDF = await subirACloudinary(this.archivoCV, 'cvs');

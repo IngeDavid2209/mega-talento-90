@@ -64,6 +64,32 @@ export class CandidateService {
     await deleteDoc(doc(db, 'candidates', id));
   }
 
+  /**
+   * Busca si ya existe un candidato con el mismo teléfono o nombre.
+   * - Teléfono: comparación exacta tras quitar todo lo que no sea dígito.
+   * - Nombre: comparación normalizada (minúsculas, espacios colapsados).
+   * Devuelve el candidato encontrado o null si no hay duplicado.
+   */
+  async buscarDuplicado(telefono: string, nombre: string): Promise<any | null> {
+    const telLimpio = (telefono || '').replace(/\D/g, '');
+    const nomNorm = this.normalizarNombre(nombre);
+    if (!telLimpio && !nomNorm) return null;
+
+    const todos = await this.getCandidates();
+    return todos.find((c: any) => {
+      const telExistente = (c.telefono || '').replace(/\D/g, '');
+      const nomExistente = this.normalizarNombre(c.nombre);
+      // Coincide por teléfono (10 dígitos completos) o por nombre exacto (no muy corto)
+      const matchTel = telLimpio.length >= 10 && telLimpio === telExistente;
+      const matchNom = nomNorm.length >= 5 && nomNorm === nomExistente;
+      return matchTel || matchNom;
+    }) || null;
+  }
+
+  private normalizarNombre(s: string): string {
+    return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
   listenToCandidate(id: string, callback: (candidato: any) => void) {
     const docRef = doc(db, 'candidates', id);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
