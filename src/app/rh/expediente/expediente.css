@@ -334,7 +334,7 @@
    CUESTIONARIO DE LIDERAZGO · estilo Mega Dulces (azul + amarillo)
    ============================================================ */
 
-/* Tarjeta-resumen de puntaje */
+/* Tarjeta-resumen de puntaje + Grid Gerencial */
 .lid-resumen {
   margin: 4px 0 24px;
   padding: 22px 24px;
@@ -348,7 +348,24 @@
 .lid-resumen.nivel-en-desarrollo      { border-left-color: var(--amber); background: var(--amber-bg); }
 .lid-resumen.nivel-requiere-desarrollo{ border-left-color: var(--red);   background: var(--red-bg); }
 
-.lid-resumen-main { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.lid-resumen-grid {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .lid-resumen-grid { grid-template-columns: 1fr; }
+}
+
+.lid-resumen-info { display: flex; flex-direction: column; gap: 14px; }
+
+.lid-puntaje-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
 .lid-puntaje { display: flex; align-items: baseline; gap: 2px; }
 .lid-puntaje-num {
   font-family: 'DM Mono', monospace;
@@ -363,45 +380,112 @@
   font-size: 15px;
   color: var(--text3);
 }
-.lid-resumen-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px; }
-.lid-resumen-pct {
-  font-size: 12px;
-  color: var(--text2);
+.lid-puntaje-pct { display: flex; flex-direction: column; gap: 2px; }
+.pct-valor {
   font-family: 'DM Mono', monospace;
-}
-.lid-resumen-interpret {
-  font-size: 13.5px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--ink);
-  line-height: 1.4;
 }
+.lid-puntaje-pct small {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+/* Bloque del estilo identificado */
+.lid-estilo {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.estilo-coord {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: var(--ink);
+  color: #fff;
+  padding: 3px 9px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.estilo-nombre {
+  display: block;
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.estilo-resumen {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.lid-pendiente-interpret {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text);
+  font-weight: 500;
+  font-style: italic;
+}
+
 .lid-dimensiones {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
 }
 .dim-chip {
   display: inline-flex;
-  gap: 6px;
-  padding: 5px 10px;
+  flex-direction: column;
+  padding: 8px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 11.5px;
-  color: var(--text2);
+  border-radius: var(--radius);
   font-weight: 500;
+  min-width: 100px;
 }
-.dim-chip strong { color: var(--ink); font-family: 'DM Mono', monospace; }
-.dim-contestadas {
-  margin-left: auto;
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
+.dim-chip small {
+  font-size: 10.5px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
 }
-.dim-contestadas strong { color: #fff; }
+.dim-chip strong {
+  font-family: 'DM Mono', monospace;
+  font-size: 19px;
+  color: var(--ink);
+  line-height: 1;
+  margin-top: 4px;
+}
+.dim-chip strong small {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-left: 2px;
+}
+
+/* Grid Gerencial SVG */
+.grid-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.grid-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.grid-caption {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text2);
+  text-align: center;
+  font-style: italic;
+}
 
 /* Lista de tarjetas */
 .lid-lista {

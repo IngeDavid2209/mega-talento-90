@@ -179,23 +179,114 @@
           <p class="section-desc">Marca para cada afirmación qué tan frecuentemente el candidato se comporta de esa manera.</p>
         </header>
 
-        <!-- TARJETA DE PUNTAJE EN VIVO -->
+        <!-- TARJETA DE PUNTAJE EN VIVO + GRID GERENCIAL -->
         @if (resultadoLiderazgo(); as r) {
           <div class="lid-resumen" [class]="'nivel-' + r.nivel">
-            <div class="lid-resumen-main">
-              <div class="lid-puntaje">
-                <span class="lid-puntaje-num">{{ r.puntaje }}</span>
-                <span class="lid-puntaje-max">/{{ r.puntajeMax }}</span>
-              </div>
+            <div class="lid-resumen-grid">
+              <!-- Lado izquierdo: puntajes e interpretación -->
               <div class="lid-resumen-info">
-                <span class="lid-resumen-pct">{{ r.porcentaje }}% completado</span>
-                <span class="lid-resumen-interpret">{{ r.interpretacion }}</span>
+                <div class="lid-puntaje-row">
+                  <div class="lid-puntaje">
+                    <span class="lid-puntaje-num">{{ r.puntaje }}</span>
+                    <span class="lid-puntaje-max">/{{ r.puntajeMax }}</span>
+                  </div>
+                  <div class="lid-puntaje-pct">
+                    <span class="pct-valor">{{ r.porcentaje }}%</span>
+                    <small>completado · {{ r.contestadas }}/{{ r.total }} preguntas</small>
+                  </div>
+                </div>
+
+                @if (r.estilo !== 'sin-evaluar') {
+                  <div class="lid-estilo">
+                    <span class="estilo-coord">{{ r.estiloInfo.coordenada }}</span>
+                    <strong class="estilo-nombre">{{ r.estiloInfo.nombre }}</strong>
+                    <p class="estilo-resumen">{{ r.estiloInfo.resumen }}</p>
+                  </div>
+                } @else {
+                  <p class="lid-pendiente-interpret">{{ r.interpretacion }}</p>
+                }
+
+                <div class="lid-dimensiones">
+                  <span class="dim-chip">
+                    <small>Tarea</small>
+                    <strong>{{ r.puntajeTarea }}<small>/30</small></strong>
+                  </span>
+                  <span class="dim-chip">
+                    <small>Relaciones</small>
+                    <strong>{{ r.puntajeRelaciones }}<small>/30</small></strong>
+                  </span>
+                </div>
               </div>
-            </div>
-            <div class="lid-dimensiones">
-              <span class="dim-chip">Orientación a la tarea: <strong>{{ r.puntajeTarea }}</strong></span>
-              <span class="dim-chip">Orientación a las relaciones: <strong>{{ r.puntajeRelaciones }}</strong></span>
-              <span class="dim-chip dim-contestadas">{{ r.contestadas }}/{{ r.total }} preguntas</span>
+
+              <!-- Lado derecho: Grid Gerencial Blake-Mouton -->
+              <div class="grid-wrap">
+                <svg class="grid-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-label="Grid Gerencial">
+                  <!-- Fondo -->
+                  <rect x="40" y="20" width="160" height="160" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
+
+                  <!-- Líneas de cuadrícula (cada 6 unidades, 5 divisiones) -->
+                  @for (i of [1,2,3,4]; track i) {
+                    <line [attr.x1]="40 + (i * 32)" y1="20" [attr.x2]="40 + (i * 32)" y2="180" stroke="#e2e8f0" stroke-width="0.5"/>
+                    <line x1="40" [attr.y1]="180 - (i * 32)" x2="200" [attr.y2]="180 - (i * 32)" stroke="#e2e8f0" stroke-width="0.5"/>
+                  }
+
+                  <!-- Cuadrantes / zonas tenues -->
+                  <rect x="40"  y="20"  width="64" height="64" fill="#dcfce7" opacity="0.35"/>  <!-- club campestre top-left -->
+                  <rect x="136" y="20"  width="64" height="64" fill="#bfdbfe" opacity="0.4"/>   <!-- equipo top-right -->
+                  <rect x="40"  y="116" width="64" height="64" fill="#fee2e2" opacity="0.35"/>  <!-- empobrecido bottom-left -->
+                  <rect x="136" y="116" width="64" height="64" fill="#fde68a" opacity="0.4"/>   <!-- autocratico bottom-right -->
+                  <rect x="88"  y="68"  width="64" height="64" fill="#e0e7ff" opacity="0.45"/>  <!-- punto medio -->
+
+                  <!-- Etiquetas de coordenadas en las esquinas -->
+                  <text x="46"  y="34"  font-size="7" fill="#475569" font-family="DM Mono, monospace">(6, 30)</text>
+                  <text x="170" y="34"  font-size="7" fill="#475569" font-family="DM Mono, monospace">(30, 30)</text>
+                  <text x="46"  y="176" font-size="7" fill="#475569" font-family="DM Mono, monospace">(6, 6)</text>
+                  <text x="170" y="176" font-size="7" fill="#475569" font-family="DM Mono, monospace">(30, 6)</text>
+                  <text x="108" y="104" font-size="7" fill="#475569" font-family="DM Mono, monospace">(18, 18)</text>
+
+                  <!-- Ejes -->
+                  <text x="120" y="200" text-anchor="middle" font-size="9" fill="#0f172a" font-weight="600">Tarea →</text>
+                  <text x="-110" y="14" transform="rotate(-90)" text-anchor="middle" font-size="9" fill="#0f172a" font-weight="600">← Relaciones</text>
+
+                  <!-- Marcas eje X: 6, 12, 18, 24, 30 -->
+                  <text x="40"  y="194" text-anchor="middle" font-size="7" fill="#64748b">6</text>
+                  <text x="72"  y="194" text-anchor="middle" font-size="7" fill="#64748b">12</text>
+                  <text x="104" y="194" text-anchor="middle" font-size="7" fill="#64748b">18</text>
+                  <text x="136" y="194" text-anchor="middle" font-size="7" fill="#64748b">24</text>
+                  <text x="168" y="194" text-anchor="middle" font-size="7" fill="#64748b">30</text>
+                  <text x="200" y="194" text-anchor="middle" font-size="7" fill="#64748b"></text>
+
+                  <!-- Marcas eje Y -->
+                  <text x="32"  y="183" text-anchor="end" font-size="7" fill="#64748b">6</text>
+                  <text x="32"  y="151" text-anchor="end" font-size="7" fill="#64748b">12</text>
+                  <text x="32"  y="119" text-anchor="end" font-size="7" fill="#64748b">18</text>
+                  <text x="32"  y="87"  text-anchor="end" font-size="7" fill="#64748b">24</text>
+                  <text x="32"  y="55"  text-anchor="end" font-size="7" fill="#64748b">30</text>
+
+                  <!-- Punto del candidato (solo si ya empezó a contestar) -->
+                  @if (r.contestadas > 0) {
+                    <!-- Coordenadas SVG: x = 40 + ((puntajeTarea - 6) / 24) * 160 -->
+                    <!-- y = 180 - ((puntajeRelaciones - 6) / 24) * 160 -->
+                    <circle
+                      [attr.cx]="40 + ((r.puntajeTarea - 6) / 24) * 160"
+                      [attr.cy]="180 - ((r.puntajeRelaciones - 6) / 24) * 160"
+                      r="8"
+                      fill="#DC2626"
+                      stroke="#fff"
+                      stroke-width="2"
+                      opacity="0.95"
+                    />
+                    <circle
+                      [attr.cx]="40 + ((r.puntajeTarea - 6) / 24) * 160"
+                      [attr.cy]="180 - ((r.puntajeRelaciones - 6) / 24) * 160"
+                      r="14"
+                      fill="#DC2626"
+                      opacity="0.20"
+                    />
+                  }
+                </svg>
+                <p class="grid-caption">Grid Gerencial · Blake &amp; Mouton</p>
+              </div>
             </div>
           </div>
         }
