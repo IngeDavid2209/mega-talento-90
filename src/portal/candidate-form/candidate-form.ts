@@ -67,8 +67,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Variables para capturar los textos manuales
-  otraCiudad = '';
+  // Variable para capturar el puesto manual cuando se elige "Otro"
   otroPuesto = '';
 
   ciudades = [
@@ -76,8 +75,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     'Santa Ana',
     'Zamora',
     'Morelia',
-    'Yurécuaro',
-    'Otro'
+    'Yurécuaro'
   ];
 
   puestos = [
@@ -141,13 +139,11 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
           console.log("A.2 Archivo subido con éxito. URL generada.");
         }
 
-        // Determinamos el valor final: si es "Otro", usamos la variable manual
-        const ciudadFinal = this.candidate.ciudad === 'Otro' ? this.otraCiudad : this.candidate.ciudad;
+        // Si el puesto es "Otro", usamos el texto manual del candidato
         const puestoFinal = this.candidate.puesto === 'Otro' ? this.otroPuesto : this.candidate.puesto;
 
         const datosCandidatoCompleto = {
           ...this.candidate,
-          ciudad: ciudadFinal,
           puesto: puestoFinal,
           cvUrl: urlDelPDF, 
           status: 'nuevo',  
@@ -188,7 +184,6 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       puesto: '',
       fuente: ''
     };
-    this.otraCiudad = '';
     this.otroPuesto = '';
     this.archivoCV = null;
     

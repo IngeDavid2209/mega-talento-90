@@ -55,19 +55,6 @@
         </div>
       </div>
 
-      @if (candidate.ciudad === 'Otro') {
-        <div class="form-group conditional-input">
-          <label>Escribe la ciudad <span class="required-star">*</span></label>
-          <div class="input-icon-wrap">
-            <svg class="field-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <input type="text" [(ngModel)]="otraCiudad" name="otraCiudad" required placeholder="Ej. Pénjamo">
-          </div>
-        </div>
-      }
-
       <!-- PUESTO -->
       <div class="form-group">
         <label>Puesto que te interesa <span class="required-star">*</span></label>
@@ -135,7 +122,7 @@
       </div>
 
       <!-- BOTÓN -->
-      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || (candidate.ciudad === 'Otro' && !otraCiudad) || (candidate.puesto === 'Otro' && !otroPuesto)">
+      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || (candidate.puesto === 'Otro' && !otroPuesto)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
