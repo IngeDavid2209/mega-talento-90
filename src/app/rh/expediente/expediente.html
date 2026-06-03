@@ -378,50 +378,64 @@
           </div>
         }
 
-        <!-- 12 PREGUNTAS · tarjetas tipo Evaluación de Liderazgo -->
-        <div class="lid-lista">
-          @for (p of CUESTIONARIO_LIDERAZGO; track p.num) {
-            <div class="lid-card" [class.lid-card-contestada]="respuestaActual(p.num)">
-              <!-- Header amarillo -->
-              <div class="lid-card-head">
-                <div class="lid-head-left">
-                  <div class="lid-head-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
-                  </div>
-                  <div class="lid-head-text">
-                    <strong>EVALUACIÓN DE LIDERAZGO</strong>
-                    <small>Modelo interaccionista del Liderazgo</small>
-                  </div>
-                </div>
-                <div class="lid-head-brand">Mega<br>Dulces</div>
-              </div>
+        <!-- BANNER: vista de solo monitoreo -->
+        <div class="monitor-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <div>
+            <strong>Vista de monitoreo</strong>
+            <small>Esta pantalla es solo de lectura. El candidato responde desde su celular y tú ves las respuestas aquí en tiempo real.</small>
+          </div>
+        </div>
 
-              <!-- Cuerpo azul -->
-              <div class="lid-card-body">
-                <div class="lid-numero">{{ p.num }}</div>
-                <p class="lid-pregunta">{{ p.texto }}</p>
+        <!-- LISTA COMPACTA DE 12 PREGUNTAS (solo lectura) -->
+        <div class="monitor-lista">
+          @for (p of CUESTIONARIO_LIDERAZGO; track p.num; let i = $index) {
+            <div class="monitor-item"
+                 [class.contestada]="respuestaActual(p.num)"
+                 [class.dim-tarea]="p.dimension === 'tarea'"
+                 [class.dim-relaciones]="p.dimension === 'relaciones'">
 
-                <div class="lid-opciones">
-                  @for (n of NIVELES_LIKERT; track n.valor) {
-                    <label class="lid-opcion" [class.seleccionada]="respuestaActual(p.num) === n.valor">
-                      <span class="lid-op-num">{{ n.valor }}</span>
-                      <span class="lid-op-texto">
-                        <strong>{{ n.etiquetaCorta }}</strong>
-                        <small>se comporta de esa manera</small>
-                      </span>
-                      <input type="radio"
-                             [name]="'preg-' + p.num"
-                             [value]="n.valor"
-                             [checked]="respuestaActual(p.num) === n.valor"
-                             (change)="responderPregunta(p.num, n.valor)">
-                      <span class="lid-op-radio"></span>
-                    </label>
+              <div class="monitor-num">{{ p.num }}</div>
+
+              <div class="monitor-content">
+                <div class="monitor-meta">
+                  <span class="monitor-dim">{{ p.dimension === 'tarea' ? 'Orientado a la TAREA' : 'Orientado a las RELACIONES' }}</span>
+                  @if (respuestaActual(p.num)) {
+                    <span class="monitor-status ok">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      Contestada
+                    </span>
+                  } @else {
+                    <span class="monitor-status pendiente">
+                      <span class="pend-dot"></span>
+                      Esperando respuesta
+                    </span>
                   }
                 </div>
 
-                <div class="lid-card-foot">
-                  <small>{{ p.dimension === 'tarea' ? 'CONDUCTA ORIENTADA A LA TAREA' : 'CONDUCTA ORIENTADA A LAS RELACIONES' }}</small>
+                <p class="monitor-texto">{{ p.texto }}</p>
+
+                <!-- Mini-escala visual de la respuesta -->
+                <div class="monitor-escala">
+                  @for (n of NIVELES_LIKERT; track n.valor) {
+                    <div class="esc-opt"
+                         [class.esc-marcada]="respuestaActual(p.num) === n.valor"
+                         [class.esc-vacia]="!respuestaActual(p.num)">
+                      <span class="esc-num">{{ n.valor }}</span>
+                      <span class="esc-label">{{ n.etiquetaCorta }}</span>
+                    </div>
+                  }
                 </div>
+
+                @if (respuestaActual(p.num); as v) {
+                  <div class="monitor-respuesta">
+                    Respondió: <strong>{{ NIVELES_LIKERT[v - 1].etiquetaCorta }}</strong>
+                    <span class="monitor-valor">{{ v }}/5</span>
+                  </div>
+                }
               </div>
             </div>
           }

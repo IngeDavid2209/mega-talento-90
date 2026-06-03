@@ -673,7 +673,228 @@
   line-height: 1.45;
 }
 
-/* Lista de tarjetas */
+/* ============================================================
+   VISTA DE MONITOREO (solo lectura, RH observa al candidato)
+   ============================================================ */
+.monitor-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--blue-bg);
+  border: 1px solid rgba(26, 79, 176, 0.18);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  color: var(--blue-text);
+}
+.monitor-banner svg {
+  width: 22px; height: 22px;
+  flex-shrink: 0;
+  color: var(--blue);
+}
+.monitor-banner strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--blue-text);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.monitor-banner small {
+  display: block;
+  font-size: 12px;
+  color: var(--blue-text);
+  opacity: 0.85;
+  line-height: 1.45;
+}
+
+.monitor-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.monitor-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  gap: 14px;
+  transition: all 0.18s;
+}
+.monitor-item.contestada {
+  border-left-color: var(--green);
+  background: linear-gradient(90deg, var(--green-bg) 0%, var(--surface) 25%);
+}
+.monitor-item.dim-tarea:not(.contestada) {
+  border-left-color: #d97706;
+}
+.monitor-item.dim-relaciones:not(.contestada) {
+  border-left-color: #1a4fb0;
+}
+
+.monitor-num {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+.monitor-item.contestada .monitor-num {
+  background: var(--green);
+}
+
+.monitor-content { flex: 1; min-width: 0; }
+
+.monitor-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.monitor-dim {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.monitor-item.dim-tarea .monitor-dim { color: #b45309; }
+.monitor-item.dim-relaciones .monitor-dim { color: #1e40af; }
+
+.monitor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.monitor-status svg { width: 11px; height: 11px; }
+.monitor-status.ok {
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+.monitor-status.pendiente {
+  background: var(--surface3);
+  color: var(--text2);
+}
+.pend-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text3);
+  box-shadow: 0 0 0 0 rgba(138, 134, 126, 0.5);
+  animation: pend-pulse 1.6s infinite;
+}
+@keyframes pend-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(138, 134, 126, 0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(138, 134, 126, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(138, 134, 126, 0); }
+}
+
+.monitor-texto {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+/* Mini-escala visual de la respuesta */
+.monitor-escala {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.esc-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  transition: all 0.18s;
+}
+.esc-opt.esc-vacia {
+  opacity: 0.55;
+}
+.esc-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.esc-label {
+  font-size: 9px;
+  color: var(--text2);
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.esc-opt.esc-marcada {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.esc-opt.esc-marcada .esc-num {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #fff;
+}
+.esc-opt.esc-marcada .esc-label {
+  color: #fff;
+  font-weight: 700;
+}
+
+.monitor-respuesta {
+  font-size: 12px;
+  color: var(--text2);
+  padding-top: 4px;
+}
+.monitor-respuesta strong {
+  color: var(--ink);
+  font-weight: 700;
+  margin-left: 2px;
+}
+.monitor-valor {
+  margin-left: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  background: var(--ink);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+@media (max-width: 540px) {
+  .monitor-escala { grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .esc-label { font-size: 8px; }
+}
+
+/* Lista de tarjetas (estilo viejo, mantenido por si se necesita) */
 .lid-lista {
   display: flex;
   flex-direction: column;
