@@ -131,9 +131,18 @@ export class VacantesComponent implements OnInit, OnDestroy {
         await this.puestosService.crear(datos);
       }
       this.mostrarEditor = false;
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error al guardar puesto:', e);
-      this.errorEditor = 'No se pudo guardar. Verifica tu conexión e intenta de nuevo.';
+      const codigo = e?.code || '';
+      if (codigo === 'permission-denied') {
+        this.errorEditor = 'PERMISO DENEGADO: las reglas de Firestore no permiten escribir en "puestos". Ve a Firebase Console > Firestore > Rules y publica las reglas del archivo firestore.rules.';
+      } else if (codigo === 'unauthenticated') {
+        this.errorEditor = 'Sesión expirada. Cierra sesión y vuelve a entrar.';
+      } else if (codigo) {
+        this.errorEditor = `No se pudo guardar (${codigo}). ${e?.message || ''}`;
+      } else {
+        this.errorEditor = `No se pudo guardar: ${e?.message || 'error desconocido'}`;
+      }
     } finally {
       this.guardando = false;
     }
