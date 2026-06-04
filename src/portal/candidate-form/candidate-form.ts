@@ -291,7 +291,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
         this.modal = {
           tipo: 'error',
           titulo: 'Ya estás postulado/a',
-          mensaje: 'Detectamos que ya enviaste tu información anteriormente. Nuestro equipo de Reclutamiento ya tiene tus datos y te contactará pronto. No es necesario enviar otra postulación.'
+          mensaje: 'Detectamos que ya enviaste tu información anteriormente. Capital Humano de Mega Dulces ya tiene tus datos y te contactará pronto. No es necesario enviar otra postulación.'
         };
         this.subiendo = false;
         return;
@@ -330,7 +330,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       this.modal = {
         tipo: 'exito',
         titulo: '¡Solicitud enviada!',
-        mensaje: 'Se ha enviado tu información correctamente. Nuestro equipo de Reclutamiento te contactará pronto.'
+        mensaje: 'Se ha enviado tu información correctamente. Capital Humano de Mega Dulces te contactará pronto.'
       };
       this.resetForm();
     } catch (error) {

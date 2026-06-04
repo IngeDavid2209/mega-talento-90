@@ -39,7 +39,7 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.candidatoId = this.route.snapshot.paramMap.get('id');
     if (!this.candidatoId) {
-      this.error = 'Link inválido. Solicita un nuevo enlace al equipo de RH.';
+      this.error = 'Link inválido. Solicita un nuevo enlace a Capital Humano de Mega Dulces.';
       this.cargando = false;
       return;
     }

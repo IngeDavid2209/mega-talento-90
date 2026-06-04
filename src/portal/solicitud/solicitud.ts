@@ -157,7 +157,7 @@ export class SolicitudComponent implements OnInit {
           this.modal = {
             tipo: 'error',
             titulo: 'Ya estás postulado/a',
-            mensaje: 'Detectamos que ya hay un candidato registrado con ese nombre o teléfono. Nuestro equipo de Reclutamiento ya tiene tus datos y te contactará pronto.'
+            mensaje: 'Detectamos que ya hay un candidato registrado con ese nombre o teléfono. Capital Humano de Mega Dulces ya tiene tus datos y te contactará pronto.'
           };
           this.enviando = false;
           return;
@@ -175,7 +175,7 @@ export class SolicitudComponent implements OnInit {
       this.modal = {
         tipo: 'exito',
         titulo: '¡Solicitud enviada!',
-        mensaje: 'Tu información se envió correctamente. Nuestro equipo de Reclutamiento te contactará pronto para los siguientes pasos.'
+        mensaje: 'Tu información se envió correctamente. Capital Humano de Mega Dulces te contactará pronto para los siguientes pasos.'
       };
       this.yaEnviada = true;
     } catch (e) {

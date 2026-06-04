@@ -407,7 +407,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     const numero = this.obtenerNumeroValido();
     if (!numero) return;
     const msg =
-`Hola ${this.candidato.nombre}, te contacto del equipo de RH de Mega Dulces. ¿Cómo te encuentras?`;
+`Hola ${this.candidato.nombre}, te contacto de Capital Humano de Mega Dulces. ¿Cómo te encuentras?`;
     window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
@@ -417,7 +417,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     if (!numero) return;
     const link = `${window.location.origin}/evaluacion/${this.candidato.id}`;
     const msg =
-`Hola ${this.candidato.nombre}, soy del equipo de Reclutamiento de Mega Dulces.
+`Hola ${this.candidato.nombre}, soy de Capital Humano de Mega Dulces.
 
 Para continuar con tu evaluación, te pedimos contestar el cuestionario de Liderazgo desde tu celular en el siguiente enlace mientras estamos en la videollamada:
 
@@ -451,7 +451,7 @@ Son 12 preguntas breves. Responde con honestidad — veremos tus respuestas en t
     if (!numero) return;
     const link = `${window.location.origin}/solicitud/${this.candidato.id}`;
     const msg =
-`Hola ${this.candidato.nombre}, soy del equipo de Recursos Humanos de Mega Dulces de Los Altos.
+`Hola ${this.candidato.nombre}, soy de Capital Humano de Mega Dulces.
 
 Para continuar con tu proceso de selección, te pedimos completar tu Solicitud de Empleo electrónica en el siguiente enlace:
 

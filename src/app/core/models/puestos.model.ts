@@ -60,7 +60,7 @@ export function plantillaPrimerContacto(candidato: { puesto?: string }): string 
   const descripcion = getDescripcionPuesto(candidato.puesto || '');
   const bloqueDescripcion = descripcion ? `\n\nEn qué consiste el puesto:\n${descripcion}` : '';
 
-  return `Hola, buen día. Mi nombre es Lupita, de Recursos Humanos de Mega Dulces de Los Altos.
+  return `Hola, buen día. Te contacto de Capital Humano de Mega Dulces.
 
 Recibimos tu solicitud para la vacante de ${puesto}.${bloqueDescripcion}
 
