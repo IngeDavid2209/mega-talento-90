@@ -24,6 +24,13 @@
       <div class="spinner"></div>
       <p>Cargando vacantes...</p>
     </div>
+  } @else if (errorCarga) {
+    <div class="state-block state-block-error">
+      <div class="state-icon-error">⚠️</div>
+      <h3>No se pudieron cargar las vacantes</h3>
+      <p>{{ errorCarga }}</p>
+      <button class="btn-primary" (click)="recargar()">Reintentar</button>
+    </div>
   } @else if (puestos.length === 0) {
     <div class="state-block empty">
       <p class="muted">Aún no hay vacantes registradas.</p>

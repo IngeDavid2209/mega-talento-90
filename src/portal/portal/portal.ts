@@ -17,6 +17,8 @@ export class PortalComponent implements OnInit, OnDestroy {
 
   puestos: Puesto[] = [];
   cargando = true;
+  errorCarga = '';
+  private timeoutCarga: any = null;
 
   // Filtros
   busqueda = '';
@@ -44,14 +46,32 @@ export class PortalComponent implements OnInit, OnDestroy {
     document.documentElement.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
     document.body.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
 
-    this.unsub = this.puestosService.listar((lista) => {
-      this.puestos = lista.filter(p => p.activo);
-      this.cargando = false;
-    });
+    // Si Firestore no responde en 8s, asumir error de red/permisos
+    this.timeoutCarga = setTimeout(() => {
+      if (this.cargando) {
+        this.cargando = false;
+        this.errorCarga = 'Las vacantes están tardando demasiado en cargar. Revisa tu conexión a internet o intenta refrescar la página.';
+      }
+    }, 8000);
+
+    this.unsub = this.puestosService.listar(
+      (lista) => {
+        if (this.timeoutCarga) { clearTimeout(this.timeoutCarga); this.timeoutCarga = null; }
+        this.puestos = lista.filter(p => p.activo);
+        this.cargando = false;
+        this.errorCarga = '';
+      },
+      (err) => {
+        if (this.timeoutCarga) { clearTimeout(this.timeoutCarga); this.timeoutCarga = null; }
+        this.cargando = false;
+        this.errorCarga = 'No se pudieron cargar las vacantes (' + (err?.code || err?.message || 'error desconocido') + '). Si el problema persiste, contacta al administrador.';
+      }
+    );
   }
 
   ngOnDestroy() {
     if (this.unsub) this.unsub();
+    if (this.timeoutCarga) clearTimeout(this.timeoutCarga);
     // Restaurar los estilos globales para que el back-office vuelva a su
     // estado original (sin scroll del documento, layout interno se encarga)
     document.documentElement.style.cssText = this.estiloHtmlOriginal;
@@ -124,6 +144,10 @@ export class PortalComponent implements OnInit, OnDestroy {
 
   volverArriba() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  recargar() {
+    window.location.reload();
   }
 
   limpiarFiltros() {

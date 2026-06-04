@@ -40,8 +40,15 @@ export class PuestosService {
    * incluso cuando Firestore tarda en responder, primero entrega lo último
    * guardado en localStorage (si lo hay) y después la versión fresca cuando
    * llega del servidor.
+   *
+   * Si Firestore responde con error (reglas bloquean, sin red, etc.) se llama
+   * al onError opcional para que la UI pueda mostrar el problema en lugar de
+   * quedarse cargando para siempre.
    */
-  listar(callback: (puestos: Puesto[]) => void) {
+  listar(
+    callback: (puestos: Puesto[]) => void,
+    onError?: (error: any) => void
+  ) {
     // 1. Respuesta INSTANTÁNEA con cache local (si tenemos algo guardado)
     const cached = this.leerCache();
     if (cached.length > 0) {
@@ -61,7 +68,10 @@ export class PuestosService {
       });
       this.escribirCache(lista);
       callback(lista);
-    }, (err) => console.error('Error al listar puestos:', err));
+    }, (err) => {
+      console.error('Error al listar puestos:', err);
+      if (onError) onError(err);
+    });
   }
 
   private leerCache(): Puesto[] {

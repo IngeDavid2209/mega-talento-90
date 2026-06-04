@@ -186,6 +186,13 @@
           <div class="p-spinner"></div>
           <p>Cargando vacantes...</p>
         </div>
+      } @else if (errorCarga) {
+        <div class="p-state p-state-error">
+          <div class="p-state-icon">⚠️</div>
+          <h3>No se pudieron cargar las vacantes</h3>
+          <p>{{ errorCarga }}</p>
+          <button class="p-btn p-btn-navy" (click)="recargar()">Reintentar</button>
+        </div>
       } @else if (puestos.length === 0) {
         <div class="p-state">
           <div class="p-state-icon">📭</div>

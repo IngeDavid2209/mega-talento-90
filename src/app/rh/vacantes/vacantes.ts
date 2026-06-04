@@ -16,6 +16,8 @@ export class VacantesComponent implements OnInit, OnDestroy {
 
   puestos: Puesto[] = [];
   cargando = true;
+  errorCarga = '';
+  private timeoutCarga: any = null;
   private unsub: any;
 
   // Editor (crear / editar)
@@ -31,26 +33,48 @@ export class VacantesComponent implements OnInit, OnDestroy {
   private yaIntentadoSembrar = false;
 
   async ngOnInit() {
+    // Si Firestore no responde en 8s, asumir error (red, reglas, etc.)
+    this.timeoutCarga = setTimeout(() => {
+      if (this.cargando) {
+        this.ngZone.run(() => {
+          this.cargando = false;
+          this.errorCarga = 'Las vacantes están tardando demasiado en cargar. Revisa tu conexión o intenta refrescar.';
+        });
+      }
+    }, 8000);
+
     // Empezar a escuchar la lista DE INMEDIATO (no bloquear con sembrado).
     // Si la primera respuesta llega vacía, sembramos en background y los
     // documentos creados aparecerán solos por el mismo listener.
-    this.unsub = this.puestosService.listar((lista) => {
-      this.ngZone.run(() => {
-        this.puestos = lista;
-        this.cargando = false;
-      });
+    this.unsub = this.puestosService.listar(
+      (lista) => {
+        this.ngZone.run(() => {
+          if (this.timeoutCarga) { clearTimeout(this.timeoutCarga); this.timeoutCarga = null; }
+          this.puestos = lista;
+          this.cargando = false;
+          this.errorCarga = '';
+        });
 
-      if (!this.yaIntentadoSembrar && lista.length === 0) {
-        this.yaIntentadoSembrar = true;
-        this.puestosService.sembrar().catch(e =>
-          console.warn('No se pudo sembrar el catálogo de puestos:', e)
-        );
+        if (!this.yaIntentadoSembrar && lista.length === 0) {
+          this.yaIntentadoSembrar = true;
+          this.puestosService.sembrar().catch(e =>
+            console.warn('No se pudo sembrar el catálogo de puestos:', e)
+          );
+        }
+      },
+      (err) => {
+        this.ngZone.run(() => {
+          if (this.timeoutCarga) { clearTimeout(this.timeoutCarga); this.timeoutCarga = null; }
+          this.cargando = false;
+          this.errorCarga = 'No se pudieron cargar las vacantes (' + (err?.code || err?.message || 'error desconocido') + '). Verifica las reglas de Firestore o contacta al administrador.';
+        });
       }
-    });
+    );
   }
 
   ngOnDestroy() {
     if (this.unsub) this.unsub();
+    if (this.timeoutCarga) clearTimeout(this.timeoutCarga);
   }
 
   private puestoVacio(): Puesto {
@@ -134,6 +158,11 @@ export class VacantesComponent implements OnInit, OnDestroy {
   /** Abre el portal público en una nueva pestaña */
   abrirPortal() {
     window.open('/portal', '_blank', 'noopener');
+  }
+
+  /** Recarga la página completa (usado tras error de carga) */
+  recargar() {
+    window.location.reload();
   }
 
   /** Activar/desactivar visibilidad pública sin abrir editor */
