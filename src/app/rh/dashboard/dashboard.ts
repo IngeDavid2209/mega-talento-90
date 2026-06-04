@@ -202,7 +202,12 @@ export class DashboardComponent implements OnInit {
   }
 
   contactarWhatsApp(c: any) {
-    window.open(urlWhatsApp(c), '_blank');
+    const url = urlWhatsApp(c);
+    if (!url) {
+      alert(`El teléfono de ${c.nombre || 'este candidato'} no es válido (${c.telefono || 'vacío'}). Corrígelo en el expediente para poder enviar WhatsApp.`);
+      return;
+    }
+    window.open(url, '_blank');
   }
 
   async cambiarEstatus(idCandidato: string, event: any) {

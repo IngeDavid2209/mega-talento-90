@@ -18,6 +18,7 @@ import {
   CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario,
   calcularResultadoLiderazgo
 } from '../../core/models/cuestionario-liderazgo.model';
+import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 
 @Component({
   selector: 'app-expediente',
@@ -390,10 +391,21 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Normaliza el teléfono del candidato actual y, si es inválido, alerta */
+  private obtenerNumeroValido(): string {
+    if (!this.candidato) return '';
+    const numero = normalizarTelefonoMX(this.candidato.telefono || '');
+    if (!numero) {
+      alert(`El teléfono guardado de ${this.candidato.nombre} no es válido (${this.candidato.telefono || 'vacío'}). Corrígelo en el expediente para poder enviar WhatsApp.`);
+      return '';
+    }
+    return numero;
+  }
+
   // WHATSAPP rapport
   contactarWhatsApp() {
-    if (!this.candidato) return;
-    const numero = (this.candidato.telefono || '').replace(/\D/g, '');
+    const numero = this.obtenerNumeroValido();
+    if (!numero) return;
     const msg =
 `Hola ${this.candidato.nombre}, te contacto del equipo de RH de Mega Dulces. ¿Cómo te encuentras?`;
     window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -401,8 +413,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   /** Envía por WhatsApp el link único para que el candidato llene la Evaluación de Liderazgo en vivo */
   enviarEvaluacionPorWhatsApp() {
-    if (!this.candidato) return;
-    const numero = (this.candidato.telefono || '').replace(/\D/g, '');
+    const numero = this.obtenerNumeroValido();
+    if (!numero) return;
     const link = `${window.location.origin}/evaluacion/${this.candidato.id}`;
     const msg =
 `Hola ${this.candidato.nombre}, soy del equipo de Reclutamiento de Mega Dulces.
@@ -435,8 +447,8 @@ Son 12 preguntas breves. Responde con honestidad — veremos tus respuestas en t
 
   /** Envía por WhatsApp el link único para que el candidato llene la solicitud electrónica */
   enviarSolicitudPorWhatsApp() {
-    if (!this.candidato) return;
-    const numero = (this.candidato.telefono || '').replace(/\D/g, '');
+    const numero = this.obtenerNumeroValido();
+    if (!numero) return;
     const link = `${window.location.origin}/solicitud/${this.candidato.id}`;
     const msg =
 `Hola ${this.candidato.nombre}, soy del equipo de Recursos Humanos de Mega Dulces de Los Altos.

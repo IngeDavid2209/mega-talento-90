@@ -76,8 +76,42 @@ Antes de agendar entrevista, necesito confirmar algunos datos:
 Quedo atenta para revisar si tu perfil coincide con la vacante.`;
 }
 
-/** Construye la URL de WhatsApp con el mensaje de primer contacto */
+/**
+ * Normaliza un teléfono mexicano a 10 dígitos sin código de país.
+ * Acepta formatos como:
+ *   - "3521234567"          → "3521234567"
+ *   - "+52 352 123 4567"    → "3521234567"
+ *   - "+52 1 352 123 4567"  → "3521234567"  (formato móvil viejo con "1")
+ *   - "01 352 123 4567"     → "3521234567"
+ * Devuelve cadena vacía si el resultado no es exactamente 10 dígitos.
+ *
+ * IMPORTANTE: corrige el bug donde teléfonos con prefijo 52 quedaban
+ * doblemente prefijados (https://wa.me/52[52...]) y WhatsApp los abría
+ * en un contacto distinto.
+ */
+export function normalizarTelefonoMX(telefono: string): string {
+  let n = (telefono || '').replace(/\D/g, '');
+  // +52 1 XXXXXXXXXX (formato móvil viejo con "1" después del 52)
+  if (n.length === 13 && n.startsWith('521')) n = n.slice(3);
+  // +52 XXXXXXXXXX
+  else if (n.length === 12 && n.startsWith('52')) n = n.slice(2);
+  // 01 XXXXXXXXXX (formato fijo viejo)
+  else if (n.length === 12 && n.startsWith('01')) n = n.slice(2);
+  // 1 XXXXXXXXXX
+  else if (n.length === 11 && n.startsWith('1')) n = n.slice(1);
+  // 0 XXXXXXXXXX
+  else if (n.length === 11 && n.startsWith('0')) n = n.slice(1);
+  return n.length === 10 ? n : '';
+}
+
+/**
+ * Construye la URL de WhatsApp con el mensaje de primer contacto.
+ * Si el teléfono del candidato no se puede normalizar a 10 dígitos
+ * devuelve cadena vacía — el componente que lo invoque debe avisar
+ * al usuario y NO abrir wa.me con un número inválido.
+ */
 export function urlWhatsApp(candidato: { telefono?: string; puesto?: string }): string {
-  const numero = (candidato.telefono || '').replace(/\D/g, '');
+  const numero = normalizarTelefonoMX(candidato.telefono || '');
+  if (!numero) return '';
   return `https://wa.me/52${numero}?text=${encodeURIComponent(plantillaPrimerContacto(candidato))}`;
 }

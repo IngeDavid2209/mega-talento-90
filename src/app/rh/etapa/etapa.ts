@@ -155,7 +155,12 @@ export class EtapaComponent implements OnInit, OnDestroy {
   }
 
   contactarWhatsApp(c: any) {
-    window.open(urlWhatsApp(c), '_blank');
+    const url = urlWhatsApp(c);
+    if (!url) {
+      alert(`El teléfono de ${c.nombre || 'este candidato'} no es válido (${c.telefono || 'vacío'}). Corrígelo en el expediente para poder enviar WhatsApp.`);
+      return;
+    }
+    window.open(url, '_blank');
   }
 
   /** Detecta si el candidato envió CV y de qué tipo (pdf / foto) */
