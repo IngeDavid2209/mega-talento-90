@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, ViewChild, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -7,6 +7,14 @@ import { subirACloudinary } from '../../app/core/services/cloudinary';
 import { PuestosService } from '../../app/core/services/puestos.service';
 
 type TipoCV = 'pdf' | 'fotos';
+
+/**
+ * Site key de reCAPTCHA v2 (Google).
+ * IMPORTANTE: Esta es la clave PÚBLICA de prueba de Google — siempre pasa.
+ * Para producción real, registra el dominio en https://www.google.com/recaptcha/admin
+ * (elige "reCAPTCHA v2 · Casilla 'No soy un robot'") y reemplaza este valor.
+ */
+const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 
 @Component({
   selector: 'app-candidate-form',
@@ -20,6 +28,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
   private puestosService = inject(PuestosService);
   private route = inject(ActivatedRoute);
+  private ngZone = inject(NgZone);
   private unsubPuestos: any;
 
   // El candidato debe entregar CV: o un PDF o dos fotos (frente y reverso)
@@ -30,6 +39,11 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
   // Previews locales (data URL) para que el candidato vea lo que sube
   previewFrente = '';
   previewReverso = '';
+
+  // reCAPTCHA v2 ("No soy un robot")
+  captchaToken = '';
+  private captchaWidgetId: number | null = null;
+  private intentoRenderCaptcha = 0;
 
   subiendo = false;
   // Modal de feedback dentro de la app (reemplaza alert() nativo del browser)
@@ -58,10 +72,72 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
 
     // Aplicar el query param también al instante por si la lista ya está cargada
     this.aplicarQueryPuesto();
+
+    // Cargar el script de reCAPTCHA y renderizar el widget
+    this.cargarRecaptcha();
   }
 
   ngOnDestroy() {
     if (this.unsubPuestos) this.unsubPuestos();
+  }
+
+  /** Inyecta el script de Google reCAPTCHA si no está cargado y luego renderiza */
+  private cargarRecaptcha() {
+    const win = window as any;
+    // Si ya está cargado, solo renderizar
+    if (win.grecaptcha && typeof win.grecaptcha.render === 'function') {
+      setTimeout(() => this.renderizarRecaptcha(), 50);
+      return;
+    }
+    // Si el script ya está siendo cargado por otra parte de la app, esperar
+    if (document.getElementById('recaptcha-script')) {
+      setTimeout(() => this.cargarRecaptcha(), 200);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'recaptcha-script';
+    script.src = 'https://www.google.com/recaptcha/api.js?onload=megaTalentoOnRecaptchaLoad&render=explicit';
+    script.async = true;
+    script.defer = true;
+    // Callback global que Google invoca cuando el script termina de cargar
+    win.megaTalentoOnRecaptchaLoad = () => this.renderizarRecaptcha();
+    document.head.appendChild(script);
+  }
+
+  /** Renderiza el widget en el contenedor #captcha-container del template */
+  private renderizarRecaptcha() {
+    const win = window as any;
+    if (this.captchaWidgetId !== null) return; // ya renderizado
+    const contenedor = document.getElementById('captcha-container');
+    if (!contenedor || !win.grecaptcha?.render) {
+      // El DOM aún no tiene el contenedor; reintentar unas cuantas veces
+      if (this.intentoRenderCaptcha < 20) {
+        this.intentoRenderCaptcha++;
+        setTimeout(() => this.renderizarRecaptcha(), 150);
+      }
+      return;
+    }
+    this.captchaWidgetId = win.grecaptcha.render(contenedor, {
+      sitekey: RECAPTCHA_SITE_KEY,
+      callback: (token: string) => {
+        this.ngZone.run(() => this.captchaToken = token);
+      },
+      'expired-callback': () => {
+        this.ngZone.run(() => this.captchaToken = '');
+      },
+      'error-callback': () => {
+        this.ngZone.run(() => this.captchaToken = '');
+      }
+    });
+  }
+
+  /** Resetea el widget para que el usuario pueda volver a pasar la prueba */
+  private resetearRecaptcha() {
+    const win = window as any;
+    if (this.captchaWidgetId !== null && win.grecaptcha?.reset) {
+      win.grecaptcha.reset(this.captchaWidgetId);
+    }
+    this.captchaToken = '';
   }
 
   /** Si vienen desde la cartelera /empleos con ?puesto=X, pre-seleccionar el puesto */
@@ -194,6 +270,14 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       };
       return;
     }
+    if (!this.captchaToken) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Verificación pendiente',
+        mensaje: 'Marca la casilla "No soy un robot" antes de enviar tu solicitud.'
+      };
+      return;
+    }
 
     this.subiendo = true;
 
@@ -280,6 +364,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     this.fotoReverso = null;
     this.previewFrente = '';
     this.previewReverso = '';
+    this.resetearRecaptcha();
 
     if (this.talentoForm) {
       this.talentoForm.resetForm();

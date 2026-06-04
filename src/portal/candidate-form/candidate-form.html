@@ -218,8 +218,15 @@
         }
       </div>
 
+      <!-- CAPTCHA "No soy un robot" -->
+      <div class="form-group captcha-group">
+        <label>Verificación de seguridad <span class="required-star">*</span></label>
+        <p class="captcha-instructions">Confirma que no eres un robot para poder enviar tu solicitud.</p>
+        <div id="captcha-container" class="captcha-container"></div>
+      </div>
+
       <!-- BOTÓN -->
-      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || (candidate.puesto === 'Otro' && !otroPuesto)">
+      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || !captchaToken || (candidate.puesto === 'Otro' && !otroPuesto)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
