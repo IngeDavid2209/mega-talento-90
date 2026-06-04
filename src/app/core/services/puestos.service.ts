@@ -71,31 +71,26 @@ export class PuestosService {
   }
 
   /**
-   * Si la colección está vacía, la siembra con los puestos del catálogo
-   * estático para no empezar de cero. Se llama una sola vez al cargar admin.
+   * Siembra el catálogo estático en Firestore SIN verificar si ya hay datos.
+   * El componente que llame esto debe confirmar primero que la colección
+   * está vacía (típicamente a partir de la primera respuesta de listar()).
+   * Esto evita hacer un getDocs extra en cada carga de la vista admin.
    */
-  async sembrarSiVacio(): Promise<void> {
-    try {
-      const actuales = await this.obtener();
-      if (actuales.length > 0) return;
-      // Crear cada puesto semilla con un ID predecible (slug del nombre)
-      let i = 0;
-      for (const p of PUESTOS_SEMILLA) {
-        const id = p.nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        await setDoc(doc(db, 'puestos', id), {
-          nombre: p.nombre,
-          descripcion: p.descripcion,
-          sucursales: '',
-          sueldo: '',
-          horario: '',
-          activo: true,
-          orden: i++,
-          createdAt: new Date()
-        });
-      }
-      console.log('Catálogo de puestos sembrado con', PUESTOS_SEMILLA.length, 'puestos.');
-    } catch (e) {
-      console.warn('No se pudo sembrar el catálogo de puestos:', e);
+  async sembrar(): Promise<void> {
+    let i = 0;
+    for (const p of PUESTOS_SEMILLA) {
+      const id = p.nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      await setDoc(doc(db, 'puestos', id), {
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        sucursales: '',
+        sueldo: '',
+        horario: '',
+        activo: true,
+        orden: i++,
+        createdAt: new Date()
+      });
     }
+    console.log('Catálogo de puestos sembrado con', PUESTOS_SEMILLA.length, 'puestos.');
   }
 }

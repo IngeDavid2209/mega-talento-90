@@ -28,14 +28,24 @@ export class VacantesComponent implements OnInit, OnDestroy {
   puestoAEliminar: Puesto | null = null;
   borrando = false;
 
+  private yaIntentadoSembrar = false;
+
   async ngOnInit() {
-    // Sembrar el catálogo si la colección está vacía (primera vez)
-    await this.puestosService.sembrarSiVacio();
+    // Empezar a escuchar la lista DE INMEDIATO (no bloquear con sembrado).
+    // Si la primera respuesta llega vacía, sembramos en background y los
+    // documentos creados aparecerán solos por el mismo listener.
     this.unsub = this.puestosService.listar((lista) => {
       this.ngZone.run(() => {
         this.puestos = lista;
         this.cargando = false;
       });
+
+      if (!this.yaIntentadoSembrar && lista.length === 0) {
+        this.yaIntentadoSembrar = true;
+        this.puestosService.sembrar().catch(e =>
+          console.warn('No se pudo sembrar el catálogo de puestos:', e)
+        );
+      }
     });
   }
 
