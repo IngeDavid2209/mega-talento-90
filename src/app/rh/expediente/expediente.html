@@ -36,7 +36,12 @@
 
         <div class="profile-actions">
           <button class="btn-secondary" (click)="contactarWhatsApp()">Contactar</button>
-          @if (candidato.cvUrl) {
+          @if (candidato.cvFormato === 'fotos' && candidato.cvUrl) {
+            <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">CV (frente)</a>
+            @if (candidato.cvUrlReverso) {
+              <a [href]="candidato.cvUrlReverso" target="_blank" class="btn-outline">CV (reverso)</a>
+            }
+          } @else if (candidato.cvUrl) {
             <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">Ver CV</a>
           }
         </div>
@@ -853,7 +858,24 @@
         </div>
 
         <div class="doc-list">
-          @if (candidato.cvUrl) {
+          @if (candidato.cvFormato === 'fotos' && candidato.cvUrl) {
+            <a [href]="candidato.cvUrl" target="_blank" class="doc-item">
+              <div class="doc-thumb">CV</div>
+              <div>
+                <strong>CV - Frente</strong>
+                <small>Foto enviada por el candidato</small>
+              </div>
+            </a>
+            @if (candidato.cvUrlReverso) {
+              <a [href]="candidato.cvUrlReverso" target="_blank" class="doc-item">
+                <div class="doc-thumb">CV</div>
+                <div>
+                  <strong>CV - Reverso</strong>
+                  <small>Foto enviada por el candidato</small>
+                </div>
+              </a>
+            }
+          } @else if (candidato.cvUrl) {
             <a [href]="candidato.cvUrl" target="_blank" class="doc-item">
               <div class="doc-thumb">CV</div>
               <div>

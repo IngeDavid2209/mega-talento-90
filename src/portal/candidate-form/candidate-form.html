@@ -103,26 +103,123 @@
         </div>
       </div>
 
-      <!-- CV -->
-      <div class="form-group">
-        <label>Curriculum Vitae <span class="optional-tag">(Opcional)</span></label>
-        <label for="cv" class="file-upload-area">
-          <svg class="file-upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <div class="file-upload-text">
-            <span class="file-upload-title">Seleccionar archivo</span>
-            <span class="file-upload-hint">{{ archivoCV ? archivoCV.name : 'Sin archivos seleccionados' }}</span>
+      <!-- CV (OBLIGATORIO) -->
+      <div class="form-group cv-group">
+        <label>Curriculum Vitae <span class="required-star">*</span></label>
+        <p class="cv-instructions">Elige cómo entregarás tu CV. Es obligatorio.</p>
+
+        <!-- Selector de tipo: PDF o Fotos -->
+        <div class="cv-tabs" role="tablist">
+          <button type="button" role="tab"
+                  class="cv-tab"
+                  [class.cv-tab-active]="tipoCV === 'pdf'"
+                  (click)="cambiarTipoCV('pdf')">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <span>Subir PDF</span>
+          </button>
+          <button type="button" role="tab"
+                  class="cv-tab"
+                  [class.cv-tab-active]="tipoCV === 'fotos'"
+                  (click)="cambiarTipoCV('fotos')">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>Fotos del CV</span>
+          </button>
+        </div>
+
+        @if (tipoCV === 'pdf') {
+          <label for="cvPdf" class="file-upload-area" [class.file-ok]="archivoPDF">
+            <svg class="file-upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="file-upload-text">
+              <span class="file-upload-title">{{ archivoPDF ? 'Cambiar PDF' : 'Seleccionar PDF' }}</span>
+              <span class="file-upload-hint">{{ archivoPDF ? archivoPDF.name : 'Sube tu CV en formato PDF' }}</span>
+            </div>
+          </label>
+          <input type="file" id="cvPdf" class="hidden-file-input" (change)="onFileSelected($event, 'pdf')" accept=".pdf,application/pdf" />
+          <p class="file-hint">PDF únicamente. Máximo 5 MB.</p>
+        } @else {
+          <p class="fotos-hint">Sube DOS fotos claras de tu CV: una del <strong>frente</strong> y otra del <strong>reverso</strong>. Ambas son obligatorias.</p>
+
+          <div class="fotos-grid">
+            <!-- FRENTE -->
+            <div class="foto-slot">
+              <label for="cvFrente" class="foto-upload" [class.foto-ok]="fotoFrente">
+                @if (previewFrente) {
+                  <img [src]="previewFrente" alt="Frente del CV" class="foto-preview" />
+                  <div class="foto-overlay">
+                    <span>Cambiar</span>
+                  </div>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span class="foto-label">FRENTE</span>
+                  <span class="foto-hint">Toca para tomar/seleccionar</span>
+                }
+              </label>
+              <input type="file" id="cvFrente" class="hidden-file-input"
+                     (change)="onFileSelected($event, 'frente')"
+                     accept="image/*" capture="environment" />
+              <div class="foto-tag" [class.foto-tag-ok]="fotoFrente">
+                @if (fotoFrente) {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Frente listo
+                } @else {
+                  Frente del CV
+                }
+              </div>
+            </div>
+
+            <!-- REVERSO -->
+            <div class="foto-slot">
+              <label for="cvReverso" class="foto-upload" [class.foto-ok]="fotoReverso">
+                @if (previewReverso) {
+                  <img [src]="previewReverso" alt="Reverso del CV" class="foto-preview" />
+                  <div class="foto-overlay">
+                    <span>Cambiar</span>
+                  </div>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span class="foto-label">REVERSO</span>
+                  <span class="foto-hint">Toca para tomar/seleccionar</span>
+                }
+              </label>
+              <input type="file" id="cvReverso" class="hidden-file-input"
+                     (change)="onFileSelected($event, 'reverso')"
+                     accept="image/*" capture="environment" />
+              <div class="foto-tag" [class.foto-tag-ok]="fotoReverso">
+                @if (fotoReverso) {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Reverso listo
+                } @else {
+                  Reverso del CV
+                }
+              </div>
+            </div>
           </div>
-        </label>
-        <input type="file" id="cv" class="hidden-file-input" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" />
-        <p class="file-hint">* Opcional. PDF o foto (JPG/PNG). Máximo 5MB.</p>
+
+          <p class="file-hint">JPG, PNG o HEIC. Máximo 5 MB por foto. Asegúrate que se lea el texto.</p>
+        }
       </div>
 
       <!-- BOTÓN -->
-      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || (candidate.puesto === 'Otro' && !otroPuesto)">
+      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || (candidate.puesto === 'Otro' && !otroPuesto)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>

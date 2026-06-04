@@ -259,6 +259,187 @@ label.label-error { color: #DC2626; }
   margin: 8px 0 0;
 }
 
+/* ============================================
+   CV OBLIGATORIO: tabs (PDF / Fotos) + slots
+   ============================================ */
+.cv-group {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  padding: 16px 14px;
+}
+.cv-instructions {
+  font-size: 12.5px;
+  color: #7c2d12;
+  margin: 4px 0 12px;
+  font-weight: 500;
+}
+
+.cv-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: #fff;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #fcd9b6;
+  margin-bottom: 14px;
+}
+.cv-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.cv-tab svg {
+  width: 18px;
+  height: 18px;
+}
+.cv-tab:hover {
+  background: #fef3e7;
+  color: #c2410c;
+}
+.cv-tab-active {
+  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+}
+.cv-tab-active:hover {
+  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  color: #ffffff;
+}
+
+/* Cuando el PDF ya está cargado */
+.file-upload-area.file-ok {
+  border-color: #16a34a;
+  background-color: #f0fdf4;
+}
+.file-upload-area.file-ok .file-upload-icon {
+  color: #16a34a;
+}
+
+/* Fotos: frente + reverso */
+.fotos-hint {
+  font-size: 12.5px;
+  color: #475569;
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+.fotos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.foto-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.foto-upload {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 3 / 4;
+  background-color: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  color: #64748b;
+  text-align: center;
+  padding: 8px;
+}
+.foto-upload:hover {
+  border-color: #DC2626;
+  background-color: #fef2f2;
+  color: #DC2626;
+}
+.foto-upload svg {
+  width: 30px;
+  height: 30px;
+}
+.foto-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #0f172a;
+}
+.foto-hint {
+  font-size: 10.5px;
+  color: #94a3b8;
+  line-height: 1.25;
+  padding: 0 4px;
+}
+.foto-upload.foto-ok {
+  border-style: solid;
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+.foto-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.foto-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 6px;
+  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.foto-upload:hover .foto-overlay {
+  opacity: 1;
+}
+.foto-overlay span {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+.foto-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+.foto-tag svg {
+  width: 11px;
+  height: 11px;
+}
+.foto-tag.foto-tag-ok {
+  color: #166534;
+  background: #dcfce7;
+}
+
 /* BOTÓN */
 .btn-submit {
   width: 100%;
