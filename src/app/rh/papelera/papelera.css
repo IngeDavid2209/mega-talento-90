@@ -3,7 +3,7 @@
   margin: 0 auto;
   padding: 28px 24px 60px;
   font-family: 'DM Sans', system-ui, sans-serif;
-  color: #0E0D0B;
+  color: var(--ink);
 }
 
 .pap-header {
@@ -20,14 +20,14 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #8C6D1F;
+  color: var(--gold);
   margin-bottom: 6px;
 }
 .pap-header h2 {
   font-size: 26px;
   font-weight: 700;
   margin: 0 0 6px;
-  color: #0E0D0B;
+  color: var(--ink);
 }
 .pap-desc {
   max-width: 720px;
@@ -36,8 +36,8 @@
   color: #475569;
   line-height: 1.55;
 }
-.pap-desc strong { color: #0E0D0B; }
-.pap-desc em { color: #8B1A1A; font-style: normal; font-weight: 600; }
+.pap-desc strong { color: var(--ink); }
+.pap-desc em { color: var(--ink); font-style: normal; font-weight: 600; }
 
 .btn-vaciar {
   background: #fff;
@@ -85,7 +85,7 @@
   width: 36px;
   height: 36px;
   border: 3px solid #e5e7eb;
-  border-top-color: #8B1A1A;
+  border-top-color: var(--ink);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 14px;
@@ -103,7 +103,7 @@
   justify-content: center;
 }
 .state-block.empty .state-icon svg { width: 24px; height: 24px; }
-.state-block h3 { margin: 0 0 4px; font-size: 17px; color: #0E0D0B; }
+.state-block h3 { margin: 0 0 4px; font-size: 17px; color: var(--ink); }
 .state-block p { margin: 0; font-size: 13px; }
 
 .pap-toolbar {
@@ -130,7 +130,7 @@
   background: transparent;
   outline: none;
   font-size: 14px;
-  color: #0E0D0B;
+  color: var(--ink);
   font-family: inherit;
 }
 .contador {
@@ -187,10 +187,10 @@
 }
 .pap-meta-superior strong {
   font-size: 15px;
-  color: #0E0D0B;
+  color: var(--ink);
   cursor: pointer;
 }
-.pap-meta-superior strong:hover { color: #8B1A1A; text-decoration: underline; }
+.pap-meta-superior strong:hover { color: var(--ink); text-decoration: underline; }
 
 .etapa-chip {
   display: inline-flex;
@@ -291,7 +291,7 @@
 .modal-card h3 {
   margin: 0 0 8px;
   font-size: 17px;
-  color: #0E0D0B;
+  color: var(--ink);
 }
 .modal-card p {
   margin: 0 0 8px;

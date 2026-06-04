@@ -1,33 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Lienzo */
-  --bg: #F7F6F2;
+  /* ===== Lienzo (gris azulado neutro, no beige) ===== */
+  --bg: #F4F6FA;
   --surface: #FFFFFF;
-  --surface2: #F0EEE8;
-  --surface3: #FAF9F5;
+  --surface2: #EEF2F8;
+  --surface3: #F8FAFD;
 
-  /* Bordes */
-  --border: rgba(15, 14, 12, 0.08);
-  --border-med: rgba(15, 14, 12, 0.14);
-  --border-strong: rgba(15, 14, 12, 0.22);
+  /* ===== Bordes ===== */
+  --border: rgba(26, 47, 78, 0.10);
+  --border-med: rgba(26, 47, 78, 0.18);
+  --border-strong: rgba(26, 47, 78, 0.28);
 
-  /* Tipografía */
-  --text: #1A1916;
-  --text2: #57544D;
-  --text3: #8A867E;
-  --text4: #B5B1A8;
+  /* ===== Tipografía (texto en navy oscuro, no en negro absoluto) ===== */
+  --text: #1A2F4E;
+  --text2: #4A5568;
+  --text3: #8A95A8;
+  --text4: #B5BCC8;
 
-  /* Identidad corporativa */
-  --ink: #0E0D0B;            /* carbón */
-  --ink-soft: #25231F;
-  --brand: #8B1A1A;          /* rojo institucional Mega Dulces */
-  --brand-deep: #6B0F0F;
-  --brand-bg: #F8ECEC;
-  --gold: #8C6D1F;           /* dorado profundo */
-  --gold-bg: #FAF2DF;
+  /* ===== Identidad corporativa Mega Dulces ===== */
+  /* Navy institucional (reemplaza al carbón) */
+  --ink: #1A2F4E;
+  --ink-soft: #2A4D7E;
+  --ink-deep: #0F1F3D;
 
-  /* Estados semánticos (sobrios) */
+  /* Brand = navy (lo usábamos como rojo, ahora unifica con la identidad) */
+  --brand: #1A2F4E;
+  --brand-deep: #0F1F3D;
+  --brand-bg: #EEF2F8;
+
+  /* Dorado institucional (más amarillo, como el del header del PDF de Liderazgo) */
+  --gold: #E5A300;
+  --gold-bright: #FFC233;
+  --gold-bg: #FFF5D6;
+
+  /* Rojo Mega Dulces — para logo y acciones destructivas */
+  --red-brand: #8B1A1A;
+  --red-brand-bg: #FEF2F2;
+
+  /* ===== Estados semánticos (sobrios) ===== */
   --blue: #1A4FB0;
   --blue-bg: #EAF0FB;
   --blue-text: #0E2F75;
@@ -43,17 +54,17 @@
   --slate: #475569;
   --slate-bg: #EEF0F2;
 
-  /* Forma */
+  /* ===== Forma ===== */
   --radius-sm: 4px;
   --radius: 6px;
   --radius-lg: 10px;
   --radius-xl: 14px;
 
-  /* Sombra (suaves, sin gradiente colorido) */
-  --shadow-xs: 0 1px 1px rgba(15,14,12,0.04);
-  --shadow: 0 1px 2px rgba(15,14,12,0.05), 0 1px 1px rgba(15,14,12,0.03);
-  --shadow-md: 0 4px 12px -4px rgba(15,14,12,0.10), 0 2px 4px -2px rgba(15,14,12,0.06);
-  --shadow-lg: 0 12px 28px -12px rgba(15,14,12,0.18);
+  /* ===== Sombra ===== */
+  --shadow-xs: 0 1px 1px rgba(26, 47, 78, 0.04);
+  --shadow: 0 1px 2px rgba(26, 47, 78, 0.06), 0 1px 1px rgba(26, 47, 78, 0.03);
+  --shadow-md: 0 4px 12px -4px rgba(26, 47, 78, 0.12), 0 2px 4px -2px rgba(26, 47, 78, 0.06);
+  --shadow-lg: 0 12px 28px -12px rgba(26, 47, 78, 0.22);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -86,5 +97,5 @@ h1, h2, h3, h4, h5 {
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(15,14,12,0.12); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(15,14,12,0.22); }
+::-webkit-scrollbar-thumb { background: rgba(26, 47, 78, 0.14); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26, 47, 78, 0.28); }

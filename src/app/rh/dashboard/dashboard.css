@@ -438,7 +438,7 @@
   line-height: 1.55;
 }
 .modal-message strong { color: var(--ink); font-weight: 600; }
-.modal-message em { color: #8B1A1A; font-style: normal; font-weight: 600; }
+.modal-message em { color: var(--ink); font-style: normal; font-weight: 600; }
 .modal-error {
   background: #fef2f2;
   border: 1px solid #fecaca;
