@@ -33,20 +33,54 @@ export interface Puesto {
 @Injectable({ providedIn: 'root' })
 export class PuestosService {
 
-  /** Escucha en vivo la lista de puestos */
+  private readonly CACHE_KEY = 'mt_puestos_cache_v1';
+
+  /**
+   * Escucha en vivo la lista de puestos. Para que la UI se sienta instantánea
+   * incluso cuando Firestore tarda en responder, primero entrega lo último
+   * guardado en localStorage (si lo hay) y después la versión fresca cuando
+   * llega del servidor.
+   */
   listar(callback: (puestos: Puesto[]) => void) {
+    // 1. Respuesta INSTANTÁNEA con cache local (si tenemos algo guardado)
+    const cached = this.leerCache();
+    if (cached.length > 0) {
+      // Microtask para no llamar al callback dentro del mismo tick que el ngOnInit
+      Promise.resolve().then(() => callback(cached));
+    }
+
+    // 2. Suscripción real a Firestore (actualiza cuando llegue la respuesta)
     const ref = collection(db, 'puestos');
     return onSnapshot(ref, (snap) => {
       const lista = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Puesto[];
-      // Orden por campo `orden` (si existe), luego por nombre
       lista.sort((a, b) => {
         const oa = a.orden ?? 999;
         const ob = b.orden ?? 999;
         if (oa !== ob) return oa - ob;
         return (a.nombre || '').localeCompare(b.nombre || '');
       });
+      this.escribirCache(lista);
       callback(lista);
     }, (err) => console.error('Error al listar puestos:', err));
+  }
+
+  private leerCache(): Puesto[] {
+    try {
+      const raw = localStorage.getItem(this.CACHE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private escribirCache(lista: Puesto[]) {
+    try {
+      localStorage.setItem(this.CACHE_KEY, JSON.stringify(lista));
+    } catch {
+      // localStorage lleno o deshabilitado — no es crítico, seguimos
+    }
   }
 
   /** Carga los puestos una vez (no en vivo). Útil para sembrado inicial. */
