@@ -116,26 +116,32 @@ export class HistorialComponent implements OnInit {
   // Confirmación de borrado con modal propio
   candidatoAEliminar: any = null;
   borrando = false;
+  errorBorrado = '';
 
   pedirBorrar(c: any) {
     this.candidatoAEliminar = c;
+    this.errorBorrado = '';
   }
 
   cancelarBorrar() {
     this.candidatoAEliminar = null;
+    this.errorBorrado = '';
   }
 
   async confirmarBorrar() {
     if (!this.candidatoAEliminar) return;
     this.borrando = true;
+    this.errorBorrado = '';
     const id = this.candidatoAEliminar.id;
     try {
       await this.candidateService.eliminarCandidato(id);
+      // El historial se carga con getCandidates() (one-shot) así que removemos manualmente
       this.candidatos = this.candidatos.filter(c => c.id !== id);
       this.aplicarFiltros();
       this.candidatoAEliminar = null;
     } catch (e) {
-      console.error('Error al eliminar candidato:', e);
+      console.error('Error al mover candidato a la papelera:', e);
+      this.errorBorrado = 'No se pudo enviar a la papelera. Revisa tu conexión y vuelve a intentar.';
     } finally {
       this.borrando = false;
     }

@@ -1,0 +1,123 @@
+<div class="pap-wrapper">
+
+  <header class="pap-header">
+    <div>
+      <span class="eyebrow">Candidatos borrados</span>
+      <h2>Papelera</h2>
+      <p class="pap-desc">
+        Aquí quedan los candidatos que borraste desde el dashboard o el historial.
+        Puedes <strong>restaurarlos</strong> si fue por error, o <strong>eliminarlos definitivamente</strong>.
+        Mientras estén aquí, si la persona se vuelve a postular en <em>/unete</em> se detectará como duplicado.
+      </p>
+    </div>
+    @if (candidatos.length > 0) {
+      <button class="btn-vaciar" (click)="pedirVaciar()" [disabled]="procesando">
+        Vaciar papelera
+      </button>
+    }
+  </header>
+
+  @if (flash) {
+    <div class="flash" [class.flash-error]="flash.tipo === 'error'">
+      {{ flash.mensaje }}
+    </div>
+  }
+
+  @if (cargando) {
+    <div class="state-block">
+      <div class="spinner"></div>
+      <p>Cargando papelera...</p>
+    </div>
+  } @else if (candidatos.length === 0) {
+    <div class="state-block empty">
+      <div class="state-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </div>
+      <h3>La papelera está vacía</h3>
+      <p>No hay candidatos borrados pendientes de revisión.</p>
+    </div>
+  } @else {
+
+    <div class="pap-toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" [(ngModel)]="busqueda" (ngModelChange)="aplicarFiltro()"
+               placeholder="Buscar por nombre, teléfono o puesto..." />
+      </div>
+      <span class="contador">{{ filtrados.length }} / {{ candidatos.length }}</span>
+    </div>
+
+    <div class="pap-lista">
+      @for (c of filtrados; track c.id) {
+        <article class="pap-card">
+          <div class="pap-avatar">{{ getInitials(c.nombre) }}</div>
+
+          <div class="pap-info">
+            <div class="pap-meta-superior">
+              <strong (click)="abrirExpediente(c)">{{ c.nombre || 'Sin nombre' }}</strong>
+              <span class="etapa-chip">
+                <span class="etapa-dot" [style.background-color]="colorEtapa(c.status)"></span>
+                {{ nombreEtapa(c.status) }}
+              </span>
+            </div>
+
+            <div class="pap-datos">
+              <span>📱 {{ formatearTelefono(c.telefono) }}</span>
+              @if (c.puesto) { <span>· {{ c.puesto }}</span> }
+              @if (c.ciudad) { <span>· {{ c.ciudad }}</span> }
+            </div>
+
+            <div class="pap-fechas">
+              <span class="fecha-borrado">Borrado el {{ formatearFecha(c.deletedAt) }}</span>
+              @if (c.createdAt) {
+                <span class="fecha-creado">· postuló el {{ formatearFecha(c.createdAt) }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="pap-actions">
+            <button class="btn-restaurar" (click)="pedirRestaurar(c)" [disabled]="procesando" title="Restaurar candidato">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              Restaurar
+            </button>
+            <button class="btn-definitivo" (click)="pedirEliminarDefinitivo(c)" [disabled]="procesando" title="Eliminar definitivamente">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+              </svg>
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  @if (confirmacion) {
+    <div class="modal-overlay" (click)="cancelarConfirmacion()"></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <h3>{{ confirmacion.titulo }}</h3>
+      <p>{{ confirmacion.mensaje }}</p>
+      @if (confirmacion.advertencia) {
+        <p class="modal-warning">⚠ {{ confirmacion.advertencia }}</p>
+      }
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="cancelarConfirmacion()" [disabled]="procesando">Cancelar</button>
+        <button class="btn-confirm"
+                [class.btn-confirm-danger]="confirmacion.accion.tipo !== 'restaurar'"
+                (click)="ejecutarConfirmacion()"
+                [disabled]="procesando">
+          {{ procesando ? 'Procesando...' : 'Sí, continuar' }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

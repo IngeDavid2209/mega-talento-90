@@ -13,6 +13,7 @@ import { UsuariosComponent } from './rh/usuarios/usuarios';
 import { HistorialComponent } from './rh/historial/historial';
 import { VacantesComponent } from './rh/vacantes/vacantes';
 import { DuplicadosComponent } from './rh/duplicados/duplicados';
+import { PapeleraComponent } from './rh/papelera/papelera';
 
 export const routes: Routes = [
   // ==========================================
@@ -32,6 +33,7 @@ export const routes: Routes = [
       { path: 'historial', component: HistorialComponent },
       { path: 'vacantes',  component: VacantesComponent },
       { path: 'duplicados', component: DuplicadosComponent },
+      { path: 'papelera',   component: PapeleraComponent },
 
       // Expediente del candidato (conserva menú y seguridad)
       { path: 'expediente/:id', component: ExpedienteComponent },

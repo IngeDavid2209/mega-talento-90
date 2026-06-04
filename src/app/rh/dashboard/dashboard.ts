@@ -217,23 +217,28 @@ export class DashboardComponent implements OnInit {
   // Confirmación de borrado con modal propio (no el confirm() del navegador)
   candidatoAEliminar: any = null;
   borrando = false;
+  errorBorrado = '';
 
   pedirBorrar(c: any) {
     this.candidatoAEliminar = c;
+    this.errorBorrado = '';
   }
 
   cancelarBorrar() {
     this.candidatoAEliminar = null;
+    this.errorBorrado = '';
   }
 
   async confirmarBorrar() {
     if (!this.candidatoAEliminar) return;
     this.borrando = true;
+    this.errorBorrado = '';
     try {
       await this.candidateService.eliminarCandidato(this.candidatoAEliminar.id);
       this.candidatoAEliminar = null;
     } catch (e) {
-      console.error('Error al eliminar candidato:', e);
+      console.error('Error al mover candidato a la papelera:', e);
+      this.errorBorrado = 'No se pudo enviar a la papelera. Revisa tu conexión y vuelve a intentar.';
     } finally {
       this.borrando = false;
     }
