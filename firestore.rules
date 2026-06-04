@@ -1,0 +1,75 @@
+// =====================================================================
+// Reglas de Firestore · Mega Talento 90
+// Pegar este contenido en Firebase Console:
+//   https://console.firebase.google.com/project/megatalento-a3450/firestore/rules
+// =====================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- PUESTOS / VACANTES ----------
+    // Lectura PÚBLICA: el portal /portal y la cartelera /empleos las muestran
+    // a candidatos sin login.
+    // Escritura solo para usuarios autenticados (RH desde /app/vacantes).
+    match /puestos/{puesto} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // ---------- CANDIDATES ----------
+    // CREATE público: cualquiera puede postularse desde /unete.
+    // UPDATE público: el flujo /solicitud y /evaluacion/:id actualizan al
+    //   candidato existente sin login (sólo conoce su id porque RH le mandó
+    //   el link por WhatsApp). Si esto te preocupa, ver nota al final.
+    // READ y DELETE solo autenticado (sólo RH ve / borra expedientes).
+    match /candidates/{candidato} {
+      allow create: if true;
+      allow update: if true;
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null;
+
+      // Subcolecciones de candidates (si existen): solo autenticado
+      match /{document=**} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // ---------- USUARIOS DE RH ----------
+    // Todo solo autenticado (es la gestión interna de cuentas).
+    match /usuarios/{usuario} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ---------- DENY POR DEFECTO ----------
+    // Cualquier otra colección que se cree en el futuro queda bloqueada
+    // hasta que se le defina una regla explícita arriba.
+  }
+}
+
+/*
+NOTAS DE SEGURIDAD
+
+1. Por qué `candidates.update` es público:
+   - /solicitud llena la solicitud electrónica con updateDoc
+   - /evaluacion/:id guarda las respuestas del cuestionario de liderazgo
+   Ambos son flujos públicos para el candidato. El "token" es el id del
+   documento (UID generado por Firestore al crear el candidato), que solo
+   RH conoce porque lo envía por WhatsApp.
+
+   Si en el futuro quieres endurecer esto sin romper el flujo, una opción
+   es agregar un campo `tokenActualizacion` al crear el candidato y validar
+   que el cliente lo envíe en cada update. Pero para una empresa interna
+   de tamaño medio el riesgo es bajo.
+
+2. Por qué `candidates.create` es público:
+   - El formulario /unete tiene que poder crear candidatos sin que la
+     persona esté logueada (es el flujo de postulación).
+   - Mitigado con: captcha de Google reCAPTCHA v2 en /unete y la lógica
+     de buscarDuplicado que bloquea repostulación del mismo teléfono.
+
+3. Por qué `puestos.read` es público:
+   - /portal y /empleos muestran las vacantes activas a cualquier visitante.
+   - No hay info sensible: nombre del puesto, sucursal, sueldo (texto libre).
+*/
