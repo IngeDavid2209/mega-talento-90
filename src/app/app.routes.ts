@@ -6,6 +6,7 @@ import { ExpedienteComponent } from './rh/expediente/expediente';
 import { CandidateFormComponent } from '../portal/candidate-form/candidate-form';
 import { SolicitudComponent } from '../portal/solicitud/solicitud';
 import { EmpleosComponent } from '../portal/empleos/empleos';
+import { PortalComponent } from '../portal/portal/portal';
 import { EvaluacionLiderazgoComponent } from '../portal/evaluacion-liderazgo/evaluacion-liderazgo';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
@@ -47,8 +48,11 @@ export const routes: Routes = [
   
   { path: 'unete', component: CandidateFormComponent },
 
-  // Cartelera pública de vacantes
+  // Cartelera pública de vacantes (versión simple, legado)
   { path: 'empleos', component: EmpleosComponent },
+
+  // Portal de empleo (versión completa con hero, filtros, detalle, footer)
+  { path: 'portal', component: PortalComponent },
 
   // Evaluación de Liderazgo en vivo (el candidato la llena durante la videollamada)
   { path: 'evaluacion/:id', component: EvaluacionLiderazgoComponent },

@@ -1,0 +1,374 @@
+<div class="portal">
+
+  <!-- ============ NAVBAR sticky ============ -->
+  <header class="p-nav" [class.show-menu]="menuMovilAbierto">
+    <div class="p-nav-inner">
+      <a class="p-brand" (click)="irInicio()">
+        <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png"
+             alt="Mega Dulces" class="p-logo" />
+        <div class="p-brand-text">
+          <span class="p-brand-name">Mega Dulces</span>
+          <span class="p-brand-sub">Bolsa de trabajo</span>
+        </div>
+      </a>
+
+      <button class="p-burger" (click)="menuMovilAbierto = !menuMovilAbierto" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="p-links">
+        <a (click)="irInicio()">Inicio</a>
+        <a (click)="irAVacantes()">Vacantes</a>
+        <a routerLink="/unete">Postúlate</a>
+        <a routerLink="/unete" class="p-link-cta">Únete</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <section class="p-hero" id="inicio">
+    <div class="p-hero-bg">
+      <div class="p-hero-blob p-hero-blob-1"></div>
+      <div class="p-hero-blob p-hero-blob-2"></div>
+    </div>
+
+    <div class="p-hero-inner">
+      <span class="p-hero-eyebrow">Capital Humano · Mega Dulces</span>
+      <h1 class="p-hero-title">
+        Forma parte del equipo de <span class="p-hero-accent">Mega Dulces</span>
+      </h1>
+      <p class="p-hero-desc">
+        Encuentra tu próxima oportunidad. Postúlate, da seguimiento a tu proceso y crece con
+        nosotros desde tu celular o computadora.
+      </p>
+      <div class="p-hero-cta">
+        <button class="p-btn p-btn-gold" (click)="irAVacantes()">
+          Ver vacantes disponibles
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+        <a routerLink="/unete" class="p-btn p-btn-outline-light">Dejar mi CV</a>
+      </div>
+
+      @if (!cargando && totalActivas > 0) {
+        <div class="p-hero-stats">
+          <div class="p-stat">
+            <strong>{{ totalActivas }}</strong>
+            <span>{{ totalActivas === 1 ? 'vacante activa' : 'vacantes activas' }}</span>
+          </div>
+          @if (sucursalesUnicas.length > 0) {
+            <div class="p-stat">
+              <strong>{{ sucursalesUnicas.length }}</strong>
+              <span>{{ sucursalesUnicas.length === 1 ? 'ciudad' : 'ciudades' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="p-hero-wave">
+      <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+        <path d="M0,32 C240,80 480,80 720,40 C960,0 1200,0 1440,32 L1440,80 L0,80 Z" fill="#FAF9F5"></path>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ BIENVENIDA ============ -->
+  <section class="p-bienvenida">
+    <div class="p-bien-inner">
+      <div class="p-bien-text">
+        <span class="p-section-eyebrow">Bienvenido/a</span>
+        <h2>Tu próxima oportunidad <br/>empieza aquí</h2>
+        <p>
+          En nuestro Portal de Empleo encuentras vacantes activas de forma rápida y sencilla.
+          Conoce los puestos disponibles, postúlate al que se acomode a tu perfil y nuestro
+          equipo de Capital Humano te contactará para los siguientes pasos.
+        </p>
+        <ul class="p-bullets">
+          <li>
+            <span class="p-bullet-dot"></span>
+            Vacantes verificadas y vigentes
+          </li>
+          <li>
+            <span class="p-bullet-dot"></span>
+            Postulación 100% en línea
+          </li>
+          <li>
+            <span class="p-bullet-dot"></span>
+            Respuesta directa por WhatsApp
+          </li>
+        </ul>
+        <button class="p-btn p-btn-navy" (click)="irAVacantes()">Más información</button>
+      </div>
+
+      <div class="p-bien-visual">
+        <div class="p-bien-card">
+          <div class="p-bien-card-head">
+            <span class="p-bien-card-tag">Equipo Mega Dulces</span>
+            <h3>Liderazgo que inspira,<br/>equipos que transforman</h3>
+          </div>
+          <div class="p-bien-card-decor">
+            <div class="p-deco-circle"></div>
+            <div class="p-deco-circle p-deco-circle-2"></div>
+            <svg viewBox="0 0 80 80" class="p-bien-icon">
+              <circle cx="40" cy="28" r="14" fill="currentColor" opacity="0.9"/>
+              <path d="M12 70 C12 52, 28 44, 40 44 C52 44, 68 52, 68 70 Z" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA REGISTRO ============ -->
+  <section class="p-cta">
+    <div class="p-cta-inner">
+      <div class="p-cta-content">
+        <span class="p-cta-eyebrow">Únete al equipo</span>
+        <h2>Regístrate y crece con nosotros</h2>
+        <p>Postúlate a las vacantes disponibles y da seguimiento a tu proceso desde tu celular.</p>
+      </div>
+      <div class="p-cta-actions">
+        <button class="p-btn p-btn-gold" (click)="irAVacantes()">Ver vacantes</button>
+        <a routerLink="/unete" class="p-btn p-btn-outline">Dejar mi CV</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VACANTES (núcleo) ============ -->
+  <section class="p-vacantes" id="vacantes">
+    <div class="p-vac-inner">
+
+      <div class="p-vac-head">
+        <span class="p-section-eyebrow">Oportunidades</span>
+        <h2>Vacantes disponibles</h2>
+        <p>{{ vacantesFiltradas.length }} {{ vacantesFiltradas.length === 1 ? 'oportunidad' : 'oportunidades' }} para ti</p>
+      </div>
+
+      <!-- Filtros -->
+      <div class="p-filtros">
+        <div class="p-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" [(ngModel)]="busqueda" placeholder="Buscar por puesto, área o palabra clave..." />
+          @if (busqueda) {
+            <button class="p-search-clear" (click)="busqueda = ''" aria-label="Limpiar búsqueda">✕</button>
+          }
+        </div>
+
+        @if (sucursalesUnicas.length > 0) {
+          <div class="p-select-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <select [(ngModel)]="filtroSucursal">
+              <option value="">Todas las ciudades</option>
+              @for (s of sucursalesUnicas; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (busqueda || filtroSucursal) {
+          <button class="p-btn-text" (click)="limpiarFiltros()">Limpiar filtros</button>
+        }
+      </div>
+
+      <!-- Grid de tarjetas -->
+      @if (cargando) {
+        <div class="p-state">
+          <div class="p-spinner"></div>
+          <p>Cargando vacantes...</p>
+        </div>
+      } @else if (puestos.length === 0) {
+        <div class="p-state">
+          <div class="p-state-icon">📭</div>
+          <h3>No hay vacantes publicadas en este momento</h3>
+          <p>Vuelve pronto o déjanos tu CV para futuras oportunidades.</p>
+          <a routerLink="/unete" class="p-btn p-btn-navy">Dejar mi CV</a>
+        </div>
+      } @else if (vacantesFiltradas.length === 0) {
+        <div class="p-state">
+          <div class="p-state-icon">🔎</div>
+          <h3>No hay vacantes que coincidan</h3>
+          <p>Intenta con otros términos o limpia los filtros.</p>
+          <button class="p-btn p-btn-navy" (click)="limpiarFiltros()">Mostrar todas</button>
+        </div>
+      } @else {
+        <div class="p-grid">
+          @for (p of vacantesFiltradas; track p.id) {
+            <article class="p-card">
+              <div class="p-card-top">
+                <div class="p-card-avatar">{{ iniciales(p.nombre) }}</div>
+                <span class="p-card-fecha">{{ hacePoco(p.createdAt) }}</span>
+              </div>
+
+              <h3 class="p-card-title">{{ p.nombre }}</h3>
+
+              <div class="p-card-meta">
+                @if (p.sucursales) {
+                  <span class="p-meta-row">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    {{ p.sucursales }}
+                  </span>
+                }
+                @if (p.horario) {
+                  <span class="p-meta-row">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {{ p.horario }}
+                  </span>
+                }
+                @if (p.sueldo) {
+                  <span class="p-meta-row p-meta-sueldo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    {{ p.sueldo }}
+                  </span>
+                }
+              </div>
+
+              <p class="p-card-desc">{{ p.descripcion }}</p>
+
+              <button class="p-card-btn" (click)="abrirDetalle(p)">
+                Más información
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="p-footer">
+    <div class="p-footer-top">
+      <div class="p-foot-col p-foot-brand">
+        <h3>Mega Dulces de Los Altos</h3>
+        <p>Bolsa de trabajo · Portal de empleo</p>
+        <p class="p-foot-tagline">Liderazgo que inspira, equipos que transforman.</p>
+      </div>
+
+      <div class="p-foot-col">
+        <h4>Contacto</h4>
+        <p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          Capital Humano · WhatsApp
+        </p>
+        <p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          desarrollador.david&#64;megadulces.com.mx
+        </p>
+      </div>
+
+      <div class="p-foot-col">
+        <h4>Capital Humano</h4>
+        <a routerLink="/unete">Postúlate ahora</a>
+        <a (click)="irAVacantes()">Ver vacantes</a>
+        <a routerLink="/empleos">Cartelera pública</a>
+      </div>
+
+      <div class="p-foot-col">
+        <h4>Información</h4>
+        <p>Tu información es confidencial y se trata exclusivamente para fines de reclutamiento.</p>
+      </div>
+    </div>
+
+    <div class="p-footer-bottom">
+      <small>© Mega Dulces de Los Altos {{ year }} · Todos los derechos reservados</small>
+      <small class="p-foot-extra">Sistema Mega Talento 90 · Capital Humano</small>
+    </div>
+  </footer>
+
+  <!-- ============ BOTÓN VOLVER ARRIBA ============ -->
+  @if (mostrarVolverArriba) {
+    <button class="p-up" (click)="volverArriba()" aria-label="Volver arriba">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"></line>
+        <polyline points="5 12 12 5 19 12"></polyline>
+      </svg>
+    </button>
+  }
+
+  <!-- ============ DETALLE (modal) ============ -->
+  @if (vacanteSeleccionada) {
+    <div class="p-modal-overlay" (click)="cerrarDetalle()"></div>
+    <div class="p-modal" role="dialog" aria-modal="true">
+      <button class="p-modal-close" (click)="cerrarDetalle()" aria-label="Cerrar">✕</button>
+
+      <div class="p-modal-head">
+        <div class="p-modal-tag-row">
+          <span class="p-modal-tag">{{ hacePoco(vacanteSeleccionada.createdAt) }}</span>
+          @if (vacanteSeleccionada.sucursales) {
+            <span class="p-modal-ubic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              {{ vacanteSeleccionada.sucursales }}
+            </span>
+          }
+        </div>
+        <h2>{{ vacanteSeleccionada.nombre }}</h2>
+      </div>
+
+      <div class="p-modal-body">
+        <section>
+          <h4>Sobre el puesto</h4>
+          <p>{{ vacanteSeleccionada.descripcion }}</p>
+        </section>
+
+        @if (vacanteSeleccionada.sueldo || vacanteSeleccionada.horario) {
+          <section>
+            <h4>Detalles</h4>
+            <ul class="p-modal-list">
+              @if (vacanteSeleccionada.sueldo) {
+                <li><strong>Sueldo:</strong> {{ vacanteSeleccionada.sueldo }}</li>
+              }
+              @if (vacanteSeleccionada.horario) {
+                <li><strong>Horario:</strong> {{ vacanteSeleccionada.horario }}</li>
+              }
+              @if (vacanteSeleccionada.sucursales) {
+                <li><strong>Ubicación:</strong> {{ vacanteSeleccionada.sucursales }}</li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+
+      <div class="p-modal-cta">
+        <button class="p-btn p-btn-gold p-btn-block" (click)="postularme(vacanteSeleccionada)">
+          Postularme ahora
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+        <small>Llenarás un formulario de menos de 3 minutos.</small>
+      </div>
+    </div>
+  }
+
+</div>
