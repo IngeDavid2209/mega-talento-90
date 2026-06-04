@@ -23,8 +23,12 @@ export const PUESTOS: PuestoInfo[] = [
     descripcion: 'Recepción, acomodo y control de mercancía, surtido de pedidos, orden y limpieza del almacén. Trabajo físico y seguimiento de inventarios.'
   },
   {
-    nombre: 'Chofer Repartidor',
-    descripcion: 'Reparto de mercancía a sucursales o clientes, carga y descarga, cuidado de la unidad y entrega documentada. Se requiere licencia vigente y conocimiento de rutas.'
+    nombre: 'Chofer',
+    descripcion: 'Traslado de mercancía a sucursales o clientes, carga y descarga, cuidado de la unidad y entrega documentada. Se requiere licencia vigente y conocimiento de rutas.'
+  },
+  {
+    nombre: 'Logística',
+    descripcion: 'Planeación y coordinación de rutas, control de pedidos, embarques y entregas, seguimiento de inventarios en tránsito y comunicación con sucursales y choferes. Orden, organización y orientación a resultados.'
   },
   {
     nombre: 'Gerente de Sucursal',
