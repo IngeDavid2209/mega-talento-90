@@ -111,4 +111,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   toggleMenu() {
     this.isMenuOpen = !this.isMenuOpen;
   }
+
+  /** Abre el portal público en una nueva pestaña */
+  abrirPortal() {
+    this.isMenuOpen = false;
+    window.open('/portal', '_blank', 'noopener');
+  }
 }

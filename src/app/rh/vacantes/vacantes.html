@@ -4,17 +4,17 @@
     <div>
       <span class="eyebrow">Administración</span>
       <h2>Gestión de Vacantes</h2>
-      <p class="subtitle">Crea, edita y administra los puestos disponibles. Lo que actives aquí aparece automáticamente en el <a href="/portal" target="_blank" rel="noopener" class="link-portal">portal público</a> y en el formulario de postulación.</p>
+      <p class="subtitle">Crea, edita y administra los puestos disponibles. Lo que actives aquí aparece automáticamente en el <a (click)="abrirPortal()" class="link-portal" style="cursor: pointer;">portal público</a> y en el formulario de postulación.</p>
     </div>
     <div class="page-actions">
-      <a href="/portal" target="_blank" rel="noopener" class="btn-secondary">
+      <button type="button" class="btn-secondary" (click)="abrirPortal()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
           <polyline points="15 3 21 3 21 9"></polyline>
           <line x1="10" y1="14" x2="21" y2="3"></line>
         </svg>
         Vista previa del portal
-      </a>
+      </button>
       <button class="btn-primary" (click)="abrirNuevo()">+ Nueva vacante</button>
     </div>
   </div>

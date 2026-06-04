@@ -84,8 +84,8 @@
             <span class="nav-icon">⊠</span> Vacantes
           </a>
         </li>
-        <li (click)="isMenuOpen = false">
-          <a href="/portal" target="_blank" rel="noopener" class="nav-external">
+        <li>
+          <a (click)="abrirPortal()" class="nav-external" style="cursor: pointer;">
             <span class="nav-icon">↗</span>
             <span class="nav-text">Ver portal público</span>
             <span class="nav-extbadge">Nueva pestaña</span>

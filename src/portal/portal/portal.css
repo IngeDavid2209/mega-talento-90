@@ -12,12 +12,12 @@
   position: relative;
 }
 
-/* el portal vive en una ruta pública sin layout RH, lo dejamos scrollable */
+/* El portal vive en una ruta pública sin layout RH; el TS hace que
+   html/body sean scrollables al montar este componente, así que el
+   :host se comporta como bloque natural. */
 :host {
   display: block;
   width: 100%;
-  height: 100vh;
-  overflow-y: auto;
   background: #FAF9F5;
 }
 

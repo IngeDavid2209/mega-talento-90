@@ -131,6 +131,11 @@ export class VacantesComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Abre el portal público en una nueva pestaña */
+  abrirPortal() {
+    window.open('/portal', '_blank', 'noopener');
+  }
+
   /** Activar/desactivar visibilidad pública sin abrir editor */
   async alternarActivo(p: Puesto) {
     if (!p.id) return;

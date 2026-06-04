@@ -31,7 +31,19 @@ export class PortalComponent implements OnInit, OnDestroy {
 
   private unsub: any;
 
+  // Guardamos los estilos originales de html/body para restaurarlos al salir
+  private estiloHtmlOriginal = '';
+  private estiloBodyOriginal = '';
+
   ngOnInit() {
+    // El styles.css global pone overflow:hidden y height:100vh en html/body
+    // para que el back-office sea pantalla completa sin scroll. Para el
+    // portal SÍ necesitamos scroll natural del documento.
+    this.estiloHtmlOriginal = document.documentElement.style.cssText;
+    this.estiloBodyOriginal = document.body.style.cssText;
+    document.documentElement.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
+    document.body.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
+
     this.unsub = this.puestosService.listar((lista) => {
       this.puestos = lista.filter(p => p.activo);
       this.cargando = false;
@@ -40,7 +52,10 @@ export class PortalComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.unsub) this.unsub();
-    document.body.style.overflow = '';
+    // Restaurar los estilos globales para que el back-office vuelva a su
+    // estado original (sin scroll del documento, layout interno se encarga)
+    document.documentElement.style.cssText = this.estiloHtmlOriginal;
+    document.body.style.cssText = this.estiloBodyOriginal;
   }
 
   @HostListener('window:scroll')
