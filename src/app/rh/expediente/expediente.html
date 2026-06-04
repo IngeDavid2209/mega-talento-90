@@ -44,6 +44,9 @@
           } @else if (candidato.cvUrl) {
             <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">Ver CV</a>
           }
+          @if (candidato.licenciaUrl) {
+            <a [href]="candidato.licenciaUrl" target="_blank" class="btn-outline">Ver licencia</a>
+          }
         </div>
       </div>
     </header>
@@ -881,6 +884,15 @@
               <div>
                 <strong>Curriculum Vitae</strong>
                 <small>Documento inicial</small>
+              </div>
+            </a>
+          }
+          @if (candidato.licenciaUrl) {
+            <a [href]="candidato.licenciaUrl" target="_blank" class="doc-item">
+              <div class="doc-thumb">LIC</div>
+              <div>
+                <strong>Licencia de manejo</strong>
+                <small>Enviada al postularse para {{ candidato.puesto }}</small>
               </div>
             </a>
           }

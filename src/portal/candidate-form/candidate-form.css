@@ -441,6 +441,37 @@ label.label-error { color: #DC2626; }
 }
 
 /* ============================================
+   LICENCIA DE MANEJO (Chofer / Logística)
+   ============================================ */
+.licencia-group {
+  background: #fef3e7;
+  border: 1px solid #fcd9b6;
+  border-radius: 14px;
+  padding: 16px 14px;
+  animation: licencia-fade-in 0.25s ease-out;
+}
+@keyframes licencia-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.licencia-instructions {
+  font-size: 12.5px;
+  color: #7c2d12;
+  margin: 4px 0 12px;
+  line-height: 1.5;
+}
+.licencia-instructions strong { color: #9a3412; }
+
+.licencia-preview-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  border: 1.5px solid #16a34a;
+}
+
+/* ============================================
    CAPTCHA "No soy un robot"
    ============================================ */
 .captcha-group {

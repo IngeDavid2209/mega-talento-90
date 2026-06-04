@@ -63,7 +63,7 @@
             <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
           </svg>
-          <select [(ngModel)]="candidate.puesto" name="puesto" required>
+          <select [(ngModel)]="candidate.puesto" name="puesto" (change)="onPuestoChange()" required>
             <option value="" disabled selected>Selecciona un puesto...</option>
             @for (puesto of puestos; track puesto) {
               <option [value]="puesto">{{ puesto }}</option>
@@ -82,6 +82,39 @@
             </svg>
             <input type="text" [(ngModel)]="otroPuesto" name="otroPuesto" required placeholder="Ej. Guardia de Seguridad">
           </div>
+        </div>
+      }
+
+      <!-- LICENCIA DE MANEJO (obligatoria si puesto es Chofer o Logística) -->
+      @if (requiereLicencia) {
+        <div class="form-group licencia-group">
+          <label>Licencia de manejo <span class="required-star">*</span></label>
+          <p class="licencia-instructions">
+            Como te postulas para <strong>{{ candidate.puesto }}</strong>, debes adjuntar tu licencia de manejo
+            <strong>vigente</strong>. Acepta PDF o foto.
+          </p>
+
+          <label for="licenciaInput" class="file-upload-area" [class.file-ok]="licencia">
+            @if (previewLicencia) {
+              <img [src]="previewLicencia" alt="Licencia" class="licencia-preview-thumb" />
+            } @else {
+              <svg class="file-upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <circle cx="8" cy="15" r="1.5"></circle>
+                <line x1="13" y1="15" x2="18" y2="15"></line>
+              </svg>
+            }
+            <div class="file-upload-text">
+              <span class="file-upload-title">{{ licencia ? 'Cambiar archivo' : 'Subir licencia' }}</span>
+              <span class="file-upload-hint">{{ licencia ? licencia.name : 'Toca para tomar foto o seleccionar archivo' }}</span>
+            </div>
+          </label>
+          <input type="file" id="licenciaInput" class="hidden-file-input"
+                 (change)="onLicenciaSelected($event)"
+                 accept=".pdf,application/pdf,image/*"
+                 capture="environment" />
+          <p class="file-hint">PDF o foto (JPG/PNG/WEBP/HEIC). Máximo 5 MB.</p>
         </div>
       }
 
@@ -226,7 +259,7 @@
       </div>
 
       <!-- BOTÓN -->
-      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || !captchaToken || (candidate.puesto === 'Otro' && !otroPuesto)">
+      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || !captchaToken || (candidate.puesto === 'Otro' && !otroPuesto) || (requiereLicencia && !licencia)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>

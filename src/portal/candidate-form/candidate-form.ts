@@ -40,6 +40,10 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
   previewFrente = '';
   previewReverso = '';
 
+  // Licencia de manejo (obligatoria si el puesto es Chofer o Logística)
+  licencia: File | null = null;
+  previewLicencia = '';
+
   // reCAPTCHA v2 ("No soy un robot")
   captchaToken = '';
   private captchaWidgetId: number | null = null;
@@ -258,6 +262,53 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     return !!this.fotoFrente && !!this.fotoReverso;
   }
 
+  /** Algunos puestos requieren licencia de manejo obligatoriamente */
+  get requiereLicencia(): boolean {
+    return this.candidate.puesto === 'Chofer' || this.candidate.puesto === 'Logística';
+  }
+
+  /** Cuando cambia el puesto, si ya no requiere licencia limpiamos lo que se hubiera subido */
+  onPuestoChange() {
+    if (!this.requiereLicencia) {
+      this.licencia = null;
+      this.previewLicencia = '';
+    }
+  }
+
+  /** Selección del archivo de licencia (foto o PDF) */
+  onLicenciaSelected(event: any) {
+    const file = event.target.files[0] as File | undefined;
+    if (!file) return;
+
+    if (file.size > 5_000_000) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Archivo muy pesado',
+        mensaje: 'La licencia supera los 5 MB. Comprime el PDF o reduce la calidad de la foto.'
+      };
+      event.target.value = '';
+      return;
+    }
+
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.pdf') && !/\.(jpe?g|png|webp|heic)$/.test(name)) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Formato incorrecto',
+        mensaje: 'Sube tu licencia en PDF o como foto (JPG, PNG, WEBP o HEIC).'
+      };
+      event.target.value = '';
+      return;
+    }
+
+    this.licencia = file;
+    if (file.type.startsWith('image/')) {
+      this.leerComoDataUrl(file).then(url => this.previewLicencia = url);
+    } else {
+      this.previewLicencia = '';
+    }
+  }
+
   async onSubmit() {
     if (!this.talentoForm || !this.talentoForm.valid) return;
     if (!this.cvCompleto) {
@@ -267,6 +318,14 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
         mensaje: this.tipoCV === 'pdf'
           ? 'Es obligatorio adjuntar tu CV en PDF.'
           : 'Es obligatorio subir las DOS fotos de tu CV: frente y reverso.'
+      };
+      return;
+    }
+    if (this.requiereLicencia && !this.licencia) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Falta tu licencia',
+        mensaje: `Para postularte como ${this.candidate.puesto} es obligatorio adjuntar foto o PDF de tu licencia de manejo vigente.`
       };
       return;
     }
@@ -297,20 +356,27 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Subida del CV (1 archivo si es PDF, 2 si son fotos)
-      let cvUrl = '';
-      let cvUrlReverso = '';
+      // Subida del CV (1 archivo si es PDF, 2 si son fotos) y, si aplica, la licencia.
+      // Todo en paralelo para que sea rápido aunque sean 3 archivos.
+      const subidas: Promise<string>[] = [];
+      const indices: { cv?: number; cvReverso?: number; licencia?: number } = {};
       if (this.tipoCV === 'pdf' && this.archivoPDF) {
-        cvUrl = await subirACloudinary(this.archivoPDF, 'cvs');
+        indices.cv = subidas.length;
+        subidas.push(subirACloudinary(this.archivoPDF, 'cvs'));
       } else if (this.tipoCV === 'fotos' && this.fotoFrente && this.fotoReverso) {
-        // Subimos ambas en paralelo para que sea más rápido
-        const [frente, reverso] = await Promise.all([
-          subirACloudinary(this.fotoFrente, 'cvs'),
-          subirACloudinary(this.fotoReverso, 'cvs')
-        ]);
-        cvUrl = frente;
-        cvUrlReverso = reverso;
+        indices.cv = subidas.length;
+        subidas.push(subirACloudinary(this.fotoFrente, 'cvs'));
+        indices.cvReverso = subidas.length;
+        subidas.push(subirACloudinary(this.fotoReverso, 'cvs'));
       }
+      if (this.requiereLicencia && this.licencia) {
+        indices.licencia = subidas.length;
+        subidas.push(subirACloudinary(this.licencia, 'licencias'));
+      }
+      const urls = await Promise.all(subidas);
+      const cvUrl = indices.cv !== undefined ? urls[indices.cv] : '';
+      const cvUrlReverso = indices.cvReverso !== undefined ? urls[indices.cvReverso] : '';
+      const licenciaUrl = indices.licencia !== undefined ? urls[indices.licencia] : '';
 
       // Si el puesto es "Otro", usamos el texto manual del candidato
       const puestoFinal = this.candidate.puesto === 'Otro' ? this.otroPuesto : this.candidate.puesto;
@@ -324,6 +390,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
         createdAt: new Date()
       };
       if (cvUrlReverso) datosCandidatoCompleto.cvUrlReverso = cvUrlReverso;
+      if (licenciaUrl) datosCandidatoCompleto.licenciaUrl = licenciaUrl;
 
       await this.candidateService.createCandidate(datosCandidatoCompleto);
 
@@ -362,6 +429,8 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     this.archivoPDF = null;
     this.fotoFrente = null;
     this.fotoReverso = null;
+    this.licencia = null;
+    this.previewLicencia = '';
     this.previewFrente = '';
     this.previewReverso = '';
     this.resetearRecaptcha();
