@@ -36,6 +36,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Estado del permiso de notificaciones (bloquea la app si no está concedido)
   estadoNotif: EstadoNotif = 'default';
   activando = false;
+  // Si el usuario eligió saltar el modal, lo guardamos en localStorage
+  notifSaltado = false;
+  private readonly STORAGE_KEY_SALTAR_NOTIF = 'mt_notif_saltado_v1';
 
   // Detección de candidatos nuevos para notificar
   private idsConocidos = new Set<string>();
@@ -45,6 +48,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     // Verificar el estado actual del permiso (sin pedirlo aún)
     this.estadoNotif = this.notificaciones.getEstado();
+
+    // Si el usuario ya eligió saltar el modal antes, respetar esa decisión
+    try {
+      this.notifSaltado = localStorage.getItem(this.STORAGE_KEY_SALTAR_NOTIF) === 'true';
+    } catch { this.notifSaltado = false; }
 
     // Iniciar el chequeo de nuevas versiones desplegadas en Vercel
     this.updateChecker.iniciar();
@@ -62,6 +70,23 @@ export class LayoutComponent implements OnInit, OnDestroy {
     await this.notificaciones.pedirPermiso();
     this.estadoNotif = this.notificaciones.getEstado();
     this.activando = false;
+    // Si las acaba de activar, limpiar el flag de "saltar"
+    if (this.estadoNotif === 'granted') {
+      try { localStorage.removeItem(this.STORAGE_KEY_SALTAR_NOTIF); } catch {}
+      this.notifSaltado = false;
+    }
+  }
+
+  /** Permite usar la app sin activar notificaciones. Persiste la decisión. */
+  saltarNotificaciones() {
+    this.notifSaltado = true;
+    try { localStorage.setItem(this.STORAGE_KEY_SALTAR_NOTIF, 'true'); } catch {}
+  }
+
+  /** Reabre el flujo de notificaciones desde el banner discreto */
+  reabrirNotificaciones() {
+    this.notifSaltado = false;
+    try { localStorage.removeItem(this.STORAGE_KEY_SALTAR_NOTIF); } catch {}
   }
 
   recargarPagina() {

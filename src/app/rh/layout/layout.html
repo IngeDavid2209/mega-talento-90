@@ -145,8 +145,22 @@
 
   </main>
 
-  <!-- MODAL BLOQUEANTE: activar notificaciones (no se puede usar la app sin permiso) -->
-  @if (estadoNotif !== 'granted') {
+  <!-- BANNER discreto cuando el usuario decidió saltar las notificaciones -->
+  @if (estadoNotif !== 'granted' && notifSaltado) {
+    <div class="notif-skip-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        <path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path>
+        <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+      </svg>
+      <span>Notificaciones desactivadas. No recibirás avisos de nuevos candidatos.</span>
+      <button class="notif-skip-btn" (click)="reabrirNotificaciones()">Reactivar</button>
+    </div>
+  }
+
+  <!-- MODAL: activar notificaciones (bloqueante hasta que el usuario decida) -->
+  @if (estadoNotif !== 'granted' && !notifSaltado) {
     <div class="notif-block-overlay">
       <div class="notif-block-card">
         <div class="notif-block-icon">
@@ -159,11 +173,13 @@
         @if (estadoNotif === 'default') {
           <h2>Activa las notificaciones</h2>
           <p>
-            Para usar Mega Talento es necesario permitir las notificaciones del navegador.
             Cada vez que llegue un nuevo candidato te avisaremos al instante para que no se te escape ninguno.
           </p>
           <button class="notif-block-btn" (click)="activarNotificaciones()" [disabled]="activando">
             {{ activando ? 'Pidiendo permiso...' : 'Activar notificaciones' }}
+          </button>
+          <button class="notif-skip-link" (click)="saltarNotificaciones()" [disabled]="activando">
+            Continuar sin notificaciones
           </button>
           <small class="notif-hint">El navegador te mostrará un pequeño popup pidiendo confirmación. Pulsa "Permitir".</small>
         }
@@ -171,7 +187,7 @@
         @if (estadoNotif === 'denied') {
           <h2>Notificaciones bloqueadas</h2>
           <p>
-            Bloqueaste las notificaciones en tu navegador. Para usar Mega Talento debes volver a activarlas manualmente.
+            Bloqueaste las notificaciones en tu navegador. Para reactivarlas debes hacerlo manualmente desde el navegador, o puedes continuar sin ellas.
           </p>
           <div class="notif-pasos">
             <div class="paso"><span class="paso-num">1</span> Haz click en el ícono de candado <strong>🔒</strong> o información <strong>ⓘ</strong> a la izquierda de la dirección web (arriba).</div>
@@ -180,6 +196,9 @@
             <div class="paso"><span class="paso-num">4</span> Pulsa el botón de abajo para recargar.</div>
           </div>
           <button class="notif-block-btn" (click)="recargarPagina()">Recargar página</button>
+          <button class="notif-skip-link" (click)="saltarNotificaciones()">
+            Continuar sin notificaciones por ahora
+          </button>
         }
 
         @if (estadoNotif === 'no-soportado') {
@@ -187,6 +206,9 @@
           <p>
             Tu navegador no soporta notificaciones. Para usar Mega Talento, abre la app en <strong>Google Chrome, Microsoft Edge o Firefox</strong> en su versión más reciente.
           </p>
+          <button class="notif-skip-link" (click)="saltarNotificaciones()">
+            Continuar sin notificaciones
+          </button>
         }
       </div>
     </div>

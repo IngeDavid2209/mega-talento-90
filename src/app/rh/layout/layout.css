@@ -503,6 +503,68 @@
 }
 .notif-block-btn:hover:not(:disabled) { background: var(--ink-soft); }
 .notif-block-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Botón secundario "Continuar sin notificaciones" */
+.notif-skip-link {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px;
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+.notif-skip-link:hover:not(:disabled) {
+  background: var(--surface3);
+  color: var(--ink);
+  border-color: var(--border-med);
+}
+.notif-skip-link:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Banner discreto cuando el usuario eligió saltar las notificaciones */
+.notif-skip-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--gold-bg);
+  border-bottom: 1px solid rgba(229, 163, 0, 0.25);
+  color: var(--amber-text);
+  font-size: 12.5px;
+  font-weight: 500;
+  z-index: 998;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.notif-skip-banner svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.notif-skip-btn {
+  background: var(--ink);
+  color: var(--gold-bright);
+  border: 1px solid var(--ink);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+.notif-skip-btn:hover {
+  background: var(--ink-deep);
+}
+@media (max-width: 600px) {
+  .notif-skip-banner { font-size: 11.5px; padding: 7px 12px; }
+}
 .notif-hint {
   display: block;
   margin-top: 14px;
