@@ -30,6 +30,11 @@ export class VacantesComponent implements OnInit, OnDestroy {
   puestoAEliminar: Puesto | null = null;
   borrando = false;
 
+  // Carga del catálogo Mega Dulces
+  cargandoCatalogo = false;
+  resultadoCatalogo: { creados: string[]; omitidos: string[] } | null = null;
+  errorCatalogo = '';
+
   private yaIntentadoSembrar = false;
 
   async ngOnInit() {
@@ -167,6 +172,31 @@ export class VacantesComponent implements OnInit, OnDestroy {
   /** Abre el portal público en una nueva pestaña */
   abrirPortal() {
     window.open('/portal', '_blank', 'noopener');
+  }
+
+  /** Carga las 8 vacantes del catálogo Mega Dulces que no existan aún */
+  async cargarCatalogo() {
+    this.cargandoCatalogo = true;
+    this.errorCatalogo = '';
+    this.resultadoCatalogo = null;
+    try {
+      this.resultadoCatalogo = await this.puestosService.cargarCatalogoSiFaltan();
+    } catch (e: any) {
+      console.error('Error al cargar catálogo:', e);
+      const codigo = e?.code || '';
+      if (codigo === 'permission-denied') {
+        this.errorCatalogo = 'Permiso denegado. Verifica las reglas de Firestore.';
+      } else {
+        this.errorCatalogo = `No se pudo cargar el catálogo: ${e?.message || codigo || 'error desconocido'}`;
+      }
+    } finally {
+      this.cargandoCatalogo = false;
+    }
+  }
+
+  cerrarResultadoCatalogo() {
+    this.resultadoCatalogo = null;
+    this.errorCatalogo = '';
   }
 
   /** Recarga la página completa (usado tras error de carga) */

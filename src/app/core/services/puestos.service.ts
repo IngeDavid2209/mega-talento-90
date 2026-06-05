@@ -123,7 +123,7 @@ export class PuestosService {
   async sembrar(): Promise<void> {
     let i = 0;
     for (const p of PUESTOS_SEMILLA) {
-      const id = p.nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const id = this.slugDePuesto(p.nombre);
       await setDoc(doc(db, 'puestos', id), {
         nombre: p.nombre,
         descripcion: p.descripcion,
@@ -136,5 +136,54 @@ export class PuestosService {
       });
     }
     console.log('Catálogo de puestos sembrado con', PUESTOS_SEMILLA.length, 'puestos.');
+  }
+
+  /**
+   * Carga las vacantes del catálogo SOLO si no existen ya (por nombre normalizado).
+   * Devuelve { creados, omitidos } para que la UI muestre el resultado.
+   * Útil cuando el RH ya tiene algunas vacantes manuales y quiere completar
+   * el catálogo sin sobreescribir lo que ya configuró.
+   */
+  async cargarCatalogoSiFaltan(): Promise<{ creados: string[]; omitidos: string[] }> {
+    const existentes = await this.obtener();
+    const nombresExistentes = new Set(
+      existentes.map(p => (p.nombre || '').trim().toLowerCase())
+    );
+    const creados: string[] = [];
+    const omitidos: string[] = [];
+    let ordenBase = existentes.length;
+
+    for (const p of PUESTOS_SEMILLA) {
+      const clave = p.nombre.trim().toLowerCase();
+      if (nombresExistentes.has(clave)) {
+        omitidos.push(p.nombre);
+        continue;
+      }
+      const id = this.slugDePuesto(p.nombre);
+      await setDoc(doc(db, 'puestos', id), {
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        sucursales: '',
+        sueldo: '',
+        horario: '',
+        activo: true,
+        orden: ordenBase++,
+        createdAt: new Date()
+      });
+      creados.push(p.nombre);
+    }
+    return { creados, omitidos };
+  }
+
+  /** Slug seguro para usar como ID de documento de Firestore */
+  private slugDePuesto(nombre: string): string {
+    // Rango ̀-ͯ cubre los marcadores combinantes (acentos)
+    const acentos = new RegExp('[\\u0300-\\u036f]', 'g');
+    return nombre
+      .toLowerCase()
+      .normalize('NFD').replace(acentos, '')
+      .replace(/[()]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
   }
 }

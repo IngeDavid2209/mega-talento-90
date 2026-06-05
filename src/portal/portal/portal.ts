@@ -137,6 +137,12 @@ export class PortalComponent implements OnInit, OnDestroy {
     this.menuMovilAbierto = false;
   }
 
+  irABienvenida() {
+    const el = document.getElementById('bienvenida');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.menuMovilAbierto = false;
+  }
+
   irInicio() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     this.menuMovilAbierto = false;

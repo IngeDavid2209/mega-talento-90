@@ -11,32 +11,32 @@ export interface PuestoInfo {
 
 export const PUESTOS: PuestoInfo[] = [
   {
-    nombre: 'Vendedor',
-    descripcion: 'Atención y venta directa al cliente en piso, manejo de productos de dulcería, acomodo de mercancía y cumplimiento de metas de venta. Buena actitud de servicio y disponibilidad de horario.'
+    nombre: 'Cajero(a)',
+    descripcion: 'Cobro en caja, manejo de efectivo y terminal, corte de caja al cierre y atención amable al cliente. Se requiere responsabilidad con el dinero, rapidez y honestidad.'
   },
   {
-    nombre: 'Cajero',
-    descripcion: 'Cobro en caja, manejo de efectivo y terminal, corte de caja al cierre y atención amable al cliente. Se requiere responsabilidad con el dinero y rapidez.'
+    nombre: 'Surtidor',
+    descripcion: 'Surtido de pedidos en almacén, verificación de productos y cantidades solicitadas, etiquetado y preparación para envío. Trabajo físico, atención al detalle y rapidez.'
   },
   {
-    nombre: 'Auxiliar de Almacén',
-    descripcion: 'Recepción, acomodo y control de mercancía, surtido de pedidos, orden y limpieza del almacén. Trabajo físico y seguimiento de inventarios.'
+    nombre: 'Aux de chofer',
+    descripcion: 'Apoyo en la ruta de reparto: carga y descarga de mercancía, entrega documentada al cliente, cuidado del producto en tránsito. Disponibilidad para viajar y buena condición física.'
   },
   {
     nombre: 'Chofer',
     descripcion: 'Traslado de mercancía a sucursales o clientes, carga y descarga, cuidado de la unidad y entrega documentada. Se requiere licencia vigente y conocimiento de rutas.'
   },
   {
-    nombre: 'Logística',
-    descripcion: 'Planeación y coordinación de rutas, control de pedidos, embarques y entregas, seguimiento de inventarios en tránsito y comunicación con sucursales y choferes. Orden, organización y orientación a resultados.'
+    nombre: 'Vendedor',
+    descripcion: 'Atención y venta directa al cliente en piso, manejo de productos de dulcería, acomodo de mercancía y cumplimiento de metas de venta. Buena actitud de servicio y disponibilidad de horario.'
   },
   {
-    nombre: 'Gerente de Sucursal',
-    descripcion: 'Responsable de la operación de la sucursal: equipo de trabajo, ventas, inventarios, cortes y atención al cliente. Liderazgo, toma de decisiones y orientación a resultados.'
+    nombre: 'Almacenista',
+    descripcion: 'Recepción, acomodo y control de mercancía en el almacén, manejo de inventario y seguimiento de pedidos. Trabajo físico, orden y atención al detalle.'
   },
   {
-    nombre: 'Personal Administrativo',
-    descripcion: 'Apoyo en tareas administrativas: captura de datos, archivo, manejo de Excel, seguimiento de documentación y atención interna. Orden y organización.'
+    nombre: 'Bodeguero',
+    descripcion: 'Manejo y custodia de la bodega: recepción, acomodo y entrega de mercancía, control de stock y limpieza del área. Trabajo físico, responsabilidad y orden.'
   },
   {
     nombre: 'Anaquelista',

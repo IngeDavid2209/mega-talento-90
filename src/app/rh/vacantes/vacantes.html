@@ -15,9 +15,44 @@
         </svg>
         Vista previa del portal
       </button>
+      <button type="button" class="btn-catalogo" (click)="cargarCatalogo()" [disabled]="cargandoCatalogo" title="Crea las 8 vacantes del catálogo de Mega Dulces. No sobreescribe las que ya tengas.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        {{ cargandoCatalogo ? 'Cargando...' : 'Cargar catálogo' }}
+      </button>
       <button class="btn-primary" (click)="abrirNuevo()">+ Nueva vacante</button>
     </div>
   </div>
+
+  <!-- Resultado de cargar el catálogo -->
+  @if (resultadoCatalogo || errorCatalogo) {
+    <div class="cat-result" [class.cat-result-error]="errorCatalogo">
+      <div class="cat-result-head">
+        @if (errorCatalogo) {
+          <strong>⚠ No se pudo cargar el catálogo</strong>
+        } @else {
+          <strong>✓ Catálogo procesado</strong>
+        }
+        <button class="cat-result-close" (click)="cerrarResultadoCatalogo()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorCatalogo) {
+        <p>{{ errorCatalogo }}</p>
+      } @else if (resultadoCatalogo) {
+        @if (resultadoCatalogo.creados.length > 0) {
+          <p><strong>{{ resultadoCatalogo.creados.length }} vacantes nuevas:</strong> {{ resultadoCatalogo.creados.join(', ') }}</p>
+        }
+        @if (resultadoCatalogo.omitidos.length > 0) {
+          <p class="cat-omitidos"><strong>{{ resultadoCatalogo.omitidos.length }} ya existían</strong> (no se sobreescribieron): {{ resultadoCatalogo.omitidos.join(', ') }}</p>
+        }
+        @if (resultadoCatalogo.creados.length === 0 && resultadoCatalogo.omitidos.length > 0) {
+          <p>Todas las vacantes del catálogo ya estaban registradas.</p>
+        }
+      }
+    </div>
+  }
 
   @if (cargando) {
     <div class="state-block">
