@@ -637,18 +637,52 @@
   transform: translateY(-3px);
 }
 
-/* Banner navy superior con patrón decorativo */
-.p-card-banner {
+/* HERO: foto grande del puesto (o ícono temático si no hay foto) */
+.p-card-hero {
   position: relative;
-  height: 96px;
+  height: 220px;
   background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
   overflow: hidden;
-  padding: 14px 18px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
 }
+.p-card-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  display: block;
+  transition: transform 0.6s ease;
+}
+.p-card:hover .p-card-hero-img {
+  transform: scale(1.06);
+}
+/* Gradiente oscuro sutil arriba y abajo para que los chips se lean bien */
+.p-card-hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 31, 61, 0.55) 0%,
+    rgba(15, 31, 61, 0) 25%,
+    rgba(15, 31, 61, 0) 70%,
+    rgba(15, 31, 61, 0.45) 100%
+  );
+  pointer-events: none;
+}
+/* Ícono SVG cuando no hay foto */
+.p-card-hero-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.p-card-hero-icon .p-card-icon {
+  width: 86px;
+  height: 86px;
+  color: rgba(255, 195, 51, 0.92);
+}
+/* Blobs decorativos visibles solo cuando no hay foto */
 .p-card-blob {
   position: absolute;
   border-radius: 50%;
@@ -656,88 +690,64 @@
   pointer-events: none;
 }
 .p-card-blob:not(.p-card-blob-2) {
-  width: 140px;
-  height: 140px;
-  top: -60px;
-  right: -40px;
+  width: 220px;
+  height: 220px;
+  top: -90px;
+  right: -60px;
 }
 .p-card-blob-2 {
-  width: 80px;
-  height: 80px;
-  bottom: -30px;
-  left: -20px;
+  width: 140px;
+  height: 140px;
+  bottom: -60px;
+  left: -40px;
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Chip de área arriba a la izquierda (sobre la foto) */
 .p-card-area {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #FFC233;
-  background: rgba(255, 195, 51, 0.14);
-  border: 1px solid rgba(255, 195, 51, 0.32);
-  padding: 4px 10px;
+  color: #1A2F4E;
+  background: #FFC233;
+  padding: 5px 12px;
   border-radius: 999px;
-  max-width: 60%;
+  max-width: calc(100% - 28px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
+/* Chip de fecha arriba a la derecha (sobre la foto) */
 .p-card-fecha {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.78);
-  margin-left: auto;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(15, 31, 61, 0.6);
+  backdrop-filter: blur(8px);
+  padding: 5px 10px;
+  border-radius: 999px;
 }
 .p-card-fecha svg {
   width: 12px;
   height: 12px;
 }
 
-/* Avatar circular que sobresale del banner */
-.p-card-avatar {
-  position: absolute;
-  top: 56px;
-  left: 22px;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
-  color: #FFC233;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 26px;
-  letter-spacing: 0.04em;
-  overflow: hidden;
-  border: 4px solid #ffffff;
-  box-shadow: 0 8px 22px -6px rgba(26, 47, 78, 0.45);
-  z-index: 2;
-}
-.p-card-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.p-card-icon {
-  width: 38px;
-  height: 38px;
-  color: #FFC233;
-}
-
 /* Cuerpo */
 .p-card-body {
-  padding: 50px 22px 22px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   flex: 1;
