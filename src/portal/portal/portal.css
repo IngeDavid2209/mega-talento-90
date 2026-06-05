@@ -640,7 +640,7 @@
 /* HERO: foto grande del puesto (o ícono temático si no hay foto) */
 .p-card-hero {
   position: relative;
-  height: 220px;
+  height: 340px;
   background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
   overflow: hidden;
 }
@@ -648,7 +648,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 30%;
+  object-position: center 20%;
   display: block;
   transition: transform 0.6s ease;
 }
