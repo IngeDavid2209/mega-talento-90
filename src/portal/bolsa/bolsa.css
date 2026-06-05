@@ -161,6 +161,21 @@
   margin: 0 auto;
   z-index: 1;
 }
+.b-hero-logo {
+  display: block;
+  height: 76px;
+  width: auto;
+  margin: 0 auto 22px;
+  filter: drop-shadow(0 12px 30px rgba(255, 195, 51, 0.25));
+  animation: b-logo-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes b-logo-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (min-width: 760px) {
+  .b-hero-logo { height: 96px; margin: 0 auto 28px; }
+}
 .b-hero-eyebrow {
   display: inline-block;
   font-size: 11.5px;
