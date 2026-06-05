@@ -158,11 +158,28 @@
           <button class="p-btn p-btn-navy" (click)="limpiarFiltros()">Mostrar todas</button>
         </div>
       } @else {
-        <div class="p-lista">
+        <div class="p-grid">
           @for (p of vacantesFiltradas; track p.id) {
-            <article class="p-row" (click)="abrirDetalle(p)">
-              <!-- AVATAR: foto si la hay, sino círculo navy con iniciales doradas -->
-              <div class="p-row-avatar">
+            <article class="p-card" (click)="abrirDetalle(p)">
+
+              <!-- Banner navy con patrón decorativo -->
+              <div class="p-card-banner">
+                <div class="p-card-blob"></div>
+                <div class="p-card-blob p-card-blob-2"></div>
+                @if (p.area) {
+                  <span class="p-card-area">{{ p.area }}</span>
+                }
+                <span class="p-card-fecha">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  {{ hacePoco(p.createdAt) }}
+                </span>
+              </div>
+
+              <!-- Avatar que sale del banner -->
+              <div class="p-card-avatar">
                 @if (p.imagenUrl) {
                   <img [src]="p.imagenUrl" [alt]="p.nombre" loading="lazy" />
                 } @else {
@@ -170,51 +187,53 @@
                 }
               </div>
 
-              <div class="p-row-body">
-                <h3 class="p-row-title">{{ p.nombre }}</h3>
-                <div class="p-row-meta">
-                  @if (p.sucursales) {
-                    <span class="p-row-chip">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                      </svg>
-                      {{ p.sucursales }}
-                    </span>
-                  }
-                  <span class="p-row-chip">
+              <div class="p-card-body">
+                <h3 class="p-card-title">{{ p.nombre }}</h3>
+
+                @if (p.sucursales) {
+                  <p class="p-card-loc">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                    {{ hacePoco(p.createdAt) }}
-                  </span>
-                  @if (p.area) {
-                    <span class="p-row-chip p-row-chip-area">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                      </svg>
-                      {{ p.area }}
-                    </span>
-                  }
-                  @if (p.sueldo) {
-                    <span class="p-row-chip p-row-chip-sueldo">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="1" x2="12" y2="23"></line>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                      </svg>
-                      {{ p.sueldo }}
-                    </span>
-                  }
-                </div>
+                    {{ p.sucursales }}
+                  </p>
+                }
+
+                <p class="p-card-desc">{{ p.descripcion }}</p>
+
+                @if (p.sueldo || p.horario) {
+                  <div class="p-card-pills">
+                    @if (p.sueldo) {
+                      <span class="p-pill p-pill-gold">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="1" x2="12" y2="23"></line>
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        {{ p.sueldo }}
+                      </span>
+                    }
+                    @if (p.horario) {
+                      <span class="p-pill">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        {{ p.horario }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                <button class="p-card-btn" (click)="$event.stopPropagation(); abrirDetalle(p)">
+                  Más información
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
               </div>
 
-              <button class="p-row-btn" (click)="$event.stopPropagation(); abrirDetalle(p)">
-                Más información
-              </button>
             </article>
           }
         </div>

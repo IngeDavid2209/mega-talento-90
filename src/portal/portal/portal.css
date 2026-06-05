@@ -611,129 +611,223 @@
 }
 @keyframes p-spin { to { transform: rotate(360deg); } }
 
-/* ============ LISTA VERTICAL DE TARJETAS (estilo Lapisa) ============ */
-.p-lista {
+/* ============ GRID DE TARJETAS (estilo job-board moderno) ============ */
+.p-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+@media (min-width: 640px) { .p-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1050px) { .p-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+.p-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-.p-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
   background: #ffffff;
   border: 1px solid rgba(26, 47, 78, 0.08);
   border-radius: 20px;
-  padding: 18px 20px;
+  overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
-  align-items: center;
+  transition: all 0.22s ease;
   position: relative;
 }
-.p-row:hover {
-  border-color: rgba(26, 47, 78, 0.18);
-  box-shadow: 0 12px 28px -12px rgba(26, 47, 78, 0.22);
-  transform: translateY(-1px);
+.p-card:hover {
+  border-color: rgba(26, 47, 78, 0.2);
+  box-shadow: 0 22px 44px -20px rgba(26, 47, 78, 0.32);
+  transform: translateY(-3px);
 }
-.p-row-avatar {
-  width: 76px;
-  height: 76px;
+
+/* Banner navy superior con patrón decorativo */
+.p-card-banner {
+  position: relative;
+  height: 96px;
+  background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
+  overflow: hidden;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.p-card-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 195, 51, 0.12);
+  pointer-events: none;
+}
+.p-card-blob:not(.p-card-blob-2) {
+  width: 140px;
+  height: 140px;
+  top: -60px;
+  right: -40px;
+}
+.p-card-blob-2 {
+  width: 80px;
+  height: 80px;
+  bottom: -30px;
+  left: -20px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.p-card-area {
+  position: relative;
+  z-index: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #FFC233;
+  background: rgba(255, 195, 51, 0.14);
+  border: 1px solid rgba(255, 195, 51, 0.32);
+  padding: 4px 10px;
+  border-radius: 999px;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.p-card-fecha {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+  margin-left: auto;
+}
+.p-card-fecha svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Avatar circular que sobresale del banner */
+.p-card-avatar {
+  position: absolute;
+  top: 56px;
+  left: 22px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
   color: #FFC233;
-  font-weight: 800;
-  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 800;
+  font-size: 26px;
   letter-spacing: 0.04em;
-  flex-shrink: 0;
   overflow: hidden;
-  border: 3px solid #FFC233;
-  box-shadow: 0 6px 16px -4px rgba(26, 47, 78, 0.3);
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 22px -6px rgba(26, 47, 78, 0.45);
+  z-index: 2;
 }
-.p-row-avatar img {
+.p-card-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.p-row-avatar span {
-  display: block;
+
+/* Cuerpo */
+.p-card-body {
+  padding: 50px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
-@media (min-width: 720px) {
-  .p-row-avatar { width: 90px; height: 90px; font-size: 26px; }
-}
-.p-row-body { min-width: 0; }
-.p-row-title {
-  font-size: 17px;
-  font-weight: 700;
+.p-card-title {
+  font-size: 19px;
+  font-weight: 800;
   color: #1A2F4E;
   margin: 0 0 8px;
   letter-spacing: -0.01em;
+  line-height: 1.25;
 }
-.p-row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-}
-.p-row-chip {
+.p-card-loc {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: #4A5568;
+  margin: 0 0 12px;
+  font-weight: 500;
 }
-.p-row-chip svg {
+.p-card-loc svg {
   width: 13px;
   height: 13px;
   color: #8A95A8;
 }
-.p-row-chip-sueldo {
-  color: #166534;
-  font-weight: 600;
+.p-card-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #4A5568;
+  margin: 0 0 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
 }
-.p-row-chip-sueldo svg { color: #16A34A; }
-.p-row-chip-area {
+.p-card-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.p-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #F4F6FA;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4A5568;
+}
+.p-pill svg {
+  width: 12px;
+  height: 12px;
+  color: #8A95A8;
+}
+.p-pill-gold {
+  background: #FFF5D6;
   color: #7c2d12;
-  font-weight: 600;
 }
-.p-row-chip-area svg { color: #E5A300; }
+.p-pill-gold svg { color: #E5A300; }
 
-.p-row-btn {
-  grid-column: 1 / -1;
+.p-card-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 22px;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
   background: #1A2F4E;
   border: 1.5px solid #1A2F4E;
   color: #ffffff;
-  border-radius: 999px;
+  border-radius: 12px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 8px;
+  transition: all 0.22s ease;
+  margin-top: auto;
 }
-.p-row-btn:hover {
-  background: #0F1F3D;
-  color: #FFC233;
-  transform: translateY(-1px);
+.p-card-btn svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.22s ease;
 }
-
-@media (min-width: 720px) {
-  .p-row {
-    grid-template-columns: auto 1fr auto;
-    gap: 20px;
-    padding: 22px 28px;
-  }
-  .p-row-btn {
-    grid-column: auto;
-    margin-top: 0;
-    padding: 11px 26px;
-  }
+.p-card-btn:hover {
+  background: #FFC233;
+  border-color: #FFC233;
+  color: #1A2F4E;
+}
+.p-card-btn:hover svg {
+  transform: translateX(3px);
 }
 
 /* ============ BIENESTAR PARA UN MUNDO MEJOR (foto de fondo + overlay) ============ */
