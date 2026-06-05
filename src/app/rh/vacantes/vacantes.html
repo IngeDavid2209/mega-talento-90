@@ -154,15 +154,54 @@
       </div>
 
       <div class="form-group">
-        <label>URL de foto del puesto <span class="form-opcional">(opcional)</span></label>
-        <input type="url" [(ngModel)]="edicion.imagenUrl" placeholder="https://...">
-        <small class="form-hint">Pega una URL pública de una foto representativa del puesto. Si la dejas vacía, se usa un avatar elegante con las iniciales.</small>
-        @if (edicion.imagenUrl) {
-          <div class="form-img-preview">
-            <img [src]="edicion.imagenUrl" alt="Vista previa" />
-            <span>Vista previa</span>
+        <label>Foto del puesto <span class="form-opcional">(opcional)</span></label>
+
+        <div class="img-uploader">
+          <div class="img-preview-box">
+            @if (edicion.imagenUrl) {
+              <img [src]="edicion.imagenUrl" alt="Vista previa" />
+            } @else {
+              <div class="img-preview-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <small>Sin foto</small>
+              </div>
+            }
           </div>
+
+          <div class="img-uploader-actions">
+            <label for="imgUpload" class="btn-upload" [class.btn-upload-loading]="subiendoImagen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              {{ subiendoImagen ? 'Subiendo...' : (edicion.imagenUrl ? 'Cambiar foto' : 'Subir foto') }}
+            </label>
+            <input id="imgUpload" type="file" accept="image/*" hidden
+                   (change)="onImagenSelected($event)" [disabled]="subiendoImagen">
+
+            @if (edicion.imagenUrl) {
+              <button type="button" class="btn-quitar" (click)="quitarImagen()" [disabled]="subiendoImagen">
+                Quitar
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (errorImagen) {
+          <small class="form-error">{{ errorImagen }}</small>
         }
+
+        <small class="form-hint">Foto JPG/PNG/WEBP de hasta 5 MB. Se mostrará en la tarjeta de la vacante en el portal.</small>
+
+        <details class="form-advanced">
+          <summary>O pegar URL directamente</summary>
+          <input type="url" [(ngModel)]="edicion.imagenUrl" placeholder="https://...">
+        </details>
       </div>
 
       <div class="form-group">

@@ -400,27 +400,124 @@
   margin-left: 4px;
   letter-spacing: 0.02em;
 }
-.form-img-preview {
-  margin-top: 10px;
-  display: inline-flex;
+/* ============ UPLOADER de foto en el editor de vacantes ============ */
+.img-uploader {
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px 8px 8px;
+  gap: 14px;
+  padding: 12px;
   background: var(--surface3);
   border: 1px solid var(--border);
   border-radius: 12px;
+  margin-bottom: 6px;
 }
-.form-img-preview img {
-  width: 56px;
-  height: 56px;
+.img-preview-box {
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
-  object-fit: cover;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface);
   border: 2px solid var(--gold-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.form-img-preview span {
-  font-size: 12px;
+.img-preview-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.img-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text3);
+}
+.img-preview-empty svg {
+  width: 22px;
+  height: 22px;
+}
+.img-preview-empty small {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.img-uploader-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.btn-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  background: var(--ink);
+  color: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-upload svg {
+  width: 14px;
+  height: 14px;
+}
+.btn-upload:hover { background: var(--ink-soft); }
+.btn-upload-loading {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.btn-quitar {
+  background: transparent;
+  border: 1.5px solid var(--border-med);
   color: var(--text2);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-quitar:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+.btn-quitar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.form-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+.form-advanced {
+  margin-top: 10px;
+}
+.form-advanced summary {
+  font-size: 11.5px;
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+.form-advanced summary:hover { color: var(--ink); }
+.form-advanced input {
+  margin-top: 8px;
+  font-size: 12px;
 }
 
 .form-toggle {

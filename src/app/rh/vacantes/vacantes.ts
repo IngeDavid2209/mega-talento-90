@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
+import { subirACloudinary } from '../../core/services/cloudinary';
 
 @Component({
   selector: 'app-vacantes',
@@ -34,6 +35,10 @@ export class VacantesComponent implements OnInit, OnDestroy {
   cargandoCatalogo = false;
   resultadoCatalogo: { creados: string[]; omitidos: string[] } | null = null;
   errorCatalogo = '';
+
+  // Subida de imagen al editor
+  subiendoImagen = false;
+  errorImagen = '';
 
   private yaIntentadoSembrar = false;
 
@@ -205,6 +210,41 @@ export class VacantesComponent implements OnInit, OnDestroy {
   /** Recarga la página completa (usado tras error de carga) */
   recargar() {
     window.location.reload();
+  }
+
+  /** Sube la foto seleccionada del editor a Cloudinary y guarda la URL */
+  async onImagenSelected(event: any) {
+    const file = event.target.files?.[0] as File | undefined;
+    if (!file) return;
+
+    if (file.size > 5_000_000) {
+      this.errorImagen = 'La foto pesa más de 5 MB. Comprime o reduce la calidad antes de subir.';
+      event.target.value = '';
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      this.errorImagen = 'Selecciona una imagen (JPG, PNG, WEBP).';
+      event.target.value = '';
+      return;
+    }
+
+    this.errorImagen = '';
+    this.subiendoImagen = true;
+    try {
+      const url = await subirACloudinary(file, 'puestos');
+      this.edicion.imagenUrl = url;
+    } catch (e: any) {
+      console.error('Error al subir imagen:', e);
+      this.errorImagen = 'No se pudo subir la foto. Inténtalo de nuevo.';
+    } finally {
+      this.subiendoImagen = false;
+      event.target.value = '';
+    }
+  }
+
+  quitarImagen() {
+    this.edicion.imagenUrl = '';
+    this.errorImagen = '';
   }
 
   /** Activar/desactivar visibilidad pública sin abrir editor */
