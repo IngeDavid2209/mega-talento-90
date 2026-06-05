@@ -162,15 +162,12 @@
           @for (p of vacantesFiltradas; track p.id) {
             <article class="p-card" (click)="abrirDetalle(p)">
 
-              <!-- HERO: foto grande (o ícono temático si no hay foto) -->
-              <div class="p-card-hero" [class.p-card-hero-empty]="!p.imagenUrl">
+              <!-- AVATAR circular grande con foto del puesto -->
+              <div class="p-card-avatar">
                 @if (p.imagenUrl) {
-                  <img [src]="p.imagenUrl" [alt]="p.nombre" class="p-card-hero-img" loading="lazy" />
-                  <div class="p-card-hero-shade"></div>
+                  <img [src]="p.imagenUrl" [alt]="p.nombre" loading="lazy" />
                 } @else {
-                  <div class="p-card-blob"></div>
-                  <div class="p-card-blob p-card-blob-2"></div>
-                  <div class="p-card-hero-icon">
+                  <div class="p-card-icon-wrap">
                     @switch (iconoPuesto(p.nombre)) {
                       @case ('cajero') {
                         <svg class="p-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -266,21 +263,22 @@
                     }
                   </div>
                 }
-
-                <!-- Overlays sobre la foto/ícono -->
-                @if (p.area) {
-                  <span class="p-card-area">{{ p.area }}</span>
-                }
-                <span class="p-card-fecha">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  {{ hacePoco(p.createdAt) }}
-                </span>
               </div>
 
               <div class="p-card-body">
+                <div class="p-card-tags">
+                  <span class="p-card-fecha">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {{ hacePoco(p.createdAt) }}
+                  </span>
+                  @if (p.area) {
+                    <span class="p-card-area">{{ p.area }}</span>
+                  }
+                </div>
+
                 <h3 class="p-card-title">{{ p.nombre }}</h3>
 
                 @if (p.sucursales) {

@@ -611,225 +611,194 @@
 }
 @keyframes p-spin { to { transform: rotate(360deg); } }
 
-/* ============ GRID DE TARJETAS (estilo job-board moderno) ============ */
+/* ============ TARJETAS HORIZONTALES estilo Lapisa ============ */
 .p-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 22px;
-}
-@media (min-width: 640px) { .p-grid { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1050px) { .p-grid { grid-template-columns: 1fr 1fr 1fr; } }
-
-.p-card {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.p-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
   background: #ffffff;
   border: 1px solid rgba(26, 47, 78, 0.08);
-  border-radius: 20px;
-  overflow: hidden;
+  border-radius: 24px;
+  padding: 20px 22px;
   cursor: pointer;
-  transition: all 0.22s ease;
-  position: relative;
+  transition: all 0.25s ease;
+  align-items: center;
+  box-shadow: 0 2px 8px -2px rgba(26, 47, 78, 0.06);
 }
 .p-card:hover {
-  border-color: rgba(26, 47, 78, 0.2);
-  box-shadow: 0 22px 44px -20px rgba(26, 47, 78, 0.32);
+  border-color: rgba(255, 195, 51, 0.45);
+  box-shadow: 0 22px 44px -18px rgba(26, 47, 78, 0.28);
   transform: translateY(-3px);
 }
 
-/* HERO: foto grande del puesto (o ícono temático si no hay foto) */
-.p-card-hero {
-  position: relative;
-  height: 340px;
-  background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
+/* Avatar circular grande (foto del puesto) */
+.p-card-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
   overflow: hidden;
-}
-.p-card-hero-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 20%;
-  display: block;
-  transition: transform 0.6s ease;
-}
-.p-card:hover .p-card-hero-img {
-  transform: scale(1.06);
-}
-/* Gradiente oscuro sutil arriba y abajo para que los chips se lean bien */
-.p-card-hero-shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 31, 61, 0.55) 0%,
-    rgba(15, 31, 61, 0) 25%,
-    rgba(15, 31, 61, 0) 70%,
-    rgba(15, 31, 61, 0.45) 100%
-  );
-  pointer-events: none;
-}
-/* Ícono SVG cuando no hay foto */
-.p-card-hero-icon {
-  position: absolute;
-  inset: 0;
+  background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1;
+  flex-shrink: 0;
+  border: 4px solid #FFC233;
+  box-shadow: 0 10px 24px -8px rgba(26, 47, 78, 0.45);
+  position: relative;
 }
-.p-card-hero-icon .p-card-icon {
-  width: 86px;
-  height: 86px;
-  color: rgba(255, 195, 51, 0.92);
+.p-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+  transition: transform 0.4s ease;
 }
-/* Blobs decorativos visibles solo cuando no hay foto */
-.p-card-blob {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 195, 51, 0.12);
-  pointer-events: none;
+.p-card:hover .p-card-avatar img {
+  transform: scale(1.08);
 }
-.p-card-blob:not(.p-card-blob-2) {
-  width: 220px;
-  height: 220px;
-  top: -90px;
-  right: -60px;
+.p-card-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.p-card-blob-2 {
-  width: 140px;
-  height: 140px;
-  bottom: -60px;
-  left: -40px;
-  background: rgba(255, 255, 255, 0.06);
+.p-card-icon {
+  width: 46px;
+  height: 46px;
+  color: #FFC233;
 }
 
-/* Chip de área arriba a la izquierda (sobre la foto) */
+@media (min-width: 720px) {
+  .p-card {
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    padding: 22px 28px;
+  }
+  .p-card-avatar { width: 130px; height: 130px; }
+  .p-card-icon { width: 56px; height: 56px; }
+}
+
+/* Cuerpo de info */
+.p-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.p-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
 .p-card-area {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 2;
-  font-size: 10.5px;
+  display: inline-block;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #1A2F4E;
-  background: #FFC233;
-  padding: 5px 12px;
+  background: #FFF5D6;
+  border: 1px solid rgba(229, 163, 0, 0.4);
+  padding: 4px 10px;
   border-radius: 999px;
-  max-width: calc(100% - 28px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
-/* Chip de fecha arriba a la derecha (sobre la foto) */
 .p-card-fecha {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #ffffff;
-  background: rgba(15, 31, 61, 0.6);
-  backdrop-filter: blur(8px);
-  padding: 5px 10px;
-  border-radius: 999px;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #8A95A8;
+  font-weight: 500;
 }
 .p-card-fecha svg {
   width: 12px;
   height: 12px;
 }
-
-/* Cuerpo */
-.p-card-body {
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
 .p-card-title {
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 800;
   color: #1A2F4E;
-  margin: 0 0 8px;
+  margin: 0;
   letter-spacing: -0.01em;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 .p-card-loc {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: #4A5568;
-  margin: 0 0 12px;
+  margin: 0;
   font-weight: 500;
 }
 .p-card-loc svg {
-  width: 13px;
-  height: 13px;
-  color: #8A95A8;
+  width: 14px;
+  height: 14px;
+  color: #E5A300;
 }
 .p-card-desc {
   font-size: 13px;
   line-height: 1.55;
   color: #4A5568;
-  margin: 0 0 16px;
+  margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  flex: 1;
 }
 .p-card-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-top: 4px;
 }
 .p-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   background: #F4F6FA;
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 600;
   color: #4A5568;
 }
-.p-pill svg {
-  width: 12px;
-  height: 12px;
-  color: #8A95A8;
-}
+.p-pill svg { width: 12px; height: 12px; color: #8A95A8; }
 .p-pill-gold {
   background: #FFF5D6;
   color: #7c2d12;
 }
 .p-pill-gold svg { color: #E5A300; }
 
+/* Botón "Más información" */
 .p-card-btn {
+  grid-column: 1 / -1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  padding: 12px 18px;
+  padding: 12px 22px;
   background: #1A2F4E;
   border: 1.5px solid #1A2F4E;
   color: #ffffff;
-  border-radius: 12px;
+  border-radius: 999px;
   font-family: inherit;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.22s ease;
-  margin-top: auto;
+  margin-top: 6px;
+  width: 100%;
 }
 .p-card-btn svg {
   width: 14px;
@@ -843,6 +812,14 @@
 }
 .p-card-btn:hover svg {
   transform: translateX(3px);
+}
+@media (min-width: 720px) {
+  .p-card-btn {
+    grid-column: auto;
+    width: auto;
+    margin-top: 0;
+    padding: 12px 28px;
+  }
 }
 
 /* ============ BIENESTAR PARA UN MUNDO MEJOR (foto de fondo + overlay) ============ */
