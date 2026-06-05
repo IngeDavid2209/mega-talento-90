@@ -189,4 +189,25 @@ export class PortalComponent implements OnInit, OnDestroy {
     if (!texto) return [];
     return texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   }
+
+  /**
+   * Devuelve un identificador de ícono según el nombre del puesto.
+   * Se usa cuando la vacante no tiene imagenUrl configurada — en lugar
+   * de mostrar iniciales aburridas, mostramos un SVG temático.
+   */
+  iconoPuesto(nombre: string): string {
+    const n = (nombre || '').toLowerCase();
+    if (n.includes('aux') && n.includes('chofer')) return 'aux-chofer';
+    if (n.includes('chofer') || n.includes('repartidor')) return 'chofer';
+    if (n.includes('cajero')) return 'cajero';
+    if (n.includes('surtidor')) return 'surtidor';
+    if (n.includes('vendedor') || n.includes('venta')) return 'vendedor';
+    if (n.includes('almacen')) return 'almacenista';
+    if (n.includes('bodeguero') || n.includes('bodega')) return 'bodeguero';
+    if (n.includes('anaquel')) return 'anaquelista';
+    if (n.includes('gerente')) return 'gerente';
+    if (n.includes('administrativo') || n.includes('oficina')) return 'admin';
+    if (n.includes('logistica') || n.includes('logística')) return 'logistica';
+    return 'default';
+  }
 }
