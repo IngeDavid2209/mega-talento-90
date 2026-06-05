@@ -142,9 +142,27 @@
         </div>
       </div>
 
+      <div class="form-row">
+        <div class="form-group">
+          <label>Horario</label>
+          <input type="text" [(ngModel)]="edicion.horario" placeholder="Ej. Lun-Sáb 9:00-18:00">
+        </div>
+        <div class="form-group">
+          <label>Área / categoría</label>
+          <input type="text" [(ngModel)]="edicion.area" placeholder="Ej. Comercial, Producción, Almacén">
+        </div>
+      </div>
+
       <div class="form-group">
-        <label>Horario</label>
-        <input type="text" [(ngModel)]="edicion.horario" placeholder="Ej. Lun-Sáb 9:00-18:00">
+        <label>URL de foto del puesto <span class="form-opcional">(opcional)</span></label>
+        <input type="url" [(ngModel)]="edicion.imagenUrl" placeholder="https://...">
+        <small class="form-hint">Pega una URL pública de una foto representativa del puesto. Si la dejas vacía, se usa un avatar elegante con las iniciales.</small>
+        @if (edicion.imagenUrl) {
+          <div class="form-img-preview">
+            <img [src]="edicion.imagenUrl" alt="Vista previa" />
+            <span>Vista previa</span>
+          </div>
+        }
       </div>
 
       <div class="form-group">

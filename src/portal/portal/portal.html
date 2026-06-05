@@ -161,7 +161,14 @@
         <div class="p-lista">
           @for (p of vacantesFiltradas; track p.id) {
             <article class="p-row" (click)="abrirDetalle(p)">
-              <div class="p-row-avatar">{{ iniciales(p.nombre) }}</div>
+              <!-- AVATAR: foto si la hay, sino círculo navy con iniciales doradas -->
+              <div class="p-row-avatar">
+                @if (p.imagenUrl) {
+                  <img [src]="p.imagenUrl" [alt]="p.nombre" loading="lazy" />
+                } @else {
+                  <span>{{ iniciales(p.nombre) }}</span>
+                }
+              </div>
 
               <div class="p-row-body">
                 <h3 class="p-row-title">{{ p.nombre }}</h3>
@@ -182,6 +189,17 @@
                     </svg>
                     {{ hacePoco(p.createdAt) }}
                   </span>
+                  @if (p.area) {
+                    <span class="p-row-chip p-row-chip-area">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                      </svg>
+                      {{ p.area }}
+                    </span>
+                  }
                   @if (p.sueldo) {
                     <span class="p-row-chip p-row-chip-sueldo">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -206,6 +224,11 @@
 
   <!-- ============ BIENESTAR PARA UN MUNDO MEJOR ============ -->
   <section class="p-bienestar">
+    <!-- Foto de fondo con overlay navy -->
+    <img src="https://static.wixstatic.com/media/e7977a_b979988c62de48d4a997fa7e6025c353~mv2_d_4032_3024_s_4_2.jpg/v1/fill/w_1600,h_900,al_c,q_85,enc_auto/equipo-mega-dulces.jpg"
+         alt="" class="p-bienestar-bg" loading="lazy" aria-hidden="true" />
+    <div class="p-bienestar-overlay"></div>
+
     <div class="p-bienestar-inner">
       <span class="p-bienestar-eyebrow">Nuestra misión</span>
       <h2>BIENESTAR PARA UN MUNDO MEJOR</h2>

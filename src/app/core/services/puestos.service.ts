@@ -26,6 +26,8 @@ export interface Puesto {
   sueldo?: string;            // texto libre (puede ser rango)
   horario?: string;
   requisitos?: string;        // texto libre, una línea por requisito
+  imagenUrl?: string;         // URL pública de una foto contextual del puesto
+  area?: string;              // categoría/área (ej. Comercial, Producción, Almacén)
   activo: boolean;            // si está visible en la cartelera pública
   orden?: number;
   createdAt?: any;

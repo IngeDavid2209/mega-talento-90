@@ -636,18 +636,33 @@
   transform: translateY(-1px);
 }
 .p-row-avatar {
-  width: 60px;
-  height: 60px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
   color: #FFC233;
   font-weight: 800;
-  font-size: 20px;
+  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   letter-spacing: 0.04em;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 3px solid #FFC233;
+  box-shadow: 0 6px 16px -4px rgba(26, 47, 78, 0.3);
+}
+.p-row-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.p-row-avatar span {
+  display: block;
+}
+@media (min-width: 720px) {
+  .p-row-avatar { width: 90px; height: 90px; font-size: 26px; }
 }
 .p-row-body { min-width: 0; }
 .p-row-title {
@@ -679,6 +694,11 @@
   font-weight: 600;
 }
 .p-row-chip-sueldo svg { color: #16A34A; }
+.p-row-chip-area {
+  color: #7c2d12;
+  font-weight: 600;
+}
+.p-row-chip-area svg { color: #E5A300; }
 
 .p-row-btn {
   grid-column: 1 / -1;
@@ -716,9 +736,9 @@
   }
 }
 
-/* ============ BIENESTAR PARA UN MUNDO MEJOR ============ */
+/* ============ BIENESTAR PARA UN MUNDO MEJOR (foto de fondo + overlay) ============ */
 .p-bienestar {
-  background: linear-gradient(135deg, #1A2F4E 0%, #0F1F3D 100%);
+  background: #1A2F4E;
   color: #ffffff;
   padding: 80px 22px;
   text-align: center;
@@ -726,27 +746,26 @@
   position: relative;
   overflow: hidden;
 }
-.p-bienestar::before {
-  content: '';
+.p-bienestar-bg {
   position: absolute;
-  top: -120px; right: -120px;
-  width: 400px; height: 400px;
-  border-radius: 50%;
-  background: rgba(255, 195, 51, 0.05);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  filter: grayscale(15%);
 }
-.p-bienestar::after {
-  content: '';
+.p-bienestar-overlay {
   position: absolute;
-  bottom: -100px; left: -100px;
-  width: 300px; height: 300px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.03);
+  inset: 0;
+  background: linear-gradient(135deg, rgba(26, 47, 78, 0.92) 0%, rgba(15, 31, 61, 0.85) 100%);
+  z-index: 1;
 }
 .p-bienestar-inner {
   max-width: 760px;
   margin: 0 auto;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 .p-bienestar-eyebrow {
   display: inline-block;
