@@ -2,8 +2,23 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Auth, signInWithEmailAndPassword, signOut } from '@angular/fire/auth';
+import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { UsuariosService } from '../../core/services/usuarios.service';
+
+// Usar la MISMA instancia de Firebase que candidate.ts y demás servicios.
+// Si usáramos @angular/fire/auth, la sesión quedaría en otra instancia y
+// las reglas de Firestore evaluarían request.auth como null (permission-denied).
+const firebaseConfig = {
+  apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
+  authDomain: "megatalento-a3450.firebaseapp.com",
+  projectId: "megatalento-a3450",
+  storageBucket: "megatalento-a3450.firebasestorage.app",
+  messagingSenderId: "794979076803",
+  appId: "1:794979076803:web:034f492c57852ad3c3b076"
+};
+const _app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const _auth = getAuth(_app);
 
 @Component({
   selector: 'app-login',
@@ -14,7 +29,7 @@ import { UsuariosService } from '../../core/services/usuarios.service';
 })
 export class LoginComponent {
   private router = inject(Router);
-  private auth = inject(Auth);
+  private auth = _auth;
   private usuariosService = inject(UsuariosService);
 
   credentials = {

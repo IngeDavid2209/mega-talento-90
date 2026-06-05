@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
-import { Timestamp } from '@angular/fire/firestore';
+import { Timestamp } from 'firebase/firestore';
 import {
   ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EstadoCheck,
   CHECKLIST_FILTRO, COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
