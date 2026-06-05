@@ -1,0 +1,206 @@
+<div class="bolsa">
+
+  <!-- NAVBAR -->
+  <header class="b-nav" [class.show-menu]="menuMovilAbierto">
+    <div class="b-nav-inner">
+      <a class="b-brand" (click)="irInicio()">
+        <img src="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png"
+             alt="Mega Dulces" class="b-logo" />
+        <div class="b-brand-text">
+          <span class="b-brand-name">Mega Dulces</span>
+          <span class="b-brand-sub">Bolsa de trabajo</span>
+        </div>
+      </a>
+
+      <button class="b-burger" (click)="menuMovilAbierto = !menuMovilAbierto" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="b-links">
+        <a routerLink="/portal" (click)="irAPortal()">Vacantes</a>
+        <a (click)="irACTA()">Déjanos tu CV</a>
+        <a routerLink="/unete" class="b-link-cta">Postularme</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="b-hero">
+    <div class="b-hero-bg">
+      <div class="b-hero-blob b-hero-blob-1"></div>
+      <div class="b-hero-blob b-hero-blob-2"></div>
+    </div>
+    <div class="b-hero-inner">
+      <span class="b-hero-eyebrow">Bolsa de trabajo · Capital Humano</span>
+      <h1>
+        Déjanos tu CV en nuestra<br/>
+        <span class="b-hero-accent">Bolsa de Trabajo</span>
+      </h1>
+      <p>
+        ¿No encontraste una vacante que te acomode hoy? Regístrate y te
+        contactaremos en cuanto haya una oportunidad que coincida con tu perfil.
+      </p>
+      <div class="b-hero-cta">
+        <button class="b-btn b-btn-gold b-btn-lg" (click)="irACTA()">
+          Dejar mi CV
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+        <a routerLink="/portal" class="b-btn b-btn-outline-light b-btn-lg">Ver vacantes activas</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- DÍA A DÍA en Mega Dulces -->
+  <section class="b-diaadia">
+    <div class="b-section-head">
+      <span class="b-eyebrow">El día a día</span>
+      <h2>Así es trabajar en Mega Dulces</h2>
+      <p>Más que dulces — somos una familia de más de 40 años en el sector.</p>
+    </div>
+
+    <div class="b-cards">
+      <article class="b-card">
+        <div class="b-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <h3>Equipo unido</h3>
+        <p>Trabajamos con gente comprometida que se apoya entre sí. Aquí no eres un número — eres parte del equipo.</p>
+      </article>
+
+      <article class="b-card">
+        <div class="b-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <h3>Estabilidad laboral</h3>
+        <p>Contratamos directamente con la empresa. Prestaciones de ley desde el primer día y oportunidad de crecimiento real.</p>
+      </article>
+
+      <article class="b-card">
+        <div class="b-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"></path>
+          </svg>
+        </div>
+        <h3>Crecimiento real</h3>
+        <p>Muchos de nuestros líderes empezaron como vendedores, almacenistas o choferes. Si tienes ganas, aquí avanzas.</p>
+      </article>
+
+      <article class="b-card">
+        <div class="b-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+        </div>
+        <h3>Cerca de casa</h3>
+        <p>Estamos en La Piedad, Santa Ana, Zamora, Morelia y Yurécuaro. Encuentra una sucursal cerca de donde vives.</p>
+      </article>
+
+      <article class="b-card">
+        <div class="b-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <h3>Horarios respetados</h3>
+        <p>Sin sorpresas. Horarios claros, días de descanso definidos y respeto a tu tiempo personal.</p>
+      </article>
+
+      <article class="b-card">
+        <div class="b-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 7h-3V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
+            <line x1="12" y1="12" x2="12" y2="16"></line>
+          </svg>
+        </div>
+        <h3>Capacitación constante</h3>
+        <p>Te enseñamos lo que necesitas saber. No importa si es tu primer empleo — aquí aprendes.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- CTA grande final -->
+  <section class="b-cta-final" id="bolsa-cta">
+    <div class="b-cta-inner">
+      <span class="b-cta-eyebrow">Únete a la familia</span>
+      <h2>¿Te interesa formar parte de Mega Dulces?</h2>
+      <p>
+        Aunque hoy no tengamos la vacante perfecta para ti, déjanos tu CV.
+        En cuanto se abra una oportunidad que coincida con tu perfil, Capital Humano
+        te contactará por WhatsApp.
+      </p>
+      <ul class="b-cta-bullets">
+        <li>
+          <span class="b-bullet-check">✓</span>
+          Toma menos de 3 minutos
+        </li>
+        <li>
+          <span class="b-bullet-check">✓</span>
+          Tu información es confidencial
+        </li>
+        <li>
+          <span class="b-bullet-check">✓</span>
+          Te contactaremos cuando haya una vacante para ti
+        </li>
+      </ul>
+      <a routerLink="/unete" class="b-btn b-btn-gold b-btn-lg">
+        Dejar mi CV ahora
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="b-footer">
+    <div class="b-footer-top">
+      <div class="b-foot-col b-foot-brand">
+        <h3>Bolsa de trabajo</h3>
+        <p class="b-foot-sub">Mega Dulces de Los Altos</p>
+        <p class="b-foot-tagline">Liderazgo que inspira, equipos que transforman.</p>
+      </div>
+
+      <div class="b-foot-col">
+        <h4>Compañía</h4>
+        <a routerLink="/portal">Inicio</a>
+        <a routerLink="/portal">Vacantes activas</a>
+        <a routerLink="/unete">Postúlate</a>
+      </div>
+
+      <div class="b-foot-col">
+        <h4>Contacto</h4>
+        <p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          Capital Humano · WhatsApp
+        </p>
+        <p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          reclutamiento&#64;megadulces.com.mx
+        </p>
+      </div>
+    </div>
+
+    <div class="b-footer-bottom">
+      <small>© Mega Dulces de Los Altos {{ year }} · Todos los derechos reservados</small>
+    </div>
+  </footer>
+</div>

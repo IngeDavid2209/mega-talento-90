@@ -7,6 +7,7 @@ import { CandidateFormComponent } from '../portal/candidate-form/candidate-form'
 import { SolicitudComponent } from '../portal/solicitud/solicitud';
 import { EmpleosComponent } from '../portal/empleos/empleos';
 import { PortalComponent } from '../portal/portal/portal';
+import { BolsaComponent } from '../portal/bolsa/bolsa';
 import { EvaluacionLiderazgoComponent } from '../portal/evaluacion-liderazgo/evaluacion-liderazgo';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
@@ -53,6 +54,9 @@ export const routes: Routes = [
 
   // Portal de empleo (versión completa con hero, filtros, detalle, footer)
   { path: 'portal', component: PortalComponent },
+
+  // Bolsa de trabajo (landing para "déjanos tu CV" - flujo genérico sin vacante específica)
+  { path: 'bolsa', component: BolsaComponent },
 
   // Evaluación de Liderazgo en vivo (el candidato la llena durante la videollamada)
   { path: 'evaluacion/:id', component: EvaluacionLiderazgoComponent },

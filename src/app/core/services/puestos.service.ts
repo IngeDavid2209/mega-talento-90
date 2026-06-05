@@ -25,6 +25,7 @@ export interface Puesto {
   sucursales?: string;       // texto libre con sucursales
   sueldo?: string;            // texto libre (puede ser rango)
   horario?: string;
+  requisitos?: string;        // texto libre, una línea por requisito
   activo: boolean;            // si está visible en la cartelera pública
   orden?: number;
   createdAt?: any;

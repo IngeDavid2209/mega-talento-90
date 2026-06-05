@@ -126,6 +126,7 @@ export class VacantesComponent implements OnInit, OnDestroy {
         sucursales: (this.edicion.sucursales || '').trim(),
         sueldo: (this.edicion.sueldo || '').trim(),
         horario: (this.edicion.horario || '').trim(),
+        requisitos: (this.edicion.requisitos || '').trim(),
         activo: this.edicion.activo,
         orden: this.edicion.orden ?? this.puestos.length
       };

@@ -385,6 +385,14 @@
   .form-row { grid-template-columns: 1fr; }
 }
 
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
 .form-toggle {
   display: flex;
   align-items: center;

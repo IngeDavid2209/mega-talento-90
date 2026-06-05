@@ -147,6 +147,13 @@
         <input type="text" [(ngModel)]="edicion.horario" placeholder="Ej. Lun-Sáb 9:00-18:00">
       </div>
 
+      <div class="form-group">
+        <label>Requisitos del puesto</label>
+        <textarea rows="5" [(ngModel)]="edicion.requisitos"
+                  placeholder="Un requisito por línea, por ejemplo:&#10;Secundaria terminada&#10;Mayor de edad&#10;Licencia de manejo vigente&#10;Disponibilidad de horario"></textarea>
+        <small class="form-hint">Pon un requisito por línea. Se mostrará al candidato cuando vea el detalle de la vacante en el portal.</small>
+      </div>
+
       <div class="form-toggle">
         <input type="checkbox" id="activo-toggle" [(ngModel)]="edicion.activo">
         <label for="activo-toggle">Mostrar en la cartelera pública</label>

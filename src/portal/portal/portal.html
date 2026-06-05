@@ -101,7 +101,7 @@
       </p>
       <div class="p-op-actions">
         <button class="p-btn p-btn-navy p-btn-pill-lg" (click)="irAVacantes()">Vacantes</button>
-        <a routerLink="/unete" class="p-btn p-btn-outline-navy p-btn-pill-lg">Bolsa de trabajo</a>
+        <a routerLink="/bolsa" class="p-btn p-btn-outline-navy p-btn-pill-lg">Bolsa de trabajo</a>
       </div>
     </div>
 
@@ -118,24 +118,35 @@
             <button class="p-search-clear" (click)="busqueda = ''" aria-label="Limpiar búsqueda">✕</button>
           }
         </div>
-        @if (sucursalesUnicas.length > 0) {
-          <div class="p-select-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <select [(ngModel)]="filtroSucursal">
-              <option value="">Todas las ciudades</option>
-              @for (s of sucursalesUnicas; track s) {
-                <option [value]="s">{{ s }}</option>
-              }
-            </select>
-          </div>
-        }
         @if (busqueda || filtroSucursal) {
           <button class="p-btn-text" (click)="limpiarFiltros()">Limpiar</button>
         }
       </div>
+
+      <!-- Chips de zonas (filtro visual) -->
+      @if (sucursalesUnicas.length > 0) {
+        <div class="p-zonas">
+          <span class="p-zonas-label">Filtrar por zona:</span>
+          <div class="p-chips">
+            <button class="p-chip"
+                    [class.p-chip-active]="!filtroSucursal"
+                    (click)="filtroSucursal = ''">
+              Todas
+            </button>
+            @for (s of sucursalesUnicas; track s) {
+              <button class="p-chip"
+                      [class.p-chip-active]="filtroSucursal === s"
+                      (click)="filtroSucursal = s">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                {{ s }}
+              </button>
+            }
+          </div>
+        </div>
+      }
 
       <!-- Lista vertical de tarjetas (tipo Lapisa) -->
       @if (cargando) {
@@ -305,6 +316,17 @@
           <h4>Sobre el puesto</h4>
           <p>{{ vacanteSeleccionada.descripcion }}</p>
         </section>
+
+        @if (parseRequisitos(vacanteSeleccionada.requisitos).length > 0) {
+          <section>
+            <h4>Requisitos</h4>
+            <ul class="p-modal-req">
+              @for (req of parseRequisitos(vacanteSeleccionada.requisitos); track req) {
+                <li>{{ req }}</li>
+              }
+            </ul>
+          </section>
+        }
 
         @if (vacanteSeleccionada.sueldo || vacanteSeleccionada.horario) {
           <section>

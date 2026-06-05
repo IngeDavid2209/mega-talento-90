@@ -183,4 +183,10 @@ export class PortalComponent implements OnInit, OnDestroy {
     if (!nombre) return '?';
     return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
   }
+
+  /** Convierte el texto libre de requisitos en una lista de líneas no vacías */
+  parseRequisitos(texto: string | undefined): string[] {
+    if (!texto) return [];
+    return texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  }
 }
