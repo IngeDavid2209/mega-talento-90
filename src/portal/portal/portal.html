@@ -256,64 +256,45 @@
               </div>
 
               <div class="p-card-body">
-                <div class="p-card-tags">
-                  <span class="p-card-fecha">
+                <h3 class="p-card-title">{{ p.nombre }}</h3>
+
+                <ul class="p-card-meta">
+                  @if (p.sucursales) {
+                    <li>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                      </svg>
+                      <span>{{ p.sucursales }}</span>
+                    </li>
+                  }
+                  <li>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="12" cy="12" r="10"></circle>
                       <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    {{ hacePoco(p.createdAt) }}
-                  </span>
+                    <span>{{ hacePoco(p.createdAt) }}</span>
+                  </li>
                   @if (p.area) {
-                    <span class="p-card-area">{{ p.area }}</span>
+                    <li>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18"></path>
+                        <path d="M5 21V7l8-4v18"></path>
+                        <path d="M19 21V11l-6-4"></path>
+                        <line x1="9" y1="9" x2="9" y2="9.01"></line>
+                        <line x1="9" y1="12" x2="9" y2="12.01"></line>
+                        <line x1="9" y1="15" x2="9" y2="15.01"></line>
+                        <line x1="9" y1="18" x2="9" y2="18.01"></line>
+                      </svg>
+                      <span>{{ p.area }}</span>
+                    </li>
                   }
-                </div>
-
-                <h3 class="p-card-title">{{ p.nombre }}</h3>
-
-                @if (p.sucursales) {
-                  <p class="p-card-loc">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                      <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                    {{ p.sucursales }}
-                  </p>
-                }
-
-                <p class="p-card-desc">{{ p.descripcion }}</p>
-
-                @if (p.sueldo || p.horario) {
-                  <div class="p-card-pills">
-                    @if (p.sueldo) {
-                      <span class="p-pill p-pill-gold">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <line x1="12" y1="1" x2="12" y2="23"></line>
-                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                        </svg>
-                        {{ p.sueldo }}
-                      </span>
-                    }
-                    @if (p.horario) {
-                      <span class="p-pill">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        {{ p.horario }}
-                      </span>
-                    }
-                  </div>
-                }
-
-                <button class="p-card-btn" (click)="$event.stopPropagation(); abrirDetalle(p)">
-                  Más información
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </button>
+                </ul>
               </div>
+
+              <button class="p-card-btn" (click)="$event.stopPropagation(); abrirDetalle(p)">
+                Más información
+              </button>
 
             </article>
           }
