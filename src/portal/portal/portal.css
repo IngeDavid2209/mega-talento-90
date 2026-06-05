@@ -909,10 +909,14 @@
   color: #ffffff;
 }
 .p-bienestar p {
-  font-size: 15px;
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.88);
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
   margin: 0 0 16px;
+}
+.p-bienestar p strong {
+  color: #FFC233;
+  font-weight: 700;
 }
 .p-bienestar-tagline {
   font-style: italic;
