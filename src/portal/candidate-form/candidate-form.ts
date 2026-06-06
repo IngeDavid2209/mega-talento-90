@@ -121,8 +121,12 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       }
       return;
     }
+    // En pantallas estrechas (≤400px) el widget normal de 304px no cabe,
+    // por eso usamos la versión 'compact' (164×144) que Google ofrece nativa.
+    const esMobileEstrecho = window.innerWidth <= 400;
     this.captchaWidgetId = win.grecaptcha.render(contenedor, {
       sitekey: RECAPTCHA_SITE_KEY,
+      size: esMobileEstrecho ? 'compact' : 'normal',
       callback: (token: string) => {
         this.ngZone.run(() => this.captchaToken = token);
       },

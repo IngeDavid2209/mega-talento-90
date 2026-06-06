@@ -485,13 +485,27 @@ label.label-error { color: #DC2626; }
   color: #475569;
   margin: 2px 0 8px;
 }
+@media (max-width: 360px) {
+  .captcha-group { padding: 8px 6px; }
+}
 .captcha-container {
   display: flex;
   justify-content: center;
-  /* El widget de Google mide ~304x78; lo dejamos centrado y con scroll horizontal
-     en pantallas muy estrechas para que nunca corte el botón "No soy un robot". */
+  align-items: center;
+  /* El widget normal mide 304x78. En móviles ≤400px el TS renderiza el
+     widget en modo 'compact' (164x144), que cabe perfectamente. */
   min-height: 78px;
-  overflow-x: auto;
+  width: 100%;
+  overflow: visible;
+}
+/* El iframe del reCAPTCHA debe poder verse completo sin scroll */
+.captcha-container > div {
+  max-width: 100%;
+}
+@media (max-width: 400px) {
+  .captcha-container {
+    min-height: 144px; /* alto del widget compact */
+  }
 }
 
 /* BOTÓN */
@@ -680,7 +694,11 @@ label.label-error { color: #DC2626; }
   }
 }
 
-/* RESPONSIVE */
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Tablets / phones medianos */
 @media (max-width: 480px) {
   .form-wrapper { padding: 14px 12px; }
   .form-card { border-radius: 18px; }
@@ -693,4 +711,57 @@ label.label-error { color: #DC2626; }
   .input-icon-wrap select { padding: 11px 12px 11px 40px; font-size: 14px; }
   .field-icon { left: 12px; width: 16px; height: 16px; }
   .privacy-footer { padding: 12px 18px; font-size: 11.5px; }
+
+  /* Tabs CV en mobile: stack vertical si es muy estrecho */
+  .cv-tab { font-size: 11.5px; padding: 9px 8px; }
+  .cv-tab svg { width: 14px; height: 14px; }
+
+  /* Fotos del CV: en mobile que sea aspect 4:5 para que se vean mejor */
+  .foto-upload { aspect-ratio: 4 / 3; }
+}
+
+/* Móviles muy estrechos (≤ 360px típico) */
+@media (max-width: 380px) {
+  .form-wrapper { padding: 10px 8px; }
+  .form-card { border-radius: 16px; }
+  .form-header { padding: 22px 18px 18px; }
+  .header-icon { width: 50px; height: 50px; margin-bottom: 10px; }
+  .header-icon svg { width: 24px; height: 24px; }
+  .form-header h2 { font-size: 17px; }
+  .subtitle { font-size: 11.5px; }
+  .header-link { font-size: 11px; padding: 4px 10px; }
+  .form-body { padding: 18px 14px 16px; }
+  .form-group { margin-bottom: 14px; }
+  label { font-size: 12px; }
+
+  /* Inputs un poco más compactos */
+  .input-icon-wrap input,
+  .input-icon-wrap select { padding: 10px 10px 10px 36px; font-size: 13.5px; }
+  .field-icon { width: 14px; height: 14px; left: 11px; }
+
+  /* CV y licencia más compactos */
+  .cv-group, .licencia-group, .captcha-group { padding: 10px; }
+  .file-upload-area { padding: 10px; }
+  .file-upload-icon { width: 22px; height: 22px; }
+  .file-upload-title { font-size: 13px; }
+  .file-upload-hint { font-size: 11px; }
+
+  /* Tabs CV en columna en pantallas súper estrechas */
+  .cv-tabs { grid-template-columns: 1fr; gap: 4px; }
+  .cv-tab { padding: 8px; font-size: 12px; }
+
+  /* Fotos frente/reverso en mobile: stack vertical para que se vean grandes */
+  .fotos-grid { grid-template-columns: 1fr; gap: 8px; }
+  .foto-upload { aspect-ratio: 16 / 9; }
+
+  /* Botón submit */
+  .btn-submit { font-size: 13.5px; padding: 12px; }
+  .btn-submit svg { width: 16px; height: 16px; }
+}
+
+/* Pantalla full landscape (orientación horizontal) en móviles */
+@media (max-width: 768px) and (orientation: landscape) {
+  .form-wrapper { padding: 14px; }
+  .form-header { padding: 18px 22px; }
+  .form-body { padding: 18px 22px; }
 }
