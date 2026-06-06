@@ -114,23 +114,37 @@ export class CandidateService {
    * - Teléfono: comparación exacta tras quitar todo lo que no sea dígito.
    * - Nombre: comparación normalizada (minúsculas, espacios colapsados).
    * Devuelve el candidato encontrado o null si no hay duplicado.
+   *
+   * NOTA: esta función la llama el flujo público /unete sin autenticación.
+   * Como las reglas de Firestore requieren auth para LEER candidates, esta
+   * lectura falla con permission-denied. Si pasa, devolvemos null (no
+   * bloqueamos la postulación) — el RH puede limpiar duplicados después
+   * desde /app/duplicados.
    */
   async buscarDuplicado(telefono: string, nombre: string): Promise<any | null> {
     const telLimpio = (telefono || '').replace(/\D/g, '');
     const nomNorm = this.normalizarNombre(nombre);
     if (!telLimpio && !nomNorm) return null;
 
-    const todos = await this.getCandidatesIncluyendoBorrados();
-    const match: any = todos.find((c: any) => {
-      const telExistente = (c.telefono || '').replace(/\D/g, '');
-      const nomExistente = this.normalizarNombre(c.nombre);
-      // Coincide por teléfono (10 dígitos completos) o por nombre exacto (no muy corto)
-      const matchTel = telLimpio.length >= 10 && telLimpio === telExistente;
-      const matchNom = nomNorm.length >= 5 && nomNorm === nomExistente;
-      return matchTel || matchNom;
-    });
-    if (!match) return null;
-    return { ...match, estaEnPapelera: !!match.deletedAt };
+    try {
+      const todos = await this.getCandidatesIncluyendoBorrados();
+      const match: any = todos.find((c: any) => {
+        const telExistente = (c.telefono || '').replace(/\D/g, '');
+        const nomExistente = this.normalizarNombre(c.nombre);
+        // Coincide por teléfono (10 dígitos completos) o por nombre exacto (no muy corto)
+        const matchTel = telLimpio.length >= 10 && telLimpio === telExistente;
+        const matchNom = nomNorm.length >= 5 && nomNorm === nomExistente;
+        return matchTel || matchNom;
+      });
+      if (!match) return null;
+      return { ...match, estaEnPapelera: !!match.deletedAt };
+    } catch (e) {
+      // Si las reglas no permiten la lectura (usuario público sin sesión),
+      // ignoramos la verificación de duplicados y dejamos pasar. El sistema
+      // tiene una pantalla /app/duplicados para limpiarlos manualmente después.
+      console.warn('buscarDuplicado: no se pudo leer la lista (probablemente sin permisos):', e);
+      return null;
+    }
   }
 
   private normalizarNombre(s: string): string {

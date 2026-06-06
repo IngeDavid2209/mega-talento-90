@@ -400,12 +400,23 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
         mensaje: 'Se ha enviado tu información correctamente. Capital Humano de Mega Dulces te contactará pronto.'
       };
       this.resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error('ERROR CRÍTICO EN EL PROCESO DE REGISTRO:', error);
+      const code = error?.code || '';
+      let mensaje = 'Hubo un problema al procesar tu información. Por favor, intenta de nuevo en unos momentos.';
+      if (code === 'permission-denied') {
+        mensaje = 'Permiso denegado al guardar. Si el problema persiste, contacta a Capital Humano por WhatsApp.';
+      } else if (code === 'unavailable' || code === 'network-request-failed' || /network/i.test(error?.message || '')) {
+        mensaje = 'Sin conexión a internet. Revisa tu red y vuelve a intentar.';
+      } else if (error?.message?.toLowerCase().includes('cloudinary')) {
+        mensaje = 'No se pudo subir tu archivo. Revisa que el CV o licencia no supere 5 MB y vuelve a intentar.';
+      } else if (error?.message) {
+        mensaje = error.message;
+      }
       this.modal = {
         tipo: 'error',
         titulo: 'No pudimos enviar tu solicitud',
-        mensaje: 'Hubo un problema al procesar tu información. Por favor, intenta de nuevo en unos momentos.'
+        mensaje
       };
     } finally {
       this.subiendo = false;
