@@ -59,6 +59,16 @@ export class VozService {
   private sdkCargado = false;
   private sdkCargando: Promise<void> | null = null;
 
+  /**
+   * Contador de "generación" para invalidar llamadas en curso. Cada `parar()`
+   * (y cada `hablar()` que lo precede) lo incrementa. Si un `hablarConAzure`
+   * lleva varios await pendientes (cargar SDK, pedir token), al volver verifica
+   * que su generación siga vigente; si no, aborta sin reproducir audio. Esto
+   * evita que dos voces se reproduzcan a la vez cuando se encadenan llamadas
+   * rápidas a `hablar()`.
+   */
+  private generacion = 0;
+
   // ============== TTS NATIVO ==============
   private synthNativa: SpeechSynthesis | null = null;
   private vozNativa: SpeechSynthesisVoice | null = null;
@@ -109,9 +119,13 @@ export class VozService {
       return;
     }
     this.parar();
+    const miGen = this.generacion;
 
     if (this.azureDisponible) {
-      this.hablarConAzure(texto, opciones).catch((err) => {
+      this.hablarConAzure(texto, opciones, miGen).catch((err) => {
+        // Si esta llamada ya fue invalidada por un parar() o un hablar() nuevo,
+        // no caer al fallback nativo: el siguiente hablar() ya tomó el control.
+        if (miGen !== this.generacion) return;
         console.warn('VozService: Azure falló, fallback a TTS nativo.', err);
         this.azureDisponible = false;
         this.hablarConNativa(texto, opciones);
@@ -123,6 +137,8 @@ export class VozService {
 
   /** Detiene cualquier audio que esté reproduciéndose */
   parar(): void {
+    // Invalida cualquier hablar() en vuelo (cargando SDK / pidiendo token).
+    this.generacion++;
     if (this.synthAzure) {
       try { this.synthAzure.close(); } catch {}
       this.synthAzure = null;
@@ -202,10 +218,14 @@ export class VozService {
 
   private async hablarConAzure(
     texto: string,
-    opciones: { onEnd?: () => void; rate?: number }
+    opciones: { onEnd?: () => void; rate?: number },
+    miGen: number
   ): Promise<void> {
     await this.cargarSDK();
+    if (miGen !== this.generacion) return;
+
     await this.obtenerTokenAzure();
+    if (miGen !== this.generacion) return;
 
     const SDK = window.SpeechSDK;
     if (!SDK) throw new Error('SDK de Azure Speech no disponible en window');
@@ -215,14 +235,22 @@ export class VozService {
 
     const audioConfig = SDK.AudioConfig.fromDefaultSpeakerOutput();
     const synth = new SDK.SpeechSynthesizer(config, audioConfig);
+
+    // Última verificación antes de arrancar el audio.
+    if (miGen !== this.generacion) {
+      try { synth.close(); } catch {}
+      return;
+    }
     this.synthAzure = synth;
 
     // Visemas: 0 (silencio) a 21 (vocales/consonantes específicas)
     synth.visemeReceived = (_s: any, e: any) => {
+      if (miGen !== this.generacion) return;
       this.visemeActual.set(e.visemeId);
     };
 
     synth.synthesisStarted = () => {
+      if (miGen !== this.generacion) return;
       this.hablando.set(true);
     };
 
@@ -232,6 +260,12 @@ export class VozService {
         (result: any) => {
           try { synth.close(); } catch {}
           if (this.synthAzure === synth) this.synthAzure = null;
+          // Si esta generación ya quedó obsoleta, no toques los signals
+          // (otro hablar() los está controlando).
+          if (miGen !== this.generacion) {
+            resolve();
+            return;
+          }
           this.hablando.set(false);
           this.visemeActual.set(0);
 
@@ -245,6 +279,10 @@ export class VozService {
         (err: any) => {
           try { synth.close(); } catch {}
           if (this.synthAzure === synth) this.synthAzure = null;
+          if (miGen !== this.generacion) {
+            resolve();
+            return;
+          }
           this.hablando.set(false);
           this.visemeActual.set(0);
           reject(new Error('Azure: ' + err));
