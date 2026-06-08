@@ -11,12 +11,13 @@
   <!-- Marco circular con el personaje (video o GIF según el src) -->
   <div class="ah-foto">
     @if (esVideo) {
-      <video [src]="src"
+      <video #videoEl
+             [src]="src"
              class="ah-img"
-             autoplay
              loop
              muted
              playsinline
+             preload="auto"
              aria-label="Asistente Mega Dulces">
       </video>
     } @else {
