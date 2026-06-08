@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
+import { VozService } from '../../app/core/services/voz.service';
 import {
   CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario
 } from '../../app/core/models/cuestionario-liderazgo.model';
@@ -17,6 +18,8 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
+  // Público para el template (signals reactivos hablando() y habilitado())
+  voz = inject(VozService);
 
   CUESTIONARIO_LIDERAZGO = CUESTIONARIO_LIDERAZGO;
   NIVELES_LIKERT = NIVELES_LIKERT;
@@ -31,6 +34,10 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   respuestas: RespuestasCuestionario = {};
   guardando = false;
 
+  // Pantalla de bienvenida / selección de modo (con voz o sin voz)
+  modoElegido = false;
+  audioActivo = false;
+
   // Pantalla final
   terminado = false;
 
@@ -44,7 +51,6 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Escuchar en vivo el candidato (por si RH lo cierra o algo)
     this.unsubscribe = this.candidateService.listenToCandidate(this.candidatoId, (data) => {
       this.ngZone.run(() => {
         this.candidato = data;
@@ -56,6 +62,7 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.unsubscribe) this.unsubscribe();
+    this.voz.parar();
   }
 
   get preguntaActual() {
@@ -75,6 +82,61 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     return this.respuestas[this.preguntaActual.num];
   }
 
+  // ====== INICIO: elegir modo ======
+
+  /** El candidato eligió empezar CON audio guiado */
+  empezarConAudio() {
+    this.modoElegido = true;
+    this.audioActivo = true;
+    // Desbloquear el navegador con un speak silencioso (este click cuenta como gesto)
+    this.voz.desbloquear();
+    // Después de un breve delay para que se cargue la voz, leer bienvenida + pregunta 1
+    setTimeout(() => {
+      const nombre = (this.candidato?.nombre || '').split(/\s+/)[0] || '';
+      const saludo = nombre
+        ? `Hola ${nombre}. Vas a contestar 12 preguntas. Responde con honestidad.`
+        : 'Hola. Vas a contestar 12 preguntas. Responde con honestidad.';
+      this.voz.hablar(saludo, {
+        onEnd: () => this.leerPreguntaActual()
+      });
+    }, 350);
+  }
+
+  /** El candidato eligió empezar SIN audio (lectura normal) */
+  empezarSinAudio() {
+    this.modoElegido = true;
+    this.audioActivo = false;
+  }
+
+  // ====== CONTROL DE VOZ DURANTE EL CUESTIONARIO ======
+
+  /** Lee la pregunta actual + sus 5 opciones */
+  leerPreguntaActual() {
+    if (!this.audioActivo || !this.preguntaActual) return;
+    const opciones = this.NIVELES_LIKERT
+      .map(n => `${n.valor}: ${n.etiquetaCorta}`)
+      .join('. ');
+    const texto = `Pregunta ${this.paso} de ${this.TOTAL}. ${this.preguntaActual.texto} Las opciones son: ${opciones}.`;
+    this.voz.hablar(texto);
+  }
+
+  /** Botón "Repetir": vuelve a leer la pregunta actual */
+  repetir() {
+    if (!this.audioActivo) return;
+    this.leerPreguntaActual();
+  }
+
+  /** Botón "Silenciar / Activar" audio */
+  toggleAudio() {
+    this.voz.toggle();
+    // Si reactivó y está en modo audio, leer la pregunta actual
+    if (this.voz.habilitado() && this.audioActivo) {
+      this.leerPreguntaActual();
+    }
+  }
+
+  // ====== RESPUESTAS Y NAVEGACIÓN ======
+
   /** Guarda la respuesta y avanza automáticamente al siguiente paso */
   async responder(valor: number) {
     if (!this.candidatoId || !this.preguntaActual || this.guardando) return;
@@ -86,18 +148,18 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     try {
       await this.candidateService.updateCandidate(this.candidatoId, {
         cuestionarioLiderazgo: this.respuestas,
-        // Timestamp para el indicador "en vivo" del lado RH
         ultimaActividadCuestionario: new Date()
       });
 
-      // Avanzar al siguiente automáticamente (mejor UX en móvil)
+      // Avanzar al siguiente automáticamente
       setTimeout(() => {
         if (this.paso < this.TOTAL) {
           this.paso++;
+          this.leerPreguntaActual();
         } else {
-          // Última pregunta — verificar si todas están contestadas
           if (this.todasContestadas()) {
             this.terminado = true;
+            this.voz.parar();
           }
         }
       }, 350);
@@ -117,15 +179,26 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   }
 
   anterior() {
-    if (this.paso > 1) this.paso--;
+    if (this.paso > 1) {
+      this.paso--;
+      this.leerPreguntaActual();
+    }
   }
 
   siguiente() {
-    if (this.paso < this.TOTAL) this.paso++;
-    else if (this.todasContestadas()) this.terminado = true;
+    if (this.paso < this.TOTAL) {
+      this.paso++;
+      this.leerPreguntaActual();
+    } else if (this.todasContestadas()) {
+      this.terminado = true;
+      this.voz.parar();
+    }
   }
 
   irAPaso(n: number) {
-    if (n >= 1 && n <= this.TOTAL) this.paso = n;
+    if (n >= 1 && n <= this.TOTAL && n !== this.paso) {
+      this.paso = n;
+      this.leerPreguntaActual();
+    }
   }
 }

@@ -11,8 +11,71 @@
       <h2>Algo salió mal</h2>
       <p>{{ error }}</p>
     </div>
+  } @else if (!modoElegido) {
+
+    <!-- ====== PANTALLA DE INICIO: elegir modo ====== -->
+    <div class="ev-card ev-bienvenida">
+      <header class="ev-head">
+        <div class="ev-head-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
+        </div>
+        <div class="ev-head-text">
+          <strong>EVALUACIÓN DE LIDERAZGO</strong>
+          <small>Modelo interaccionista del Liderazgo · Mega Dulces</small>
+        </div>
+      </header>
+
+      <div class="ev-bienvenida-body">
+        <h1>Hola, {{ candidato?.nombre || 'candidato/a' }} 👋</h1>
+        <p class="ev-bien-intro">
+          Vas a responder <strong>12 preguntas</strong> sobre cómo te comportas en grupo.
+          No hay respuestas correctas o incorrectas — solo contesta con
+          <strong>honestidad</strong>.
+        </p>
+
+        <p class="ev-bien-pregunta">¿Cómo prefieres contestar?</p>
+
+        <div class="ev-modos">
+          @if (voz.soportado) {
+            <button type="button" class="ev-modo ev-modo-audio" (click)="empezarConAudio()">
+              <div class="ev-modo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+              </div>
+              <div class="ev-modo-text">
+                <strong>Con voz guiada</strong>
+                <small>Te leeré cada pregunta y sus opciones</small>
+              </div>
+            </button>
+          }
+
+          <button type="button" class="ev-modo ev-modo-silencio" (click)="empezarSinAudio()">
+            <div class="ev-modo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+              </svg>
+            </div>
+            <div class="ev-modo-text">
+              <strong>Sin voz</strong>
+              <small>Yo leeré las preguntas en silencio</small>
+            </div>
+          </button>
+        </div>
+
+        @if (!voz.soportado) {
+          <small class="ev-bien-nota">Tu navegador no soporta lectura por voz. Continuarás en modo silencio.</small>
+        }
+      </div>
+    </div>
+
   } @else if (terminado) {
-    <!-- Pantalla final -->
+    <!-- ====== PANTALLA FINAL ====== -->
     <div class="ev-card ev-final">
       <div class="ev-icon-ok">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -24,9 +87,11 @@
       <small>Puedes cerrar esta ventana cuando quieras.</small>
     </div>
   } @else {
+
+    <!-- ====== CUESTIONARIO ====== -->
     <div class="ev-card">
 
-      <!-- HEADER amarillo Mega Dulces -->
+      <!-- HEADER navy + dorado -->
       <header class="ev-head">
         <div class="ev-head-icon">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
@@ -35,13 +100,29 @@
           <strong>EVALUACIÓN DE LIDERAZGO</strong>
           <small>Modelo interaccionista del Liderazgo · Mega Dulces</small>
         </div>
+        @if (audioActivo) {
+          <button type="button"
+                  class="ev-btn-audio"
+                  [class.muted]="!voz.habilitado()"
+                  (click)="toggleAudio()"
+                  [title]="voz.habilitado() ? 'Silenciar voz' : 'Activar voz'"
+                  aria-label="Toggle audio">
+            @if (voz.habilitado()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            }
+          </button>
+        }
       </header>
-
-      <!-- Saludo -->
-      <div class="ev-saludo">
-        <h1>Hola, {{ candidato?.nombre || 'candidato/a' }} 👋</h1>
-        <p>Responde con <strong>honestidad</strong> cada afirmación. Tu evaluador puede ver tus respuestas en vivo durante la videollamada.</p>
-      </div>
 
       <!-- Progreso -->
       <div class="ev-progreso">
@@ -54,13 +135,34 @@
         </div>
       </div>
 
-      <!-- Pregunta actual -->
-      <div class="ev-pregunta-box">
+      <!-- Pregunta actual con highlight cuando la voz está leyendo -->
+      <div class="ev-pregunta-box" [class.leyendo]="voz.hablando()">
         <div class="ev-num">{{ paso }}</div>
-        <p class="ev-pregunta-texto">{{ preguntaActual.texto }}</p>
+        <div class="ev-pregunta-contenido">
+          <p class="ev-pregunta-texto">{{ preguntaActual.texto }}</p>
+
+          @if (audioActivo) {
+            <div class="ev-audio-row">
+              @if (voz.hablando()) {
+                <span class="ev-ondas" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                </span>
+                <span class="ev-audio-label">Leyendo pregunta...</span>
+              } @else {
+                <button type="button" class="ev-btn-repetir" (click)="repetir()" [disabled]="!voz.habilitado()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  Escuchar otra vez
+                </button>
+              }
+            </div>
+          }
+        </div>
       </div>
 
-      <!-- Opciones grandes (tipo botones, tap-friendly) -->
+      <!-- Opciones grandes -->
       <div class="ev-opciones">
         @for (n of NIVELES_LIKERT; track n.valor) {
           <button type="button"

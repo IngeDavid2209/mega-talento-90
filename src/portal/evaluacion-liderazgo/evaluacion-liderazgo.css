@@ -405,3 +405,232 @@
   .ev-stepper { padding: 0 18px 12px; grid-template-columns: repeat(6, 1fr); gap: 5px; }
   .ev-step-btn { font-size: 12px; }
 }
+
+/* ============================================================
+   PANTALLA DE BIENVENIDA: elegir con/sin voz
+   ============================================================ */
+.ev-bienvenida-body {
+  padding: 28px 24px 32px;
+  text-align: center;
+}
+.ev-bienvenida-body h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px;
+}
+.ev-bien-intro {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0 0 24px;
+}
+.ev-bien-intro strong {
+  color: #1A2F4E;
+  font-weight: 700;
+}
+.ev-bien-pregunta {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #E5A300;
+  margin: 0 0 16px;
+}
+.ev-modos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ev-modo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 2px solid rgba(26, 47, 78, 0.12);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+.ev-modo:hover {
+  border-color: #FFC233;
+  background: #FFFBEE;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -10px rgba(255, 195, 51, 0.4);
+}
+.ev-modo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1A2F4E 0%, #2A4D7E 100%);
+  color: #FFC233;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ev-modo-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.ev-modo-audio .ev-modo-icon {
+  background: linear-gradient(135deg, #FFC233 0%, #E5A300 100%);
+  color: #1A2F4E;
+}
+.ev-modo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ev-modo-text strong {
+  font-size: 15px;
+  color: #1A2F4E;
+  font-weight: 700;
+}
+.ev-modo-text small {
+  font-size: 12.5px;
+  color: #64748b;
+}
+.ev-bien-nota {
+  display: block;
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ============================================================
+   AUDIO: botón silenciar, ondas y highlight de pregunta
+   ============================================================ */
+
+/* Botón de altavoz en el header */
+.ev-btn-audio {
+  margin-left: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 195, 51, 0.18);
+  color: #FFC233;
+  border: 1.5px solid rgba(255, 195, 51, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+.ev-btn-audio svg {
+  width: 18px;
+  height: 18px;
+}
+.ev-btn-audio:hover {
+  background: #FFC233;
+  color: #1A2F4E;
+}
+.ev-btn-audio.muted {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.ev-btn-audio.muted:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* Highlight de la pregunta cuando se está leyendo */
+.ev-pregunta-box {
+  border-radius: 12px;
+  margin: 0 18px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.ev-pregunta-box.leyendo {
+  background: linear-gradient(90deg, rgba(255, 195, 51, 0.12), rgba(255, 195, 51, 0.04));
+  box-shadow: 0 0 0 2px rgba(255, 195, 51, 0.3);
+}
+.ev-pregunta-box.leyendo .ev-num {
+  background: #FFC233;
+  color: #1A2F4E;
+  animation: ev-num-pulse 1.5s ease-in-out infinite;
+}
+@keyframes ev-num-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 195, 51, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 195, 51, 0); }
+}
+
+.ev-pregunta-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+/* Fila de audio (ondas o botón repetir) debajo de la pregunta */
+.ev-audio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+.ev-audio-label {
+  font-size: 12px;
+  color: #E5A300;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Animación de ondas (4 barras saltando) */
+.ev-ondas {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+.ev-ondas span {
+  display: block;
+  width: 4px;
+  background: #FFC233;
+  border-radius: 2px;
+  animation: ev-onda 1s ease-in-out infinite;
+}
+.ev-ondas span:nth-child(1) { animation-delay: 0s;    height: 8px; }
+.ev-ondas span:nth-child(2) { animation-delay: 0.15s; height: 18px; }
+.ev-ondas span:nth-child(3) { animation-delay: 0.3s;  height: 12px; }
+.ev-ondas span:nth-child(4) { animation-delay: 0.45s; height: 20px; }
+@keyframes ev-onda {
+  0%, 100% { transform: scaleY(0.6); opacity: 0.7; }
+  50%      { transform: scaleY(1.15); opacity: 1; }
+}
+
+/* Botón "Escuchar otra vez" */
+.ev-btn-repetir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1.5px solid rgba(229, 163, 0, 0.4);
+  color: #E5A300;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.ev-btn-repetir svg {
+  width: 13px;
+  height: 13px;
+}
+.ev-btn-repetir:hover:not(:disabled) {
+  background: #FFC233;
+  color: #1A2F4E;
+  border-color: #FFC233;
+}
+.ev-btn-repetir:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
