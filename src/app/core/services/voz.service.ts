@@ -86,6 +86,23 @@ export class VozService {
   }
 
   /**
+   * Pre-carga el SDK de Azure y pide el token en background, sin reproducir
+   * nada. Se debe llamar al entrar a la pantalla que usa voz (típicamente
+   * en ngOnInit), antes de que el usuario presione "Empezar". Cuando llegue
+   * el primer hablar(), ya estará todo en caché → latencia ~instantánea.
+   *
+   * No falla si no hay conectividad: las llamadas reales harán fallback al
+   * TTS nativo cuando toque.
+   */
+  precalentar(): void {
+    if (!this.azureDisponible) return;
+    // Carga del SDK
+    this.cargarSDK().catch(() => { this.azureDisponible = false; });
+    // Token (se almacena en caché 8 minutos)
+    this.obtenerTokenAzure().catch(() => { /* silencioso: fallback en runtime */ });
+  }
+
+  /**
    * Debe llamarse DENTRO de un click handler la primera vez para autorizar audio.
    * También arranca la carga del SDK de Azure en background.
    */

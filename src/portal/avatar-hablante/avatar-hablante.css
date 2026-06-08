@@ -1,5 +1,5 @@
 /* ============================================================
-   AVATAR DALIA · SVG con lip-sync real basado en visemas Azure
+   AVATAR DALIA · foto real con halo pulsante corporativo
    ============================================================ */
 
 .ah-wrap {
@@ -9,9 +9,9 @@
 }
 
 /* Tamaños predefinidos */
-.ah-sm { width: 100px; height: 100px; }
-.ah-md { width: 170px; height: 170px; }
-.ah-lg { width: 240px; height: 240px; }
+.ah-sm { width: 110px; height: 110px; }
+.ah-md { width: 180px; height: 180px; }
+.ah-lg { width: 260px; height: 260px; }
 
 /* Marco circular con borde dorado */
 .ah-foto {
@@ -23,156 +23,119 @@
   border: 4px solid #FFC233;
   background: #1A2F4E;
   box-shadow:
-    0 10px 30px rgba(15, 31, 61, 0.45),
-    0 4px 10px rgba(15, 31, 61, 0.3);
+    0 12px 32px rgba(15, 31, 61, 0.35),
+    0 4px 10px rgba(15, 31, 61, 0.2);
   z-index: 2;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 .ah-sm .ah-foto { border-width: 3px; }
 
-.ah-svg {
+.ah-img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
   display: block;
+  background: #1A2F4E;
 }
 
 /* Idle: respiración muy sutil */
 .ah-foto {
-  animation: ah-idle 4.5s ease-in-out infinite;
+  animation: ah-idle 5s ease-in-out infinite;
 }
 @keyframes ah-idle {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.012); }
+  50%      { transform: scale(1.015); }
 }
 
-/* Hablando: borde más brillante + bounce sutil */
+/* Hablando: borde más brillante + bounce sutil + halo dorado */
 .ah-hablando .ah-foto {
-  animation: ah-talk 0.6s ease-in-out infinite;
+  animation: ah-talk 0.7s ease-in-out infinite;
   border-color: #FFD24A;
   box-shadow:
-    0 0 0 4px rgba(255, 195, 51, 0.25),
-    0 10px 30px rgba(15, 31, 61, 0.5);
+    0 0 0 6px rgba(255, 195, 51, 0.22),
+    0 0 0 12px rgba(255, 195, 51, 0.10),
+    0 14px 36px rgba(15, 31, 61, 0.42);
 }
 @keyframes ah-talk {
   0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-2px) scale(1.018); }
+  50%      { transform: translateY(-3px) scale(1.022); }
 }
 
 /* ============================================================
-   PARPADEO de los ojos cada ~4 segundos (da vida sin distraer)
-   ============================================================ */
-.ah-ojos {
-  transform-origin: center;
-  animation: ah-blink 4.2s ease-in-out infinite;
-}
-@keyframes ah-blink {
-  0%, 92%, 100%  { transform: scaleY(1); }
-  94%            { transform: scaleY(0.05); }
-  96%            { transform: scaleY(1); }
-}
-
-/* ============================================================
-   BOCA — sólo es visible la forma activa según data-forma
-   ============================================================ */
-
-/* Por defecto, todas ocultas */
-.ah-mouth {
-  opacity: 0;
-  transition: opacity 90ms ease-out;
-}
-
-/* Activar sólo la que corresponde a data-forma del contenedor */
-.ah-foto[data-forma="closed"] .ah-mouth-closed { opacity: 1; }
-.ah-foto[data-forma="small"]  .ah-mouth-small  { opacity: 1; }
-.ah-foto[data-forma="medium"] .ah-mouth-medium { opacity: 1; }
-.ah-foto[data-forma="wide"]   .ah-mouth-wide   { opacity: 1; }
-.ah-foto[data-forma="round"]  .ah-mouth-round  { opacity: 1; }
-.ah-foto[data-forma="smile"]  .ah-mouth-smile  { opacity: 1; }
-.ah-foto[data-forma="bite"]   .ah-mouth-bite   { opacity: 1; }
-
-/* ============================================================
-   FALLBACK: cuando habla con TTS nativo (sin visemas) la boca
-   alterna entre small y medium para simular movimiento.
-   Se detecta en JS: si hablando=true pero visema=0 (silencio)
-   durante >150ms, JavaScript fuerza la animación.
-   Aquí dejamos un keyframes listo por si lo activamos a futuro.
-   ============================================================ */
-@keyframes ah-mouth-loop {
-  0%, 100% { opacity: 0; }
-  25%      { opacity: 0; }
-  50%      { opacity: 1; }
-  75%      { opacity: 0; }
-}
-
-/* ============================================================
-   Anillos pulsantes dorados (sólo cuando habla)
+   Anillos expansivos dorados (sólo cuando habla)
    ============================================================ */
 .ah-anillo {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2.5px solid rgba(255, 195, 51, 0.6);
+  border: 2.5px solid rgba(255, 195, 51, 0.65);
   pointer-events: none;
   opacity: 0;
   z-index: 1;
 }
 .ah-hablando .ah-anillo-1 {
-  animation: ah-pulse 1.6s ease-out infinite;
+  animation: ah-pulse 1.8s ease-out infinite;
 }
 .ah-hablando .ah-anillo-2 {
-  animation: ah-pulse 1.6s ease-out 0.55s infinite;
+  animation: ah-pulse 1.8s ease-out 0.6s infinite;
 }
 @keyframes ah-pulse {
-  0%   { transform: scale(1);    opacity: 0.75; }
-  100% { transform: scale(1.45); opacity: 0; }
+  0%   { transform: scale(1);    opacity: 0.8; }
+  100% { transform: scale(1.55); opacity: 0; }
 }
 
 /* ============================================================
-   Burbuja con ondas de audio bajo el personaje
+   Burbuja con ondas de audio bajo la foto
    ============================================================ */
 .ah-burbuja {
   position: absolute;
-  bottom: -10px;
+  bottom: -14px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 14px;
-  background: #ffffff;
+  padding: 10px 16px;
+  background: #FFFFFF;
   border-radius: 999px;
-  box-shadow: 0 8px 20px rgba(15, 31, 61, 0.25);
+  box-shadow:
+    0 10px 24px rgba(15, 31, 61, 0.22),
+    0 2px 6px rgba(15, 31, 61, 0.08);
   z-index: 3;
-  animation: ah-burbuja-in 0.25s ease-out;
+  animation: ah-burbuja-in 0.3s ease-out;
 }
 @keyframes ah-burbuja-in {
-  from { opacity: 0; transform: translate(-50%, 6px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; transform: translate(-50%, 8px) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 .ah-onda {
   display: block;
   width: 4px;
-  background: #FFC233;
+  background: linear-gradient(180deg, #FFD24A 0%, #E5A300 100%);
   border-radius: 2px;
 }
-.ah-onda:nth-child(1) { height: 8px;  animation: ah-onda 0.95s ease-in-out infinite; }
-.ah-onda:nth-child(2) { height: 16px; animation: ah-onda 0.95s ease-in-out 0.12s infinite; }
-.ah-onda:nth-child(3) { height: 22px; animation: ah-onda 0.95s ease-in-out 0.24s infinite; }
-.ah-onda:nth-child(4) { height: 14px; animation: ah-onda 0.95s ease-in-out 0.36s infinite; }
+.ah-onda:nth-child(1) { height: 10px; animation: ah-onda 0.9s ease-in-out infinite; }
+.ah-onda:nth-child(2) { height: 18px; animation: ah-onda 0.9s ease-in-out 0.1s infinite; }
+.ah-onda:nth-child(3) { height: 26px; animation: ah-onda 0.9s ease-in-out 0.2s infinite; }
+.ah-onda:nth-child(4) { height: 18px; animation: ah-onda 0.9s ease-in-out 0.3s infinite; }
+.ah-onda:nth-child(5) { height: 10px; animation: ah-onda 0.9s ease-in-out 0.4s infinite; }
 @keyframes ah-onda {
-  0%, 100% { transform: scaleY(0.55); opacity: 0.7; }
-  50%      { transform: scaleY(1.1);  opacity: 1; }
+  0%, 100% { transform: scaleY(0.45); opacity: 0.65; }
+  50%      { transform: scaleY(1.15); opacity: 1; }
 }
 
 /* ============================================================
    Responsive
    ============================================================ */
 @media (max-width: 480px) {
-  .ah-md { width: 140px; height: 140px; }
-  .ah-lg { width: 180px; height: 180px; }
-  .ah-sm { width: 80px;  height: 80px; }
+  .ah-md { width: 150px; height: 150px; }
+  .ah-lg { width: 200px; height: 200px; }
+  .ah-sm { width: 90px;  height: 90px; }
+  .ah-burbuja { padding: 8px 14px; gap: 3px; }
+  .ah-onda { width: 3.5px; }
 }
 @media (max-width: 380px) {
-  .ah-md { width: 120px; height: 120px; }
-  .ah-lg { width: 150px; height: 150px; }
+  .ah-md { width: 130px; height: 130px; }
+  .ah-lg { width: 170px; height: 170px; }
 }

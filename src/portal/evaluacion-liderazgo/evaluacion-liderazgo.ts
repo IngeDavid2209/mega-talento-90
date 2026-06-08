@@ -54,6 +54,10 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     document.documentElement.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
     document.body.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
 
+    // Pre-carga el SDK de Azure y el token en background. Cuando el candidato
+    // presione "Empezar" la voz arrancará casi instantáneamente.
+    this.voz.precalentar();
+
     this.candidatoId = this.route.snapshot.paramMap.get('id');
     if (!this.candidatoId) {
       this.error = 'Link inválido. Solicita un nuevo enlace a Capital Humano de Mega Dulces.';
