@@ -1178,3 +1178,135 @@
   font-size: 11.5px;
   color: #8A95A8;
 }
+
+/* ============================================================
+   RESPONSIVE para celulares pequeños y medianos
+   ============================================================ */
+
+/* Asegurar que el wrapper nunca cause overflow horizontal */
+.portal {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Móviles medianos (≤ 480px) */
+@media (max-width: 480px) {
+  /* Hero más compacto */
+  .p-hero { padding: 60px 18px 80px; }
+  .p-hero-title { font-size: 26px; }
+  .p-hero-logo { height: 70px !important; margin-bottom: 20px !important; }
+  .p-hero-eyebrow { font-size: 10.5px; padding: 5px 12px; margin-bottom: 18px; }
+  .p-hero-desc { font-size: 14px; }
+  .p-hero-stats { gap: 22px; padding: 12px 18px; }
+
+  /* Navbar */
+  .p-nav-inner { padding: 10px 14px; }
+  .p-logo { height: 36px; }
+  .p-brand-name { font-size: 14px; }
+  .p-brand-sub { font-size: 10px; }
+
+  /* Bienvenida */
+  .p-bienvenida { padding: 50px 16px; }
+  .p-bien-titulo { font-size: 22px; }
+  .p-bien-saludo { font-size: 15px; }
+  .p-bien-panel { padding: 28px 22px; }
+  .p-bien-panel p { font-size: 13.5px; }
+
+  /* CTA */
+  .p-cta { padding: 40px 16px; }
+  .p-cta-content h2 { font-size: 22px; }
+
+  /* Oportunidades / tarjetas */
+  .p-oportunidades { padding: 50px 16px; }
+  .p-op-head h2 { font-size: 26px; }
+  .p-op-eyebrow { font-size: 14px; }
+  .p-op-desc { font-size: 13.5px; }
+
+  /* Card de vacante */
+  .p-card { padding: 16px; border-radius: 18px; gap: 14px; }
+  .p-card-avatar { width: 90px; height: 90px; }
+  .p-card-icon { width: 32px; height: 32px; }
+  .p-card-title { font-size: 18px; }
+  .p-card-meta li { font-size: 12.5px; }
+  .p-card-meta li svg { width: 14px; height: 14px; }
+  .p-card-btn { font-size: 12.5px; padding: 11px 22px; }
+
+  /* Filtros / chips */
+  .p-chips { gap: 6px; }
+  .p-chip { font-size: 11.5px; padding: 6px 12px; }
+
+  /* Bienestar */
+  .p-bienestar { padding: 60px 18px; }
+  .p-bienestar h2 { font-size: 24px; }
+  .p-bienestar p { font-size: 14px; }
+
+  /* Footer */
+  .p-footer { padding: 40px 18px 22px; }
+  .p-footer-top { gap: 24px; }
+}
+
+/* Móviles muy estrechos (≤ 380px - iPhone SE, Android pequeños) */
+@media (max-width: 380px) {
+  .p-hero { padding: 48px 14px 70px; }
+  .p-hero-title { font-size: 22px; line-height: 1.18; }
+  .p-hero-logo { height: 60px !important; }
+  .p-hero-desc { font-size: 13px; }
+  .p-hero-stats { flex-direction: column; gap: 8px; align-items: stretch; }
+  .p-hero-stats .p-stat { display: flex; justify-content: space-between; }
+  .p-hero-stats .p-stat strong { font-size: 20px; }
+
+  .p-nav-inner { padding: 8px 12px; }
+  .p-logo { height: 32px; }
+  .p-brand-sub { display: none; }
+
+  .p-bienvenida { padding: 40px 12px; }
+  .p-bien-panel { padding: 22px 18px; border-radius: 16px; }
+  .p-bien-titulo { font-size: 19px; }
+  .p-bien-saludo { font-size: 14px; }
+  .p-bien-panel p { font-size: 13px; }
+
+  .p-cta { padding: 32px 14px; }
+  .p-cta-content h2 { font-size: 19px; }
+  .p-cta-content p { font-size: 13px; }
+  .p-btn { padding: 11px 18px; font-size: 12.5px; }
+  .p-btn-pill-lg { padding: 12px 24px; font-size: 13.5px; }
+
+  .p-oportunidades { padding: 40px 12px; }
+  .p-op-head h2 { font-size: 22px; }
+
+  .p-card { padding: 14px; gap: 12px; border-radius: 16px; }
+  .p-card-avatar { width: 78px; height: 78px; border-width: 3px; }
+  .p-card-title { font-size: 16px; line-height: 1.2; }
+  .p-card-meta { gap: 4px; }
+  .p-card-meta li { font-size: 12px; grid-template-columns: 16px 1fr; gap: 6px; }
+  .p-card-meta li svg { width: 14px; height: 14px; }
+  .p-card-btn { width: 100%; font-size: 12.5px; padding: 10px 16px; }
+
+  .p-chips { flex-wrap: wrap; }
+  .p-chip { font-size: 11px; padding: 5px 10px; }
+  .p-chip svg { width: 11px; height: 11px; }
+
+  .p-bienestar { padding: 50px 14px; }
+  .p-bienestar-eyebrow { font-size: 10.5px; }
+  .p-bienestar h2 { font-size: 20px; }
+  .p-bienestar p { font-size: 13px; line-height: 1.55; }
+  .p-bienestar-tagline { font-size: 12.5px !important; }
+
+  .p-footer { padding: 32px 14px 18px; }
+  .p-foot-col h3 { font-size: 16px; }
+  .p-foot-col p, .p-foot-col a { font-size: 12px; }
+  .p-foot-tagline { font-size: 11.5px !important; }
+  .p-footer-bottom { padding-top: 16px; }
+  .p-footer-bottom small { font-size: 11px; }
+
+  /* Botón volver arriba más pequeño */
+  .p-up { width: 42px; height: 42px; bottom: 16px; right: 16px; }
+  .p-up svg { width: 16px; height: 16px; }
+}
+
+/* Móviles ULTRA estrechos (≤ 340px - Galaxy Fold cerrado, etc.) */
+@media (max-width: 340px) {
+  .p-hero-title { font-size: 20px; }
+  .p-card-avatar { width: 68px; height: 68px; }
+  .p-card-title { font-size: 15px; }
+}

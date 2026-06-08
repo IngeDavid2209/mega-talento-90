@@ -69,6 +69,35 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ============================================================
+   REGLAS GLOBALES DE RESPONSIVIDAD
+   Evita overflow horizontal accidental en cualquier vista pública.
+   ============================================================ */
+
+/* Las imágenes, videos e iframes nunca deben desbordar su contenedor */
+img, svg, video, iframe, picture, embed, object {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Inputs y textareas tampoco deben desbordar */
+input, textarea, select, button {
+  max-width: 100%;
+  font-family: inherit;
+}
+
+/* Estos contenedores frecuentemente desbordan en móviles */
+pre, code, table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Word break para textos largos sin espacios (URLs, correos) */
+.no-overflow {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 html, body {
   margin: 0;
   padding: 0;

@@ -437,6 +437,11 @@
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
+.sol-wrapper {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 @media (max-width: 540px) {
   .sol-wrapper { padding: 14px 10px 40px; }
   .sol-card { border-radius: 16px; }
@@ -448,4 +453,20 @@
   .sol-nav { padding: 14px 20px 20px; flex-direction: column; }
   .sol-btn-primary, .sol-btn-secondary { width: 100%; min-width: 0; }
   .sol-nav span:empty { display: none; }
+}
+
+/* Móviles muy estrechos (≤ 380px) */
+@media (max-width: 380px) {
+  .sol-wrapper { padding: 10px 8px 28px; }
+  .sol-card { border-radius: 14px; }
+  .sol-header { padding: 20px 14px 16px; }
+  .sol-header h1 { font-size: 17px; }
+  .sol-header p { font-size: 12.5px; }
+  .sol-progress { padding: 12px 14px 10px; }
+  .sol-body { padding: 16px 14px 4px; }
+  .sol-step-title { font-size: 15.5px; }
+  .sol-nav { padding: 12px 14px 16px; gap: 8px; }
+  .sol-btn-primary, .sol-btn-secondary { font-size: 13px; padding: 11px 12px; }
+  input, select, textarea { font-size: 13.5px; padding: 9px 10px; }
+  label { font-size: 12px; }
 }

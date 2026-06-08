@@ -525,3 +525,83 @@
   font-size: 11.5px;
   color: rgba(255, 255, 255, 0.55);
 }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+.bolsa {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Móviles medianos (≤ 480px) */
+@media (max-width: 480px) {
+  .b-hero { padding: 60px 18px 80px; }
+  .b-hero h1 { font-size: 26px; }
+  .b-hero-logo { height: 64px !important; margin-bottom: 18px !important; }
+  .b-hero-eyebrow { font-size: 10.5px; padding: 5px 12px; }
+  .b-hero p { font-size: 14px; }
+
+  .b-nav-inner { padding: 10px 14px; }
+  .b-logo { height: 36px; }
+  .b-brand-name { font-size: 14px; }
+
+  .b-diaadia { padding: 50px 16px; }
+  .b-section-head h2 { font-size: 24px; }
+  .b-section-head p { font-size: 13.5px; }
+
+  .b-card { padding: 22px 18px; border-radius: 16px; }
+  .b-card h3 { font-size: 16px; }
+  .b-card p { font-size: 13px; }
+
+  .b-cta-final { padding: 50px 16px; }
+  .b-cta-final h2 { font-size: 22px; }
+  .b-cta-final > .b-cta-inner > p { font-size: 14px; }
+  .b-cta-bullets li { font-size: 13px; }
+
+  .b-footer { padding: 40px 16px 22px; }
+  .b-foot-col h3 { font-size: 16px; }
+  .b-foot-col p, .b-foot-col a { font-size: 12.5px; }
+}
+
+/* Móviles muy estrechos (≤ 380px) */
+@media (max-width: 380px) {
+  .b-hero { padding: 48px 14px 70px; }
+  .b-hero h1 { font-size: 22px; line-height: 1.18; }
+  .b-hero-logo { height: 56px !important; }
+  .b-hero p { font-size: 13px; }
+  .b-hero-cta { gap: 8px; }
+  .b-btn-lg { padding: 12px 22px; font-size: 13.5px; }
+
+  .b-nav-inner { padding: 8px 12px; }
+  .b-logo { height: 32px; }
+  .b-brand-sub { display: none; }
+
+  .b-diaadia { padding: 40px 12px; }
+  .b-section-head h2 { font-size: 20px; }
+  .b-section-head p { font-size: 13px; }
+
+  .b-card { padding: 20px 16px; border-radius: 14px; }
+  .b-card-icon { width: 46px; height: 46px; border-radius: 10px; }
+  .b-card-icon svg { width: 22px; height: 22px; }
+  .b-card h3 { font-size: 15.5px; }
+  .b-card p { font-size: 12.5px; }
+
+  .b-cta-final { padding: 40px 14px; }
+  .b-cta-final h2 { font-size: 19px; }
+  .b-cta-final > .b-cta-inner > p { font-size: 13px; }
+  .b-cta-eyebrow { font-size: 10px; padding: 5px 12px; }
+
+  .b-footer { padding: 32px 14px 18px; }
+  .b-foot-col h3 { font-size: 15px; }
+  .b-foot-col h4 { font-size: 10.5px; }
+  .b-foot-col p, .b-foot-col a { font-size: 12px; }
+  .b-footer-bottom small { font-size: 10.5px; }
+}
+
+/* Móviles ULTRA estrechos (≤ 340px) */
+@media (max-width: 340px) {
+  .b-hero h1 { font-size: 20px; }
+  .b-cards { gap: 12px; }
+}
