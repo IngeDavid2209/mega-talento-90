@@ -67,6 +67,32 @@
   color: var(--ink);
   font-weight: 600;
 }
+
+/* Grupo izquierdo del header: titulo + badge */
+.users-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Boton "Exportar a Excel" en el header de Usuarios */
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-export svg {
+  flex-shrink: 0;
+}
 .card-body { padding: 22px; }
 .card-body.p-0 { padding: 0; }
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsuariosService } from '../../core/services/usuarios.service';
 import { ToastService } from '../../core/services/toast.service';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-usuarios',
@@ -45,6 +46,41 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.unsubscribeFn) this.unsubscribeFn();
+  }
+
+  /** Exporta la lista de usuarios a un archivo Excel descargable */
+  exportarExcel() {
+    if (!this.usuarios.length) {
+      this.toast.alerta('No hay usuarios para exportar.');
+      return;
+    }
+
+    const datos = this.usuarios.map(u => ({
+      'Nombre': u.nombre || '',
+      'Usuario de acceso': u.username || '',
+      'Rol': u.rol || '',
+      'Estado': u.activo === false ? 'Desactivado' : 'Activo',
+      'Fecha de alta': this.formatearFecha(u.createdAt)
+    }));
+
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Usuarios');
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    XLSX.writeFile(libro, `Usuarios_MegaTalento_${yyyy}-${mm}-${dd}.xlsx`);
+
+    this.toast.exito(`${this.usuarios.length} usuarios exportados a Excel`);
+  }
+
+  private formatearFecha(timestamp: any): string {
+    if (!timestamp) return '';
+    const d = typeof timestamp?.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   async crearUsuario() {
