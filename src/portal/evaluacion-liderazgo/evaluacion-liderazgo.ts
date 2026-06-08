@@ -42,8 +42,17 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   terminado = false;
 
   private unsubscribe: any;
+  private estiloHtmlOriginal = '';
+  private estiloBodyOriginal = '';
 
   ngOnInit() {
+    // El styles.css global pone overflow:hidden en html/body para el back-office.
+    // Esta vista es pública y necesita scroll natural del documento.
+    this.estiloHtmlOriginal = document.documentElement.style.cssText;
+    this.estiloBodyOriginal = document.body.style.cssText;
+    document.documentElement.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
+    document.body.style.cssText = 'overflow: auto !important; height: auto !important; width: auto !important;';
+
     this.candidatoId = this.route.snapshot.paramMap.get('id');
     if (!this.candidatoId) {
       this.error = 'Link inválido. Solicita un nuevo enlace a Capital Humano de Mega Dulces.';
@@ -63,6 +72,9 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.unsubscribe) this.unsubscribe();
     this.voz.parar();
+    // Restaurar los estilos del html/body al salir
+    document.documentElement.style.cssText = this.estiloHtmlOriginal;
+    document.body.style.cssText = this.estiloBodyOriginal;
   }
 
   get preguntaActual() {
