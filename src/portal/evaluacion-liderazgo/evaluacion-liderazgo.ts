@@ -110,18 +110,10 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     this.audioActivo = true;
     // Desbloquear el navegador con AudioContext (este click cuenta como gesto).
     this.voz.desbloquear();
-    // Pequeña espera (120ms) para que el AudioContext quede listo en iOS/Safari
-    // antes de pedir a Azure que reproduzca. En Chrome desktop es instantáneo
-    // pero el delay es imperceptible.
-    setTimeout(() => {
-      const nombre = (this.candidato?.nombre || '').split(/\s+/)[0] || '';
-      const saludo = nombre
-        ? `Hola ${nombre}. Vas a contestar 12 preguntas. Responde con honestidad.`
-        : 'Hola. Vas a contestar 12 preguntas. Responde con honestidad.';
-      this.voz.hablar(saludo, {
-        onEnd: () => this.leerPreguntaActual()
-      });
-    }, 120);
+    // Arranca directo con la pregunta 1. Sin saludo previo: el saludo encadenado
+    // era la causa de las voces solapadas. La bienvenida ya está en texto en
+    // pantalla, no hace falta repetirla con voz.
+    setTimeout(() => this.leerPreguntaActual(), 120);
   }
 
   /** El candidato eligió empezar SIN audio (lectura normal) */
