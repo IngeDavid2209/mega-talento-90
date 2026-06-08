@@ -69,6 +69,19 @@ export class VozService {
    */
   private generacion = 0;
 
+  /**
+   * Timestamp del momento en que el callback de éxito del último Azure speak
+   * fue invocado. Azure considera "terminado" cuando mandó el último chunk al
+   * audio buffer, pero el speaker sigue sonando ~200-300ms más. Para no
+   * encimar el siguiente speak sobre el residuo del anterior, esperamos a
+   * que pase un mínimo desde este timestamp antes de iniciar otro audio.
+   * Una marca de 0 significa "nunca hemos hablado" → la primera llamada
+   * arranca sin retraso.
+   */
+  private tsFinUltimoAudio = 0;
+  /** Tiempo mínimo (ms) entre fin de un audio y inicio del siguiente. */
+  private readonly DRENAJE_MS = 320;
+
   // ============== TTS NATIVO ==============
   private synthNativa: SpeechSynthesis | null = null;
   private vozNativa: SpeechSynthesisVoice | null = null;
@@ -181,6 +194,9 @@ export class VozService {
     if (this.synthAzure) {
       try { this.synthAzure.close(); } catch {}
       this.synthAzure = null;
+      // Si interrumpimos en vivo, el buffer del speaker aún sonará un rato.
+      // Marcar el timestamp para que el siguiente hablar espere a que se drene.
+      this.tsFinUltimoAudio = Date.now();
     }
     if (this.synthNativa?.speaking || this.synthNativa?.pending) {
       try { this.synthNativa.cancel(); } catch {}
@@ -266,6 +282,16 @@ export class VozService {
     await this.obtenerTokenAzure();
     if (miGen !== this.generacion) return;
 
+    // Esperar a que el buffer del speaker del audio anterior se haya drenado.
+    // En la primera llamada (tsFinUltimoAudio = 0) no hay espera.
+    if (this.tsFinUltimoAudio > 0) {
+      const transcurrido = Date.now() - this.tsFinUltimoAudio;
+      if (transcurrido < this.DRENAJE_MS) {
+        await new Promise<void>(r => setTimeout(r, this.DRENAJE_MS - transcurrido));
+        if (miGen !== this.generacion) return;
+      }
+    }
+
     const SDK = window.SpeechSDK;
     if (!SDK) throw new Error('SDK de Azure Speech no disponible en window');
 
@@ -299,6 +325,9 @@ export class VozService {
         (result: any) => {
           try { synth.close(); } catch {}
           if (this.synthAzure === synth) this.synthAzure = null;
+          // Marcar el momento de fin para que el siguiente hablar espere
+          // a que se drene el buffer del speaker.
+          this.tsFinUltimoAudio = Date.now();
           // Si esta generación ya quedó obsoleta, no toques los signals
           // (otro hablar() los está controlando).
           if (miGen !== this.generacion) {
@@ -318,6 +347,7 @@ export class VozService {
         (err: any) => {
           try { synth.close(); } catch {}
           if (this.synthAzure === synth) this.synthAzure = null;
+          this.tsFinUltimoAudio = Date.now();
           if (miGen !== this.generacion) {
             resolve();
             return;
