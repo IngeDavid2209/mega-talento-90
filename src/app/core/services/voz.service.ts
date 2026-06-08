@@ -319,6 +319,15 @@ export class VozService {
       this.hablando.set(true);
     };
 
+    // Marcar hablando=true ANTES de pedir el audio, sin esperar al evento
+    // synthesisStarted (que en algunos navegadores tarda o no dispara). Esto
+    // garantiza que el avatar muestre el halo/ondas mientras Azure prepara
+    // y reproduce el audio. Si la generación cambia, no toques los signals
+    // porque otro hablar() ya está mandando.
+    if (miGen === this.generacion) {
+      this.hablando.set(true);
+    }
+
     return new Promise<void>((resolve, reject) => {
       synth.speakTextAsync(
         texto,
