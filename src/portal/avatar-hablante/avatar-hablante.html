@@ -4,28 +4,150 @@
      [class.ah-lg]="size === 'lg'"
      [class.ah-hablando]="voz.hablando()">
 
-  <!-- Anillos pulsantes mientras habla -->
+  <!-- Anillos pulsantes dorados mientras habla -->
   <div class="ah-anillo ah-anillo-1" aria-hidden="true"></div>
   <div class="ah-anillo ah-anillo-2" aria-hidden="true"></div>
 
-  <!-- Marco circular con el personaje (video o GIF según el src) -->
-  <div class="ah-foto">
-    @if (esVideo) {
-      <video #videoEl
-             [src]="src"
-             class="ah-img"
-             loop
-             muted
-             playsinline
-             preload="auto"
-             aria-label="Asistente Mega Dulces">
-      </video>
-    } @else {
-      <img [src]="src" alt="Asistente Mega Dulces" class="ah-img" />
-    }
+  <!-- Avatar SVG (Dalia, mujer profesional corporativa) -->
+  <div class="ah-foto" [attr.data-forma]="forma()">
+    <svg class="ah-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"
+         aria-label="Dalia — asistente Mega Dulces">
+      <defs>
+        <radialGradient id="ah-bg" cx="50%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#3A5A8F"/>
+          <stop offset="60%" stop-color="#2A4D7E"/>
+          <stop offset="100%" stop-color="#1A2F4E"/>
+        </radialGradient>
+        <linearGradient id="ah-hair" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#3A2418"/>
+          <stop offset="100%" stop-color="#1F140C"/>
+        </linearGradient>
+        <linearGradient id="ah-skin" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#F2C8A6"/>
+          <stop offset="100%" stop-color="#E2A37A"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Fondo circular -->
+      <circle cx="100" cy="100" r="100" fill="url(#ah-bg)"/>
+
+      <!-- Cuello -->
+      <path d="M 82 158 Q 100 175 118 158 L 124 200 L 76 200 Z" fill="url(#ah-skin)"/>
+      <path d="M 76 200 L 124 200 L 130 200 L 70 200 Z" fill="#E5A300" opacity="0.95"/>
+      <path d="M 76 195 Q 100 205 124 195 L 124 200 L 76 200 Z" fill="#0F1F3D"/>
+
+      <!-- Pelo posterior (volumen) -->
+      <ellipse cx="100" cy="92" rx="58" ry="62" fill="url(#ah-hair)"/>
+
+      <!-- Cara -->
+      <ellipse cx="100" cy="105" rx="42" ry="50" fill="url(#ah-skin)"/>
+
+      <!-- Pelo frontal (fleco lateral) -->
+      <path d="M 58 78 Q 70 50 100 52 Q 130 50 142 78 Q 145 95 138 100 Q 130 75 100 78 Q 80 78 70 95 Q 62 95 58 78 Z"
+            fill="url(#ah-hair)"/>
+      <!-- Mechón izquierdo -->
+      <path d="M 58 90 Q 55 130 64 150 Q 60 140 60 110 Z" fill="url(#ah-hair)"/>
+      <!-- Mechón derecho -->
+      <path d="M 142 90 Q 145 130 136 150 Q 140 140 140 110 Z" fill="url(#ah-hair)"/>
+
+      <!-- Cejas -->
+      <path d="M 74 92 Q 82 88 92 92" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M 108 92 Q 118 88 126 92" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+
+      <!-- Ojos -->
+      <g class="ah-ojos">
+        <!-- Sombra de pestaña superior -->
+        <path d="M 76 103 Q 83 100 90 103" stroke="#2A1810" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M 110 103 Q 117 100 124 103" stroke="#2A1810" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <!-- Globo blanco -->
+        <ellipse cx="83" cy="106" rx="5.5" ry="4" fill="#FFFFFF"/>
+        <ellipse cx="117" cy="106" rx="5.5" ry="4" fill="#FFFFFF"/>
+        <!-- Iris -->
+        <circle cx="83" cy="106" r="3.2" fill="#3A2418"/>
+        <circle cx="117" cy="106" r="3.2" fill="#3A2418"/>
+        <!-- Pupila -->
+        <circle cx="83" cy="106" r="1.8" fill="#0A0A0A"/>
+        <circle cx="117" cy="106" r="1.8" fill="#0A0A0A"/>
+        <!-- Brillo -->
+        <circle cx="84.5" cy="104.5" r="1" fill="#FFFFFF"/>
+        <circle cx="118.5" cy="104.5" r="1" fill="#FFFFFF"/>
+      </g>
+
+      <!-- Nariz -->
+      <path d="M 100 112 Q 96 126 98 130 Q 100 132 102 130 Q 104 126 100 112"
+            stroke="#C9885E" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+      <ellipse cx="98" cy="131" rx="1" ry="0.7" fill="#B0764E" opacity="0.6"/>
+      <ellipse cx="102" cy="131" rx="1" ry="0.7" fill="#B0764E" opacity="0.6"/>
+
+      <!-- Rubor sutil -->
+      <ellipse cx="76" cy="124" rx="7" ry="5" fill="#FF8E7A" opacity="0.28"/>
+      <ellipse cx="124" cy="124" rx="7" ry="5" fill="#FF8E7A" opacity="0.28"/>
+
+      <!-- ===================== BOCA DINÁMICA =====================
+           Las 7 formas se renderizan superpuestas; sólo una tiene
+           opacity:1 a la vez (controlado por [data-forma] en .ah-foto).
+           CSS hace transición suave de opacidad (~80ms) para que el
+           cambio entre visemas parezca fluido. -->
+      <g class="ah-boca" transform="translate(100, 142)">
+
+        <!-- 0. CLOSED — silencio / M B P -->
+        <g class="ah-mouth ah-mouth-closed">
+          <path d="M -11 0 Q 0 2 11 0 Q 0 1 -11 0 Z"
+                fill="#7A1F1F" stroke="#4A0E0E" stroke-width="1"/>
+        </g>
+
+        <!-- 1. SMALL — consonantes suaves -->
+        <g class="ah-mouth ah-mouth-small">
+          <ellipse cx="0" cy="1" rx="8" ry="3.5" fill="#3A0A0A" stroke="#5A1414" stroke-width="1"/>
+          <ellipse cx="0" cy="-1" rx="6.5" ry="1.4" fill="#FFFFFF" opacity="0.9"/>
+        </g>
+
+        <!-- 2. MEDIUM — æ -->
+        <g class="ah-mouth ah-mouth-medium">
+          <ellipse cx="0" cy="2" rx="10" ry="5.5" fill="#3A0A0A" stroke="#5A1414" stroke-width="1"/>
+          <ellipse cx="0" cy="-1" rx="8" ry="1.6" fill="#FFFFFF" opacity="0.92"/>
+          <rect x="-5" y="3" width="10" height="2" fill="#C9485E" opacity="0.6"/>
+        </g>
+
+        <!-- 3. WIDE — A abierta -->
+        <g class="ah-mouth ah-mouth-wide">
+          <ellipse cx="0" cy="3" rx="11" ry="8" fill="#2A0606" stroke="#5A1414" stroke-width="1.2"/>
+          <ellipse cx="0" cy="-2" rx="9" ry="1.8" fill="#FFFFFF" opacity="0.92"/>
+          <ellipse cx="0" cy="7" rx="6" ry="1.8" fill="#FFFFFF" opacity="0.55"/>
+          <ellipse cx="0" cy="4" rx="5" ry="2.5" fill="#C9485E" opacity="0.65"/>
+        </g>
+
+        <!-- 4. ROUND — O / U redondeada -->
+        <g class="ah-mouth ah-mouth-round">
+          <ellipse cx="0" cy="1" rx="6" ry="6" fill="#2A0606" stroke="#5A1414" stroke-width="1.2"/>
+          <ellipse cx="0" cy="1" rx="4.5" ry="4.5" fill="#3A0A0A"/>
+        </g>
+
+        <!-- 5. SMILE — i / s — dientes apretados -->
+        <g class="ah-mouth ah-mouth-smile">
+          <path d="M -12 -1 Q 0 -3 12 -1 Q 0 1 -12 -1 Z"
+                fill="#FFFFFF" stroke="#5A1414" stroke-width="1"/>
+          <path d="M -12 -1 L 12 -1" stroke="#C9485E" stroke-width="0.7" opacity="0.5"/>
+          <path d="M -8 -1 L -8 1 M -4 -1 L -4 1 M 0 -1 L 0 1 M 4 -1 L 4 1 M 8 -1 L 8 1"
+                stroke="#D8D8D8" stroke-width="0.5"/>
+        </g>
+
+        <!-- 6. BITE — F / V — labio inferior contra dientes -->
+        <g class="ah-mouth ah-mouth-bite">
+          <path d="M -10 -2 L 10 -2 L 10 0 Q 0 1 -10 0 Z" fill="#FFFFFF" stroke="#5A1414" stroke-width="0.8"/>
+          <path d="M -10 0 Q 0 5 10 0 Q 0 4 -10 0 Z" fill="#7A1F1F" stroke="#4A0E0E" stroke-width="1"/>
+        </g>
+      </g>
+
+      <!-- Aretes dorados -->
+      <circle cx="60" cy="118" r="3.5" fill="#FFC233" stroke="#A06F00" stroke-width="0.8"/>
+      <circle cx="60" cy="118" r="1.5" fill="#FFE49A"/>
+      <circle cx="140" cy="118" r="3.5" fill="#FFC233" stroke="#A06F00" stroke-width="0.8"/>
+      <circle cx="140" cy="118" r="1.5" fill="#FFE49A"/>
+    </svg>
   </div>
 
-  <!-- Burbuja con ondas de audio (solo mientras habla) -->
+  <!-- Burbuja con ondas de audio mientras habla -->
   @if (voz.hablando()) {
     <div class="ah-burbuja" aria-hidden="true">
       <span class="ah-onda"></span>

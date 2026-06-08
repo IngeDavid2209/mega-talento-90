@@ -1,5 +1,5 @@
 /* ============================================================
-   AVATAR HABLANTE · personaje guía con sprites de boca animada
+   AVATAR DALIA · SVG con lip-sync real basado en visemas Azure
    ============================================================ */
 
 .ah-wrap {
@@ -26,31 +26,14 @@
     0 10px 30px rgba(15, 31, 61, 0.45),
     0 4px 10px rgba(15, 31, 61, 0.3);
   z-index: 2;
-  transition: transform 0.2s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .ah-sm .ah-foto { border-width: 3px; }
-.ah-img {
+
+.ah-svg {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center top;
   display: block;
-  background: #1A2F4E;
-}
-/* El <video> hereda el mismo estilo de .ah-img */
-video.ah-img {
-  pointer-events: none; /* impedir que el usuario pause el video */
-}
-
-/* Pre-carga invisible (las 4 imágenes cargan al montar el componente) */
-.ah-precarga {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  top: -9999px;
-  left: -9999px;
 }
 
 /* Idle: respiración muy sutil */
@@ -59,12 +42,12 @@ video.ah-img {
 }
 @keyframes ah-idle {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.015); }
+  50%      { transform: scale(1.012); }
 }
 
-/* Hablando: bounce sutil + escala ligera */
+/* Hablando: borde más brillante + bounce sutil */
 .ah-hablando .ah-foto {
-  animation: ah-talk 0.55s ease-in-out infinite;
+  animation: ah-talk 0.6s ease-in-out infinite;
   border-color: #FFD24A;
   box-shadow:
     0 0 0 4px rgba(255, 195, 51, 0.25),
@@ -72,10 +55,58 @@ video.ah-img {
 }
 @keyframes ah-talk {
   0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-3px) scale(1.025); }
+  50%      { transform: translateY(-2px) scale(1.018); }
 }
 
-/* Anillos pulsantes dorados (solo cuando habla) */
+/* ============================================================
+   PARPADEO de los ojos cada ~4 segundos (da vida sin distraer)
+   ============================================================ */
+.ah-ojos {
+  transform-origin: center;
+  animation: ah-blink 4.2s ease-in-out infinite;
+}
+@keyframes ah-blink {
+  0%, 92%, 100%  { transform: scaleY(1); }
+  94%            { transform: scaleY(0.05); }
+  96%            { transform: scaleY(1); }
+}
+
+/* ============================================================
+   BOCA — sólo es visible la forma activa según data-forma
+   ============================================================ */
+
+/* Por defecto, todas ocultas */
+.ah-mouth {
+  opacity: 0;
+  transition: opacity 90ms ease-out;
+}
+
+/* Activar sólo la que corresponde a data-forma del contenedor */
+.ah-foto[data-forma="closed"] .ah-mouth-closed { opacity: 1; }
+.ah-foto[data-forma="small"]  .ah-mouth-small  { opacity: 1; }
+.ah-foto[data-forma="medium"] .ah-mouth-medium { opacity: 1; }
+.ah-foto[data-forma="wide"]   .ah-mouth-wide   { opacity: 1; }
+.ah-foto[data-forma="round"]  .ah-mouth-round  { opacity: 1; }
+.ah-foto[data-forma="smile"]  .ah-mouth-smile  { opacity: 1; }
+.ah-foto[data-forma="bite"]   .ah-mouth-bite   { opacity: 1; }
+
+/* ============================================================
+   FALLBACK: cuando habla con TTS nativo (sin visemas) la boca
+   alterna entre small y medium para simular movimiento.
+   Se detecta en JS: si hablando=true pero visema=0 (silencio)
+   durante >150ms, JavaScript fuerza la animación.
+   Aquí dejamos un keyframes listo por si lo activamos a futuro.
+   ============================================================ */
+@keyframes ah-mouth-loop {
+  0%, 100% { opacity: 0; }
+  25%      { opacity: 0; }
+  50%      { opacity: 1; }
+  75%      { opacity: 0; }
+}
+
+/* ============================================================
+   Anillos pulsantes dorados (sólo cuando habla)
+   ============================================================ */
 .ah-anillo {
   position: absolute;
   inset: 0;
@@ -96,7 +127,9 @@ video.ah-img {
   100% { transform: scale(1.45); opacity: 0; }
 }
 
-/* Burbuja con ondas de audio bajo el personaje */
+/* ============================================================
+   Burbuja con ondas de audio bajo el personaje
+   ============================================================ */
 .ah-burbuja {
   position: absolute;
   bottom: -10px;
@@ -131,7 +164,9 @@ video.ah-img {
   50%      { transform: scaleY(1.1);  opacity: 1; }
 }
 
-/* Variantes responsive */
+/* ============================================================
+   Responsive
+   ============================================================ */
 @media (max-width: 480px) {
   .ah-md { width: 140px; height: 140px; }
   .ah-lg { width: 180px; height: 180px; }
