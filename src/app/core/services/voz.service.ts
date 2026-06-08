@@ -1,69 +1,266 @@
 import { Injectable, signal } from '@angular/core';
 
 /**
- * Servicio de Text-to-Speech (TTS) nativo del navegador usando la
- * Web Speech API. Funciona gratis sin backend en Chrome, Edge, Firefox,
- * Safari y Android. La voz depende del sistema operativo del candidato
- * (en Windows hay 'Microsoft Sabina' para es-MX, en Android la voz de
- * Google, en iOS Paulina/Mónica).
+ * Tipo mínimo del SDK de Azure (lo que usamos). El SDK real se carga
+ * dinámicamente como <script> desde el CDN de Microsoft para evitar
+ * problemas con polyfills de Node en el bundle de Angular.
+ */
+declare global {
+  interface Window {
+    SpeechSDK?: any;
+  }
+}
+
+/**
+ * Servicio de Text-to-Speech con DOS motores:
  *
- * IMPORTANTE: los navegadores bloquean el primer audio hasta que el
- * usuario hace un gesto (click, tap). Por eso la evaluación arranca
- * con un botón "Empezar con audio" que llama a desbloquear() antes
- * de leer cualquier cosa.
+ * 1. Azure Cognitive Services Speech (primario, alta calidad).
+ *    - Voz humana realista (es-MX-DaliaNeural por defecto).
+ *    - Eventos de visemas para sincronización labial.
+ *    - Requiere endpoint /api/azure-token configurado en Vercel y la
+ *      variable AZURE_SPEECH_KEY en environment variables del proyecto.
+ *    - El SDK se carga dinámicamente desde el CDN de Microsoft.
+ *
+ * 2. Web Speech API nativa del navegador (fallback automático).
+ *    - Gratis sin dependencias.
+ *    - Calidad variable (suena más a robot).
+ *    - Se usa si Azure no responde o el token endpoint falla.
+ *
+ * La app no se entera de cuál motor está usando: ambos exponen los mismos
+ * signals (hablando, habilitado, soportado) y métodos (hablar, parar, toggle).
  */
 @Injectable({ providedIn: 'root' })
 export class VozService {
-  /** True cuando hay una utterance reproduciéndose */
+  /** True cuando hay audio reproduciéndose */
   hablando = signal(false);
 
-  /** Si el usuario activó/silenció con el botón de audio */
+  /** Si el usuario silenció con el botón */
   habilitado = signal(true);
 
   /** Si el navegador ya nos dejó hablar (hubo gesto del usuario) */
   desbloqueado = signal(false);
 
-  private synth: SpeechSynthesis | null = null;
-  private voz: SpeechSynthesisVoice | null = null;
+  /** ID del viseme actual de Azure (0-21). 0 = silencio. Solo aplica con Azure. */
+  visemeActual = signal<number>(0);
+
+  /** Voz neural de Azure a usar. Cambiar aquí si se quiere otra. */
+  vozAzure = 'es-MX-DaliaNeural';
+
+  /** URL del SDK browser-ready de Azure (oficial Microsoft) */
+  private readonly SDK_URL = 'https://aka.ms/csspeech/jsbrowserpackageraw';
+
+  // ============== AZURE ==============
+  private azureToken = '';
+  private azureRegion = '';
+  private azureTokenExpira = 0;
+  /** Se vuelve false si Azure falla; entonces toda llamada usa TTS nativo. */
+  private azureDisponible = true;
+  private synthAzure: any = null;
+  private sdkCargado = false;
+  private sdkCargando: Promise<void> | null = null;
+
+  // ============== TTS NATIVO ==============
+  private synthNativa: SpeechSynthesis | null = null;
+  private vozNativa: SpeechSynthesisVoice | null = null;
 
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      this.synth = window.speechSynthesis;
-      this.cargarVoz();
+      this.synthNativa = window.speechSynthesis;
+      this.cargarVozNativa();
     }
   }
 
-  /** True si el navegador soporta TTS */
+  /** True si al menos un motor de TTS está disponible */
   get soportado(): boolean {
-    return this.synth !== null;
+    return this.synthNativa !== null || this.azureDisponible;
   }
 
   /**
-   * Desbloquea el audio del navegador. Debe llamarse DENTRO de un
-   * handler de click/tap del usuario (la primera vez en la sesión).
-   * Hace un speak silencioso para que después los demás funcionen.
+   * Debe llamarse DENTRO de un click handler la primera vez para autorizar audio.
+   * También arranca la carga del SDK de Azure en background.
    */
   desbloquear(): void {
-    if (!this.synth || this.desbloqueado()) return;
-    const utt = new SpeechSynthesisUtterance(' ');
-    utt.volume = 0;
-    utt.rate = 1;
-    utt.onend = () => this.desbloqueado.set(true);
-    utt.onerror = () => this.desbloqueado.set(true);
-    try {
-      this.synth.speak(utt);
-    } catch {
+    if (this.desbloqueado()) return;
+    // Pre-cargar el SDK de Azure en background para que el primer hablar() sea rápido
+    if (this.azureDisponible) {
+      this.cargarSDK().catch(() => { this.azureDisponible = false; });
+    }
+    if (this.synthNativa) {
+      const utt = new SpeechSynthesisUtterance(' ');
+      utt.volume = 0;
+      utt.onend = () => this.desbloqueado.set(true);
+      utt.onerror = () => this.desbloqueado.set(true);
+      try {
+        this.synthNativa.speak(utt);
+      } catch {
+        this.desbloqueado.set(true);
+      }
+    } else {
       this.desbloqueado.set(true);
     }
   }
 
-  /** Carga la mejor voz de español disponible en el sistema */
-  private cargarVoz(): void {
-    if (!this.synth) return;
+  /**
+   * Lee un texto en voz alta. Intenta Azure primero; si falla cae a TTS nativo.
+   */
+  hablar(texto: string, opciones: { onEnd?: () => void; rate?: number } = {}): void {
+    if (!this.habilitado()) {
+      if (opciones.onEnd) setTimeout(opciones.onEnd, 0);
+      return;
+    }
+    this.parar();
+
+    if (this.azureDisponible) {
+      this.hablarConAzure(texto, opciones).catch((err) => {
+        console.warn('VozService: Azure falló, fallback a TTS nativo.', err);
+        this.azureDisponible = false;
+        this.hablarConNativa(texto, opciones);
+      });
+    } else {
+      this.hablarConNativa(texto, opciones);
+    }
+  }
+
+  /** Detiene cualquier audio que esté reproduciéndose */
+  parar(): void {
+    if (this.synthAzure) {
+      try { this.synthAzure.close(); } catch {}
+      this.synthAzure = null;
+    }
+    if (this.synthNativa?.speaking || this.synthNativa?.pending) {
+      try { this.synthNativa.cancel(); } catch {}
+    }
+    this.hablando.set(false);
+    this.visemeActual.set(0);
+  }
+
+  /** Activa/silencia el audio */
+  toggle(): void {
+    if (this.habilitado()) {
+      this.habilitado.set(false);
+      this.parar();
+    } else {
+      this.habilitado.set(true);
+    }
+  }
+
+  // ============== AZURE: implementación ==============
+
+  /** Carga el SDK de Azure como <script> desde el CDN oficial */
+  private cargarSDK(): Promise<void> {
+    if (this.sdkCargado) return Promise.resolve();
+    if (this.sdkCargando) return this.sdkCargando;
+
+    this.sdkCargando = new Promise<void>((resolve, reject) => {
+      // Si ya está en window (otra parte de la app lo cargó), reusar
+      if (window.SpeechSDK) {
+        this.sdkCargado = true;
+        resolve();
+        return;
+      }
+      const existente = document.querySelector<HTMLScriptElement>('script[data-azure-speech-sdk]');
+      if (existente) {
+        existente.addEventListener('load', () => {
+          this.sdkCargado = true;
+          resolve();
+        });
+        existente.addEventListener('error', () => reject(new Error('SDK script failed')));
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = this.SDK_URL;
+      s.async = true;
+      s.dataset['azureSpeechSdk'] = 'true';
+      s.onload = () => {
+        this.sdkCargado = true;
+        resolve();
+      };
+      s.onerror = () => reject(new Error('No se pudo cargar el SDK de Azure Speech.'));
+      document.head.appendChild(s);
+    });
+    return this.sdkCargando;
+  }
+
+  /** Pide un token temporal al endpoint /api/azure-token */
+  private async obtenerTokenAzure(): Promise<void> {
+    const ahora = Date.now();
+    if (this.azureToken && ahora < this.azureTokenExpira) return;
+
+    const resp = await fetch('/api/azure-token');
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || `Token endpoint respondió ${resp.status}`);
+    }
+    const data = await resp.json();
+    if (!data.token || !data.region) {
+      throw new Error('Token endpoint devolvió respuesta inválida');
+    }
+    this.azureToken = data.token;
+    this.azureRegion = data.region;
+    this.azureTokenExpira = ahora + 8 * 60 * 1000; // 8 minutos (token dura 10)
+  }
+
+  private async hablarConAzure(
+    texto: string,
+    opciones: { onEnd?: () => void; rate?: number }
+  ): Promise<void> {
+    await this.cargarSDK();
+    await this.obtenerTokenAzure();
+
+    const SDK = window.SpeechSDK;
+    if (!SDK) throw new Error('SDK de Azure Speech no disponible en window');
+
+    const config = SDK.SpeechConfig.fromAuthorizationToken(this.azureToken, this.azureRegion);
+    config.speechSynthesisVoiceName = this.vozAzure;
+
+    const audioConfig = SDK.AudioConfig.fromDefaultSpeakerOutput();
+    const synth = new SDK.SpeechSynthesizer(config, audioConfig);
+    this.synthAzure = synth;
+
+    // Visemas: 0 (silencio) a 21 (vocales/consonantes específicas)
+    synth.visemeReceived = (_s: any, e: any) => {
+      this.visemeActual.set(e.visemeId);
+    };
+
+    synth.synthesisStarted = () => {
+      this.hablando.set(true);
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      synth.speakTextAsync(
+        texto,
+        (result: any) => {
+          try { synth.close(); } catch {}
+          if (this.synthAzure === synth) this.synthAzure = null;
+          this.hablando.set(false);
+          this.visemeActual.set(0);
+
+          if (result?.reason === SDK.ResultReason.SynthesizingAudioCompleted) {
+            if (opciones.onEnd) opciones.onEnd();
+            resolve();
+          } else {
+            reject(new Error('Azure: síntesis no completada (' + (result?.errorDetails || 'sin detalle') + ')'));
+          }
+        },
+        (err: any) => {
+          try { synth.close(); } catch {}
+          if (this.synthAzure === synth) this.synthAzure = null;
+          this.hablando.set(false);
+          this.visemeActual.set(0);
+          reject(new Error('Azure: ' + err));
+        }
+      );
+    });
+  }
+
+  // ============== TTS NATIVO: implementación ==============
+
+  private cargarVozNativa(): void {
+    if (!this.synthNativa) return;
     const elegir = () => {
-      if (!this.synth) return;
-      const voces = this.synth.getVoices();
-      this.voz =
+      if (!this.synthNativa) return;
+      const voces = this.synthNativa.getVoices();
+      this.vozNativa =
         voces.find(v => v.lang === 'es-MX') ||
         voces.find(v => v.lang === 'es-US') ||
         voces.find(v => v.lang === 'es-ES') ||
@@ -72,23 +269,20 @@ export class VozService {
         null;
     };
     elegir();
-    this.synth.onvoiceschanged = elegir;
+    this.synthNativa.onvoiceschanged = elegir;
   }
 
-  /**
-   * Lee un texto en voz alta. Cancela cualquier lectura previa.
-   * @param texto      Lo que se va a leer
-   * @param opciones   { onEnd } se llama cuando termina (o nunca si está silenciado)
-   */
-  hablar(texto: string, opciones: { onEnd?: () => void; rate?: number } = {}): void {
-    if (!this.synth || !this.habilitado()) {
+  private hablarConNativa(
+    texto: string,
+    opciones: { onEnd?: () => void; rate?: number }
+  ): void {
+    if (!this.synthNativa) {
       if (opciones.onEnd) setTimeout(opciones.onEnd, 0);
       return;
     }
-    this.parar();
     const utt = new SpeechSynthesisUtterance(texto);
-    if (this.voz) utt.voice = this.voz;
-    utt.lang = this.voz?.lang || 'es-MX';
+    if (this.vozNativa) utt.voice = this.vozNativa;
+    utt.lang = this.vozNativa?.lang || 'es-MX';
     utt.rate = opciones.rate ?? 0.95;
     utt.pitch = 1;
     utt.volume = 1;
@@ -101,28 +295,10 @@ export class VozService {
       this.hablando.set(false);
     };
     try {
-      this.synth.speak(utt);
+      this.synthNativa.speak(utt);
     } catch (e) {
-      console.warn('VozService: no se pudo hablar', e);
+      console.warn('VozService nativo: no se pudo hablar', e);
       this.hablando.set(false);
-    }
-  }
-
-  /** Detiene cualquier lectura en curso */
-  parar(): void {
-    if (this.synth?.speaking || this.synth?.pending) {
-      try { this.synth.cancel(); } catch {}
-    }
-    this.hablando.set(false);
-  }
-
-  /** Activa/silencia el audio. Si silencia, también detiene lo que se esté leyendo. */
-  toggle(): void {
-    if (this.habilitado()) {
-      this.habilitado.set(false);
-      this.parar();
-    } else {
-      this.habilitado.set(true);
     }
   }
 }
