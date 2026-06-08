@@ -39,42 +39,51 @@
   background: #1A2F4E;
 }
 
-/* Idle: respiración muy sutil */
+/* ============================================================
+   MOVIMIENTO SINCRONIZADO CON LA VOZ
+   La variable CSS --ah-i (0-10) la setea Angular según el viseme
+   actual de Azure (~cada 80ms mientras habla). El CSS la traduce
+   a translateY + scale + rotate en tiempo real.
+   Una transición de 80ms hace que la interpolación entre visemas
+   se vea fluida (no saltos discretos).
+   ============================================================ */
 .ah-foto {
-  animation: ah-idle 5s ease-in-out infinite;
-}
-@keyframes ah-idle {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50%      { transform: scale(1.018) rotate(0deg); }
+  transition: transform 80ms ease-out, box-shadow 250ms ease, border-color 250ms ease;
+  transform:
+    translateY(calc(var(--ah-i, 0) * -1.3px))
+    scale(calc(1 + var(--ah-i, 0) * 0.008))
+    rotate(calc(var(--ah-i, 0) * 0.18deg));
+  will-change: transform;
 }
 
-/* Hablando: bounce notorio + cabeceo amplio + halo dorado vivo */
+/* En reposo: respiración muy sutil (ah-i = 0) */
+.ah-foto {
+  animation: ah-idle 4.5s ease-in-out infinite;
+}
+@keyframes ah-idle {
+  0%, 100% { filter: none; }
+  50%      { filter: brightness(0.97); }
+}
+
+/* Hablando: borde dorado vivo + halo */
 .ah-hablando .ah-foto {
-  animation: ah-talk 0.55s ease-in-out infinite;
+  animation: none;
   border-color: #FFD24A;
   border-width: 5px;
   box-shadow:
-    0 0 0 8px rgba(255, 195, 51, 0.35),
-    0 0 0 18px rgba(255, 195, 51, 0.18),
-    0 0 30px 4px rgba(255, 195, 51, 0.35),
-    0 16px 40px rgba(15, 31, 61, 0.5);
-}
-@keyframes ah-talk {
-  0%   { transform: translateY(0)     scale(1)    rotate(-2deg); }
-  20%  { transform: translateY(-9px)  scale(1.07) rotate(1.5deg); }
-  40%  { transform: translateY(-3px)  scale(1.03) rotate(-1deg); }
-  60%  { transform: translateY(-11px) scale(1.08) rotate(2deg); }
-  80%  { transform: translateY(-5px)  scale(1.04) rotate(-1.5deg); }
-  100% { transform: translateY(0)     scale(1)    rotate(-2deg); }
+    0 0 0 8px rgba(255, 195, 51, 0.30),
+    0 0 0 18px rgba(255, 195, 51, 0.14),
+    0 0 30px 4px rgba(255, 195, 51, 0.30),
+    0 16px 40px rgba(15, 31, 61, 0.50);
 }
 
-/* Pulso de brillo/saturación de la imagen cuando habla */
+/* Pulso de brillo/saturación de la imagen mientras habla */
 .ah-hablando .ah-img {
-  animation: ah-img-glow 1.1s ease-in-out infinite;
+  animation: ah-img-glow 1.4s ease-in-out infinite;
 }
 @keyframes ah-img-glow {
   0%, 100% { filter: brightness(1)    saturate(1)    contrast(1); }
-  50%      { filter: brightness(1.12) saturate(1.25) contrast(1.06); }
+  50%      { filter: brightness(1.09) saturate(1.18) contrast(1.04); }
 }
 
 /* ============================================================

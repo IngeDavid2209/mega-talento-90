@@ -2,7 +2,8 @@
      [class.ah-sm]="size === 'sm'"
      [class.ah-md]="size === 'md'"
      [class.ah-lg]="size === 'lg'"
-     [class.ah-hablando]="voz.hablando()">
+     [class.ah-hablando]="voz.hablando()"
+     [style.--ah-i]="intensidad()">
 
   <!-- Anillos expansivos dorados mientras habla -->
   <div class="ah-anillo ah-anillo-1" aria-hidden="true"></div>

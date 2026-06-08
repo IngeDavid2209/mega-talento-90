@@ -1,6 +1,39 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VozService } from '../../app/core/services/voz.service';
+
+/**
+ * Mapa de viseme ID (0-21) → intensidad de movimiento (0-10).
+ *
+ * Cuando Azure pronuncia una vocal abierta (A, O) la "boca" se abre más
+ * que con una consonante (M, S). Usamos esto para mover el rostro: a
+ * mayor apertura, mayor desplazamiento vertical y escala. Da la sensación
+ * de que la cabeza se mueve naturalmente con cada sílaba.
+ */
+const INTENSIDAD_VISEMA: Record<number, number> = {
+  0: 0,    // silencio
+  1: 7,    // æ, ə, ʌ
+  2: 10,   // ɑ (A abierta — máximo movimiento)
+  3: 6,    // ɔ
+  4: 4,    // ɛ, ʊ
+  5: 4,    // ɝ
+  6: 5,    // i, ih
+  7: 5,    // w, u
+  8: 6,    // o
+  9: 10,   // aw
+  10: 6,   // oy
+  11: 9,   // ay
+  12: 3,   // h
+  13: 3,   // r
+  14: 4,   // l
+  15: 3,   // s, z
+  16: 5,   // sh, ch
+  17: 3,   // th
+  18: 4,   // f, v
+  19: 4,   // d, t, n
+  20: 4,   // k, g, ng
+  21: 2,   // p, b, m
+};
 
 /**
  * URL de la foto profesional de Dalia. Es una foto stock de mujer latina
@@ -42,4 +75,14 @@ export class AvatarHablanteComponent {
 
   /** URL de la foto. Permite override desde el padre. */
   @Input() src: string = AVATAR_URL;
+
+  /**
+   * Intensidad de movimiento actual (0-10) basada en el viseme de Azure.
+   * Se expone vía CSS variable `--ah-i` y el CSS la traduce a transform.
+   * Cuando NO está hablando, devuelve 0 (posición de reposo).
+   */
+  intensidad = computed(() => {
+    if (!this.voz.hablando()) return 0;
+    return INTENSIDAD_VISEMA[this.voz.visemeActual()] ?? 3;
+  });
 }
