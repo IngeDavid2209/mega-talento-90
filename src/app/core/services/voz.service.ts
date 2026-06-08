@@ -79,8 +79,13 @@ export class VozService {
    * arranca sin retraso.
    */
   private tsFinUltimoAudio = 0;
-  /** Tiempo mínimo (ms) entre fin de un audio y inicio del siguiente. */
-  private readonly DRENAJE_MS = 320;
+  /**
+   * Tiempo mínimo (ms) entre fin de un audio y inicio del siguiente. El buffer
+   * del speaker en Chrome/Edge tarda hasta ~400ms en vaciarse después de
+   * `synth.close()`, así que ponemos 450ms para no escuchar el residuo del
+   * audio anterior cuando el usuario salta rápido entre preguntas.
+   */
+  private readonly DRENAJE_MS = 450;
 
   // ============== TTS NATIVO ==============
   private synthNativa: SpeechSynthesis | null = null;

@@ -156,6 +156,12 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     if (!this.candidatoId || !this.preguntaActual || this.guardando) return;
     this.guardando = true;
 
+    // Detener cualquier audio en curso INMEDIATAMENTE al hacer click.
+    // Si esperamos al setTimeout, el audio de la pregunta actual sigue
+    // sonando y se mezcla con el de la siguiente. Parar ya marca el
+    // timestamp para que el drenaje de la próxima Dalia sea correcto.
+    this.voz.parar();
+
     const num = this.preguntaActual.num;
     this.respuestas = { ...this.respuestas, [num]: valor };
 
