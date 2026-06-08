@@ -38,25 +38,27 @@
   display: block;
   background: #1A2F4E;
 }
+/* El <video> hereda los mismos estilos que el <img> */
+video.ah-img {
+  pointer-events: none; /* el usuario no debe pausarlo */
+  object-position: center center;
+}
 
 /* ============================================================
-   MOVIMIENTO SINCRONIZADO CON LA VOZ
-   La variable CSS --ah-i (0-10) la setea Angular según el viseme
-   actual de Azure (~cada 80ms mientras habla). El CSS la traduce
-   a translateY + scale + rotate en tiempo real.
-   Una transición de 80ms hace que la interpolación entre visemas
-   se vea fluida (no saltos discretos).
+   MOVIMIENTO DEL MARCO
+   El personaje dentro del video se mueve por sí solo (es un MP4
+   animado). El marco circular solo respira sutilmente para que
+   no se vea inerte; sin esto la combinación quedaría estática.
+   La var --ah-i (0-10, viseme de Azure) intensifica el halo
+   exterior durante las sílabas más abiertas (A, O).
    ============================================================ */
 .ah-foto {
-  transition: transform 80ms ease-out, box-shadow 250ms ease, border-color 250ms ease;
-  transform:
-    translateY(calc(var(--ah-i, 0) * -1.3px))
-    scale(calc(1 + var(--ah-i, 0) * 0.008))
-    rotate(calc(var(--ah-i, 0) * 0.18deg));
+  transition: box-shadow 250ms ease, border-color 250ms ease, transform 250ms ease;
+  transform: scale(calc(1 + var(--ah-i, 0) * 0.003));
   will-change: transform;
 }
 
-/* En reposo: respiración muy sutil (ah-i = 0) */
+/* En reposo: respiración suave */
 .ah-foto {
   animation: ah-idle 4.5s ease-in-out infinite;
 }

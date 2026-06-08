@@ -9,14 +9,26 @@
   <div class="ah-anillo ah-anillo-1" aria-hidden="true"></div>
   <div class="ah-anillo ah-anillo-2" aria-hidden="true"></div>
 
-  <!-- Foto en círculo con borde dorado -->
+  <!-- Personaje en círculo con borde dorado (video si MP4, si no imagen) -->
   <div class="ah-foto">
-    <img [src]="src"
-         alt="Dalia — asistente Mega Dulces"
-         class="ah-img"
-         loading="eager"
-         decoding="async"
-         referrerpolicy="no-referrer" />
+    @if (esVideo) {
+      <video #videoEl
+             [src]="src"
+             class="ah-img"
+             loop
+             muted
+             playsinline
+             preload="auto"
+             aria-label="Dalia — asistente Mega Dulces">
+      </video>
+    } @else {
+      <img [src]="src"
+           alt="Dalia — asistente Mega Dulces"
+           class="ah-img"
+           loading="eager"
+           decoding="async"
+           referrerpolicy="no-referrer" />
+    }
   </div>
 
   <!-- Burbuja con ondas de audio bajo la foto -->

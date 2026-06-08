@@ -1,4 +1,4 @@
-import { Component, Input, computed, inject } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VozService } from '../../app/core/services/voz.service';
 
@@ -44,8 +44,13 @@ const INTENSIDAD_VISEMA: Record<number, number> = {
  * para que no dependa de un servicio externo. Las dimensiones ideales
  * son 400x400 (cuadrada), enfocada en el rostro.
  */
-export const AVATAR_URL =
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&h=500&fit=crop&crop=faces&q=85';
+/**
+ * Personaje animado. Si la URL termina en .mp4/.webm se usa <video>,
+ * si no se usa <img>. Imgur sirve mejor el MP4 que el .gif cuando se
+ * carga desde otro dominio (los GIFs hotlinked se quedan en thumbnail
+ * estatico, los MP4 se reproducen sin problema).
+ */
+export const AVATAR_URL = 'https://i.imgur.com/6q3KMuz.mp4';
 
 /**
  * Avatar de la asistente Dalia.
@@ -73,16 +78,42 @@ export class AvatarHablanteComponent {
   /** Tamaño visual: 'sm' | 'md' | 'lg' */
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
 
-  /** URL de la foto. Permite override desde el padre. */
+  /** URL del recurso (MP4, WebM o imagen). Permite override desde el padre. */
   @Input() src: string = AVATAR_URL;
+
+  @ViewChild('videoEl') videoEl?: ElementRef<HTMLVideoElement>;
 
   /**
    * Intensidad de movimiento actual (0-10) basada en el viseme de Azure.
-   * Se expone vía CSS variable `--ah-i` y el CSS la traduce a transform.
-   * Cuando NO está hablando, devuelve 0 (posición de reposo).
+   * Se expone vía CSS variable `--ah-i` para los efectos de halo. La animación
+   * principal viene del video MP4 que reproduce cuando voz.hablando() es true.
    */
   intensidad = computed(() => {
     if (!this.voz.hablando()) return 0;
     return INTENSIDAD_VISEMA[this.voz.visemeActual()] ?? 3;
   });
+
+  /** True si el src es un video (mp4/webm/mov) — usa <video>, si no usa <img>. */
+  get esVideo(): boolean {
+    const u = (this.src || '').toLowerCase().split('?')[0];
+    return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+  }
+
+  constructor() {
+    // Sincroniza el video: solo reproduce mientras voz.hablando() es true.
+    // Cuando para, vuelve al primer frame (pose neutra).
+    effect(() => {
+      const hablando = this.voz.hablando();
+      const video = this.videoEl?.nativeElement;
+      if (!video || !this.esVideo) return;
+      if (hablando) {
+        video.play().catch(() => { /* autoplay puede fallar si no hubo gesto */ });
+      } else {
+        try {
+          video.pause();
+          video.currentTime = 0;
+        } catch {}
+      }
+    });
+  }
 }
