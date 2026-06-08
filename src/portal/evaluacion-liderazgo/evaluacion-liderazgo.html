@@ -15,16 +15,6 @@
 
     <!-- ====== PANTALLA DE INICIO: elegir modo ====== -->
     <div class="ev-card ev-bienvenida">
-      <header class="ev-head">
-        <div class="ev-head-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
-        </div>
-        <div class="ev-head-text">
-          <strong>EVALUACIÓN DE LIDERAZGO</strong>
-          <small>Modelo interaccionista del Liderazgo · Mega Dulces</small>
-        </div>
-      </header>
-
       <div class="ev-bienvenida-body">
         <div class="ev-avatar-wrap">
           <app-avatar-hablante size="lg"></app-avatar-hablante>
@@ -95,16 +85,9 @@
     <!-- ====== CUESTIONARIO ====== -->
     <div class="ev-card">
 
-      <!-- HEADER navy + dorado -->
-      <header class="ev-head">
-        <div class="ev-head-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9 9l-8 1 6 5-2 8 7-4 7 4-2-8 6-5-8-1z"/></svg>
-        </div>
-        <div class="ev-head-text">
-          <strong>EVALUACIÓN DE LIDERAZGO</strong>
-          <small>Modelo interaccionista del Liderazgo · Mega Dulces</small>
-        </div>
-        @if (audioActivo) {
+      <!-- Header sólo aparece si el modo audio está activo (contiene el botón de silenciar) -->
+      @if (audioActivo) {
+        <header class="ev-head ev-head-solo-audio">
           <button type="button"
                   class="ev-btn-audio"
                   [class.muted]="!voz.habilitado()"
@@ -125,8 +108,8 @@
               </svg>
             }
           </button>
-        }
-      </header>
+        </header>
+      }
 
       <!-- Progreso -->
       <div class="ev-progreso">

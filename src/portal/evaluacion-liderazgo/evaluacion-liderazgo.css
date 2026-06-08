@@ -47,6 +47,12 @@
   border-top: 4px solid var(--gold-bright);
 }
 
+/* Variante: header sólo con el botón de audio (sin título), alineado a la derecha */
+.ev-head-solo-audio {
+  justify-content: flex-end;
+  padding: 10px 14px !important;
+}
+
 /* HEADER navy con acento dorado (estilo PDF Evaluación) */
 .ev-head {
   background: var(--ink);
