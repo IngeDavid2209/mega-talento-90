@@ -583,6 +583,16 @@
   padding: 28px 24px 32px;
   text-align: center;
 }
+.ev-avatar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.ev-avatar-pregunta {
+  display: flex;
+  justify-content: center;
+  padding: 14px 18px 6px;
+}
 .ev-bienvenida-body h1 {
   font-size: 22px;
   font-weight: 800;

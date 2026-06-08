@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
 import { VozService } from '../../app/core/services/voz.service';
+import { AvatarHablanteComponent } from '../avatar-hablante/avatar-hablante';
 import {
   CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario
 } from '../../app/core/models/cuestionario-liderazgo.model';
@@ -10,7 +11,7 @@ import {
 @Component({
   selector: 'app-evaluacion-liderazgo',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AvatarHablanteComponent],
   templateUrl: './evaluacion-liderazgo.html',
   styleUrl: './evaluacion-liderazgo.css'
 })

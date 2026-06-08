@@ -1,0 +1,138 @@
+/* ============================================================
+   AVATAR HABLANTE · personaje guía con sprites de boca animada
+   ============================================================ */
+
+.ah-wrap {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+}
+
+/* Tamaños predefinidos */
+.ah-sm { width: 100px; height: 100px; }
+.ah-md { width: 170px; height: 170px; }
+.ah-lg { width: 240px; height: 240px; }
+
+/* Marco circular con borde dorado */
+.ah-foto {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #FFC233;
+  background: #1A2F4E;
+  box-shadow:
+    0 10px 30px rgba(15, 31, 61, 0.45),
+    0 4px 10px rgba(15, 31, 61, 0.3);
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+.ah-sm .ah-foto { border-width: 3px; }
+.ah-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+/* Pre-carga invisible (las 4 imágenes cargan al montar el componente) */
+.ah-precarga {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  top: -9999px;
+  left: -9999px;
+}
+
+/* Idle: respiración muy sutil */
+.ah-foto {
+  animation: ah-idle 4.5s ease-in-out infinite;
+}
+@keyframes ah-idle {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.015); }
+}
+
+/* Hablando: bounce sutil + escala ligera */
+.ah-hablando .ah-foto {
+  animation: ah-talk 0.55s ease-in-out infinite;
+  border-color: #FFD24A;
+  box-shadow:
+    0 0 0 4px rgba(255, 195, 51, 0.25),
+    0 10px 30px rgba(15, 31, 61, 0.5);
+}
+@keyframes ah-talk {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-3px) scale(1.025); }
+}
+
+/* Anillos pulsantes dorados (solo cuando habla) */
+.ah-anillo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 195, 51, 0.6);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+}
+.ah-hablando .ah-anillo-1 {
+  animation: ah-pulse 1.6s ease-out infinite;
+}
+.ah-hablando .ah-anillo-2 {
+  animation: ah-pulse 1.6s ease-out 0.55s infinite;
+}
+@keyframes ah-pulse {
+  0%   { transform: scale(1);    opacity: 0.75; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+
+/* Burbuja con ondas de audio bajo el personaje */
+.ah-burbuja {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(15, 31, 61, 0.25);
+  z-index: 3;
+  animation: ah-burbuja-in 0.25s ease-out;
+}
+@keyframes ah-burbuja-in {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.ah-onda {
+  display: block;
+  width: 4px;
+  background: #FFC233;
+  border-radius: 2px;
+}
+.ah-onda:nth-child(1) { height: 8px;  animation: ah-onda 0.95s ease-in-out infinite; }
+.ah-onda:nth-child(2) { height: 16px; animation: ah-onda 0.95s ease-in-out 0.12s infinite; }
+.ah-onda:nth-child(3) { height: 22px; animation: ah-onda 0.95s ease-in-out 0.24s infinite; }
+.ah-onda:nth-child(4) { height: 14px; animation: ah-onda 0.95s ease-in-out 0.36s infinite; }
+@keyframes ah-onda {
+  0%, 100% { transform: scaleY(0.55); opacity: 0.7; }
+  50%      { transform: scaleY(1.1);  opacity: 1; }
+}
+
+/* Variantes responsive */
+@media (max-width: 480px) {
+  .ah-md { width: 140px; height: 140px; }
+  .ah-lg { width: 180px; height: 180px; }
+  .ah-sm { width: 80px;  height: 80px; }
+}
+@media (max-width: 380px) {
+  .ah-md { width: 120px; height: 120px; }
+  .ah-lg { width: 150px; height: 150px; }
+}

@@ -26,6 +26,10 @@
       </header>
 
       <div class="ev-bienvenida-body">
+        <div class="ev-avatar-wrap">
+          <app-avatar-hablante size="lg"></app-avatar-hablante>
+        </div>
+
         <h1>Hola, {{ candidato?.nombre || 'candidato/a' }} 👋</h1>
         <p class="ev-bien-intro">
           Vas a responder <strong>12 preguntas</strong> sobre cómo te comportas en grupo.
@@ -134,6 +138,13 @@
           <div class="ev-prog-fill" [style.width.%]="progreso"></div>
         </div>
       </div>
+
+      <!-- Avatar guía (solo si el candidato eligió modo audio) -->
+      @if (audioActivo) {
+        <div class="ev-avatar-pregunta">
+          <app-avatar-hablante size="md"></app-avatar-hablante>
+        </div>
+      }
 
       <!-- Pregunta actual con highlight cuando la voz está leyendo -->
       <div class="ev-pregunta-box" [class.leyendo]="voz.hablando()">
