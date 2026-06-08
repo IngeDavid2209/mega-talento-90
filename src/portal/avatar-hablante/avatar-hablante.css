@@ -35,6 +35,11 @@
   object-fit: cover;
   object-position: center top;
   display: block;
+  background: #1A2F4E;
+}
+/* El <video> hereda el mismo estilo de .ah-img */
+video.ah-img {
+  pointer-events: none; /* impedir que el usuario pause el video */
 }
 
 /* Pre-carga invisible (las 4 imágenes cargan al montar el componente) */

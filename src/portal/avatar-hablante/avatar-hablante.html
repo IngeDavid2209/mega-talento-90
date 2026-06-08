@@ -8,9 +8,20 @@
   <div class="ah-anillo ah-anillo-1" aria-hidden="true"></div>
   <div class="ah-anillo ah-anillo-2" aria-hidden="true"></div>
 
-  <!-- Marco circular con el GIF del personaje -->
+  <!-- Marco circular con el personaje (video o GIF según el src) -->
   <div class="ah-foto">
-    <img [src]="src" alt="Asistente Mega Dulces" class="ah-img" />
+    @if (esVideo) {
+      <video [src]="src"
+             class="ah-img"
+             autoplay
+             loop
+             muted
+             playsinline
+             aria-label="Asistente Mega Dulces">
+      </video>
+    } @else {
+      <img [src]="src" alt="Asistente Mega Dulces" class="ah-img" />
+    }
   </div>
 
   <!-- Burbuja con ondas de audio (solo mientras habla) -->
