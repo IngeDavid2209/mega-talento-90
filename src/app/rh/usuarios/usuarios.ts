@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsuariosService } from '../../core/services/usuarios.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-usuarios',
@@ -13,6 +14,7 @@ import { UsuariosService } from '../../core/services/usuarios.service';
 export class UsuariosComponent implements OnInit, OnDestroy {
   private usuariosService = inject(UsuariosService);
   private ngZone = inject(NgZone);
+  private toast = inject(ToastService);
 
   nuevoUsuario = {
     nombreCompleto: '',
@@ -72,11 +74,19 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   }
 
   async eliminarUsuario(user: any) {
-    if (!confirm(`¿Desactivar el acceso de ${user.nombre}? No podrá volver a iniciar sesión.`)) return;
+    const ok = await this.toast.confirmar({
+      titulo: `Desactivar a ${user.nombre}`,
+      mensaje: 'El usuario no podrá volver a iniciar sesión. Puedes reactivarlo más tarde si lo necesitas.',
+      textoConfirmar: 'Desactivar',
+      destructivo: true
+    });
+    if (!ok) return;
     try {
       await this.usuariosService.desactivarUsuario(user.id || user.uid);
+      this.toast.exito(`${user.nombre} fue desactivado`);
     } catch (error) {
       this.mensajeError = 'No se pudo desactivar el usuario.';
+      this.toast.error('No se pudo desactivar el usuario.');
     }
   }
 
@@ -89,11 +99,19 @@ export class UsuariosComponent implements OnInit, OnDestroy {
   }
 
   async borrarUsuario(user: any) {
-    if (!confirm(`¿Eliminar definitivamente a ${user.nombre}? Saldrá del sistema y ya no podrá iniciar sesión. Esta acción no se puede deshacer.`)) return;
+    const ok = await this.toast.confirmar({
+      titulo: `Eliminar a ${user.nombre} definitivamente`,
+      mensaje: 'Saldrá del sistema y ya no podrá iniciar sesión. Esta acción no se puede deshacer.',
+      textoConfirmar: 'Eliminar para siempre',
+      destructivo: true
+    });
+    if (!ok) return;
     try {
       await this.usuariosService.eliminarUsuario(user.id || user.uid);
+      this.toast.exito(`${user.nombre} fue eliminado del sistema`);
     } catch (error) {
       this.mensajeError = 'No se pudo eliminar el usuario.';
+      this.toast.error('No se pudo eliminar el usuario.');
     }
   }
 

@@ -1,0 +1,258 @@
+/* ============================================================
+   TOAST CONTAINER · sistema corporativo de notificaciones
+   ============================================================ */
+
+/* Stack de toasts en esquina superior derecha */
+.tc-stack {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: calc(100vw - 48px);
+}
+
+.tc-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 320px;
+  max-width: 420px;
+  padding: 14px 14px 14px 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(26, 47, 78, 0.08);
+  border-left: 4px solid var(--tc-color, #1A2F4E);
+  border-radius: 10px;
+  box-shadow:
+    0 12px 28px -8px rgba(15, 31, 61, 0.22),
+    0 4px 8px -2px rgba(15, 31, 61, 0.08);
+  animation: tc-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: #1A2F4E;
+}
+
+@keyframes tc-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Variantes por tipo (cambian color del borde y del ícono) */
+.tc-success { --tc-color: #1F7A4C; --tc-icon-bg: #E6F2EC; }
+.tc-info    { --tc-color: #1A4FB0; --tc-icon-bg: #EAF0FB; }
+.tc-warning { --tc-color: #C8830A; --tc-icon-bg: #FFF5D6; }
+.tc-error   { --tc-color: #A12626; --tc-icon-bg: #F8E6E6; }
+
+.tc-icono {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--tc-icon-bg);
+  color: var(--tc-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tc-icono svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tc-cuerpo {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+.tc-titulo {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #1A2F4E;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+}
+.tc-texto {
+  font-size: 13px;
+  color: #4A5568;
+  line-height: 1.45;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.tc-cerrar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: #8A95A8;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-top: -2px;
+  margin-right: -4px;
+  transition: background 0.15s, color 0.15s;
+}
+.tc-cerrar:hover {
+  background: rgba(26, 47, 78, 0.06);
+  color: #1A2F4E;
+}
+.tc-cerrar svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================================
+   MODAL DE CONFIRMACIÓN
+   ============================================================ */
+
+.tc-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 31, 61, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: tc-fade-in 0.18s ease-out;
+}
+
+@keyframes tc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.tc-modal {
+  background: #FFFFFF;
+  border-radius: 14px;
+  max-width: 420px;
+  width: 100%;
+  padding: 28px 26px 22px;
+  box-shadow: 0 24px 60px -12px rgba(15, 31, 61, 0.35);
+  text-align: center;
+  animation: tc-modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: #1A2F4E;
+}
+
+@keyframes tc-modal-in {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.tc-modal-icono {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #FFF5D6;
+  color: #C8830A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.tc-modal-icono-destructivo {
+  background: #F8E6E6;
+  color: #A12626;
+}
+.tc-modal-icono svg {
+  width: 28px;
+  height: 28px;
+}
+
+.tc-modal-titulo {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1A2F4E;
+  margin: 0 0 6px;
+  letter-spacing: -0.012em;
+}
+
+.tc-modal-mensaje {
+  font-size: 14px;
+  color: #4A5568;
+  margin: 0 0 22px;
+  line-height: 1.5;
+}
+
+.tc-modal-acciones {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.tc-btn {
+  flex: 1;
+  max-width: 160px;
+  padding: 11px 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: -0.005em;
+}
+
+.tc-btn-cancelar {
+  background: #FFFFFF;
+  color: #4A5568;
+  border-color: rgba(26, 47, 78, 0.18);
+}
+.tc-btn-cancelar:hover {
+  background: #F4F6FA;
+  border-color: rgba(26, 47, 78, 0.28);
+  color: #1A2F4E;
+}
+
+.tc-btn-confirmar {
+  background: #1A2F4E;
+  color: #FFFFFF;
+}
+.tc-btn-confirmar:hover {
+  background: #0F1F3D;
+  box-shadow: 0 4px 12px rgba(15, 31, 61, 0.25);
+}
+
+.tc-btn-destructivo {
+  background: #A12626;
+  color: #FFFFFF;
+}
+.tc-btn-destructivo:hover {
+  background: #6B1414;
+  box-shadow: 0 4px 12px rgba(161, 38, 38, 0.3);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 540px) {
+  .tc-stack {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+  .tc-toast {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .tc-modal {
+    padding: 24px 20px 18px;
+  }
+  .tc-modal-titulo { font-size: 16.5px; }
+  .tc-modal-mensaje { font-size: 13.5px; }
+  .tc-btn { padding: 10px 14px; font-size: 13px; }
+}

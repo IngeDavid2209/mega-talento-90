@@ -12,6 +12,7 @@ import {
 } from '../../core/models/proceso.model';
 import { urlWhatsApp } from '../../core/models/puestos.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-etapa',
@@ -27,6 +28,7 @@ export class EtapaComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   // Público para que el template lea el signal y use displayName()
   capitalHumano = inject(CapitalHumanoService);
+  private toast = inject(ToastService);
 
   ID_ETAPAS = ID_ETAPAS;
 
@@ -157,7 +159,10 @@ export class EtapaComponent implements OnInit, OnDestroy {
   contactarWhatsApp(c: any) {
     const url = urlWhatsApp(c);
     if (!url) {
-      alert(`El teléfono de ${c.nombre || 'este candidato'} no es válido (${c.telefono || 'vacío'}). Corrígelo en el expediente para poder enviar WhatsApp.`);
+      this.toast.alerta(
+        `El teléfono (${c.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
+        `Teléfono de ${c.nombre || 'este candidato'} inválido`
+      );
       return;
     }
     window.open(url, '_blank');

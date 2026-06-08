@@ -19,6 +19,7 @@ import {
   calcularResultadoLiderazgo
 } from '../../core/models/cuestionario-liderazgo.model';
 import { normalizarTelefonoMX } from '../../core/models/puestos.model';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-expediente',
@@ -32,6 +33,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
+  private toast = inject(ToastService);
 
   // Constantes expuestas al template
   ETAPAS = ETAPAS;
@@ -384,7 +386,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       documentos.push(nuevoDoc);
       await this.candidateService.updateCandidate(this.candidato.id, { documentos });
     } catch (error) {
-      alert('Hubo un error al subir el archivo.');
+      this.toast.error('Hubo un error al subir el archivo.', 'No se pudo subir');
     } finally {
       this.subiendoDoc = false;
       event.target.value = '';
@@ -396,7 +398,10 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     if (!this.candidato) return '';
     const numero = normalizarTelefonoMX(this.candidato.telefono || '');
     if (!numero) {
-      alert(`El teléfono guardado de ${this.candidato.nombre} no es válido (${this.candidato.telefono || 'vacío'}). Corrígelo en el expediente para poder enviar WhatsApp.`);
+      this.toast.alerta(
+        `El teléfono guardado (${this.candidato.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
+        `Teléfono de ${this.candidato.nombre} inválido`
+      );
       return '';
     }
     return numero;
@@ -432,8 +437,8 @@ Son 12 preguntas breves. Responde con honestidad — veremos tus respuestas en t
     if (!this.candidato) return;
     const link = `${window.location.origin}/evaluacion/${this.candidato.id}`;
     navigator.clipboard?.writeText(link).then(
-      () => alert('Link copiado al portapapeles'),
-      () => alert('No se pudo copiar el link')
+      () => this.toast.exito('Link de evaluación copiado al portapapeles'),
+      () => this.toast.error('No se pudo copiar el link')
     );
   }
 
@@ -466,8 +471,8 @@ Son 8 pasos breves (≈ 5 minutos). Tu información se enviará directamente a n
     if (!this.candidato) return;
     const link = `${window.location.origin}/solicitud/${this.candidato.id}`;
     navigator.clipboard?.writeText(link).then(
-      () => alert('Link copiado al portapapeles'),
-      () => alert('No se pudo copiar el link')
+      () => this.toast.exito('Link de solicitud copiado al portapapeles'),
+      () => this.toast.error('No se pudo copiar el link')
     );
   }
 

@@ -5,6 +5,7 @@ import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { urlWhatsApp } from '../../core/models/puestos.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
+import { ToastService } from '../../core/services/toast.service';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -17,6 +18,7 @@ import * as XLSX from 'xlsx';
 export class DashboardComponent implements OnInit {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
+  private toast = inject(ToastService);
   // Público para que el template use displayName() en la tabla
   capitalHumano = inject(CapitalHumanoService);
 
@@ -204,7 +206,10 @@ export class DashboardComponent implements OnInit {
   contactarWhatsApp(c: any) {
     const url = urlWhatsApp(c);
     if (!url) {
-      alert(`El teléfono de ${c.nombre || 'este candidato'} no es válido (${c.telefono || 'vacío'}). Corrígelo en el expediente para poder enviar WhatsApp.`);
+      this.toast.alerta(
+        `El teléfono (${c.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
+        `Teléfono de ${c.nombre || 'este candidato'} inválido`
+      );
       return;
     }
     window.open(url, '_blank');
