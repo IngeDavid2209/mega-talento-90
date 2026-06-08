@@ -104,15 +104,37 @@ export class VozService {
 
   /**
    * Debe llamarse DENTRO de un click handler la primera vez para autorizar audio.
-   * También arranca la carga del SDK de Azure en background.
+   *
+   * Si Azure está disponible (caso normal), NO usamos la "speech silenciosa"
+   * del navegador, porque corre en el motor nativo (speechSynthesis) — distinto
+   * del AudioContext que usa Azure. Tener ambas activas a la vez es lo que
+   * causaba las voces solapadas al iniciar.
+   *
+   * En su lugar, desbloqueamos el AudioContext con un buffer vacío. El click
+   * que disparó esta llamada cuenta como el "gesto del usuario" requerido por
+   * los navegadores. Si Azure no está disponible, sí hacemos la unlock nativa.
    */
   desbloquear(): void {
     if (this.desbloqueado()) return;
-    // Pre-cargar el SDK de Azure en background para que el primer hablar() sea rápido
+
     if (this.azureDisponible) {
-      this.cargarSDK().catch(() => { this.azureDisponible = false; });
-    }
-    if (this.synthNativa) {
+      // Azure: desbloquear AudioContext con un buffer vacío.
+      try {
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (Ctx) {
+          const ctx = new Ctx();
+          const buffer = ctx.createBuffer(1, 1, 22050);
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(ctx.destination);
+          source.start(0);
+          // El AudioContext puede iniciar en estado 'suspended' en Safari/iOS.
+          ctx.resume?.();
+        }
+      } catch { /* no pasa nada, Azure manejará su propio unlock */ }
+      this.desbloqueado.set(true);
+    } else if (this.synthNativa) {
+      // Fallback: motor nativo necesita la speech silenciosa para desbloquear
       const utt = new SpeechSynthesisUtterance(' ');
       utt.volume = 0;
       utt.onend = () => this.desbloqueado.set(true);

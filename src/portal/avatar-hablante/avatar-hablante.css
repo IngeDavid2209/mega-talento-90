@@ -44,22 +44,34 @@
   animation: ah-idle 5s ease-in-out infinite;
 }
 @keyframes ah-idle {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.015); }
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.018) rotate(0deg); }
 }
 
-/* Hablando: borde más brillante + bounce sutil + halo dorado */
+/* Hablando: bounce notorio + cabeceo + halo dorado */
 .ah-hablando .ah-foto {
-  animation: ah-talk 0.7s ease-in-out infinite;
+  animation: ah-talk 0.5s ease-in-out infinite;
   border-color: #FFD24A;
   box-shadow:
-    0 0 0 6px rgba(255, 195, 51, 0.22),
-    0 0 0 12px rgba(255, 195, 51, 0.10),
-    0 14px 36px rgba(15, 31, 61, 0.42);
+    0 0 0 6px rgba(255, 195, 51, 0.28),
+    0 0 0 14px rgba(255, 195, 51, 0.12),
+    0 14px 36px rgba(15, 31, 61, 0.45);
 }
 @keyframes ah-talk {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-3px) scale(1.022); }
+  0%   { transform: translateY(0)    scale(1)     rotate(-1.2deg); }
+  25%  { transform: translateY(-5px) scale(1.045) rotate(0.8deg); }
+  50%  { transform: translateY(-2px) scale(1.025) rotate(-0.6deg); }
+  75%  { transform: translateY(-6px) scale(1.05)  rotate(1.0deg); }
+  100% { transform: translateY(0)    scale(1)     rotate(-1.2deg); }
+}
+
+/* Brillo extra en la imagen cuando habla (sutil pulso de saturación) */
+.ah-hablando .ah-img {
+  animation: ah-img-glow 1.4s ease-in-out infinite;
+}
+@keyframes ah-img-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50%      { filter: brightness(1.08) saturate(1.15); }
 }
 
 /* ============================================================

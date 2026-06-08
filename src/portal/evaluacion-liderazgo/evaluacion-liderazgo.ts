@@ -103,11 +103,16 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
 
   /** El candidato eligió empezar CON audio guiado */
   empezarConAudio() {
+    // Guard: evitar que un doble-click dispare dos arranques en paralelo
+    // (era una de las causas del audio solapado al iniciar).
+    if (this.modoElegido) return;
     this.modoElegido = true;
     this.audioActivo = true;
-    // Desbloquear el navegador con un speak silencioso (este click cuenta como gesto)
+    // Desbloquear el navegador con AudioContext (este click cuenta como gesto).
     this.voz.desbloquear();
-    // Después de un breve delay para que se cargue la voz, leer bienvenida + pregunta 1
+    // Pequeña espera (120ms) para que el AudioContext quede listo en iOS/Safari
+    // antes de pedir a Azure que reproduzca. En Chrome desktop es instantáneo
+    // pero el delay es imperceptible.
     setTimeout(() => {
       const nombre = (this.candidato?.nombre || '').split(/\s+/)[0] || '';
       const saludo = nombre
@@ -116,7 +121,7 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
       this.voz.hablar(saludo, {
         onEnd: () => this.leerPreguntaActual()
       });
-    }, 350);
+    }, 120);
   }
 
   /** El candidato eligió empezar SIN audio (lectura normal) */
