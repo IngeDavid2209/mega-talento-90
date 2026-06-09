@@ -68,7 +68,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     // hardcoded. Si el admin oculta una vacante, desaparece al instante de ambas.
     this.unsubPuestos = this.puestosService.listar((lista) => {
       const activos = lista.filter(p => p.activo).map(p => p.nombre);
-      this.puestos = [...activos, 'Otro'];
+      this.puestos = activos;
       this.aplicarQueryPuesto();
     });
 
@@ -146,21 +146,20 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     this.captchaToken = '';
   }
 
-  /** Si vienen desde la cartelera /empleos con ?puesto=X, pre-seleccionar el puesto */
+  /**
+   * Si vienen desde la cartelera /empleos con ?puesto=X, pre-seleccionar el
+   * puesto. Si X no existe en la lista activa de Firestore (porque la admin
+   * lo desactivó después de compartir el link), simplemente dejamos el
+   * dropdown vacío para que el candidato elija uno de los disponibles.
+   */
   private aplicarQueryPuesto() {
     const puestoQuery = this.route.snapshot.queryParamMap.get('puesto');
     if (!puestoQuery) return;
     const match = this.puestos.find(p => p.toLowerCase() === puestoQuery.toLowerCase());
     if (match) {
       this.candidate.puesto = match;
-    } else {
-      this.candidate.puesto = 'Otro';
-      this.otroPuesto = puestoQuery;
     }
   }
-
-  // Variable para capturar el puesto manual cuando se elige "Otro"
-  otroPuesto = '';
 
   ciudades = [
     'La Piedad',
@@ -173,10 +172,11 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
   /**
    * Lista de puestos visible en el dropdown. Se pobla EN VIVO desde Firestore
    * (mismo origen que la bolsa /empleos), filtrando por activo=true. Mientras
-   * carga, el dropdown sólo muestra "Otro" + el placeholder deshabilitado, así
-   * el candidato nunca ve un puesto que la admin ya ocultó.
+   * carga, el dropdown queda vacío (solo el placeholder deshabilitado) y el
+   * candidato espera ~200ms a que cargue. Así nunca ve un puesto que la admin
+   * ya ocultó.
    */
-  puestos: string[] = ['Otro'];
+  puestos: string[] = [];
 
   fuentes = [
     'Facebook / Redes Sociales',
@@ -376,8 +376,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       const cvUrlReverso = indices.cvReverso !== undefined ? urls[indices.cvReverso] : '';
       const licenciaUrl = indices.licencia !== undefined ? urls[indices.licencia] : '';
 
-      // Si el puesto es "Otro", usamos el texto manual del candidato
-      const puestoFinal = this.candidate.puesto === 'Otro' ? this.otroPuesto : this.candidate.puesto;
+      const puestoFinal = this.candidate.puesto;
 
       const datosCandidatoCompleto: any = {
         ...this.candidate,
@@ -433,7 +432,6 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       puesto: '',
       fuente: ''
     };
-    this.otroPuesto = '';
     this.tipoCV = 'pdf';
     this.archivoPDF = null;
     this.fotoFrente = null;

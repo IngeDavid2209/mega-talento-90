@@ -72,19 +72,6 @@
         </div>
       </div>
 
-      @if (candidate.puesto === 'Otro') {
-        <div class="form-group conditional-input">
-          <label>Escribe el puesto <span class="required-star">*</span></label>
-          <div class="input-icon-wrap">
-            <svg class="field-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-            </svg>
-            <input type="text" [(ngModel)]="otroPuesto" name="otroPuesto" required placeholder="Ej. Guardia de Seguridad">
-          </div>
-        </div>
-      }
-
       <!-- LICENCIA DE MANEJO (obligatoria si puesto es Chofer o Logística) -->
       @if (requiereLicencia) {
         <div class="form-group licencia-group">
@@ -259,7 +246,7 @@
       </div>
 
       <!-- BOTÓN -->
-      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || !captchaToken || (candidate.puesto === 'Otro' && !otroPuesto) || (requiereLicencia && !licencia)">
+      <button type="submit" class="btn-submit" [disabled]="talentoForm.invalid || subiendo || !cvCompleto || !captchaToken || (requiereLicencia && !licencia)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
