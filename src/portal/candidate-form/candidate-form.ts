@@ -63,14 +63,12 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Cargar los puestos activos en vivo desde Firestore (los que se administran
-    // desde /app/vacantes). Si el admin agrega o cambia uno, el dropdown se actualiza.
+    // desde /rh/vacantes). El dropdown es la copia EXACTA de la bolsa de trabajo
+    // (/empleos): mismas vacantes con activo=true, en el mismo orden, sin fallback
+    // hardcoded. Si el admin oculta una vacante, desaparece al instante de ambas.
     this.unsubPuestos = this.puestosService.listar((lista) => {
       const activos = lista.filter(p => p.activo).map(p => p.nombre);
-      // Si la lista de Firestore aún está vacía (carga inicial), mantén el fallback
-      // estático del array `puestos` que ya está declarado abajo.
-      if (activos.length > 0) {
-        this.puestos = [...activos, 'Otro'];
-      }
+      this.puestos = [...activos, 'Otro'];
       this.aplicarQueryPuesto();
     });
 
@@ -172,17 +170,13 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     'Yurécuaro'
   ];
 
-  puestos = [
-    'Vendedor',
-    'Cajero',
-    'Auxiliar de Almacén',
-    'Chofer',
-    'Logística',
-    'Gerente de Sucursal',
-    'Personal Administrativo',
-    'Anaquelista',
-    'Otro'
-  ];
+  /**
+   * Lista de puestos visible en el dropdown. Se pobla EN VIVO desde Firestore
+   * (mismo origen que la bolsa /empleos), filtrando por activo=true. Mientras
+   * carga, el dropdown sólo muestra "Otro" + el placeholder deshabilitado, así
+   * el candidato nunca ve un puesto que la admin ya ocultó.
+   */
+  puestos: string[] = ['Otro'];
 
   fuentes = [
     'Facebook / Redes Sociales',
