@@ -171,7 +171,9 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       case ID_ETAPAS.RH:
         return this.progresoStar().pct === 100;
       case ID_ETAPAS.APTITUDES:
-        return this.calcularPuntajeAptitudes().aprobado;
+        // Etapa fusionada: requiere aptitudes aprobadas Y entrevista técnica completa
+        return this.calcularPuntajeAptitudes().aprobado &&
+               checklistCompleto(this.candidato.jefeChecklist, CHECKLIST_JEFE);
       case ID_ETAPAS.PSICOMETRIA:
         return checklistCompleto(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS);
       case ID_ETAPAS.JEFE:
@@ -196,7 +198,12 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       case ID_ETAPAS.NUEVO:        return 100;
       case ID_ETAPAS.FILTRO:       return progresoChecklist(this.candidato.filtroChecklist, CHECKLIST_FILTRO).pct;
       case ID_ETAPAS.RH:           return this.progresoStar().pct;
-      case ID_ETAPAS.APTITUDES:    return this.calcularPuntajeAptitudes().puntaje;
+      case ID_ETAPAS.APTITUDES: {
+        // Promedio del puntaje de aptitudes y el avance de la entrevista técnica
+        const apt = this.calcularPuntajeAptitudes().puntaje;
+        const jefe = progresoChecklist(this.candidato.jefeChecklist, CHECKLIST_JEFE).pct;
+        return Math.round((apt + jefe) / 2);
+      }
       case ID_ETAPAS.PSICOMETRIA:  return progresoChecklist(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS).pct;
       case ID_ETAPAS.JEFE:         return progresoChecklist(this.candidato.jefeChecklist, CHECKLIST_JEFE).pct;
       case ID_ETAPAS.DOCUMENTAL:   return progresoChecklist(this.candidato.documentalChecklist, CHECKLIST_DOCUMENTAL).pct;

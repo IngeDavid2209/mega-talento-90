@@ -85,14 +85,9 @@
     <div class="tabs-bar">
       <button class="tab" [class.active]="tabActiva === 'resumen'"     (click)="tabActiva = 'resumen'">Resumen</button>
       <button class="tab" [class.active]="tabActiva === 'filtro'"      (click)="tabActiva = 'filtro'">Filtro inicial</button>
-      <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Liderazgo Conductual</button>
-      <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes</button>
-      <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicometría</button>
-      <button class="tab" [class.active]="tabActiva === 'jefe'"        (click)="tabActiva = 'jefe'">Entrevista técnica</button>
-      <button class="tab" [class.active]="tabActiva === 'docs'"        (click)="tabActiva = 'docs'">Documental</button>
-      <button class="tab" [class.active]="tabActiva === 'oferta'"      (click)="tabActiva = 'oferta'">Oferta</button>
-      <button class="tab" [class.active]="tabActiva === 'dictamen'"    (click)="tabActiva = 'dictamen'">Dictamen</button>
-      <button class="tab" [class.active]="tabActiva === 'contratado'"  (click)="tabActiva = 'contratado'">Ingreso</button>
+      <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista Orientación Conductual</button>
+      <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes y Entrevista Técnica</button>
+      <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicométricas</button>
       <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Archivos</button>
       <button class="tab" [class.active]="tabActiva === 'solicitud'"   (click)="tabActiva = 'solicitud'">Solicitud</button>
     </div>
@@ -116,32 +111,15 @@
             <span class="resumen-num">{{ progresoStar().hechos }}/{{ progresoStar().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">Psicometría</span>
-            <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoPsicom().pct"></div></div>
-            <span class="resumen-num">{{ progresoPsicom().hechos }}/{{ progresoPsicom().total }}</span>
-          </div>
-          <div class="resumen-item">
-            <span class="resumen-label">Entrevista Técnica</span>
+            <span class="resumen-label">Aptitudes y Entrevista Técnica</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoJefe().pct"></div></div>
             <span class="resumen-num">{{ progresoJefe().hechos }}/{{ progresoJefe().total }}</span>
           </div>
           <div class="resumen-item">
-            <span class="resumen-label">Documental</span>
-            <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoDocs().pct"></div></div>
-            <span class="resumen-num">{{ progresoDocs().hechos }}/{{ progresoDocs().total }}</span>
+            <span class="resumen-label">Psicométricas</span>
+            <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoPsicom().pct"></div></div>
+            <span class="resumen-num">{{ progresoPsicom().hechos }}/{{ progresoPsicom().total }}</span>
           </div>
-          <div class="resumen-item">
-            <span class="resumen-label">Oferta</span>
-            <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoOferta().pct"></div></div>
-            <span class="resumen-num">{{ progresoOferta().hechos }}/{{ progresoOferta().total }}</span>
-          </div>
-          @if (candidato.status === ID_ETAPAS.CONTRATADO) {
-            <div class="resumen-item">
-              <span class="resumen-label">Ingreso</span>
-              <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoContratado().pct"></div></div>
-              <span class="resumen-num">{{ progresoContratado().hechos }}/{{ progresoContratado().total }}</span>
-            </div>
-          }
         </div>
       </div>
     }
@@ -547,6 +525,37 @@
           Cada nivel pesa: Excelente 4 · Bueno 3 · Regular 2 · Bajo 1. El puntaje se normaliza a 0-100 según el peso total alcanzado. Se aprueba al llegar a <strong>{{ UMBRAL_APROBACION }}/100</strong> (equivalente a promedio "Bueno") con todas las aptitudes calificadas.
         </div>
       </div>
+
+      <!-- Entrevista técnica · Jefe directo (fusionada en esta etapa) -->
+      <div class="section-card">
+        <header class="section-head">
+          <h3>Entrevista técnica · Jefe directo</h3>
+          <p class="section-desc">Validación de capacidad operativa real y compatibilidad con el equipo.</p>
+        </header>
+
+        <div class="check-list">
+          @for (item of CHECKLIST_JEFE; track item.key) {
+            <div class="check-row"
+                 [class.row-si]="candidato.jefeChecklist?.[item.key] === 'verde'"
+                 [class.row-no]="candidato.jefeChecklist?.[item.key] === 'rojo'">
+              <span class="check-label">{{ item.label }}</span>
+              <div class="yn-group">
+                <button type="button" class="btn-yn btn-si"
+                        [class.active]="candidato.jefeChecklist?.[item.key] === 'verde'"
+                        (click)="setEstadoCheck('jefeChecklist', item.key, 'verde')">Sí</button>
+                <button type="button" class="btn-yn btn-no"
+                        [class.active]="candidato.jefeChecklist?.[item.key] === 'rojo'"
+                        (click)="setEstadoCheck('jefeChecklist', item.key, 'rojo')">No</button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <label>Notas del jefe directo</label>
+        <textarea rows="4" placeholder="Dominio técnico, capacidad de aprendizaje, ritmo y recomendaciones."
+                  [(ngModel)]="candidato.jefeNotas"
+                  (change)="guardarNota('jefeNotas', candidato.jefeNotas)"></textarea>
+      </div>
     }
 
     <!-- ============== TAB: PSICOMETRÍA ============== -->
@@ -582,39 +591,6 @@
         <textarea rows="4" placeholder="Resumen de resultados, riesgos detectados, compatibilidad con el puesto."
                   [(ngModel)]="candidato.psicometriaRiesgos"
                   (change)="guardarNota('psicometriaRiesgos', candidato.psicometriaRiesgos)"></textarea>
-      </div>
-    }
-
-    <!-- ============== TAB: ENTREVISTA JEFE ============== -->
-    @if (tabActiva === 'jefe') {
-      <div class="section-card">
-        <header class="section-head">
-          <h3>Entrevista técnica · Jefe directo</h3>
-          <p class="section-desc">Validación de capacidad operativa real y compatibilidad con el equipo.</p>
-        </header>
-
-        <div class="check-list">
-          @for (item of CHECKLIST_JEFE; track item.key) {
-            <div class="check-row"
-                 [class.row-si]="candidato.jefeChecklist?.[item.key] === 'verde'"
-                 [class.row-no]="candidato.jefeChecklist?.[item.key] === 'rojo'">
-              <span class="check-label">{{ item.label }}</span>
-              <div class="yn-group">
-                <button type="button" class="btn-yn btn-si"
-                        [class.active]="candidato.jefeChecklist?.[item.key] === 'verde'"
-                        (click)="setEstadoCheck('jefeChecklist', item.key, 'verde')">Sí</button>
-                <button type="button" class="btn-yn btn-no"
-                        [class.active]="candidato.jefeChecklist?.[item.key] === 'rojo'"
-                        (click)="setEstadoCheck('jefeChecklist', item.key, 'rojo')">No</button>
-              </div>
-            </div>
-          }
-        </div>
-
-        <label>Notas del jefe directo</label>
-        <textarea rows="4" placeholder="Dominio técnico, capacidad de aprendizaje, ritmo y recomendaciones."
-                  [(ngModel)]="candidato.jefeNotas"
-                  (change)="guardarNota('jefeNotas', candidato.jefeNotas)"></textarea>
       </div>
     }
 

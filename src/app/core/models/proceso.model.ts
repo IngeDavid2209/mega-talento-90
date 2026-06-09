@@ -16,25 +16,22 @@ export interface EtapaConfig {
   slaHoras?: number;   // tiempo máximo de respuesta esperado en esta etapa
 }
 
-// Flujo completo según prompt del director:
-// Filtro inicial → Entrevista RH → Aptitudes → Psicometría →
-// Entrevista técnica/Jefe → Documental → Dictamen → Contratado → Onboarding
-// Plus la columna "No Viable" como descarte transversal.
+// Flujo de selección (formato de 4 etapas):
+// Filtro inicial → Entrevista Orientación Conductual →
+// Aptitudes y Entrevista Técnica (fusionadas) → Psicométricas
 // Paleta corporativa sobria (sin tonos "alegres"): carbón + dorado + rojo Mega + estados discretos.
 export const ETAPAS: EtapaConfig[] = [
-  { id: 'nuevo',            title: 'Solicitud',            shortLabel: 'Solicitud',   icon: '1',  color: '#475569', description: 'Solicitud recibida del formulario público.', slaHoras: 24 },
-  { id: 'filtro_inicial',   title: 'Filtro Inicial',       shortLabel: 'Filtro',      icon: '2',  color: '#1F4E8C', description: 'Primer contacto y validación mínima por WhatsApp.', slaHoras: 24 },
-  { id: 'entrevista_rh',    title: 'Entrevista Conductual', shortLabel: 'Conductual', icon: '3',  color: '#1A4FB0', description: 'Trayectoria, estabilidad y competencias conductuales (STAR).', slaHoras: 48 },
-  { id: 'aptitudes',        title: 'Pruebas Aptitudes',    shortLabel: 'Aptitudes',   icon: '4',  color: '#2A5A8A', description: 'Pruebas prácticas según vacante (operativo / administrativo / ventas / jefatura).', slaHoras: 48 },
-  { id: 'psicometria',      title: 'Psicometría',          shortLabel: 'Psicometría', icon: '5',  color: '#3F5C7A', description: 'Personalidad, honestidad, inteligencia y compatibilidad (apoyo, no decisión).', slaHoras: 72 },
-  { id: 'entrevista_jefe',  title: 'Entrevista Técnica',   shortLabel: 'Jefe',        icon: '6',  color: '#8C6D1F', description: 'Validación técnica con el jefe directo del área.', slaHoras: 72 },
-  { id: 'documental',       title: 'Validación Documental',shortLabel: 'Documental',  icon: '7',  color: '#A26209', description: 'INE, CURP, RFC, NSS, comprobante, acta, constancias.', slaHoras: 24 },
-  { id: 'oferta',           title: 'Oferta',               shortLabel: 'Oferta',      icon: '8',  color: '#6B3D02', description: 'Validación pre-ingreso: oferta aceptada, aprobación del jefe, fecha, contrato.', slaHoras: 48 },
-  { id: 'dictamen',         title: 'Dictamen Final',       shortLabel: 'Dictamen',    icon: '9',  color: '#25231F', description: 'Hoja resumen multiárea: contratar, bolsa o rechazar.', slaHoras: 24 },
-  { id: 'contratado',       title: 'Contratado',           shortLabel: 'Contratado',  icon: '✓',  color: '#1F7A4C', description: 'Ingreso formal, alta, onboarding y permanencia inicial.' },
-  { id: 'rechazado',        title: 'No Viable',            shortLabel: 'No viable',   icon: '—',  color: '#8A867E', description: 'Descartado con motivo documentado.' }
+  { id: 'filtro_inicial',   title: 'Filtro Inicial',                    shortLabel: 'Filtro',        icon: '1', color: '#1F4E8C', description: 'Primer contacto y validación mínima por WhatsApp.', slaHoras: 24 },
+  { id: 'entrevista_rh',    title: 'Entrevista Orientación Conductual', shortLabel: 'Conductual',    icon: '2', color: '#1A4FB0', description: 'Orientación y competencias conductuales (cuestionario de liderazgo).', slaHoras: 48 },
+  { id: 'aptitudes',        title: 'Aptitudes y Entrevista Técnica',    shortLabel: 'Aptitudes',     icon: '3', color: '#2A5A8A', description: 'Pruebas de aptitudes por vacante y validación técnica con el jefe directo.', slaHoras: 48 },
+  { id: 'psicometria',      title: 'Psicométricas',                     shortLabel: 'Psicométricas', icon: '4', color: '#3F5C7A', description: 'Personalidad, honestidad, inteligencia y compatibilidad (apoyo, no decisión).', slaHoras: 72 }
 ];
 
+// Los ids 'nuevo', 'entrevista_jefe', 'documental', 'oferta', 'dictamen',
+// 'contratado' y 'rechazado' ya NO son etapas visibles del flujo. Se conservan
+// como constantes (no se borran de ID_ETAPAS) para no romper datos históricos
+// ni el código que aún los referencia; la migración de etapa.ts/layout.ts
+// reubica a los candidatos viejos en la etapa vigente equivalente.
 export const ID_ETAPAS = {
   NUEVO: 'nuevo',
   FILTRO: 'filtro_inicial',
@@ -49,18 +46,12 @@ export const ID_ETAPAS = {
   RECHAZADO: 'rechazado'
 } as const;
 
-// Orden lineal para el stepper (excluye "rechazado" que es transversal)
+// Orden lineal para el stepper (las 4 etapas vigentes del proceso)
 export const FLUJO_LINEAL: string[] = [
-  ID_ETAPAS.NUEVO,
   ID_ETAPAS.FILTRO,
   ID_ETAPAS.RH,
   ID_ETAPAS.APTITUDES,
-  ID_ETAPAS.PSICOMETRIA,
-  ID_ETAPAS.JEFE,
-  ID_ETAPAS.DOCUMENTAL,
-  ID_ETAPAS.OFERTA,
-  ID_ETAPAS.DICTAMEN,
-  ID_ETAPAS.CONTRATADO
+  ID_ETAPAS.PSICOMETRIA
 ];
 
 // =====================================================================

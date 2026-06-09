@@ -21,7 +21,8 @@ export class CandidateService {
   async createCandidate(candidateData: any) {
     const newCandidate = {
       ...candidateData,
-      status: 'nuevo',
+      // Primera etapa vigente del proceso (antes era 'nuevo'/Solicitud, ya retirada)
+      status: candidateData?.status || 'filtro_inicial',
       createdAt: new Date()
     };
     return await addDoc(collection(db, 'candidates'), newCandidate);

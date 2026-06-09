@@ -113,7 +113,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.notificaciones.notificar(
         'Nuevo candidato · Mega Talento',
         `${c.nombre || 'Alguien'} aplicó para ${c.puesto || 'una vacante'}.`,
-        () => this.router.navigate(['/app/etapa', ID_ETAPAS.NUEVO])
+        () => this.router.navigate(['/app/etapa', ID_ETAPAS.FILTRO])
       );
     }
   }
@@ -121,13 +121,19 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private calcularConteos(datos: any[]) {
     const legacy: Record<string, string> = {
       'contacto_pendiente': ID_ETAPAS.FILTRO,
-      'entrevista': ID_ETAPAS.RH
+      'entrevista': ID_ETAPAS.RH,
+      // Etapas retiradas → etapa vigente equivalente (conteo del menú lateral)
+      [ID_ETAPAS.NUEVO]: ID_ETAPAS.FILTRO,
+      [ID_ETAPAS.JEFE]: ID_ETAPAS.APTITUDES,
+      [ID_ETAPAS.DOCUMENTAL]: ID_ETAPAS.PSICOMETRIA,
+      [ID_ETAPAS.OFERTA]: ID_ETAPAS.PSICOMETRIA,
+      [ID_ETAPAS.DICTAMEN]: ID_ETAPAS.PSICOMETRIA
     };
     const map: Record<string, number> = {};
     datos.forEach(c => {
       let s = c.status;
       if (legacy[s]) s = legacy[s];
-      if (!FLUJO_LINEAL.includes(s) && s !== ID_ETAPAS.RECHAZADO) s = ID_ETAPAS.NUEVO;
+      if (!FLUJO_LINEAL.includes(s) && s !== ID_ETAPAS.RECHAZADO && s !== ID_ETAPAS.CONTRATADO) s = ID_ETAPAS.FILTRO;
       map[s] = (map[s] || 0) + 1;
     });
     this.conteos = map;

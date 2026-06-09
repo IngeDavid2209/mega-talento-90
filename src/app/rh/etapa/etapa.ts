@@ -56,7 +56,7 @@ export class EtapaComponent implements OnInit, OnDestroy {
 
     // Reaccionar al cambio de etapa en la URL (el componente se reutiliza)
     this.paramSub = this.route.paramMap.subscribe(params => {
-      this.etapaId = params.get('etapaId') || ID_ETAPAS.NUEVO;
+      this.etapaId = params.get('etapaId') || ID_ETAPAS.FILTRO;
       this.etapa = ETAPAS.find(e => e.id === this.etapaId) || null;
       this.busqueda = '';
       this.aplicarFiltro();
@@ -68,16 +68,27 @@ export class EtapaComponent implements OnInit, OnDestroy {
     this.paramSub?.unsubscribe();
   }
 
-  // Migración silenciosa de estatus viejos
+  // Migración silenciosa de estatus viejos al flujo vigente de 4 etapas.
+  // (Solo afecta la vista; no reescribe Firestore — los datos se conservan.)
   private normalizar() {
     const legacy: Record<string, string> = {
       'contacto_pendiente': ID_ETAPAS.FILTRO,
-      'entrevista': ID_ETAPAS.RH
+      'entrevista': ID_ETAPAS.RH,
+      // Etapas retiradas → etapa vigente equivalente
+      [ID_ETAPAS.NUEVO]: ID_ETAPAS.FILTRO,
+      [ID_ETAPAS.JEFE]: ID_ETAPAS.APTITUDES,
+      [ID_ETAPAS.DOCUMENTAL]: ID_ETAPAS.PSICOMETRIA,
+      [ID_ETAPAS.OFERTA]: ID_ETAPAS.PSICOMETRIA,
+      [ID_ETAPAS.DICTAMEN]: ID_ETAPAS.PSICOMETRIA
     };
     this.todos.forEach(c => {
       if (legacy[c.status]) c.status = legacy[c.status];
-      if (!FLUJO_LINEAL.includes(c.status) && c.status !== ID_ETAPAS.RECHAZADO) {
-        c.status = ID_ETAPAS.NUEVO;
+      // Contratado/Rechazado se conservan como desenlaces históricos; el resto
+      // desconocido cae a la primera etapa.
+      if (!FLUJO_LINEAL.includes(c.status) &&
+          c.status !== ID_ETAPAS.RECHAZADO &&
+          c.status !== ID_ETAPAS.CONTRATADO) {
+        c.status = ID_ETAPAS.FILTRO;
       }
     });
   }

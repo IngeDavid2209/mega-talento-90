@@ -383,7 +383,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
         puesto: puestoFinal,
         cvUrl,
         cvFormato: this.tipoCV,
-        status: 'nuevo',
+        status: 'filtro_inicial',
         createdAt: new Date()
       };
       if (cvUrlReverso) datosCandidatoCompleto.cvUrlReverso = cvUrlReverso;
