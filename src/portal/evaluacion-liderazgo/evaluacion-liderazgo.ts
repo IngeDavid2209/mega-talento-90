@@ -71,6 +71,13 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
         this.respuestas = data.cuestionarioLiderazgo || {};
         this.cargando = false;
       });
+    }, (err) => {
+      this.ngZone.run(() => {
+        this.cargando = false;
+        this.error = err?.code === 'not-found'
+          ? 'No encontramos tu evaluación. Solicita un nuevo enlace a Capital Humano de Mega Dulces.'
+          : 'No se pudo cargar tu evaluación. Revisa tu conexión e intenta de nuevo. Si el problema sigue, avisa a Capital Humano.';
+      });
     });
   }
 

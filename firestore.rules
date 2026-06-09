@@ -23,11 +23,20 @@ service cloud.firestore {
     // UPDATE público: el flujo /solicitud y /evaluacion/:id actualizan al
     //   candidato existente sin login (sólo conoce su id porque RH le mandó
     //   el link por WhatsApp). Si esto te preocupa, ver nota al final.
-    // READ y DELETE solo autenticado (sólo RH ve / borra expedientes).
+    // GET público (por ID): los mismos flujos públicos /evaluacion/:id y
+    //   /solicitud/:id necesitan LEER el documento del candidato cuyo id
+    //   conocen, para precargar respuestas previas y mostrar sus datos. Sin
+    //   esto la prueba psicométrica/de liderazgo se queda en "Cargando..."
+    //   eterno para el candidato (no está autenticado). El id autogenerado
+    //   por Firestore (20 chars aleatorios) actúa como token, igual que update.
+    // LIST solo autenticado: nadie sin login puede enumerar/descargar toda la
+    //   colección de candidatos (sólo RH ve el tablero completo).
+    // DELETE solo autenticado (sólo RH borra expedientes).
     match /candidates/{candidato} {
       allow create: if true;
       allow update: if true;
-      allow read: if request.auth != null;
+      allow get: if true;
+      allow list: if request.auth != null;
       allow delete: if request.auth != null;
 
       // Subcolecciones de candidates (si existen): solo autenticado

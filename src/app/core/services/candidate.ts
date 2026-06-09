@@ -151,14 +151,17 @@ export class CandidateService {
     return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
-  listenToCandidate(id: string, callback: (candidato: any) => void) {
+  listenToCandidate(id: string, callback: (candidato: any) => void, onError?: (error: any) => void) {
     const docRef = doc(db, 'candidates', id);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         callback({ id: docSnap.id, ...docSnap.data() });
+      } else if (onError) {
+        onError({ code: 'not-found' });
       }
     }, (error) => {
       console.error("Error al cargar el expediente:", error);
+      if (onError) onError(error);
     });
     return unsubscribe;
   }
