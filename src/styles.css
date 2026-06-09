@@ -98,12 +98,17 @@ pre, code, table {
   overflow-wrap: anywhere;
 }
 
+/* Scroll natural del documento: las vistas públicas (/empleos, /portal,
+   /bolsa, /unete, /solicitud, /evaluacion) crecen con su contenido y deben
+   poder desplazarse. El back-office (LayoutComponent) no depende de esto:
+   su .app-wrapper mide 100vh y hace scroll interno en .content-area, así
+   que sigue funcionando igual. Un `overflow: hidden` global aquí congelaba
+   todas las páginas públicas ("apartado inmóvil"). */
 html, body {
   margin: 0;
   padding: 0;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+  min-height: 100vh;
+  width: 100%;
   background: var(--bg);
 }
 
