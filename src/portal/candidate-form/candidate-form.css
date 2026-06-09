@@ -1,6 +1,7 @@
 /* ============================================================
-   FORMULARIO PÚBLICO DE POSTULACIÓN
-   Diseño cálido con header coral, iconos por campo y footer de privacidad
+   FORMULARIO PÚBLICO DE POSTULACIÓN · /unete
+   Diseño corporativo navy + dorado, alineado con el resto del
+   portal (/empleos, /bolsa, /solicitud).
    ============================================================ */
 
 .form-wrapper {
@@ -9,7 +10,7 @@
   justify-content: center;
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(180deg, #f4f4f5 0%, #e9e9eb 100%);
+  background: linear-gradient(180deg, #F4F6FA 0%, #E2E8F0 100%);
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   padding: 10px 10px;
   box-sizing: border-box;
@@ -21,64 +22,63 @@
   border-radius: 18px;
   width: 100%;
   max-width: 580px;
-  border: 1px solid #f1f1f3;
+  border: 1px solid rgba(26, 47, 78, 0.08);
   box-shadow:
-    0 25px 50px -15px rgba(0, 0, 0, 0.18),
-    0 10px 20px -10px rgba(0, 0, 0, 0.08);
+    0 25px 50px -15px rgba(15, 31, 61, 0.20),
+    0 10px 20px -10px rgba(15, 31, 61, 0.08);
   overflow: hidden;
 }
 
-/* HEADER coral con icono blanco */
+/* HEADER navy con borde dorado superior (mismo lenguaje que /empleos) */
 .form-header {
-  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  background: linear-gradient(135deg, #2A4D7E 0%, #1A2F4E 60%, #0F1F3D 100%);
   color: #fff;
   text-align: center;
-  padding: 16px 20px 14px;
+  padding: 18px 20px 16px;
   position: relative;
   overflow: hidden;
+  border-top: 4px solid #FFC233;
 }
 .form-header::after {
-  /* Acento decorativo sutil */
   content: '';
   position: absolute;
-  bottom: -40px;
-  right: -40px;
-  width: 140px;
-  height: 140px;
+  bottom: -50px;
+  right: -50px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: radial-gradient(circle, rgba(255, 195, 51, 0.18) 0%, transparent 70%);
   pointer-events: none;
 }
 .form-header::before {
   content: '';
   position: absolute;
-  top: -50px;
-  left: -50px;
-  width: 160px;
-  height: 160px;
+  top: -60px;
+  left: -60px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .header-icon {
-  width: 38px;
-  height: 38px;
-  margin: 0 auto 6px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 8px;
+  background: rgba(255, 195, 51, 0.18);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(4px);
+  border: 2px solid rgba(255, 195, 51, 0.55);
   position: relative;
   z-index: 1;
 }
 .header-icon svg {
   width: 20px;
   height: 20px;
-  color: #fff;
+  color: #FFC233;
 }
 
 .form-header h2 {
@@ -94,24 +94,24 @@
 .subtitle {
   margin: 3px 0 0;
   font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 400;
   position: relative;
   z-index: 1;
 }
 .required-star {
-  color: #fde68a;
+  color: #E5A300;
   font-weight: 700;
 }
-.form-header .required-star { color: #fef3c7; }
+.form-header .required-star { color: #FFC233; }
 
 .header-link {
   display: inline-block;
-  margin-top: 6px;
-  padding: 3px 10px;
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: rgba(255, 195, 51, 0.15);
+  color: #FFC233;
+  border: 1px solid rgba(255, 195, 51, 0.45);
   border-radius: 999px;
   text-decoration: none;
   font-size: 11px;
@@ -121,29 +121,31 @@
   transition: all 0.18s;
 }
 .header-link:hover {
-  background: #fff;
-  color: #DC2626;
+  background: #FFC233;
+  color: #1A2F4E;
+  border-color: #FFC233;
 }
 
 /* CUERPO */
 .form-body {
-  padding: 14px 18px 14px;
+  padding: 16px 18px 14px;
 }
 
 .form-group {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #334155;
-  margin-bottom: 4px;
+  color: #1A2F4E;
+  margin-bottom: 5px;
+  letter-spacing: -0.005em;
   transition: color 0.2s;
 }
-label .required-star { color: #DC2626; }
-label.label-error { color: #DC2626; }
+label .required-star { color: #C8830A; }
+label.label-error { color: #A12626; }
 
 .optional-tag {
   font-size: 11px;
@@ -163,7 +165,7 @@ label.label-error { color: #DC2626; }
   left: 12px;
   width: 17px;
   height: 17px;
-  color: #94a3b8;
+  color: #8A95A8;
   pointer-events: none;
   transition: color 0.2s;
 }
@@ -171,22 +173,22 @@ label.label-error { color: #DC2626; }
 .input-icon-wrap input,
 .input-icon-wrap select {
   width: 100%;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid rgba(26, 47, 78, 0.12);
   border-radius: 9px;
-  padding: 8px 14px 8px 36px;
+  padding: 9px 14px 9px 36px;
   font-family: inherit;
   font-size: 13.5px;
-  color: #0f172a;
-  background-color: #f8fafc;
+  color: #1A2F4E;
+  background-color: #F8FAFD;
   box-sizing: border-box;
   transition: all 0.2s ease-in-out;
   outline: none;
 }
-.input-icon-wrap input::placeholder { color: #94a3b8; }
+.input-icon-wrap input::placeholder { color: #8A95A8; }
 
 .input-icon-wrap select {
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231A2F4E%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px;
@@ -196,13 +198,13 @@ label.label-error { color: #DC2626; }
 
 .input-icon-wrap input:focus,
 .input-icon-wrap select:focus {
-  border-color: #DC2626;
+  border-color: #1A2F4E;
   background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+  box-shadow: 0 0 0 4px rgba(26, 47, 78, 0.10);
 }
 .input-icon-wrap input:focus + .field-icon,
 .input-icon-wrap:focus-within .field-icon {
-  color: #DC2626;
+  color: #1A2F4E;
 }
 
 /* CV upload */
@@ -222,21 +224,21 @@ label.label-error { color: #DC2626; }
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1.5px dashed #cbd5e1;
+  border: 1.5px dashed rgba(26, 47, 78, 0.22);
   border-radius: 10px;
-  background-color: #f8fafc;
+  background-color: #F8FAFD;
   cursor: pointer;
   transition: all 0.2s ease;
   margin: 0;
 }
 .file-upload-area:hover {
-  border-color: #DC2626;
-  background-color: #fef2f2;
+  border-color: #1A2F4E;
+  background-color: #EEF2F8;
 }
 .file-upload-icon {
   width: 24px;
   height: 24px;
-  color: #DC2626;
+  color: #1A2F4E;
   flex-shrink: 0;
 }
 .file-upload-text {
@@ -247,30 +249,31 @@ label.label-error { color: #DC2626; }
 .file-upload-title {
   font-size: 13.5px;
   font-weight: 600;
-  color: #0f172a;
+  color: #1A2F4E;
 }
 .file-upload-hint {
   font-size: 11.5px;
-  color: #64748b;
+  color: #4A5568;
 }
 .file-hint {
   font-size: 11px;
-  color: #64748b;
+  color: #4A5568;
   margin: 6px 0 0;
 }
 
 /* ============================================
    CV OBLIGATORIO: tabs (PDF / Fotos) + slots
+   Antes naranja; ahora con cream institucional.
    ============================================ */
 .cv-group {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
+  background: #FFF8E0;
+  border: 1px solid #F4D996;
   border-radius: 10px;
-  padding: 10px;
+  padding: 12px;
 }
 .cv-instructions {
   font-size: 11.5px;
-  color: #7c2d12;
+  color: #6B3D02;
   margin: 0 0 8px;
   font-weight: 500;
 }
@@ -282,7 +285,7 @@ label.label-error { color: #DC2626; }
   background: #fff;
   padding: 3px;
   border-radius: 9px;
-  border: 1px solid #fcd9b6;
+  border: 1px solid #F4D996;
   margin-bottom: 8px;
 }
 .cv-tab {
@@ -297,7 +300,7 @@ label.label-error { color: #DC2626; }
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: #4A5568;
   cursor: pointer;
   transition: all 0.18s ease;
 }
@@ -306,32 +309,32 @@ label.label-error { color: #DC2626; }
   height: 15px;
 }
 .cv-tab:hover {
-  background: #fef3e7;
-  color: #c2410c;
+  background: #FFF5D6;
+  color: #1A2F4E;
 }
 .cv-tab-active {
-  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  background: linear-gradient(135deg, #2A4D7E 0%, #1A2F4E 100%);
   color: #ffffff;
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 4px 10px rgba(26, 47, 78, 0.28);
 }
 .cv-tab-active:hover {
-  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  background: linear-gradient(135deg, #2A4D7E 0%, #1A2F4E 100%);
   color: #ffffff;
 }
 
 /* Cuando el PDF ya está cargado */
 .file-upload-area.file-ok {
-  border-color: #16a34a;
-  background-color: #f0fdf4;
+  border-color: #1F7A4C;
+  background-color: #E6F2EC;
 }
 .file-upload-area.file-ok .file-upload-icon {
-  color: #16a34a;
+  color: #1F7A4C;
 }
 
 /* Fotos: frente + reverso */
 .fotos-hint {
   font-size: 11.5px;
-  color: #475569;
+  color: #4A5568;
   margin: 0 0 6px;
   line-height: 1.35;
 }
@@ -353,20 +356,20 @@ label.label-error { color: #DC2626; }
   justify-content: center;
   gap: 2px;
   aspect-ratio: 2 / 1;
-  background-color: #f8fafc;
-  border: 2px dashed #cbd5e1;
+  background-color: #F8FAFD;
+  border: 2px dashed rgba(26, 47, 78, 0.22);
   border-radius: 9px;
   cursor: pointer;
   overflow: hidden;
   transition: all 0.2s ease;
-  color: #64748b;
+  color: #4A5568;
   text-align: center;
   padding: 4px;
 }
 .foto-upload:hover {
-  border-color: #DC2626;
-  background-color: #fef2f2;
-  color: #DC2626;
+  border-color: #1A2F4E;
+  background-color: #EEF2F8;
+  color: #1A2F4E;
 }
 .foto-upload svg {
   width: 20px;
@@ -376,18 +379,18 @@ label.label-error { color: #DC2626; }
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #0f172a;
+  color: #1A2F4E;
 }
 .foto-hint {
   font-size: 9.5px;
-  color: #94a3b8;
+  color: #8A95A8;
   line-height: 1.2;
   padding: 0 4px;
 }
 .foto-upload.foto-ok {
   border-style: solid;
-  border-color: #16a34a;
-  background: #f0fdf4;
+  border-color: #1F7A4C;
+  background: #E6F2EC;
 }
 .foto-preview {
   position: absolute;
@@ -403,7 +406,7 @@ label.label-error { color: #DC2626; }
   align-items: flex-end;
   justify-content: center;
   padding: 6px;
-  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.55) 100%);
+  background: linear-gradient(180deg, transparent 50%, rgba(15, 31, 61, 0.65) 100%);
   opacity: 0;
   transition: opacity 0.18s ease;
 }
@@ -426,8 +429,8 @@ label.label-error { color: #DC2626; }
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #64748b;
-  background: #f1f5f9;
+  color: #4A5568;
+  background: #EEF2F8;
   border-radius: 999px;
   padding: 4px 8px;
 }
@@ -436,16 +439,16 @@ label.label-error { color: #DC2626; }
   height: 11px;
 }
 .foto-tag.foto-tag-ok {
-  color: #166534;
-  background: #dcfce7;
+  color: #0D4A2A;
+  background: #DCFCE7;
 }
 
 /* ============================================
    LICENCIA DE MANEJO (Chofer / Logística)
    ============================================ */
 .licencia-group {
-  background: #fef3e7;
-  border: 1px solid #fcd9b6;
+  background: #FFF8E0;
+  border: 1px solid #F4D996;
   border-radius: 12px;
   padding: 12px;
   animation: licencia-fade-in 0.25s ease-out;
@@ -456,11 +459,11 @@ label.label-error { color: #DC2626; }
 }
 .licencia-instructions {
   font-size: 12px;
-  color: #7c2d12;
+  color: #6B3D02;
   margin: 2px 0 10px;
   line-height: 1.45;
 }
-.licencia-instructions strong { color: #9a3412; }
+.licencia-instructions strong { color: #1A2F4E; }
 
 .licencia-preview-thumb {
   width: 56px;
@@ -468,21 +471,21 @@ label.label-error { color: #DC2626; }
   object-fit: cover;
   border-radius: 8px;
   flex-shrink: 0;
-  border: 1.5px solid #16a34a;
+  border: 1.5px solid #1F7A4C;
 }
 
 /* ============================================
    CAPTCHA "No soy un robot"
    ============================================ */
 .captcha-group {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #F8FAFD;
+  border: 1px solid rgba(26, 47, 78, 0.12);
   border-radius: 12px;
   padding: 10px 12px;
 }
 .captcha-instructions {
   font-size: 12px;
-  color: #475569;
+  color: #4A5568;
   margin: 2px 0 8px;
 }
 @media (max-width: 360px) {
@@ -492,35 +495,33 @@ label.label-error { color: #DC2626; }
   display: flex;
   justify-content: center;
   align-items: center;
-  /* El widget normal mide 304x78. En móviles ≤400px el TS renderiza el
-     widget en modo 'compact' (164x144), que cabe perfectamente. */
   min-height: 78px;
   width: 100%;
   overflow: visible;
 }
-/* El iframe del reCAPTCHA debe poder verse completo sin scroll */
 .captcha-container > div {
   max-width: 100%;
 }
 @media (max-width: 400px) {
   .captcha-container {
-    min-height: 144px; /* alto del widget compact */
+    min-height: 144px;
   }
 }
 
-/* BOTÓN */
+/* ============================================
+   BOTÓN ENVIAR — navy con borde dorado al hover
+   ============================================ */
 .btn-submit {
   width: 100%;
-  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  background: linear-gradient(135deg, #2A4D7E 0%, #1A2F4E 60%, #0F1F3D 100%);
   color: #fff;
-  padding: 12px 20px;
+  padding: 13px 20px;
   border-radius: 11px;
-  border: none;
+  border: 1.5px solid transparent;
   font-family: inherit;
   font-size: 14.5px;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 4px;
   margin-top: 22px;
   transition: all 0.2s;
   display: flex;
@@ -528,36 +529,44 @@ label.label-error { color: #DC2626; }
   justify-content: center;
   gap: 10px;
   letter-spacing: 0.01em;
-  box-shadow: 0 6px 16px -6px rgba(220, 38, 38, 0.45);
+  box-shadow: 0 8px 20px -6px rgba(15, 31, 61, 0.45);
+  position: relative;
 }
 .btn-submit svg {
   width: 18px;
   height: 18px;
+  color: #FFC233;
 }
 .btn-submit:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px -8px rgba(220, 38, 38, 0.55);
+  border-color: #FFC233;
+  box-shadow:
+    0 12px 26px -8px rgba(15, 31, 61, 0.55),
+    0 0 0 4px rgba(255, 195, 51, 0.15);
 }
 .btn-submit:active:not(:disabled) {
   transform: translateY(0);
 }
 .btn-submit:disabled {
-  background: #cbd5e1;
+  background: #CBD5E1;
   color: #94a3b8;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
+.btn-submit:disabled svg {
+  color: #94a3b8;
+}
 
-/* FOOTER privacidad */
+/* FOOTER privacidad — navy oscuro con dorado */
 .privacy-footer {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 18px;
-  background: #ECFDF5;
-  border-top: 1px solid #d1fae5;
-  color: #047857;
+  padding: 12px 18px;
+  background: linear-gradient(180deg, #1A2F4E 0%, #0F1F3D 100%);
+  border-top: 1px solid rgba(255, 195, 51, 0.25);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 1.4;
@@ -566,7 +575,7 @@ label.label-error { color: #DC2626; }
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: #10B981;
+  color: #FFC233;
 }
 
 /* ANIMACIÓN campos condicionales */
@@ -584,7 +593,7 @@ label.label-error { color: #DC2626; }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 31, 61, 0.60);
   backdrop-filter: blur(4px);
   z-index: 1000;
   animation: overlayIn 0.2s ease;
@@ -603,8 +612,8 @@ label.label-error { color: #DC2626; }
   text-align: center;
   z-index: 1001;
   box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+    0 25px 50px -12px rgba(15, 31, 61, 0.30),
+    0 0 0 1px rgba(15, 31, 61, 0.05);
   animation: modalIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -616,8 +625,8 @@ label.label-error { color: #DC2626; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ECFDF5;
-  color: #10B981;
+  background: #E6F2EC;
+  color: #1F7A4C;
   position: relative;
 }
 .modal-icon::after {
@@ -625,7 +634,7 @@ label.label-error { color: #DC2626; }
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  background: #ECFDF5;
+  background: #E6F2EC;
   opacity: 0.5;
   z-index: -1;
 }
@@ -635,24 +644,24 @@ label.label-error { color: #DC2626; }
 }
 
 .modal-card.modal-error .modal-icon {
-  background: #FEF2F2;
-  color: #DC2626;
+  background: #F8E6E6;
+  color: #A12626;
 }
 .modal-card.modal-error .modal-icon::after {
-  background: #FEF2F2;
+  background: #F8E6E6;
 }
 
 .modal-title {
   margin: 0 0 8px;
   font-size: 19px;
   font-weight: 700;
-  color: #0F172A;
+  color: #1A2F4E;
   letter-spacing: -0.01em;
 }
 
 .modal-message {
   margin: 0 0 22px;
-  color: #475569;
+  color: #4A5568;
   font-size: 14px;
   line-height: 1.55;
 }
@@ -660,20 +669,23 @@ label.label-error { color: #DC2626; }
 .modal-btn {
   width: 100%;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #E11D48 0%, #DC2626 100%);
+  background: linear-gradient(135deg, #2A4D7E 0%, #1A2F4E 100%);
   color: #fff;
-  border: none;
+  border: 1.5px solid transparent;
   border-radius: 10px;
   font-family: inherit;
   font-size: 14.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 12px -4px rgba(220, 38, 38, 0.4);
+  box-shadow: 0 4px 12px -4px rgba(15, 31, 61, 0.4);
 }
 .modal-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px -6px rgba(220, 38, 38, 0.5);
+  border-color: #FFC233;
+  box-shadow:
+    0 8px 18px -6px rgba(15, 31, 61, 0.5),
+    0 0 0 3px rgba(255, 195, 51, 0.15);
 }
 .modal-btn:active {
   transform: translateY(0);
@@ -712,11 +724,9 @@ label.label-error { color: #DC2626; }
   .field-icon { left: 12px; width: 16px; height: 16px; }
   .privacy-footer { padding: 12px 18px; font-size: 11.5px; }
 
-  /* Tabs CV en mobile: stack vertical si es muy estrecho */
   .cv-tab { font-size: 11.5px; padding: 9px 8px; }
   .cv-tab svg { width: 14px; height: 14px; }
 
-  /* Fotos del CV: en mobile que sea aspect 4:5 para que se vean mejor */
   .foto-upload { aspect-ratio: 4 / 3; }
 }
 
@@ -734,27 +744,22 @@ label.label-error { color: #DC2626; }
   .form-group { margin-bottom: 14px; }
   label { font-size: 12px; }
 
-  /* Inputs un poco más compactos */
   .input-icon-wrap input,
   .input-icon-wrap select { padding: 10px 10px 10px 36px; font-size: 13.5px; }
   .field-icon { width: 14px; height: 14px; left: 11px; }
 
-  /* CV y licencia más compactos */
   .cv-group, .licencia-group, .captcha-group { padding: 10px; }
   .file-upload-area { padding: 10px; }
   .file-upload-icon { width: 22px; height: 22px; }
   .file-upload-title { font-size: 13px; }
   .file-upload-hint { font-size: 11px; }
 
-  /* Tabs CV en columna en pantallas súper estrechas */
   .cv-tabs { grid-template-columns: 1fr; gap: 4px; }
   .cv-tab { padding: 8px; font-size: 12px; }
 
-  /* Fotos frente/reverso en mobile: stack vertical para que se vean grandes */
   .fotos-grid { grid-template-columns: 1fr; gap: 8px; }
   .foto-upload { aspect-ratio: 16 / 9; }
 
-  /* Botón submit */
   .btn-submit { font-size: 13.5px; padding: 12px; }
   .btn-submit svg { width: 16px; height: 16px; }
 }
