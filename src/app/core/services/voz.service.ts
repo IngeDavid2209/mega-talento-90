@@ -61,6 +61,9 @@ export class VozService {
   /** Se vuelve false si Azure falla; entonces toda llamada usa TTS nativo. */
   private azureDisponible = true;
   private synthAzure: any = null;
+  /** Reproductor de Azure (SpeakerAudioDestination) que controlamos nosotros
+   *  para poder silenciar el audio en curso al instante con pause(). */
+  private playerAzure: any = null;
   private sdkCargado = false;
   private sdkCargando: Promise<void> | null = null;
 
@@ -201,26 +204,18 @@ export class VozService {
   parar(): void {
     // Invalida cualquier hablar() en vuelo (cargando SDK / pidiendo token).
     this.generacion++;
-    if (this.synthAzure) {
+    if (this.synthAzure || this.playerAzure) {
       const synth = this.synthAzure;
+      const player = this.playerAzure;
       this.synthAzure = null;
-      // close() SOLO desecha el sintetizador: el audio ya enviado al speaker
-      // sigue sonando ~200-400ms y se encimaba con la siguiente pregunta cuando
-      // el candidato contestaba rápido. stopSpeakingAsync() corta la
-      // reproducción en curso de inmediato; cerramos el synth en su callback.
-      // (Guard por si una versión del SDK no expone stopSpeakingAsync.)
-      try {
-        if (typeof synth.stopSpeakingAsync === 'function') {
-          synth.stopSpeakingAsync(
-            () => { try { synth.close(); } catch {} },
-            () => { try { synth.close(); } catch {} }
-          );
-        } else {
-          synth.close();
-        }
-      } catch { try { synth.close(); } catch {} }
-      // Marca el timestamp como respaldo del drenaje (por si el corte real
-      // tardara unos ms en algún navegador).
+      this.playerAzure = null;
+      // close() del sintetizador SOLO lo desecha: el audio ya enviado al
+      // speaker seguía sonando ~200-400ms y se encimaba con la siguiente
+      // pregunta al contestar rápido. player.pause() silencia el speaker de
+      // INMEDIATO (cortamos el audio en curso); luego liberamos recursos.
+      try { player?.pause?.(); } catch {}
+      try { player?.close?.(); } catch {}
+      try { synth?.close?.(); } catch {}
       this.tsFinUltimoAudio = Date.now();
     }
     if (this.synthNativa?.speaking || this.synthNativa?.pending) {
@@ -323,15 +318,22 @@ export class VozService {
     const config = SDK.SpeechConfig.fromAuthorizationToken(this.azureToken, this.azureRegion);
     config.speechSynthesisVoiceName = this.vozAzure;
 
-    const audioConfig = SDK.AudioConfig.fromDefaultSpeakerOutput();
+    // Reproductor propio: nos permite cortar el audio en curso al instante
+    // con player.pause() desde parar(), en vez de depender de close()/stop
+    // (que dejan sonando el residuo del speaker y encimaban preguntas).
+    const player = new SDK.SpeakerAudioDestination();
+    const audioConfig = SDK.AudioConfig.fromSpeakerOutput(player);
     const synth = new SDK.SpeechSynthesizer(config, audioConfig);
 
     // Última verificación antes de arrancar el audio.
     if (miGen !== this.generacion) {
+      try { player.pause(); } catch {}
+      try { player.close(); } catch {}
       try { synth.close(); } catch {}
       return;
     }
     this.synthAzure = synth;
+    this.playerAzure = player;
 
     // Visemas: 0 (silencio) a 21 (vocales/consonantes específicas)
     synth.visemeReceived = (_s: any, e: any) => {
@@ -359,6 +361,7 @@ export class VozService {
         (result: any) => {
           try { synth.close(); } catch {}
           if (this.synthAzure === synth) this.synthAzure = null;
+          if (this.playerAzure === player) this.playerAzure = null;
           // Marcar el momento de fin para que el siguiente hablar espere
           // a que se drene el buffer del speaker.
           this.tsFinUltimoAudio = Date.now();
@@ -381,6 +384,7 @@ export class VozService {
         (err: any) => {
           try { synth.close(); } catch {}
           if (this.synthAzure === synth) this.synthAzure = null;
+          if (this.playerAzure === player) this.playerAzure = null;
           this.tsFinUltimoAudio = Date.now();
           if (miGen !== this.generacion) {
             resolve();
