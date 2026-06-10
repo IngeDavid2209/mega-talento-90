@@ -356,44 +356,52 @@ export class VozService {
     }
 
     return new Promise<void>((resolve, reject) => {
+      let finalizado = false;
+
+      // Fin del audio. OJO: el callback de speakTextAsync se dispara cuando
+      // termina la SÍNTESIS (casi instantáneo), NO cuando termina de sonar.
+      // El fin REAL de reproducción es player.onAudioEnd; por eso `onEnd`
+      // (que usa la UI para avanzar a la siguiente pregunta) se invoca aquí.
+      const finalizar = (ok: boolean, errMsg?: string) => {
+        if (finalizado) return;
+        finalizado = true;
+        try { synth.close(); } catch {}
+        if (this.synthAzure === synth) this.synthAzure = null;
+        if (this.playerAzure === player) this.playerAzure = null;
+        this.tsFinUltimoAudio = Date.now();
+        // Si la generación cambió, otro hablar() ya controla los signals.
+        if (miGen !== this.generacion) { resolve(); return; }
+        this.hablando.set(false);
+        this.visemeActual.set(0);
+        if (ok) {
+          if (opciones.onEnd) opciones.onEnd();
+          resolve();
+        } else {
+          reject(new Error(errMsg || 'Azure: error de síntesis'));
+        }
+      };
+
+      // Fin real de la reproducción en el speaker.
+      player.onAudioEnd = () => finalizar(true);
+
       synth.speakTextAsync(
         texto,
         (result: any) => {
-          try { synth.close(); } catch {}
-          if (this.synthAzure === synth) this.synthAzure = null;
-          if (this.playerAzure === player) this.playerAzure = null;
-          // Marcar el momento de fin para que el siguiente hablar espere
-          // a que se drene el buffer del speaker.
-          this.tsFinUltimoAudio = Date.now();
-          // Si esta generación ya quedó obsoleta, no toques los signals
-          // (otro hablar() los está controlando).
-          if (miGen !== this.generacion) {
-            resolve();
-            return;
-          }
-          this.hablando.set(false);
-          this.visemeActual.set(0);
-
           if (result?.reason === SDK.ResultReason.SynthesizingAudioCompleted) {
-            if (opciones.onEnd) opciones.onEnd();
-            resolve();
+            // Respaldo SOLO si Azure reporta la duración real del audio
+            // (audioDuration en ticks de 100 ns): cerramos a esa duración +
+            // margen por si onAudioEnd no dispara. Sin duración NO ponemos
+            // timer (dispararía antes de tiempo y volvería a cortar el audio);
+            // en ese caso confiamos únicamente en player.onAudioEnd.
+            if (result.audioDuration) {
+              const durMs = result.audioDuration / 10000;
+              setTimeout(() => finalizar(true), durMs + 400);
+            }
           } else {
-            reject(new Error('Azure: síntesis no completada (' + (result?.errorDetails || 'sin detalle') + ')'));
+            finalizar(false, 'Azure: síntesis no completada (' + (result?.errorDetails || 'sin detalle') + ')');
           }
         },
-        (err: any) => {
-          try { synth.close(); } catch {}
-          if (this.synthAzure === synth) this.synthAzure = null;
-          if (this.playerAzure === player) this.playerAzure = null;
-          this.tsFinUltimoAudio = Date.now();
-          if (miGen !== this.generacion) {
-            resolve();
-            return;
-          }
-          this.hablando.set(false);
-          this.visemeActual.set(0);
-          reject(new Error('Azure: ' + err));
-        }
+        (err: any) => finalizar(false, 'Azure: ' + err)
       );
     });
   }
