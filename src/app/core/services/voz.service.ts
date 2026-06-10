@@ -15,7 +15,7 @@ declare global {
  * Servicio de Text-to-Speech con DOS motores:
  *
  * 1. Azure Cognitive Services Speech (primario, alta calidad).
- *    - Voz humana realista (es-MX-DaliaNeural por defecto).
+ *    - Voz humana realista (es-MX-JorgeNeural por defecto: masculina, profesional).
  *    - Eventos de visemas para sincronización labial.
  *    - Requiere endpoint /api/azure-token configurado en Vercel y la
  *      variable AZURE_SPEECH_KEY en environment variables del proyecto.
@@ -43,8 +43,13 @@ export class VozService {
   /** ID del viseme actual de Azure (0-21). 0 = silencio. Solo aplica con Azure. */
   visemeActual = signal<number>(0);
 
-  /** Voz neural de Azure a usar. Cambiar aquí si se quiere otra. */
-  vozAzure = 'es-MX-DaliaNeural';
+  /**
+   * Voz neural de Azure a usar. Cambiar aquí si se quiere otra.
+   * es-MX-JorgeNeural: voz masculina mexicana, tono adulto y profesional
+   * (acorde a una entrevista/evaluación formal). Otras masculinas es-MX:
+   * LibertoNeural, CecilioNeural, GerardoNeural. Femenina: DaliaNeural.
+   */
+  vozAzure = 'es-MX-JorgeNeural';
 
   /** URL del SDK browser-ready de Azure (oficial Microsoft) */
   private readonly SDK_URL = 'https://aka.ms/csspeech/jsbrowserpackageraw';
