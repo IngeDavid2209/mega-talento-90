@@ -42,6 +42,13 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   // Pantalla final
   terminado = false;
 
+  // Control de avance: solo se pasa a la siguiente pregunta cuando el audio de
+  // la actual terminó. Si el candidato responde antes, el avance queda en
+  // espera (esperandoFinAudio) y se dispara al terminar el audio.
+  audioTerminado = false;
+  private esperandoFinAudio = false;
+  private avanzando = false;
+
   private unsubscribe: any;
   private estiloHtmlOriginal = '';
   private estiloBodyOriginal = '';
@@ -138,6 +145,9 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
    * escala y a veces contesta rápido.
    */
   leerPreguntaActual() {
+    // Nueva lectura: reinicia el estado de avance de la pregunta.
+    this.audioTerminado = false;
+    this.esperandoFinAudio = false;
     if (!this.audioActivo || !this.preguntaActual) return;
     let texto = `Pregunta ${this.paso} de ${this.TOTAL}. ${this.preguntaActual.texto}`;
     if (this.paso === 1) {
@@ -146,7 +156,19 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
         .join('. ');
       texto += ` Las opciones son: ${opciones}.`;
     }
-    this.voz.hablar(texto);
+    this.voz.hablar(texto, {
+      onEnd: () => this.ngZone.run(() => this.onAudioPreguntaTerminado())
+    });
+  }
+
+  /** Llamado cuando el audio de la pregunta actual terminó de reproducirse. */
+  private onAudioPreguntaTerminado() {
+    this.audioTerminado = true;
+    // Si el candidato ya había respondido, ahora sí avanzamos.
+    if (this.esperandoFinAudio) {
+      this.esperandoFinAudio = false;
+      this.avanzar();
+    }
   }
 
   /** Botón "Repetir": vuelve a leer la pregunta actual */
@@ -166,16 +188,15 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
 
   // ====== RESPUESTAS Y NAVEGACIÓN ======
 
-  /** Guarda la respuesta y avanza automáticamente al siguiente paso */
+  /**
+   * Guarda la respuesta. El avance a la siguiente pregunta NO es inmediato:
+   * solo ocurre cuando el audio de la pregunta actual termina de reproducirse.
+   * Si el audio ya terminó (o el modo es sin voz), avanza enseguida.
+   * NO se corta el audio en curso, por eso ya no se enciman las preguntas.
+   */
   async responder(valor: number) {
     if (!this.candidatoId || !this.preguntaActual || this.guardando) return;
     this.guardando = true;
-
-    // Detener cualquier audio en curso INMEDIATAMENTE al hacer click.
-    // Si esperamos al setTimeout, el audio de la pregunta actual sigue
-    // sonando y se mezcla con el de la siguiente. Parar ya marca el
-    // timestamp para que el drenaje de la próxima Dalia sea correcto.
-    this.voz.parar();
 
     const num = this.preguntaActual.num;
     this.respuestas = { ...this.respuestas, [num]: valor };
@@ -185,25 +206,35 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
         cuestionarioLiderazgo: this.respuestas,
         ultimaActividadCuestionario: new Date()
       });
-
-      // Avanzar al siguiente automáticamente
-      setTimeout(() => {
-        if (this.paso < this.TOTAL) {
-          this.paso++;
-          this.leerPreguntaActual();
-        } else {
-          if (this.todasContestadas()) {
-            this.terminado = true;
-            this.voz.parar();
-          }
-        }
-      }, 350);
     } catch (e) {
       console.error('Error al guardar respuesta:', e);
       this.error = 'No se pudo guardar. Revisa tu conexión.';
     } finally {
-      setTimeout(() => this.guardando = false, 400);
+      this.guardando = false;
     }
+
+    const audioEnCurso = this.audioActivo && this.voz.habilitado() && !this.audioTerminado;
+    if (audioEnCurso) {
+      // Esperar a que termine de leerse la pregunta antes de avanzar.
+      this.esperandoFinAudio = true;
+    } else {
+      this.avanzar();
+    }
+  }
+
+  /** Pasa a la siguiente pregunta (o termina). Protegido contra doble avance. */
+  private avanzar() {
+    if (this.avanzando) return;
+    this.avanzando = true;
+    this.esperandoFinAudio = false;
+    if (this.paso < this.TOTAL) {
+      this.paso++;
+      this.leerPreguntaActual();
+    } else if (this.todasContestadas()) {
+      this.terminado = true;
+      this.voz.parar();
+    }
+    setTimeout(() => { this.avanzando = false; }, 50);
   }
 
   todasContestadas(): boolean {
