@@ -131,13 +131,21 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
 
   // ====== CONTROL DE VOZ DURANTE EL CUESTIONARIO ======
 
-  /** Lee la pregunta actual + sus 5 opciones */
+  /**
+   * Lee la pregunta actual. Las opciones de respuesta SOLO se leen en la
+   * primera pregunta (para explicar la escala una vez); de ahí en adelante se
+   * lee únicamente el texto de la pregunta, porque el candidato ya conoce la
+   * escala y a veces contesta rápido.
+   */
   leerPreguntaActual() {
     if (!this.audioActivo || !this.preguntaActual) return;
-    const opciones = this.NIVELES_LIKERT
-      .map(n => `${n.valor}: ${n.etiquetaCorta}`)
-      .join('. ');
-    const texto = `Pregunta ${this.paso} de ${this.TOTAL}. ${this.preguntaActual.texto} Las opciones son: ${opciones}.`;
+    let texto = `Pregunta ${this.paso} de ${this.TOTAL}. ${this.preguntaActual.texto}`;
+    if (this.paso === 1) {
+      const opciones = this.NIVELES_LIKERT
+        .map(n => `${n.valor}: ${n.etiquetaCorta}`)
+        .join('. ');
+      texto += ` Las opciones son: ${opciones}.`;
+    }
     this.voz.hablar(texto);
   }
 

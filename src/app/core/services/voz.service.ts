@@ -202,10 +202,25 @@ export class VozService {
     // Invalida cualquier hablar() en vuelo (cargando SDK / pidiendo token).
     this.generacion++;
     if (this.synthAzure) {
-      try { this.synthAzure.close(); } catch {}
+      const synth = this.synthAzure;
       this.synthAzure = null;
-      // Si interrumpimos en vivo, el buffer del speaker aún sonará un rato.
-      // Marcar el timestamp para que el siguiente hablar espere a que se drene.
+      // close() SOLO desecha el sintetizador: el audio ya enviado al speaker
+      // sigue sonando ~200-400ms y se encimaba con la siguiente pregunta cuando
+      // el candidato contestaba rápido. stopSpeakingAsync() corta la
+      // reproducción en curso de inmediato; cerramos el synth en su callback.
+      // (Guard por si una versión del SDK no expone stopSpeakingAsync.)
+      try {
+        if (typeof synth.stopSpeakingAsync === 'function') {
+          synth.stopSpeakingAsync(
+            () => { try { synth.close(); } catch {} },
+            () => { try { synth.close(); } catch {} }
+          );
+        } else {
+          synth.close();
+        }
+      } catch { try { synth.close(); } catch {} }
+      // Marca el timestamp como respaldo del drenaje (por si el corte real
+      // tardara unos ms en algún navegador).
       this.tsFinUltimoAudio = Date.now();
     }
     if (this.synthNativa?.speaking || this.synthNativa?.pending) {
