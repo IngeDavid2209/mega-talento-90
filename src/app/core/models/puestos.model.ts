@@ -68,10 +68,12 @@ Antes de agendar entrevista, necesito confirmar algunos datos:
 
 1. ¿Sigues interesado/a en la vacante?
 2. ¿En qué colonia o ciudad vives?
-3. ¿Tienes disponibilidad para laborar en el horario?
-4. ¿Tienes experiencia en el área?
-5. ¿Cuál fue tu último empleo y motivo de salida?
-6. ¿Cuál es tu expectativa salarial?
+3. ¿Cuánto tiempo te toma llegar a la sucursal donde solicitas la vacante y qué transporte usarías?
+4. ¿Tienes disponibilidad para laborar en el horario?
+5. ¿Tienes experiencia en el área?
+6. ¿Cuál fue tu último empleo y motivo de salida?
+7. ¿Cuál es tu expectativa salarial?
+8. ¿Cuentas con tus documentos: INE, RFC, NSS y comprobante de domicilio?
 
 Quedo atenta para revisar si tu perfil coincide con la vacante.`;
 }
