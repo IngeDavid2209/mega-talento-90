@@ -604,6 +604,31 @@
   color: #FFC233;
 }
 .p-chip-active:hover svg { color: #FFC233; }
+.p-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.p-chip-map {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 33px;
+  height: 33px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid rgba(26, 47, 78, 0.18);
+  color: #8A95A8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+.p-chip-map svg { width: 14px; height: 14px; }
+.p-chip-map:hover {
+  border-color: #E5A300;
+  color: #E5A300;
+  transform: translateY(-1px);
+}
 @media (min-width: 760px) {
   .p-zonas { flex-direction: row; align-items: center; gap: 14px; }
   .p-zonas-label { white-space: nowrap; }

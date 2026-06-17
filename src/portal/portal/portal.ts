@@ -161,6 +161,13 @@ export class PortalComponent implements OnInit, OnDestroy {
     this.filtroSucursal = '';
   }
 
+  /** Abre Google Maps centrado en la zona/dirección del chip */
+  abrirMapa(zona: string) {
+    const q = zona.toLowerCase().includes('méxico') ? zona : `${zona}, México`;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+    window.open(url, '_blank', 'noopener');
+  }
+
   /** Antigüedad legible de la publicación */
   hacePoco(timestamp: any): string {
     if (!timestamp) return 'Publicada recientemente';

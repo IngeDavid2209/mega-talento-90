@@ -44,9 +44,35 @@ export const PUESTOS: PuestoInfo[] = [
   }
 ];
 
-/** Devuelve la descripción de un puesto (o cadena vacía si no está catalogado) */
+// Misma clave que usa PuestosService para cachear las vacantes reales de
+// Firestore. La leemos aquí para que el mensaje de WhatsApp use la descripción
+// que RH editó en la vista de Vacantes, no el texto semilla de este archivo.
+const CACHE_PUESTOS_KEY = 'mt_puestos_cache_v1';
+
+/** Lee la descripción REAL de la vacante desde el cache de Firestore (si existe). */
+function descripcionDesdeVacante(nombrePuesto: string): string {
+  try {
+    const raw = localStorage.getItem(CACHE_PUESTOS_KEY);
+    if (!raw) return '';
+    const lista = JSON.parse(raw);
+    if (!Array.isArray(lista)) return '';
+    const clave = nombrePuesto.trim().toLowerCase();
+    const v = lista.find((x: any) => (x?.nombre || '').trim().toLowerCase() === clave);
+    return v && typeof v.descripcion === 'string' ? v.descripcion.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Devuelve la descripción de un puesto. Prioriza la descripción real que RH
+ * configuró en la vista de Vacantes (cacheada desde Firestore); si no está
+ * disponible, cae al catálogo semilla. Cadena vacía si no hay ninguna.
+ */
 export function getDescripcionPuesto(nombrePuesto: string): string {
   if (!nombrePuesto) return '';
+  const real = descripcionDesdeVacante(nombrePuesto);
+  if (real) return real;
   const p = PUESTOS.find(x => x.nombre.toLowerCase() === nombrePuesto.trim().toLowerCase());
   return p ? p.descripcion : '';
 }
