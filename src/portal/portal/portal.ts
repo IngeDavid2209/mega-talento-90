@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { PuestosService, Puesto } from '../../app/core/services/puestos.service';
-import { sucursalPorId } from '../../app/core/models/sucursales.model';
+import { SUCURSALES, sucursalPorId } from '../../app/core/models/sucursales.model';
 
 @Component({
   selector: 'app-portal',
@@ -109,11 +109,17 @@ export class PortalComponent implements OnInit, OnDestroy {
         const s = sucursalPorId(id);
         if (s) out.push({ nombre: s.direccion, mapsUrl: s.mapsUrl });
       }
-      return out;
+      if (out.length) return out;
     }
+    // Respaldo (vacantes antiguas): separar SOLO por " · " para no fragmentar una
+    // dirección que lleva comas internas. Si la dirección coincide con el
+    // catálogo, recuperamos su enlace a Maps.
     return (p.sucursales || '')
-      .split(/ · |,/).map(x => x.trim()).filter(Boolean)
-      .map(nombre => ({ nombre }));
+      .split(' · ').map(x => x.trim()).filter(Boolean)
+      .map(nombre => {
+        const s = SUCURSALES.find(c => c.direccion === nombre);
+        return s ? { nombre: s.direccion, mapsUrl: s.mapsUrl } : { nombre };
+      });
   }
 
   /** Lista única de sucursales/ciudades para el dropdown de filtro */

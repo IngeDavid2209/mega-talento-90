@@ -140,12 +140,14 @@ export class VacantesComponent implements OnInit, OnDestroy {
   /** Direcciones de las sucursales de un puesto, para los chips de la tarjeta. */
   sucursalesDe(p: Puesto): string[] {
     if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) {
-      return p.sucursalIds
+      const dirs = p.sucursalIds
         .map(id => sucursalPorId(id)?.direccion)
         .filter((d): d is string => !!d);
+      if (dirs.length) return dirs;
     }
-    // Vacantes antiguas (texto libre antes del catálogo)
-    return (p.sucursales || '').split(/ · |,/).map(s => s.trim()).filter(Boolean);
+    // Vacantes antiguas: separar SOLO por " · " para no fragmentar una dirección
+    // que lleva comas internas.
+    return (p.sucursales || '').split(' · ').map(s => s.trim()).filter(Boolean);
   }
 
   cerrarEditor() {
