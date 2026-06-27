@@ -280,7 +280,11 @@
                       </svg>
                       <span class="p-card-sucs">
                         @for (s of listaSucursales(p); track s.nombre) {
-                          <span class="p-suc-chip">{{ s.nombre }}</span>
+                          @if (s.mapsUrl) {
+                            <a class="p-suc-chip p-suc-chip-link" [href]="s.mapsUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">{{ s.nombre }}</a>
+                          } @else {
+                            <span class="p-suc-chip">{{ s.nombre }}</span>
+                          }
                         }
                       </span>
                     </li>
