@@ -53,9 +53,9 @@ export const SUCURSALES: Sucursal[] = [
     mapsUrl: maps('Pino Suárez 259, Centro, 59300 La Piedad de Cabadas, Mich.')
   },
   {
-    id: 'cura-hidalgo-centro',
-    direccion: 'Sr. Cura Don Miguel Hidalgo 22, Centro, 59250 Mich.',
-    mapsUrl: maps('Sr. Cura Don Miguel Hidalgo 22, Centro, 59250 Mich.')
+    id: 'yurecuaro-centro',
+    direccion: 'Sr. Cura Don Miguel Hidalgo 22, Centro, 59250 Yurécuaro, Mich.',
+    mapsUrl: maps('Sr. Cura Don Miguel Hidalgo 22, Centro, 59250 Yurécuaro, Mich.')
   }
 ];
 
