@@ -7,6 +7,7 @@
 
 export interface Sucursal {
   id: string;        // identificador estable (no cambiar una vez en uso)
+  ciudad: string;    // ciudad/municipio (para el filtro del formulario público)
   direccion: string; // dirección completa (es lo que se muestra como ubicación)
   mapsUrl: string;   // enlace a Google Maps
 }
@@ -19,45 +20,60 @@ function maps(direccion: string): string {
 export const SUCURSALES: Sucursal[] = [
   {
     id: 'morelia-vicente-guerrero',
+    ciudad: 'Morelia',
     direccion: 'Av Francisco I. Madero Pte 3600, Vicente Guerrero, 58189 Morelia, Mich.',
     mapsUrl: maps('Av Francisco I. Madero Pte 3600, Vicente Guerrero, 58189 Morelia, Mich.')
   },
   {
     id: 'morelia-figaredo',
+    ciudad: 'Morelia',
     direccion: 'Soledad Gutiérrez de Figaredo 510, 58218 Morelia, Mich.',
     mapsUrl: maps('Soledad Gutiérrez de Figaredo 510, 58218 Morelia, Mich.')
   },
   {
     id: 'zamora-canindo',
+    ciudad: 'Zamora',
     direccion: 'Block P Bodega 6, Canindo, 59757 Zamora de Hidalgo, Mich.',
     mapsUrl: maps('Block P Bodega 6, Canindo, 59757 Zamora de Hidalgo, Mich.')
   },
   {
     id: 'zamora-catedral',
+    ciudad: 'Zamora',
     direccion: 'C. Dámaso Cárdenas 7, Jardines de Catedral, 59670 Zamora de Hidalgo, Mich.',
     mapsUrl: maps('C. Dámaso Cárdenas 7, Jardines de Catedral, 59670 Zamora de Hidalgo, Mich.')
   },
   {
     id: 'santa-ana-pacueco',
+    ciudad: 'Santa Ana Pacueco',
     direccion: 'Av Padre Hidalgo 322, Sta Ana Pacueco, 36910 Santa Ana Pacueco, Gto.',
     mapsUrl: maps('Av Padre Hidalgo 322, Sta Ana Pacueco, 36910 Santa Ana Pacueco, Gto.')
   },
   {
     id: 'la-piedad-abastos',
+    ciudad: 'La Piedad',
     direccion: 'Abastos, Av. Mariano Jiménez 1582, Peña, 59389 La Piedad de Cabadas, Mich.',
     mapsUrl: maps('Abastos, Av. Mariano Jiménez 1582, Peña, 59389 La Piedad de Cabadas, Mich.')
   },
   {
     id: 'la-piedad-centro',
+    ciudad: 'La Piedad',
     direccion: 'Pino Suárez 259, Centro, 59300 La Piedad de Cabadas, Mich.',
     mapsUrl: maps('Pino Suárez 259, Centro, 59300 La Piedad de Cabadas, Mich.')
   },
   {
     id: 'yurecuaro-centro',
+    ciudad: 'Yurécuaro',
     direccion: 'Sr. Cura Don Miguel Hidalgo 22, Centro, 59250 Yurécuaro, Mich.',
     mapsUrl: maps('Sr. Cura Don Miguel Hidalgo 22, Centro, 59250 Yurécuaro, Mich.')
   }
 ];
+
+/** Ciudades únicas del catálogo, en el orden en que aparecen. */
+export function ciudadesUnicas(): string[] {
+  const out: string[] = [];
+  for (const s of SUCURSALES) if (!out.includes(s.ciudad)) out.push(s.ciudad);
+  return out;
+}
 
 /** Busca una sucursal del catálogo por su id. */
 export function sucursalPorId(id: string): Sucursal | undefined {

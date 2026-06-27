@@ -206,6 +206,17 @@ label.label-error { color: #A12626; }
 .input-icon-wrap:focus-within .field-icon {
   color: #1A2F4E;
 }
+.input-icon-wrap select:disabled {
+  background-color: #F1F3F7;
+  color: #8A95A8;
+  cursor: not-allowed;
+}
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: #4A5568;
+  margin: 6px 0 0;
+}
 
 /* CV upload */
 .hidden-file-input {

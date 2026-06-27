@@ -4,7 +4,8 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
 import { subirACloudinary } from '../../app/core/services/cloudinary';
-import { PuestosService } from '../../app/core/services/puestos.service';
+import { PuestosService, Puesto } from '../../app/core/services/puestos.service';
+import { sucursalPorId, ciudadesUnicas } from '../../app/core/models/sucursales.model';
 
 type TipoCV = 'pdf' | 'fotos';
 
@@ -67,8 +68,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     // (/empleos): mismas vacantes con activo=true, en el mismo orden, sin fallback
     // hardcoded. Si el admin oculta una vacante, desaparece al instante de ambas.
     this.unsubPuestos = this.puestosService.listar((lista) => {
-      const activos = lista.filter(p => p.activo).map(p => p.nombre);
-      this.puestos = activos;
+      this.puestosFull = lista.filter(p => p.activo);
       this.aplicarQueryPuesto();
     });
 
@@ -155,28 +155,48 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
   private aplicarQueryPuesto() {
     const puestoQuery = this.route.snapshot.queryParamMap.get('puesto');
     if (!puestoQuery) return;
-    const match = this.puestos.find(p => p.toLowerCase() === puestoQuery.toLowerCase());
+    const match = this.puestosDisponibles.find(p => p.toLowerCase() === puestoQuery.toLowerCase());
     if (match) {
       this.candidate.puesto = match;
     }
   }
 
-  ciudades = [
-    'La Piedad',
-    'Santa Ana',
-    'Zamora',
-    'Morelia',
-    'Yurécuaro'
-  ];
+  // Ciudades del catálogo de sucursales (se mantienen sincronizadas solas).
+  ciudades = ciudadesUnicas();
 
   /**
-   * Lista de puestos visible en el dropdown. Se pobla EN VIVO desde Firestore
-   * (mismo origen que la bolsa /empleos), filtrando por activo=true. Mientras
-   * carga, el dropdown queda vacío (solo el placeholder deshabilitado) y el
-   * candidato espera ~200ms a que cargue. Así nunca ve un puesto que la admin
-   * ya ocultó.
+   * Vacantes activas cargadas EN VIVO desde Firestore (mismo origen que la
+   * bolsa /empleos). De aquí se derivan los puestos disponibles por ciudad.
    */
-  puestos: string[] = [];
+  puestosFull: Puesto[] = [];
+
+  /**
+   * Puestos visibles en el dropdown. Si el candidato ya eligió ciudad, solo se
+   * muestran los puestos con una sucursal en esa ciudad. Las vacantes antiguas
+   * sin sucursales asignadas se muestran en todas las ciudades (para no
+   * ocultarlas mientras se reconfiguran). Los nombres se deduplican.
+   */
+  get puestosDisponibles(): string[] {
+    const ciudad = this.candidate.ciudad;
+    const disponibles = this.puestosFull.filter(p =>
+      !ciudad || this.puestoEnCiudad(p, ciudad)
+    );
+    return Array.from(new Set(disponibles.map(p => p.nombre)));
+  }
+
+  private puestoEnCiudad(p: Puesto, ciudad: string): boolean {
+    // Vacante antigua sin sucursales asignadas: visible en todas las ciudades.
+    if (!Array.isArray(p.sucursalIds) || !p.sucursalIds.length) return true;
+    return p.sucursalIds.some(id => sucursalPorId(id)?.ciudad === ciudad);
+  }
+
+  /** Al cambiar de ciudad, si el puesto elegido ya no aplica, se limpia. */
+  onCiudadChange() {
+    if (this.candidate.puesto && !this.puestosDisponibles.includes(this.candidate.puesto)) {
+      this.candidate.puesto = '';
+      this.onPuestoChange();
+    }
+  }
 
   fuentes = [
     'Facebook / Redes Sociales',
