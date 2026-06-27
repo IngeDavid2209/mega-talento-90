@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { PuestosService, Puesto } from '../../app/core/services/puestos.service';
+import { sucursalPorId } from '../../app/core/models/sucursales.model';
 
 @Component({
   selector: 'app-portal',
@@ -97,16 +98,29 @@ export class PortalComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Separa el texto "La Piedad, Zamora" en una lista limpia de sucursales. */
-  listaSucursales(texto?: string): string[] {
-    return (texto || '').split(',').map(x => x.trim()).filter(Boolean);
+  /**
+   * Sucursales de un puesto como {nombre, mapsUrl}. Usa el catálogo por id; si
+   * la vacante es antigua (texto libre) cae a partir el texto en chips sin link.
+   */
+  listaSucursales(p: Puesto): { nombre: string; mapsUrl?: string }[] {
+    if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) {
+      const out: { nombre: string; mapsUrl?: string }[] = [];
+      for (const id of p.sucursalIds) {
+        const s = sucursalPorId(id);
+        if (s) out.push({ nombre: s.direccion, mapsUrl: s.mapsUrl });
+      }
+      return out;
+    }
+    return (p.sucursales || '')
+      .split(/ · |,/).map(x => x.trim()).filter(Boolean)
+      .map(nombre => ({ nombre }));
   }
 
   /** Lista única de sucursales/ciudades para el dropdown de filtro */
   get sucursalesUnicas(): string[] {
     const set = new Set<string>();
     for (const p of this.puestos) {
-      for (const part of this.listaSucursales(p.sucursales)) set.add(part);
+      for (const s of this.listaSucursales(p)) set.add(s.nombre);
     }
     return Array.from(set).sort();
   }

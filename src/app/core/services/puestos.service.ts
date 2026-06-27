@@ -22,7 +22,8 @@ export interface Puesto {
   id?: string;
   nombre: string;
   descripcion: string;
-  sucursales?: string;       // texto libre con sucursales
+  sucursalIds?: string[];    // ids del catálogo de sucursales activas para el puesto
+  sucursales?: string;       // nombres separados por comas (para portal/cartelera/filtro)
   sueldo?: string;            // texto libre (puede ser rango)
   horario?: string;
   requisitos?: string;        // texto libre, una línea por requisito

@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
+import { SUCURSALES, Sucursal, sucursalPorId } from '../../core/models/sucursales.model';
 import { subirACloudinary } from '../../core/services/cloudinary';
 
 @Component({
@@ -27,10 +28,11 @@ export class VacantesComponent implements OnInit, OnDestroy {
   guardando = false;
   errorEditor = '';
 
-  // Sucursales como lista de chips. Se persisten en edicion.sucursales como
-  // texto separado por comas (formato que ya consume el portal y la cartelera).
-  sucursalesArr: string[] = [];
-  nuevaSucursal = '';
+  // Catálogo de sucursales: por puesto se activan/desactivan. La selección se
+  // guarda como ids (sucursalIds) y como nombres separados por comas en
+  // sucursales (formato que ya consume el portal y la cartelera).
+  catalogoSucursales: Sucursal[] = SUCURSALES;
+  sucursalesSel = new Set<string>();
 
   // Confirmación de borrado
   puestoAEliminar: Puesto | null = null;
@@ -102,41 +104,48 @@ export class VacantesComponent implements OnInit, OnDestroy {
   // ====== CRUD ======
   abrirNuevo() {
     this.edicion = this.puestoVacio();
-    this.sucursalesArr = [];
-    this.nuevaSucursal = '';
+    this.sucursalesSel = new Set<string>();
     this.errorEditor = '';
     this.mostrarEditor = true;
   }
 
   abrirEditar(p: Puesto) {
     this.edicion = { ...p };
-    this.sucursalesArr = this.parsearSucursales(p.sucursales);
-    this.nuevaSucursal = '';
+    this.sucursalesSel = this.seleccionDesdePuesto(p);
     this.errorEditor = '';
     this.mostrarEditor = true;
   }
 
-  /** Convierte el texto "La Piedad, Zamora" en lista de sucursales limpia. */
-  parsearSucursales(texto?: string): string[] {
-    return (texto || '')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-  }
-
-  /** Añade lo que el usuario escribió como uno o varios chips (acepta comas). */
-  agregarSucursal() {
-    const valor = this.nuevaSucursal.trim();
-    if (!valor) return;
-    for (const s of this.parsearSucursales(valor)) {
-      const yaExiste = this.sucursalesArr.some(x => x.toLowerCase() === s.toLowerCase());
-      if (!yaExiste) this.sucursalesArr.push(s);
+  /**
+   * Reconstruye qué sucursales están activas para un puesto. Usa sucursalIds
+   * si existe; si no (vacantes guardadas antes del catálogo), intenta inferir
+   * a partir de los nombres del texto antiguo en sucursales.
+   */
+  private seleccionDesdePuesto(p: Puesto): Set<string> {
+    const sel = new Set<string>();
+    if (Array.isArray(p.sucursalIds)) {
+      for (const id of p.sucursalIds) {
+        if (sucursalPorId(id)) sel.add(id);
+      }
     }
-    this.nuevaSucursal = '';
+    return sel;
   }
 
-  quitarSucursal(i: number) {
-    this.sucursalesArr.splice(i, 1);
+  /** Activa/desactiva una sucursal del catálogo para el puesto en edición. */
+  alternarSucursal(id: string) {
+    if (this.sucursalesSel.has(id)) this.sucursalesSel.delete(id);
+    else this.sucursalesSel.add(id);
+  }
+
+  /** Direcciones de las sucursales de un puesto, para los chips de la tarjeta. */
+  sucursalesDe(p: Puesto): string[] {
+    if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) {
+      return p.sucursalIds
+        .map(id => sucursalPorId(id)?.direccion)
+        .filter((d): d is string => !!d);
+    }
+    // Vacantes antiguas (texto libre antes del catálogo)
+    return (p.sucursales || '').split(/ · |,/).map(s => s.trim()).filter(Boolean);
   }
 
   cerrarEditor() {
@@ -155,15 +164,18 @@ export class VacantesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Si el usuario dejó texto sin confirmar en el campo de sucursal, lo añadimos.
-    this.agregarSucursal();
+    // Sucursales seleccionadas del catálogo, en el orden del catálogo.
+    const sucursalesActivas = this.catalogoSucursales.filter(s => this.sucursalesSel.has(s.id));
+    const sucursalIds = sucursalesActivas.map(s => s.id);
+    const sucursalesTexto = sucursalesActivas.map(s => s.direccion).join(' · ');
 
     this.guardando = true;
     try {
       const datos: any = {
         nombre: this.edicion.nombre.trim(),
         descripcion: this.edicion.descripcion.trim(),
-        sucursales: this.sucursalesArr.join(', '),
+        sucursalIds,
+        sucursales: sucursalesTexto,
         sueldo: (this.edicion.sueldo || '').trim(),
         horario: (this.edicion.horario || '').trim(),
         requisitos: (this.edicion.requisitos || '').trim(),

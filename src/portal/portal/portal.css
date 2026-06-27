@@ -1126,12 +1126,27 @@
   border-radius: 999px;
   line-height: 1.5;
 }
+.p-suc-chip-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.p-suc-chip-link:hover {
+  background: #1A2F4E;
+  border-color: #1A2F4E;
+  color: #ffffff;
+}
 /* En el header oscuro del modal los chips van en claro */
 .p-modal-ubic { flex-wrap: wrap; }
 .p-modal-ubic .p-suc-chip {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.28);
+}
+.p-modal-ubic .p-suc-chip-link:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
 }
 .p-modal-head h2 {
   margin: 0;

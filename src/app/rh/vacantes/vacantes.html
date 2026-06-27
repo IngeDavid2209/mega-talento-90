@@ -85,7 +85,7 @@
           <p class="vacante-desc">{{ p.descripcion }}</p>
 
           <div class="vacante-meta">
-            @for (s of parsearSucursales(p.sucursales); track s) {
+            @for (s of sucursalesDe(p); track s) {
               <span class="meta-chip">📍 {{ s }}</span>
             }
             @if (p.sueldo) {
@@ -133,36 +133,39 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>Sucursales</label>
-          <div class="chips-input">
-            @for (s of sucursalesArr; track s; let i = $index) {
-              <span class="chip-suc">
-                {{ s }}
-                <button type="button" class="chip-suc-x" (click)="quitarSucursal(i)" aria-label="Quitar sucursal">✕</button>
-              </span>
-            }
-            <input type="text" [(ngModel)]="nuevaSucursal"
-                   (keydown.enter)="$event.preventDefault(); agregarSucursal()"
-                   (blur)="agregarSucursal()"
-                   [placeholder]="sucursalesArr.length ? 'Agregar otra...' : 'Ej. La Piedad'">
-          </div>
-          <small class="form-hint">Escribe una sucursal y pulsa Enter para añadirla. Puedes agregar varias.</small>
-        </div>
-        <div class="form-group">
           <label>Sueldo / rango</label>
           <input type="text" [(ngModel)]="edicion.sueldo" placeholder="Ej. $7,500 - $9,000 mensual">
         </div>
-      </div>
-
-      <div class="form-row">
         <div class="form-group">
           <label>Horario</label>
           <input type="text" [(ngModel)]="edicion.horario" placeholder="Ej. Lun-Sáb 9:00-18:00">
         </div>
-        <div class="form-group">
-          <label>Área / categoría</label>
-          <input type="text" [(ngModel)]="edicion.area" placeholder="Ej. Comercial, Producción, Almacén">
+      </div>
+
+      <div class="form-group">
+        <label>Sucursales <span class="suc-count">{{ sucursalesSel.size }} activa{{ sucursalesSel.size === 1 ? '' : 's' }}</span></label>
+        <div class="suc-list">
+          @for (s of catalogoSucursales; track s.id) {
+            <div class="suc-item" [class.suc-item-on]="sucursalesSel.has(s.id)">
+              <label class="suc-toggle">
+                <input type="checkbox" [checked]="sucursalesSel.has(s.id)" (change)="alternarSucursal(s.id)">
+                <span class="suc-dir">{{ s.direccion }}</span>
+              </label>
+              <a class="suc-mapa" [href]="s.mapsUrl" target="_blank" rel="noopener" title="Ver en Google Maps" aria-label="Ver en Google Maps">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </a>
+            </div>
+          }
         </div>
+        <small class="form-hint">Activa las sucursales donde aplica este puesto. Solo las activas se muestran en el portal.</small>
+      </div>
+
+      <div class="form-group">
+        <label>Área / categoría</label>
+        <input type="text" [(ngModel)]="edicion.area" placeholder="Ej. Comercial, Producción, Almacén">
       </div>
 
       <div class="form-group">

@@ -272,15 +272,15 @@
                 <h3 class="p-card-title">{{ p.nombre }}</h3>
 
                 <ul class="p-card-meta">
-                  @if (listaSucursales(p.sucursales).length) {
+                  @if (listaSucursales(p).length) {
                     <li>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                       </svg>
                       <span class="p-card-sucs">
-                        @for (s of listaSucursales(p.sucursales); track s) {
-                          <span class="p-suc-chip">{{ s }}</span>
+                        @for (s of listaSucursales(p); track s.nombre) {
+                          <span class="p-suc-chip">{{ s.nombre }}</span>
                         }
                       </span>
                     </li>
@@ -401,14 +401,18 @@
       <div class="p-modal-head">
         <div class="p-modal-tag-row">
           <span class="p-modal-tag">{{ hacePoco(vacanteSeleccionada.createdAt) }}</span>
-          @if (listaSucursales(vacanteSeleccionada.sucursales).length) {
+          @if (listaSucursales(vacanteSeleccionada).length) {
             <span class="p-modal-ubic">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
-              @for (s of listaSucursales(vacanteSeleccionada.sucursales); track s) {
-                <span class="p-suc-chip">{{ s }}</span>
+              @for (s of listaSucursales(vacanteSeleccionada); track s.nombre) {
+                @if (s.mapsUrl) {
+                  <a class="p-suc-chip p-suc-chip-link" [href]="s.mapsUrl" target="_blank" rel="noopener">{{ s.nombre }}</a>
+                } @else {
+                  <span class="p-suc-chip">{{ s.nombre }}</span>
+                }
               }
             </span>
           }
@@ -443,12 +447,16 @@
               @if (vacanteSeleccionada.horario) {
                 <li><strong>Horario:</strong> {{ vacanteSeleccionada.horario }}</li>
               }
-              @if (listaSucursales(vacanteSeleccionada.sucursales).length) {
+              @if (listaSucursales(vacanteSeleccionada).length) {
                 <li>
-                  <strong>{{ listaSucursales(vacanteSeleccionada.sucursales).length > 1 ? 'Ubicaciones:' : 'Ubicación:' }}</strong>
+                  <strong>{{ listaSucursales(vacanteSeleccionada).length > 1 ? 'Ubicaciones:' : 'Ubicación:' }}</strong>
                   <span class="p-modal-sucs">
-                    @for (s of listaSucursales(vacanteSeleccionada.sucursales); track s) {
-                      <span class="p-suc-chip">{{ s }}</span>
+                    @for (s of listaSucursales(vacanteSeleccionada); track s.nombre) {
+                      @if (s.mapsUrl) {
+                        <a class="p-suc-chip p-suc-chip-link" [href]="s.mapsUrl" target="_blank" rel="noopener">{{ s.nombre }}</a>
+                      } @else {
+                        <span class="p-suc-chip">{{ s.nombre }}</span>
+                      }
                     }
                   </span>
                 </li>
