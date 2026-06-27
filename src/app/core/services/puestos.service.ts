@@ -5,6 +5,7 @@ import {
   getDocs, setDoc
 } from 'firebase/firestore';
 import { PUESTOS as PUESTOS_SEMILLA } from '../models/puestos.model';
+import { inferirSucursalIds, sucursalPorId } from '../models/sucursales.model';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
@@ -177,6 +178,35 @@ export class PuestosService {
       creados.push(p.nombre);
     }
     return { creados, omitidos };
+  }
+
+  /**
+   * Vincula automáticamente las vacantes existentes con el catálogo de
+   * sucursales, infiriendo los ids a partir del texto libre que ya tienen. No
+   * toca las que ya tienen sucursalIds. Devuelve el desglose para mostrarlo.
+   */
+  async vincularSucursalesAutomatico(): Promise<{ vinculados: string[]; sinCoincidencia: string[]; yaTenian: string[] }> {
+    const puestos = await this.obtener();
+    const vinculados: string[] = [];
+    const sinCoincidencia: string[] = [];
+    const yaTenian: string[] = [];
+
+    for (const p of puestos) {
+      if (!p.id) continue;
+      if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) {
+        yaTenian.push(p.nombre);
+        continue;
+      }
+      const ids = inferirSucursalIds(p.sucursales || '');
+      if (!ids.length) {
+        sinCoincidencia.push(p.nombre);
+        continue;
+      }
+      const texto = ids.map(id => sucursalPorId(id)?.direccion).filter(Boolean).join(' · ');
+      await this.actualizar(p.id, { sucursalIds: ids, sucursales: texto });
+      vinculados.push(p.nombre);
+    }
+    return { vinculados, sinCoincidencia, yaTenian };
   }
 
   /** Slug seguro para usar como ID de documento de Firestore */

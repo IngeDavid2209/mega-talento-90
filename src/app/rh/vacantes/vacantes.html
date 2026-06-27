@@ -23,6 +23,13 @@
         </svg>
         {{ cargandoCatalogo ? 'Cargando...' : 'Cargar catálogo' }}
       </button>
+      <button type="button" class="btn-catalogo" (click)="vincularSucursales()" [disabled]="vinculando" title="Vincula las vacantes existentes con el catálogo de sucursales, leyendo la dirección que ya tienen guardada.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        {{ vinculando ? 'Vinculando...' : 'Vincular sucursales' }}
+      </button>
       <button class="btn-primary" (click)="abrirNuevo()">+ Nueva vacante</button>
     </div>
   </div>
@@ -49,6 +56,36 @@
         }
         @if (resultadoCatalogo.creados.length === 0 && resultadoCatalogo.omitidos.length > 0) {
           <p>Todas las vacantes del catálogo ya estaban registradas.</p>
+        }
+      }
+    </div>
+  }
+
+  <!-- Resultado de vincular sucursales -->
+  @if (resultadoVinculacion || errorVinculacion) {
+    <div class="cat-result" [class.cat-result-error]="errorVinculacion">
+      <div class="cat-result-head">
+        @if (errorVinculacion) {
+          <strong>⚠ No se pudieron vincular las sucursales</strong>
+        } @else {
+          <strong>✓ Sucursales vinculadas</strong>
+        }
+        <button class="cat-result-close" (click)="cerrarResultadoVinculacion()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorVinculacion) {
+        <p>{{ errorVinculacion }}</p>
+      } @else if (resultadoVinculacion) {
+        @if (resultadoVinculacion.vinculados.length > 0) {
+          <p><strong>{{ resultadoVinculacion.vinculados.length }} vinculadas:</strong> {{ resultadoVinculacion.vinculados.join(', ') }}</p>
+        }
+        @if (resultadoVinculacion.sinCoincidencia.length > 0) {
+          <p class="cat-omitidos"><strong>{{ resultadoVinculacion.sinCoincidencia.length }} sin coincidencia</strong> (ábrelas y elige sus sucursales a mano): {{ resultadoVinculacion.sinCoincidencia.join(', ') }}</p>
+        }
+        @if (resultadoVinculacion.yaTenian.length > 0) {
+          <p class="cat-omitidos"><strong>{{ resultadoVinculacion.yaTenian.length }} ya estaban vinculadas.</strong></p>
+        }
+        @if (resultadoVinculacion.vinculados.length === 0 && resultadoVinculacion.sinCoincidencia.length === 0) {
+          <p>Todas las vacantes ya estaban vinculadas al catálogo.</p>
         }
       }
     </div>

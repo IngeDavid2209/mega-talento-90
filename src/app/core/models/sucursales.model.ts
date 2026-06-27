@@ -79,3 +79,23 @@ export function ciudadesUnicas(): string[] {
 export function sucursalPorId(id: string): Sucursal | undefined {
   return SUCURSALES.find(s => s.id === id);
 }
+
+/**
+ * Infiere los ids de sucursal a partir del texto libre antiguo de una vacante
+ * (cuando aún no tiene sucursalIds). Coincide si el texto contiene la dirección
+ * completa del catálogo o, al menos, su calle+número (la parte antes de la
+ * primera coma). Sirve para migrar/pre-seleccionar sin adivinar nada nuevo.
+ */
+export function inferirSucursalIds(texto: string): string[] {
+  const t = (texto || '').toLowerCase();
+  if (!t.trim()) return [];
+  const ids: string[] = [];
+  for (const s of SUCURSALES) {
+    const dir = s.direccion.toLowerCase();
+    const calle = dir.split(',')[0].trim();
+    if (t.includes(dir) || (calle.length > 6 && t.includes(calle))) {
+      ids.push(s.id);
+    }
+  }
+  return ids;
+}

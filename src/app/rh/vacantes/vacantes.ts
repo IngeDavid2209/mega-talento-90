@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
-import { SUCURSALES, Sucursal, sucursalPorId } from '../../core/models/sucursales.model';
+import { SUCURSALES, Sucursal, sucursalPorId, inferirSucursalIds } from '../../core/models/sucursales.model';
 import { subirACloudinary } from '../../core/services/cloudinary';
 
 @Component({
@@ -42,6 +42,11 @@ export class VacantesComponent implements OnInit, OnDestroy {
   cargandoCatalogo = false;
   resultadoCatalogo: { creados: string[]; omitidos: string[] } | null = null;
   errorCatalogo = '';
+
+  // Vinculación automática de sucursales (migración de vacantes antiguas)
+  vinculando = false;
+  resultadoVinculacion: { vinculados: string[]; sinCoincidencia: string[]; yaTenian: string[] } | null = null;
+  errorVinculacion = '';
 
   // Subida de imagen al editor
   subiendoImagen = false;
@@ -123,11 +128,14 @@ export class VacantesComponent implements OnInit, OnDestroy {
    */
   private seleccionDesdePuesto(p: Puesto): Set<string> {
     const sel = new Set<string>();
-    if (Array.isArray(p.sucursalIds)) {
+    if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) {
       for (const id of p.sucursalIds) {
         if (sucursalPorId(id)) sel.add(id);
       }
+      return sel;
     }
+    // Vacante antigua: pre-marcar las sucursales que se infieran de su texto.
+    for (const id of inferirSucursalIds(p.sucursales || '')) sel.add(id);
     return sel;
   }
 
@@ -254,6 +262,26 @@ export class VacantesComponent implements OnInit, OnDestroy {
   cerrarResultadoCatalogo() {
     this.resultadoCatalogo = null;
     this.errorCatalogo = '';
+  }
+
+  /** Vincula las vacantes existentes con el catálogo de sucursales por su texto. */
+  async vincularSucursales() {
+    this.vinculando = true;
+    this.errorVinculacion = '';
+    this.resultadoVinculacion = null;
+    try {
+      this.resultadoVinculacion = await this.puestosService.vincularSucursalesAutomatico();
+    } catch (e: any) {
+      console.error('Error al vincular sucursales:', e);
+      this.errorVinculacion = `No se pudo vincular: ${e?.message || e?.code || 'error desconocido'}`;
+    } finally {
+      this.vinculando = false;
+    }
+  }
+
+  cerrarResultadoVinculacion() {
+    this.resultadoVinculacion = null;
+    this.errorVinculacion = '';
   }
 
   /** Recarga la página completa (usado tras error de carga) */
