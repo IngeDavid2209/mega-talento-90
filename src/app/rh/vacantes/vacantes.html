@@ -85,8 +85,8 @@
           <p class="vacante-desc">{{ p.descripcion }}</p>
 
           <div class="vacante-meta">
-            @if (p.sucursales) {
-              <span class="meta-chip">📍 {{ p.sucursales }}</span>
+            @for (s of parsearSucursales(p.sucursales); track s) {
+              <span class="meta-chip">📍 {{ s }}</span>
             }
             @if (p.sueldo) {
               <span class="meta-chip">💰 {{ p.sueldo }}</span>
@@ -134,7 +134,19 @@
       <div class="form-row">
         <div class="form-group">
           <label>Sucursales</label>
-          <input type="text" [(ngModel)]="edicion.sucursales" placeholder="Ej. La Piedad, Santa Ana">
+          <div class="chips-input">
+            @for (s of sucursalesArr; track s; let i = $index) {
+              <span class="chip-suc">
+                {{ s }}
+                <button type="button" class="chip-suc-x" (click)="quitarSucursal(i)" aria-label="Quitar sucursal">✕</button>
+              </span>
+            }
+            <input type="text" [(ngModel)]="nuevaSucursal"
+                   (keydown.enter)="$event.preventDefault(); agregarSucursal()"
+                   (blur)="agregarSucursal()"
+                   [placeholder]="sucursalesArr.length ? 'Agregar otra...' : 'Ej. La Piedad'">
+          </div>
+          <small class="form-hint">Escribe una sucursal y pulsa Enter para añadirla. Puedes agregar varias.</small>
         </div>
         <div class="form-group">
           <label>Sueldo / rango</label>

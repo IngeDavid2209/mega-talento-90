@@ -1102,6 +1102,37 @@
   width: 13px;
   height: 13px;
 }
+
+/* Chips de sucursales (tarjeta y detalle) */
+.p-card-sucs,
+.p-modal-sucs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.p-modal-sucs {
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.p-suc-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1A2F4E;
+  background: rgba(26, 47, 78, 0.07);
+  border: 1px solid rgba(26, 47, 78, 0.16);
+  padding: 2px 9px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+/* En el header oscuro del modal los chips van en claro */
+.p-modal-ubic { flex-wrap: wrap; }
+.p-modal-ubic .p-suc-chip {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+}
 .p-modal-head h2 {
   margin: 0;
   font-size: 24px;

@@ -27,6 +27,11 @@ export class VacantesComponent implements OnInit, OnDestroy {
   guardando = false;
   errorEditor = '';
 
+  // Sucursales como lista de chips. Se persisten en edicion.sucursales como
+  // texto separado por comas (formato que ya consume el portal y la cartelera).
+  sucursalesArr: string[] = [];
+  nuevaSucursal = '';
+
   // Confirmación de borrado
   puestoAEliminar: Puesto | null = null;
   borrando = false;
@@ -97,14 +102,41 @@ export class VacantesComponent implements OnInit, OnDestroy {
   // ====== CRUD ======
   abrirNuevo() {
     this.edicion = this.puestoVacio();
+    this.sucursalesArr = [];
+    this.nuevaSucursal = '';
     this.errorEditor = '';
     this.mostrarEditor = true;
   }
 
   abrirEditar(p: Puesto) {
     this.edicion = { ...p };
+    this.sucursalesArr = this.parsearSucursales(p.sucursales);
+    this.nuevaSucursal = '';
     this.errorEditor = '';
     this.mostrarEditor = true;
+  }
+
+  /** Convierte el texto "La Piedad, Zamora" en lista de sucursales limpia. */
+  parsearSucursales(texto?: string): string[] {
+    return (texto || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  /** Añade lo que el usuario escribió como uno o varios chips (acepta comas). */
+  agregarSucursal() {
+    const valor = this.nuevaSucursal.trim();
+    if (!valor) return;
+    for (const s of this.parsearSucursales(valor)) {
+      const yaExiste = this.sucursalesArr.some(x => x.toLowerCase() === s.toLowerCase());
+      if (!yaExiste) this.sucursalesArr.push(s);
+    }
+    this.nuevaSucursal = '';
+  }
+
+  quitarSucursal(i: number) {
+    this.sucursalesArr.splice(i, 1);
   }
 
   cerrarEditor() {
@@ -123,12 +155,15 @@ export class VacantesComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Si el usuario dejó texto sin confirmar en el campo de sucursal, lo añadimos.
+    this.agregarSucursal();
+
     this.guardando = true;
     try {
       const datos: any = {
         nombre: this.edicion.nombre.trim(),
         descripcion: this.edicion.descripcion.trim(),
-        sucursales: (this.edicion.sucursales || '').trim(),
+        sucursales: this.sucursalesArr.join(', '),
         sueldo: (this.edicion.sueldo || '').trim(),
         horario: (this.edicion.horario || '').trim(),
         requisitos: (this.edicion.requisitos || '').trim(),

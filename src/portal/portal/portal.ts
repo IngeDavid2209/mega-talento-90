@@ -97,14 +97,16 @@ export class PortalComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Separa el texto "La Piedad, Zamora" en una lista limpia de sucursales. */
+  listaSucursales(texto?: string): string[] {
+    return (texto || '').split(',').map(x => x.trim()).filter(Boolean);
+  }
+
   /** Lista única de sucursales/ciudades para el dropdown de filtro */
   get sucursalesUnicas(): string[] {
     const set = new Set<string>();
     for (const p of this.puestos) {
-      if (!p.sucursales) continue;
-      // Partir por coma para soportar "La Piedad, Zamora"
-      const parts = p.sucursales.split(',').map(x => x.trim()).filter(Boolean);
-      for (const part of parts) set.add(part);
+      for (const part of this.listaSucursales(p.sucursales)) set.add(part);
     }
     return Array.from(set).sort();
   }
