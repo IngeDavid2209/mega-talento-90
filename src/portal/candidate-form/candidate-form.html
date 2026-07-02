@@ -192,12 +192,12 @@
                     <polyline points="21 15 16 10 5 21"></polyline>
                   </svg>
                   <span class="foto-label">FRENTE</span>
-                  <span class="foto-hint">Toca para tomar/seleccionar</span>
+                  <span class="foto-hint">Cámara o galería</span>
                 }
               </label>
               <input type="file" id="cvFrente" class="hidden-file-input"
                      (change)="onFileSelected($event, 'frente')"
-                     accept="image/*" capture="environment" />
+                     accept="image/*" />
               <div class="foto-tag" [class.foto-tag-ok]="fotoFrente">
                 @if (fotoFrente) {
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -223,12 +223,12 @@
                     <polyline points="21 15 16 10 5 21"></polyline>
                   </svg>
                   <span class="foto-label">REVERSO</span>
-                  <span class="foto-hint">Toca para tomar/seleccionar</span>
+                  <span class="foto-hint">Cámara o galería</span>
                 }
               </label>
               <input type="file" id="cvReverso" class="hidden-file-input"
                      (change)="onFileSelected($event, 'reverso')"
-                     accept="image/*" capture="environment" />
+                     accept="image/*" />
               <div class="foto-tag" [class.foto-tag-ok]="fotoReverso">
                 @if (fotoReverso) {
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
