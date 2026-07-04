@@ -61,6 +61,23 @@ export class DashboardComponent implements OnInit {
         this.cargando = false;
       });
     });
+
+    // Backfill único del índice de teléfonos: protege contra repostulación a
+    // los candidatos que ya existían antes de crear el índice. Se corre una
+    // sola vez por navegador de RH (guarda en localStorage).
+    this.backfillIndiceTelefonos();
+  }
+
+  private async backfillIndiceTelefonos() {
+    const CLAVE = 'backfillTelefonos_v1';
+    try {
+      if (localStorage.getItem(CLAVE)) return;
+      const n = await this.candidateService.backfillTelefonos();
+      localStorage.setItem(CLAVE, new Date().toISOString());
+      console.info(`Índice de teléfonos actualizado: ${n} registros.`);
+    } catch (e) {
+      console.warn('No se pudo actualizar el índice de teléfonos:', e);
+    }
   }
 
   calcularKpis() {

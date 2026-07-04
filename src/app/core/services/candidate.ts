@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { subirACloudinary } from './cloudinary';
 
 const firebaseConfig = {
@@ -25,7 +25,52 @@ export class CandidateService {
       status: candidateData?.status || 'filtro_inicial',
       createdAt: new Date()
     };
-    return await addDoc(collection(db, 'candidates'), newCandidate);
+    const ref = await addDoc(collection(db, 'candidates'), newCandidate);
+
+    // Registrar el teléfono en el índice público `telefonos/{numero}` para que
+    // buscarDuplicado pueda detectar repostulaciones SIN listar la colección
+    // completa de candidatos (que el flujo público /unete no puede leer).
+    // Es "mejor esfuerzo": si falla no rompemos la postulación ya creada.
+    const telNorm = (candidateData?.telefono || '').replace(/\D/g, '');
+    if (telNorm.length >= 10) {
+      try {
+        await setDoc(doc(db, 'telefonos', telNorm), {
+          candidateId: ref.id,
+          nombre: candidateData?.nombre || '',
+          createdAt: new Date()
+        });
+      } catch (e) {
+        console.warn('No se pudo registrar el índice de teléfono (no bloquea la postulación):', e);
+      }
+    }
+    return ref;
+  }
+
+  /**
+   * Rellena el índice `telefonos/{numero}` con los candidatos ya existentes.
+   * Se ejecuta desde un contexto autenticado (RH) porque necesita LISTAR
+   * candidates. Es idempotente: sobreescribir un índice existente no molesta.
+   * Sirve para que los candidatos que se postularon ANTES de este arreglo
+   * también queden protegidos contra repostulación.
+   */
+  async backfillTelefonos(): Promise<number> {
+    const todos = await this.getCandidatesIncluyendoBorrados();
+    let escritos = 0;
+    for (const c of todos as any[]) {
+      const telNorm = (c.telefono || '').replace(/\D/g, '');
+      if (telNorm.length < 10) continue;
+      try {
+        await setDoc(doc(db, 'telefonos', telNorm), {
+          candidateId: c.id,
+          nombre: c.nombre || '',
+          createdAt: c.createdAt || new Date()
+        });
+        escritos++;
+      } catch (e) {
+        console.warn('backfillTelefonos: no se pudo escribir', telNorm, e);
+      }
+    }
+    return escritos;
   }
 
   /** Devuelve todos los candidatos VIVOS (excluye los enviados a la papelera) */
@@ -116,40 +161,31 @@ export class CandidateService {
    * - Nombre: comparación normalizada (minúsculas, espacios colapsados).
    * Devuelve el candidato encontrado o null si no hay duplicado.
    *
-   * NOTA: esta función la llama el flujo público /unete sin autenticación.
-   * Como las reglas de Firestore requieren auth para LEER candidates, esta
-   * lectura falla con permission-denied. Si pasa, devolvemos null (no
-   * bloqueamos la postulación) — el RH puede limpiar duplicados después
-   * desde /app/duplicados.
+   * NOTA: esta función la llama el flujo público /unete SIN autenticación.
+   * Por eso NO lista la colección `candidates` (las reglas de Firestore lo
+   * prohíben a usuarios sin sesión y siempre fallaría con permission-denied,
+   * dejando pasar todos los duplicados). En su lugar lee un único documento
+   * del índice público `telefonos/{numero}` con getDoc (que sí es público y
+   * no permite enumerar datos de nadie). Devuelve el registro encontrado o
+   * null si no hay duplicado.
    */
-  async buscarDuplicado(telefono: string, nombre: string): Promise<any | null> {
+  async buscarDuplicado(telefono: string, _nombre?: string): Promise<any | null> {
     const telLimpio = (telefono || '').replace(/\D/g, '');
-    const nomNorm = this.normalizarNombre(nombre);
-    if (!telLimpio && !nomNorm) return null;
+    // El índice se llavea por teléfono de 10 dígitos; sin teléfono válido no
+    // podemos verificar de forma pública, así que dejamos pasar.
+    if (telLimpio.length < 10) return null;
 
     try {
-      const todos = await this.getCandidatesIncluyendoBorrados();
-      const match: any = todos.find((c: any) => {
-        const telExistente = (c.telefono || '').replace(/\D/g, '');
-        const nomExistente = this.normalizarNombre(c.nombre);
-        // Coincide por teléfono (10 dígitos completos) o por nombre exacto (no muy corto)
-        const matchTel = telLimpio.length >= 10 && telLimpio === telExistente;
-        const matchNom = nomNorm.length >= 5 && nomNorm === nomExistente;
-        return matchTel || matchNom;
-      });
-      if (!match) return null;
-      return { ...match, estaEnPapelera: !!match.deletedAt };
+      const snap = await getDoc(doc(db, 'telefonos', telLimpio));
+      if (!snap.exists()) return null;
+      const data: any = snap.data() || {};
+      return { id: data.candidateId, ...data, estaEnPapelera: false };
     } catch (e) {
-      // Si las reglas no permiten la lectura (usuario público sin sesión),
-      // ignoramos la verificación de duplicados y dejamos pasar. El sistema
-      // tiene una pantalla /app/duplicados para limpiarlos manualmente después.
-      console.warn('buscarDuplicado: no se pudo leer la lista (probablemente sin permisos):', e);
+      // Si por alguna razón la lectura falla, no bloqueamos la postulación.
+      // El RH puede limpiar duplicados después desde /app/duplicados.
+      console.warn('buscarDuplicado: no se pudo leer el índice de teléfonos:', e);
       return null;
     }
-  }
-
-  private normalizarNombre(s: string): string {
-    return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
   listenToCandidate(id: string, callback: (candidato: any) => void, onError?: (error: any) => void) {

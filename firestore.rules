@@ -1,7 +1,11 @@
 // =====================================================================
-// Reglas de Firestore · Mega Talento 90
+// Reglas de Firestore · Mega Talento 90  (proyecto: megatalento-a3450)
 // Pegar este contenido en Firebase Console:
 //   https://console.firebase.google.com/project/megatalento-a3450/firestore/rules
+//
+// OJO: este proyecto es SOLO el de candidatos (puestos / candidates /
+// usuarios de RH). NO confundir con el proyecto de "Mega Dulces Task"
+// (checklists, rutinas, tec_*), que tiene sus propias reglas aparte.
 // =====================================================================
 
 rules_version = '2';
@@ -11,8 +15,7 @@ service cloud.firestore {
 
     // ---------- PUESTOS / VACANTES ----------
     // Lectura PÚBLICA: el portal /portal y la cartelera /empleos las muestran
-    // a candidatos sin login.
-    // Escritura solo para usuarios autenticados (RH desde /app/vacantes).
+    // a candidatos sin login. Escritura solo para RH autenticado.
     match /puestos/{puesto} {
       allow read: if true;
       allow create, update, delete: if request.auth != null;
@@ -20,18 +23,11 @@ service cloud.firestore {
 
     // ---------- CANDIDATES ----------
     // CREATE público: cualquiera puede postularse desde /unete.
-    // UPDATE público: el flujo /solicitud y /evaluacion/:id actualizan al
-    //   candidato existente sin login (sólo conoce su id porque RH le mandó
-    //   el link por WhatsApp). Si esto te preocupa, ver nota al final.
-    // GET público (por ID): los mismos flujos públicos /evaluacion/:id y
-    //   /solicitud/:id necesitan LEER el documento del candidato cuyo id
-    //   conocen, para precargar respuestas previas y mostrar sus datos. Sin
-    //   esto la prueba psicométrica/de liderazgo se queda en "Cargando..."
-    //   eterno para el candidato (no está autenticado). El id autogenerado
-    //   por Firestore (20 chars aleatorios) actúa como token, igual que update.
-    // LIST solo autenticado: nadie sin login puede enumerar/descargar toda la
-    //   colección de candidatos (sólo RH ve el tablero completo).
-    // DELETE solo autenticado (sólo RH borra expedientes).
+    // UPDATE público: /solicitud y /evaluacion/:id actualizan al candidato
+    //   existente sin login (el id autogenerado actúa como token).
+    // GET público (por ID): esos mismos flujos leen el documento cuyo id conocen.
+    // LIST solo autenticado: nadie sin login enumera/descarga toda la colección.
+    // DELETE solo autenticado (solo RH borra expedientes).
     match /candidates/{candidato} {
       allow create: if true;
       allow update: if true;
@@ -45,45 +41,27 @@ service cloud.firestore {
       }
     }
 
+    // ---------- ÍNDICE DE TELÉFONOS (anti-duplicados) ----------
+    // Documentos llaveados por el teléfono normalizado (10 dígitos), p.ej.
+    // telefonos/3521532421. Permite que /unete detecte repostulaciones sin
+    // poder LISTAR la colección privada de candidatos.
+    // GET público: /unete consulta UN número exacto (el suyo) con getDoc; no
+    //   expone datos de nadie más ni permite enumerar.
+    // CREATE público: al postularse por primera vez se registra el número.
+    // LIST/UPDATE/DELETE solo autenticado (incluido el backfill de RH).
+    match /telefonos/{telefono} {
+      allow get: if true;
+      allow create: if true;
+      allow list, update, delete: if request.auth != null;
+    }
+
     // ---------- USUARIOS DE RH ----------
-    // READ público: el flujo de login necesita resolver username → email
-    //   ANTES de autenticarse (signInWithEmailAndPassword recibe un email).
-    //   Por eso si esto requiere auth, el login se rompe en catch-22.
-    //   No expone contraseñas (esas están en Firebase Auth, no en Firestore).
+    // READ público: el login resuelve username → email ANTES de autenticarse.
+    //   No expone contraseñas (esas viven en Firebase Auth, no en Firestore).
     // WRITE solo autenticado (solo RH crea/edita cuentas).
     match /usuarios/{usuario} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-
-    // ---------- DENY POR DEFECTO ----------
-    // Cualquier otra colección que se cree en el futuro queda bloqueada
-    // hasta que se le defina una regla explícita arriba.
   }
 }
-
-/*
-NOTAS DE SEGURIDAD
-
-1. Por qué `candidates.update` es público:
-   - /solicitud llena la solicitud electrónica con updateDoc
-   - /evaluacion/:id guarda las respuestas del cuestionario de liderazgo
-   Ambos son flujos públicos para el candidato. El "token" es el id del
-   documento (UID generado por Firestore al crear el candidato), que solo
-   RH conoce porque lo envía por WhatsApp.
-
-   Si en el futuro quieres endurecer esto sin romper el flujo, una opción
-   es agregar un campo `tokenActualizacion` al crear el candidato y validar
-   que el cliente lo envíe en cada update. Pero para una empresa interna
-   de tamaño medio el riesgo es bajo.
-
-2. Por qué `candidates.create` es público:
-   - El formulario /unete tiene que poder crear candidatos sin que la
-     persona esté logueada (es el flujo de postulación).
-   - Mitigado con: captcha de Google reCAPTCHA v2 en /unete y la lógica
-     de buscarDuplicado que bloquea repostulación del mismo teléfono.
-
-3. Por qué `puestos.read` es público:
-   - /portal y /empleos muestran las vacantes activas a cualquier visitante.
-   - No hay info sensible: nombre del puesto, sucursal, sueldo (texto libre).
-*/
