@@ -409,7 +409,18 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
       if (cvUrlReverso) datosCandidatoCompleto.cvUrlReverso = cvUrlReverso;
       if (licenciaUrl) datosCandidatoCompleto.licenciaUrl = licenciaUrl;
 
-      await this.candidateService.createCandidate(datosCandidatoCompleto);
+      const refCreado = await this.candidateService.createCandidate(datosCandidatoCompleto);
+
+      // Avisar al bot de WhatsApp para que le escriba al candidato y continúe su
+      // proceso (mejor esfuerzo, no bloquea la confirmación al usuario).
+      try {
+        const cid = (refCreado && (refCreado as any).id) || refCreado;
+        fetch('https://bot-rh-production.up.railway.app/api/nueva-solicitud', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ candidateId: cid }),
+        }).catch(() => {});
+      } catch (_) { /* si falla el aviso, la postulación ya quedó guardada */ }
 
       this.modal = {
         tipo: 'exito',
