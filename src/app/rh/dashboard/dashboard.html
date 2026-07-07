@@ -131,6 +131,18 @@
           <input type="text" class="search-input"
                  placeholder="Buscar por nombre, puesto o ciudad"
                  [(ngModel)]="terminoBusqueda" (input)="filtrarCandidatos()">
+          <select class="filter-select" [(ngModel)]="filtroCiudad" (change)="filtrarCandidatos()">
+            <option value="">Todas las ciudades</option>
+            @for (ciudad of ciudadesDisponibles; track ciudad) {
+              <option [value]="ciudad">{{ ciudad }}</option>
+            }
+          </select>
+          <select class="filter-select" [(ngModel)]="filtroPuesto" (change)="filtrarCandidatos()">
+            <option value="">Todos los puestos</option>
+            @for (puesto of puestosDisponibles; track puesto) {
+              <option [value]="puesto">{{ puesto }}</option>
+            }
+          </select>
           <button class="btn-secondary" (click)="exportarExcel()">Exportar a Excel</button>
         </div>
       </header>

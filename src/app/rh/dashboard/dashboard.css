@@ -267,6 +267,22 @@
   border-color: var(--ink);
   box-shadow: 0 0 0 3px rgba(15,14,12,0.06);
 }
+.filter-select {
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-med);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: inherit;
+}
+.filter-select:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(15,14,12,0.06);
+}
 .btn-secondary {
   background: var(--ink);
   color: #fff;
@@ -514,7 +530,8 @@
   .distrib-row { grid-template-columns: 130px 1fr 32px; gap: 10px; }
   .distrib-label { font-size: 11.5px; }
   .toolbar-actions { width: 100%; }
-  .search-input { min-width: 0; flex: 1; }
+  .search-input { min-width: 0; flex: 1 1 100%; }
+  .filter-select { flex: 1 1 45%; }
   .fuentes-table th, .fuentes-table td { padding: 10px 16px; }
 }
 @media (max-width: 480px) {

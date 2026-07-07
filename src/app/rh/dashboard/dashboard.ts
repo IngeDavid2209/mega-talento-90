@@ -30,6 +30,10 @@ export class DashboardComponent implements OnInit {
   candidatosRecientes: any[] = [];
   candidatosFiltrados: any[] = [];
   terminoBusqueda = '';
+  filtroCiudad = '';
+  filtroPuesto = '';
+  ciudadesDisponibles: string[] = [];
+  puestosDisponibles: string[] = [];
 
   // Ventana de "Solicitudes recientes" (cambiar aquí si se quiere otro período)
   private readonly DIAS_RECIENTES = 30;
@@ -179,19 +183,36 @@ export class DashboardComponent implements OnInit {
       return db.getTime() - da.getTime();
     });
     this.candidatosFiltrados = [...this.candidatosRecientes];
+    this.armarOpcionesFiltros();
+  }
+
+  /** Listas únicas de ciudades y puestos presentes en las solicitudes recientes */
+  armarOpcionesFiltros() {
+    const ciudadDe = (c: any) => (c.ciudad || c.sucursal || '').toString().trim();
+    this.ciudadesDisponibles = Array.from(
+      new Set(this.candidatosRecientes.map(ciudadDe).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, 'es'));
+    this.puestosDisponibles = Array.from(
+      new Set(this.candidatosRecientes.map(c => (c.puesto || '').toString().trim()).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, 'es'));
+
+    // Si el valor seleccionado ya no existe en los datos, se limpia
+    if (this.filtroCiudad && !this.ciudadesDisponibles.includes(this.filtroCiudad)) this.filtroCiudad = '';
+    if (this.filtroPuesto && !this.puestosDisponibles.includes(this.filtroPuesto)) this.filtroPuesto = '';
   }
 
   filtrarCandidatos() {
     const t = this.terminoBusqueda.toLowerCase().trim();
-    if (!t) {
-      this.candidatosFiltrados = [...this.candidatosRecientes];
-      return;
-    }
-    this.candidatosFiltrados = this.candidatosRecientes.filter((c: any) =>
-      (c.nombre || '').toLowerCase().includes(t) ||
-      (c.puesto || '').toLowerCase().includes(t) ||
-      (c.ciudad || '').toLowerCase().includes(t)
-    );
+    this.candidatosFiltrados = this.candidatosRecientes.filter((c: any) => {
+      const ciudad = (c.ciudad || c.sucursal || '').toString();
+      const coincideTexto = !t ||
+        (c.nombre || '').toLowerCase().includes(t) ||
+        (c.puesto || '').toLowerCase().includes(t) ||
+        ciudad.toLowerCase().includes(t);
+      const coincideCiudad = !this.filtroCiudad || ciudad === this.filtroCiudad;
+      const coincidePuesto = !this.filtroPuesto || (c.puesto || '') === this.filtroPuesto;
+      return coincideTexto && coincideCiudad && coincidePuesto;
+    });
   }
 
   exportarExcel() {
