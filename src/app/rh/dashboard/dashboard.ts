@@ -1,26 +1,18 @@
 import { Component, inject, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
-import { urlWhatsApp } from '../../core/models/puestos.model';
-import { CapitalHumanoService } from '../../core/services/capital-humano.service';
-import { ToastService } from '../../core/services/toast.service';
-import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })
 export class DashboardComponent implements OnInit {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
-  private toast = inject(ToastService);
-  // Público para que el template use displayName() en la tabla
-  capitalHumano = inject(CapitalHumanoService);
 
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
@@ -28,14 +20,6 @@ export class DashboardComponent implements OnInit {
   cargando = true;
   candidatos: any[] = [];
   candidatosRecientes: any[] = [];
-  candidatosFiltrados: any[] = [];
-  gruposSolicitudes: { zona: string; candidatos: any[] }[] = [];
-  zonasColapsadas = new Set<string>();
-  terminoBusqueda = '';
-  filtroCiudad = '';
-  filtroPuesto = '';
-  ciudadesDisponibles: string[] = [];
-  puestosDisponibles: string[] = [];
 
   // Ventana de "Solicitudes recientes" (cambiar aquí si se quiere otro período)
   private readonly DIAS_RECIENTES = 30;
@@ -67,7 +51,6 @@ export class DashboardComponent implements OnInit {
       this.ngZone.run(() => {
         this.candidatos = datos;
         this.calcularKpis();
-        this.armarTabla();
         this.cargando = false;
       });
     });
@@ -205,150 +188,5 @@ export class DashboardComponent implements OnInit {
     if (elegibles.length === 0) return 0;
     const retenidos = elegibles.filter(c => c.status === ID_ETAPAS.CONTRATADO && !c.bajaAt).length;
     return Math.round((retenidos / elegibles.length) * 100);
-  }
-
-  armarTabla() {
-    this.candidatosRecientes.sort((a: any, b: any) => {
-      const da = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-      const db = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-      return db.getTime() - da.getTime();
-    });
-    this.candidatosFiltrados = [...this.candidatosRecientes];
-    this.armarOpcionesFiltros();
-    this.agruparSolicitudes();
-  }
-
-  /** Agrupa las solicitudes filtradas por zona (ciudad), de mayor a menor volumen. */
-  private agruparSolicitudes() {
-    const map = new Map<string, any[]>();
-    for (const c of this.candidatosFiltrados) {
-      const zona = (c.ciudad || c.sucursal || '').toString().trim() || 'Sin ciudad';
-      if (!map.has(zona)) map.set(zona, []);
-      map.get(zona)!.push(c);
-    }
-    this.gruposSolicitudes = Array.from(map.entries())
-      .map(([zona, candidatos]) => ({ zona, candidatos }))
-      .sort((a, b) => b.candidatos.length - a.candidatos.length);
-  }
-
-  toggleZona(zona: string) {
-    if (this.zonasColapsadas.has(zona)) this.zonasColapsadas.delete(zona);
-    else this.zonasColapsadas.add(zona);
-  }
-
-  /** Listas únicas de ciudades y puestos presentes en las solicitudes recientes */
-  armarOpcionesFiltros() {
-    const ciudadDe = (c: any) => (c.ciudad || c.sucursal || '').toString().trim();
-    this.ciudadesDisponibles = Array.from(
-      new Set(this.candidatosRecientes.map(ciudadDe).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, 'es'));
-    this.puestosDisponibles = Array.from(
-      new Set(this.candidatosRecientes.map(c => (c.puesto || '').toString().trim()).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, 'es'));
-
-    // Si el valor seleccionado ya no existe en los datos, se limpia
-    if (this.filtroCiudad && !this.ciudadesDisponibles.includes(this.filtroCiudad)) this.filtroCiudad = '';
-    if (this.filtroPuesto && !this.puestosDisponibles.includes(this.filtroPuesto)) this.filtroPuesto = '';
-  }
-
-  filtrarCandidatos() {
-    const t = this.terminoBusqueda.toLowerCase().trim();
-    this.candidatosFiltrados = this.candidatosRecientes.filter((c: any) => {
-      const ciudad = (c.ciudad || c.sucursal || '').toString();
-      const coincideTexto = !t ||
-        (c.nombre || '').toLowerCase().includes(t) ||
-        (c.puesto || '').toLowerCase().includes(t) ||
-        ciudad.toLowerCase().includes(t);
-      const coincideCiudad = !this.filtroCiudad || ciudad === this.filtroCiudad;
-      const coincidePuesto = !this.filtroPuesto || (c.puesto || '') === this.filtroPuesto;
-      return coincideTexto && coincideCiudad && coincidePuesto;
-    });
-    this.agruparSolicitudes();
-  }
-
-  exportarExcel() {
-    const datos = this.candidatosFiltrados.map(c => ({
-      'Fecha': this.formatearFecha(c.createdAt),
-      'Nombre': c.nombre,
-      'Teléfono': c.telefono,
-      'Ciudad': c.ciudad || c.sucursal || '',
-      'Puesto': c.puesto,
-      'Fuente': c.fuente || '',
-      'Estatus': this.getNombreEtapa(c.status)
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Candidatos');
-    XLSX.writeFile(libro, 'Reporte_MegaTalento.xlsx');
-  }
-
-  getNombreEtapa(id: string): string {
-    return ETAPAS.find(e => e.id === id)?.title || id || 'Sin estatus';
-  }
-
-  formatearFecha(timestamp: any): string {
-    if (!timestamp) return 'S/F';
-    const d = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
-
-  contactarWhatsApp(c: any) {
-    const url = urlWhatsApp(c);
-    if (!url) {
-      this.toast.alerta(
-        `El teléfono (${c.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
-        `Teléfono de ${c.nombre || 'este candidato'} inválido`
-      );
-      return;
-    }
-    window.open(url, '_blank');
-  }
-
-  async cambiarEstatus(idCandidato: string, event: any) {
-    const nuevo = event.target.value;
-    try {
-      await this.candidateService.updateCandidate(idCandidato, { status: nuevo });
-    } catch (e) {
-      console.error('Error al cambiar estatus:', e);
-    }
-  }
-
-  // Confirmación de borrado con modal propio (no el confirm() del navegador)
-  candidatoAEliminar: any = null;
-  borrando = false;
-  errorBorrado = '';
-
-  pedirBorrar(c: any) {
-    this.candidatoAEliminar = c;
-    this.errorBorrado = '';
-  }
-
-  cancelarBorrar() {
-    this.candidatoAEliminar = null;
-    this.errorBorrado = '';
-  }
-
-  async confirmarBorrar() {
-    if (!this.candidatoAEliminar) return;
-    this.borrando = true;
-    this.errorBorrado = '';
-    try {
-      await this.candidateService.eliminarCandidato(this.candidatoAEliminar.id);
-      this.candidatoAEliminar = null;
-    } catch (e) {
-      console.error('Error al mover candidato a la papelera:', e);
-      this.errorBorrado = 'No se pudo enviar a la papelera. Revisa tu conexión y vuelve a intentar.';
-    } finally {
-      this.borrando = false;
-    }
-  }
-
-  getInitials(nombre: string): string {
-    if (!nombre) return '?';
-    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
-  }
-
-  getColorEtapa(id: string): string {
-    return ETAPAS.find(e => e.id === id)?.color || '#94a3b8';
   }
 }
