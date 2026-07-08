@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { PuestosService, Puesto } from '../../app/core/services/puestos.service';
+import { PuestosService, Puesto, dedupPuestos } from '../../app/core/services/puestos.service';
 import { SUCURSALES, sucursalPorId } from '../../app/core/models/sucursales.model';
 
 @Component({
@@ -58,7 +58,7 @@ export class PortalComponent implements OnInit, OnDestroy {
     this.unsub = this.puestosService.listar(
       (lista) => {
         if (this.timeoutCarga) { clearTimeout(this.timeoutCarga); this.timeoutCarga = null; }
-        this.puestos = lista.filter(p => p.activo);
+        this.puestos = dedupPuestos(lista.filter(p => p.activo));
         this.cargando = false;
         this.errorCarga = '';
       },

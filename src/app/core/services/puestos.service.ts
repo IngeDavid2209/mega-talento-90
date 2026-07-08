@@ -35,6 +35,29 @@ export interface Puesto {
   createdAt?: any;
 }
 
+/**
+ * Quita puestos DUPLICADOS por nombre (normalizado: sin espacios/acentos/mayúsculas),
+ * p. ej. "Cajero (a)" y "Cajero(a)" se colapsan en uno. Si hay duplicado, conserva
+ * el que tenga `sucursalIds` (filtra bien por ciudad). USAR SOLO en vistas de
+ * candidatos (cartelera /empleos y formulario /unete); el admin ve la lista completa
+ * para poder gestionarlos.
+ */
+export function dedupPuestos(lista: Puesto[]): Puesto[] {
+  const norm = (s: string) =>
+    (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+  const porNombre = new Map<string, Puesto>();
+  for (const p of lista) {
+    const k = norm(p.nombre);
+    if (!k) continue;
+    const previo = porNombre.get(k);
+    if (!previo) { porNombre.set(k, p); continue; }
+    const previoTiene = Array.isArray(previo.sucursalIds) && previo.sucursalIds.length > 0;
+    const actualTiene = Array.isArray(p.sucursalIds) && p.sucursalIds.length > 0;
+    if (!previoTiene && actualTiene) porNombre.set(k, p); // preferir el que filtra por ciudad
+  }
+  return Array.from(porNombre.values());
+}
+
 @Injectable({ providedIn: 'root' })
 export class PuestosService {
 

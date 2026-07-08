@@ -4,7 +4,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
 import { subirACloudinary } from '../../app/core/services/cloudinary';
-import { PuestosService, Puesto } from '../../app/core/services/puestos.service';
+import { PuestosService, Puesto, dedupPuestos } from '../../app/core/services/puestos.service';
 import { sucursalPorId, ciudadesUnicas } from '../../app/core/models/sucursales.model';
 
 type TipoCV = 'pdf' | 'fotos';
@@ -68,7 +68,7 @@ export class CandidateFormComponent implements OnInit, OnDestroy {
     // (/empleos): mismas vacantes con activo=true, en el mismo orden, sin fallback
     // hardcoded. Si el admin oculta una vacante, desaparece al instante de ambas.
     this.unsubPuestos = this.puestosService.listar((lista) => {
-      this.puestosFull = lista.filter(p => p.activo);
+      this.puestosFull = dedupPuestos(lista.filter(p => p.activo));
       this.aplicarQueryPuesto();
     });
 
