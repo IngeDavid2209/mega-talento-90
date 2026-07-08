@@ -29,6 +29,8 @@ export class DashboardComponent implements OnInit {
   candidatos: any[] = [];
   candidatosRecientes: any[] = [];
   candidatosFiltrados: any[] = [];
+  gruposSolicitudes: { zona: string; candidatos: any[] }[] = [];
+  zonasColapsadas = new Set<string>();
   terminoBusqueda = '';
   filtroCiudad = '';
   filtroPuesto = '';
@@ -55,6 +57,10 @@ export class DashboardComponent implements OnInit {
 
   // Fuentes
   fuentes: { nombre: string; total: number; contratados: number; efectividad: number }[] = [];
+
+  // Desglose por zona (ciudad) y por puesto
+  porZona: { nombre: string; total: number; activos: number; contratados: number; pct: number }[] = [];
+  porPuesto: { nombre: string; total: number; activos: number; contratados: number; pct: number }[] = [];
 
   async ngOnInit() {
     this.candidateService.listenToCandidates(datos => {
@@ -161,6 +167,31 @@ export class DashboardComponent implements OnInit {
         efectividad: v.total > 0 ? Math.round((v.contratados / v.total) * 100) : 0
       }))
       .sort((a, b) => b.total - a.total);
+
+    // Desglose por zona (ciudad) y por puesto
+    this.porZona = this.agruparPor(c => (c.ciudad || c.sucursal || '').toString().trim(), 'Sin ciudad');
+    this.porPuesto = this.agruparPor(c => (c.puesto || '').toString().trim(), 'Sin puesto');
+  }
+
+  /**
+   * Agrupa los candidatos por una clave (zona o puesto) y cuenta total,
+   * activos (en proceso) y contratados. El pct es relativo al grupo más
+   * grande para que las barras se lean bien. Ordena de mayor a menor volumen.
+   */
+  private agruparPor(claveFn: (c: any) => string, fallback: string) {
+    const map = new Map<string, { total: number; activos: number; contratados: number }>();
+    this.candidatos.forEach(c => {
+      const clave = claveFn(c) || fallback;
+      if (!map.has(clave)) map.set(clave, { total: 0, activos: 0, contratados: 0 });
+      const o = map.get(clave)!;
+      o.total++;
+      if (c.status === ID_ETAPAS.CONTRATADO) o.contratados++;
+      else if (c.status !== ID_ETAPAS.RECHAZADO) o.activos++;
+    });
+    const arr = Array.from(map.entries()).map(([nombre, v]) => ({ nombre, ...v, pct: 0 }));
+    const max = arr.reduce((m, x) => Math.max(m, x.total), 0);
+    arr.forEach(x => (x.pct = max > 0 ? Math.round((x.total / max) * 100) : 0));
+    return arr.sort((a, b) => b.total - a.total);
   }
 
   /** Retención: contratados que llevan >= N días desde hiredAt y siguen como contratados */
@@ -184,6 +215,25 @@ export class DashboardComponent implements OnInit {
     });
     this.candidatosFiltrados = [...this.candidatosRecientes];
     this.armarOpcionesFiltros();
+    this.agruparSolicitudes();
+  }
+
+  /** Agrupa las solicitudes filtradas por zona (ciudad), de mayor a menor volumen. */
+  private agruparSolicitudes() {
+    const map = new Map<string, any[]>();
+    for (const c of this.candidatosFiltrados) {
+      const zona = (c.ciudad || c.sucursal || '').toString().trim() || 'Sin ciudad';
+      if (!map.has(zona)) map.set(zona, []);
+      map.get(zona)!.push(c);
+    }
+    this.gruposSolicitudes = Array.from(map.entries())
+      .map(([zona, candidatos]) => ({ zona, candidatos }))
+      .sort((a, b) => b.candidatos.length - a.candidatos.length);
+  }
+
+  toggleZona(zona: string) {
+    if (this.zonasColapsadas.has(zona)) this.zonasColapsadas.delete(zona);
+    else this.zonasColapsadas.add(zona);
   }
 
   /** Listas únicas de ciudades y puestos presentes en las solicitudes recientes */
@@ -213,6 +263,7 @@ export class DashboardComponent implements OnInit {
       const coincidePuesto = !this.filtroPuesto || (c.puesto || '') === this.filtroPuesto;
       return coincideTexto && coincideCiudad && coincidePuesto;
     });
+    this.agruparSolicitudes();
   }
 
   exportarExcel() {

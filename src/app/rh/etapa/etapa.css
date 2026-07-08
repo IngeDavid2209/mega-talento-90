@@ -118,6 +118,51 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* GRUPOS POR ZONA */
+.zona-group { margin-bottom: 26px; }
+.zona-group:last-child { margin-bottom: 0; }
+.zona-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 2px 12px;
+  margin-bottom: 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.zona-chevron {
+  width: 16px; height: 16px;
+  color: var(--text2);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.zona-header.colapsada .zona-chevron { transform: rotate(-90deg); }
+.zona-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.zona-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 /* GRID de tarjetas */
 .card-grid {
   display: grid;

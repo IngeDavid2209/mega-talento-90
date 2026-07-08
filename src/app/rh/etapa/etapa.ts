@@ -38,6 +38,8 @@ export class EtapaComponent implements OnInit, OnDestroy {
 
   private todos: any[] = [];
   candidatos: any[] = [];
+  gruposCandidatos: { zona: string; candidatos: any[] }[] = [];
+  zonasColapsadas = new Set<string>();
   busqueda = '';
 
   private paramSub?: Subscription;
@@ -110,6 +112,25 @@ export class EtapaComponent implements OnInit, OnDestroy {
       return db.getTime() - da.getTime();
     });
     this.candidatos = lista;
+    this.agruparPorZona();
+  }
+
+  /** Agrupa los candidatos de la etapa por zona (ciudad), de mayor a menor volumen. */
+  private agruparPorZona() {
+    const map = new Map<string, any[]>();
+    for (const c of this.candidatos) {
+      const zona = (c.ciudad || c.sucursal || '').toString().trim() || 'Sin ciudad';
+      if (!map.has(zona)) map.set(zona, []);
+      map.get(zona)!.push(c);
+    }
+    this.gruposCandidatos = Array.from(map.entries())
+      .map(([zona, candidatos]) => ({ zona, candidatos }))
+      .sort((a, b) => b.candidatos.length - a.candidatos.length);
+  }
+
+  toggleZona(zona: string) {
+    if (this.zonasColapsadas.has(zona)) this.zonasColapsadas.delete(zona);
+    else this.zonasColapsadas.add(zona);
   }
 
   abrirExpediente(c: any) {

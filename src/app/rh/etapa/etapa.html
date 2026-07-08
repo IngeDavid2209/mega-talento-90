@@ -36,8 +36,20 @@
       <small>Los candidatos aparecen aquí cuando llegan a "{{ etapa?.title }}".</small>
     </div>
   } @else {
+    @for (grupo of gruposCandidatos; track grupo.zona) {
+    <div class="zona-group">
+      <button class="zona-header" type="button"
+              (click)="toggleZona(grupo.zona)"
+              [class.colapsada]="zonasColapsadas.has(grupo.zona)">
+        <svg class="zona-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+        <span class="zona-name">{{ grupo.zona }}</span>
+        <span class="zona-count">{{ grupo.candidatos.length }}</span>
+      </button>
+      @if (!zonasColapsadas.has(grupo.zona)) {
     <div class="card-grid">
-      @for (candidato of candidatos; track candidato.id) {
+      @for (candidato of grupo.candidatos; track candidato.id) {
         <div class="etapa-card"
              [class.card-alerta]="isCandidatoAlerta(candidato)"
              (click)="abrirExpediente(candidato)">
@@ -51,8 +63,6 @@
 
           <p class="card-sub">
             {{ candidato.puesto || 'Sin puesto' }}
-            <span class="sub-sep">·</span>
-            {{ candidato.ciudad || candidato.sucursal || 'S/C' }}
           </p>
 
           @if (getProgresoEtapa(candidato); as p) {
@@ -121,5 +131,8 @@
         </div>
       }
     </div>
+      }
+    </div>
+    }
   }
 </div>

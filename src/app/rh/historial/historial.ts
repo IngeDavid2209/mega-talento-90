@@ -26,6 +26,8 @@ export class HistorialComponent implements OnInit {
 
   candidatos: any[] = [];
   candidatosFiltrados: any[] = [];
+  gruposCandidatos: { zona: string; candidatos: any[] }[] = [];
+  zonasColapsadas = new Set<string>();
   cargando = true;
   terminoBusqueda = '';
   filtroEstatus = '';
@@ -59,6 +61,25 @@ export class HistorialComponent implements OnInit {
       const matchEstatus = !this.filtroEstatus || c.status === this.filtroEstatus;
       return matchTexto && matchEstatus;
     });
+    this.agruparPorZona();
+  }
+
+  /** Agrupa las solicitudes filtradas por zona (ciudad), de mayor a menor volumen. */
+  private agruparPorZona() {
+    const map = new Map<string, any[]>();
+    for (const c of this.candidatosFiltrados) {
+      const zona = (c.ciudad || c.sucursal || '').toString().trim() || 'Sin ciudad';
+      if (!map.has(zona)) map.set(zona, []);
+      map.get(zona)!.push(c);
+    }
+    this.gruposCandidatos = Array.from(map.entries())
+      .map(([zona, candidatos]) => ({ zona, candidatos }))
+      .sort((a, b) => b.candidatos.length - a.candidatos.length);
+  }
+
+  toggleZona(zona: string) {
+    if (this.zonasColapsadas.has(zona)) this.zonasColapsadas.delete(zona);
+    else this.zonasColapsadas.add(zona);
   }
 
   exportarExcel() {

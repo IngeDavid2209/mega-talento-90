@@ -131,6 +131,52 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* GRUPOS POR ZONA */
+.zona-group { border-bottom: 1px solid var(--border); }
+.zona-group:last-child { border-bottom: none; }
+.zona-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 24px;
+  background: var(--surface3);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.16s;
+}
+.zona-header:hover { background: var(--surface2); }
+.zona-chevron {
+  width: 16px; height: 16px;
+  color: var(--text2);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.zona-header.colapsada .zona-chevron { transform: rotate(-90deg); }
+.zona-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.zona-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 /* TABLE */
 .table-responsive { width: 100%; overflow-x: auto; }
 .data-table {
