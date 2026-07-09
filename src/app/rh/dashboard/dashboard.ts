@@ -1,7 +1,9 @@
 import { Component, inject, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
+import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,6 +15,9 @@ import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 export class DashboardComponent implements OnInit {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
+  private router = inject(Router);
+  // Público para que el template use displayName() en las listas desplegables
+  capitalHumano = inject(CapitalHumanoService);
 
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
@@ -43,8 +48,12 @@ export class DashboardComponent implements OnInit {
   fuentes: { nombre: string; total: number; contratados: number; efectividad: number }[] = [];
 
   // Desglose por zona (ciudad) y por puesto
-  porZona: { nombre: string; total: number; activos: number; contratados: number; pct: number }[] = [];
-  porPuesto: { nombre: string; total: number; activos: number; contratados: number; pct: number }[] = [];
+  porZona: { nombre: string; total: number; activos: number; contratados: number; pct: number; candidatos: any[] }[] = [];
+  porPuesto: { nombre: string; total: number; activos: number; contratados: number; pct: number; candidatos: any[] }[] = [];
+
+  // Filas desplegadas (drill-down) en cada panel
+  zonaAbierta = new Set<string>();
+  puestoAbierto = new Set<string>();
 
   async ngOnInit() {
     this.candidateService.listenToCandidates(datos => {
@@ -162,19 +171,61 @@ export class DashboardComponent implements OnInit {
    * grande para que las barras se lean bien. Ordena de mayor a menor volumen.
    */
   private agruparPor(claveFn: (c: any) => string, fallback: string) {
-    const map = new Map<string, { total: number; activos: number; contratados: number }>();
+    const map = new Map<string, { total: number; activos: number; contratados: number; candidatos: any[] }>();
     this.candidatos.forEach(c => {
       const clave = claveFn(c) || fallback;
-      if (!map.has(clave)) map.set(clave, { total: 0, activos: 0, contratados: 0 });
+      if (!map.has(clave)) map.set(clave, { total: 0, activos: 0, contratados: 0, candidatos: [] });
       const o = map.get(clave)!;
       o.total++;
+      o.candidatos.push(c);
       if (c.status === ID_ETAPAS.CONTRATADO) o.contratados++;
       else if (c.status !== ID_ETAPAS.RECHAZADO) o.activos++;
     });
     const arr = Array.from(map.entries()).map(([nombre, v]) => ({ nombre, ...v, pct: 0 }));
     const max = arr.reduce((m, x) => Math.max(m, x.total), 0);
-    arr.forEach(x => (x.pct = max > 0 ? Math.round((x.total / max) * 100) : 0));
+    arr.forEach(x => {
+      x.pct = max > 0 ? Math.round((x.total / max) * 100) : 0;
+      // Candidatos del grupo, más recientes primero
+      x.candidatos.sort((a: any, b: any) => {
+        const da = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+        const db = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+        return db.getTime() - da.getTime();
+      });
+    });
     return arr.sort((a, b) => b.total - a.total);
+  }
+
+  toggleZona(nombre: string) {
+    if (this.zonaAbierta.has(nombre)) this.zonaAbierta.delete(nombre);
+    else this.zonaAbierta.add(nombre);
+  }
+
+  togglePuesto(nombre: string) {
+    if (this.puestoAbierto.has(nombre)) this.puestoAbierto.delete(nombre);
+    else this.puestoAbierto.add(nombre);
+  }
+
+  abrirExpediente(c: any) {
+    this.router.navigate(['/app/expediente', c.id]);
+  }
+
+  getInitials(nombre: string): string {
+    if (!nombre) return '?';
+    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+  }
+
+  getColorEtapa(id: string): string {
+    return ETAPAS.find(e => e.id === id)?.color || '#94a3b8';
+  }
+
+  getNombreEtapa(id: string): string {
+    return ETAPAS.find(e => e.id === id)?.title || id || 'Sin estatus';
+  }
+
+  formatearFecha(timestamp: any): string {
+    if (!timestamp) return 'S/F';
+    const d = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   /** Retención: contratados que llevan >= N días desde hiredAt y siguen como contratados */

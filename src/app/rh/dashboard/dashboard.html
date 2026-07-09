@@ -131,13 +131,34 @@
         </header>
         <div class="group-list">
           @for (g of porZona; track g.nombre) {
-            <div class="group-row">
-              <span class="group-name" [title]="g.nombre">{{ g.nombre }}</span>
-              <div class="group-bar"><div class="group-fill" [style.width.%]="g.pct"></div></div>
-              <div class="group-stats">
-                <span class="group-total">{{ g.total }}</span>
-                <span class="group-sub">{{ g.activos }} act. · {{ g.contratados }} cont.</span>
-              </div>
+            <div class="group-block">
+              <button class="group-row" type="button"
+                      (click)="toggleZona(g.nombre)"
+                      [class.abierta]="zonaAbierta.has(g.nombre)">
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <span class="group-name" [title]="g.nombre">{{ g.nombre }}</span>
+                <div class="group-bar"><div class="group-fill" [style.width.%]="g.pct"></div></div>
+                <div class="group-stats">
+                  <span class="group-total">{{ g.total }}</span>
+                  <span class="group-sub">{{ g.activos }} act. · {{ g.contratados }} cont.</span>
+                </div>
+              </button>
+              @if (zonaAbierta.has(g.nombre)) {
+                <div class="cand-list">
+                  @for (c of g.candidatos; track c.id) {
+                    <button class="cand-item" type="button" (click)="abrirExpediente(c)">
+                      <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
+                      <span class="cand-info">
+                        <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
+                        <span class="cand-sub">{{ c.puesto || 'Sin puesto' }} · {{ formatearFecha(c.createdAt) }}</span>
+                      </span>
+                      <span class="cand-etapa">{{ getNombreEtapa(c.status) }}</span>
+                    </button>
+                  }
+                </div>
+              }
             </div>
           } @empty {
             <p class="empty-row">Sin candidatos registrados</p>
@@ -154,13 +175,34 @@
         </header>
         <div class="group-list">
           @for (g of porPuesto; track g.nombre) {
-            <div class="group-row">
-              <span class="group-name" [title]="g.nombre">{{ g.nombre }}</span>
-              <div class="group-bar"><div class="group-fill" [style.width.%]="g.pct"></div></div>
-              <div class="group-stats">
-                <span class="group-total">{{ g.total }}</span>
-                <span class="group-sub">{{ g.activos }} act. · {{ g.contratados }} cont.</span>
-              </div>
+            <div class="group-block">
+              <button class="group-row" type="button"
+                      (click)="togglePuesto(g.nombre)"
+                      [class.abierta]="puestoAbierto.has(g.nombre)">
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <span class="group-name" [title]="g.nombre">{{ g.nombre }}</span>
+                <div class="group-bar"><div class="group-fill" [style.width.%]="g.pct"></div></div>
+                <div class="group-stats">
+                  <span class="group-total">{{ g.total }}</span>
+                  <span class="group-sub">{{ g.activos }} act. · {{ g.contratados }} cont.</span>
+                </div>
+              </button>
+              @if (puestoAbierto.has(g.nombre)) {
+                <div class="cand-list">
+                  @for (c of g.candidatos; track c.id) {
+                    <button class="cand-item" type="button" (click)="abrirExpediente(c)">
+                      <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
+                      <span class="cand-info">
+                        <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
+                        <span class="cand-sub">{{ c.ciudad || c.sucursal || 'Sin ciudad' }} · {{ formatearFecha(c.createdAt) }}</span>
+                      </span>
+                      <span class="cand-etapa">{{ getNombreEtapa(c.status) }}</span>
+                    </button>
+                  }
+                </div>
+              }
             </div>
           } @empty {
             <p class="empty-row">Sin candidatos registrados</p>

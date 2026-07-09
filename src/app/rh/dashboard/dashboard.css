@@ -203,17 +203,38 @@
 
 /* DESGLOSE POR ZONA / POR PUESTO */
 .group-list {
-  padding: 16px 24px 22px;
+  padding: 12px 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 4px;
+}
+.group-block {
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 .group-row {
   display: grid;
-  grid-template-columns: 130px 1fr auto;
+  grid-template-columns: 16px 116px 1fr auto;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  border-radius: var(--radius);
+  transition: background 0.16s;
 }
+.group-row:hover { background: var(--surface3); }
+.group-row.abierta { background: var(--surface3); }
+.group-chevron {
+  width: 14px; height: 14px;
+  color: var(--text2);
+  transition: transform 0.2s ease;
+}
+.group-row.abierta .group-chevron { transform: rotate(180deg); }
 .group-name {
   font-size: 13px;
   font-weight: 500;
@@ -252,6 +273,70 @@
   font-size: 10.5px;
   color: var(--text3);
   letter-spacing: 0.02em;
+}
+
+/* Lista de candidatos desplegada dentro de un grupo */
+.cand-list {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 8px 8px 34px;
+  max-height: 340px;
+  overflow-y: auto;
+  border-left: 2px solid var(--border);
+}
+.cand-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.16s;
+}
+.cand-item:hover { background: var(--surface3); }
+.cand-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.cand-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.cand-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cand-sub {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cand-etapa {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 /* FUENTES */
@@ -630,9 +715,10 @@
   .distrib-row { grid-template-columns: 130px 1fr 32px; gap: 10px; }
   .distrib-label { font-size: 11.5px; }
   .dual-grid.even { grid-template-columns: 1fr; }
-  .group-list { padding: 14px 18px 18px; }
-  .group-row { grid-template-columns: 100px 1fr auto; gap: 10px; }
+  .group-list { padding: 10px 10px 14px; }
+  .group-row { grid-template-columns: 14px 78px 1fr auto; gap: 8px; }
   .group-name { font-size: 11.5px; }
+  .cand-list { margin-left: 24px; }
   .toolbar-actions { width: 100%; }
   .search-input { min-width: 0; flex: 1 1 100%; }
   .filter-select { flex: 1 1 45%; }
