@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { urlWhatsApp } from '../../core/models/puestos.model';
+import { normalizarCiudad } from '../../core/models/normalizacion.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import { ToastService } from '../../core/services/toast.service';
 import * as XLSX from 'xlsx';
@@ -68,7 +69,7 @@ export class HistorialComponent implements OnInit {
   private agruparPorZona() {
     const map = new Map<string, any[]>();
     for (const c of this.candidatosFiltrados) {
-      const zona = (c.ciudad || c.sucursal || '').toString().trim() || 'Sin ciudad';
+      const zona = normalizarCiudad(c.ciudad || c.sucursal);
       if (!map.has(zona)) map.set(zona, []);
       map.get(zona)!.push(c);
     }

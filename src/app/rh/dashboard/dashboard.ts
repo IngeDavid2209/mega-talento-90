@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
+import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 
 @Component({
@@ -160,9 +161,10 @@ export class DashboardComponent implements OnInit {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Desglose por zona (ciudad) y por puesto
-    this.porZona = this.agruparPor(c => (c.ciudad || c.sucursal || '').toString().trim(), 'Sin ciudad');
-    this.porPuesto = this.agruparPor(c => (c.puesto || '').toString().trim(), 'Sin puesto');
+    // Desglose por zona (ciudad) y por puesto — con etiquetas normalizadas
+    // para unir variantes equivalentes (p.ej. "Cajero (a)" y "Cajero(a)").
+    this.porZona = this.agruparPor(c => normalizarCiudad(c.ciudad || c.sucursal), 'Sin ciudad');
+    this.porPuesto = this.agruparPor(c => normalizarPuesto(c.puesto), 'Sin puesto');
   }
 
   /**
