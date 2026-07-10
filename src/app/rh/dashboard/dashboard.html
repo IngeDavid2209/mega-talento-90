@@ -148,14 +148,19 @@
               @if (zonaAbierta.has(g.nombre)) {
                 <div class="cand-list">
                   @for (c of g.candidatos; track c.id) {
-                    <button class="cand-item" type="button" (click)="abrirExpediente(c)">
-                      <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
-                      <span class="cand-info">
-                        <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
-                        <span class="cand-sub">{{ c.puesto || 'Sin puesto' }} · {{ formatearFecha(c.createdAt) }}</span>
-                      </span>
+                    <div class="cand-item">
+                      <button class="cand-open" type="button" (click)="abrirExpediente(c)">
+                        <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
+                        <span class="cand-info">
+                          <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
+                          <span class="cand-sub">{{ c.puesto || 'Sin puesto' }} · {{ formatearFecha(c.createdAt) }}</span>
+                        </span>
+                      </button>
                       <span class="cand-etapa">{{ getNombreEtapa(c.status) }}</span>
-                    </button>
+                      @if (c.cvUrl) {
+                        <a class="cand-cv" [href]="c.cvUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()" title="Ver currículum">CV</a>
+                      }
+                    </div>
                   }
                 </div>
               }
@@ -192,14 +197,19 @@
               @if (puestoAbierto.has(g.nombre)) {
                 <div class="cand-list">
                   @for (c of g.candidatos; track c.id) {
-                    <button class="cand-item" type="button" (click)="abrirExpediente(c)">
-                      <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
-                      <span class="cand-info">
-                        <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
-                        <span class="cand-sub">{{ c.ciudad || c.sucursal || 'Sin ciudad' }} · {{ formatearFecha(c.createdAt) }}</span>
-                      </span>
+                    <div class="cand-item">
+                      <button class="cand-open" type="button" (click)="abrirExpediente(c)">
+                        <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
+                        <span class="cand-info">
+                          <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
+                          <span class="cand-sub">{{ c.ciudad || c.sucursal || 'Sin ciudad' }} · {{ formatearFecha(c.createdAt) }}</span>
+                        </span>
+                      </button>
                       <span class="cand-etapa">{{ getNombreEtapa(c.status) }}</span>
-                    </button>
+                      @if (c.cvUrl) {
+                        <a class="cand-cv" [href]="c.cvUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()" title="Ver currículum">CV</a>
+                      }
+                    </div>
                   }
                 </div>
               }

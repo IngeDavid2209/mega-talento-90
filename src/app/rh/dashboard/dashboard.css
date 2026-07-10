@@ -292,21 +292,43 @@
   border-left: 2px solid var(--border);
 }
 .cand-item {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
+  display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   padding: 7px 10px;
-  background: transparent;
-  border: none;
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
   transition: background 0.16s;
 }
 .cand-item:hover { background: var(--surface3); }
+.cand-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.cand-cv {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-sm);
+  color: var(--brand);
+  background: transparent;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: background 0.16s, color 0.16s;
+}
+.cand-cv:hover { background: var(--brand); color: #fff; }
 .cand-avatar {
   width: 28px; height: 28px;
   border-radius: 50%;
