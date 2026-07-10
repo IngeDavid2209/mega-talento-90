@@ -5,6 +5,10 @@ import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
+import {
+  nivelSeguimiento, diasSinSeguimiento, esActivoEnProceso,
+  SEGUIMIENTO_AVISO_DIAS, SEGUIMIENTO_CRITICO_DIAS, NivelSeguimiento
+} from '../../core/models/seguimiento.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -55,6 +59,14 @@ export class DashboardComponent implements OnInit {
   // Filas desplegadas (drill-down) en cada panel
   zonaAbierta = new Set<string>();
   puestoAbierto = new Set<string>();
+
+  // Candidatos activos sin seguimiento (abandonados) — alimenta el banner de alerta
+  sinSeguimiento: any[] = [];
+  sinSeguimientoAvisos = 0;
+  sinSeguimientoCriticos = 0;
+  mostrarSinSeguimiento = false;
+  readonly AVISO_DIAS = SEGUIMIENTO_AVISO_DIAS;
+  readonly CRITICO_DIAS = SEGUIMIENTO_CRITICO_DIAS;
 
   async ngOnInit() {
     this.candidateService.listenToCandidates(datos => {
@@ -165,7 +177,31 @@ export class DashboardComponent implements OnInit {
     // para unir variantes equivalentes (p.ej. "Cajero (a)" y "Cajero(a)").
     this.porZona = this.agruparPor(c => normalizarCiudad(c.ciudad || c.sucursal), 'Sin ciudad');
     this.porPuesto = this.agruparPor(c => normalizarPuesto(c.puesto), 'Sin puesto');
+
+    this.calcularSinSeguimiento(ahora);
   }
+
+  /**
+   * Candidatos ACTIVOS que llevan días sin que RH los toque. Ordena primero los
+   * más abandonados. Alimenta el banner de alerta que presiona a dar seguimiento.
+   */
+  private calcularSinSeguimiento(ahora: Date) {
+    const lista = this.candidatos
+      .filter(c => esActivoEnProceso(c) && nivelSeguimiento(c, ahora) !== 'ok')
+      .sort((a, b) => diasSinSeguimiento(b, ahora) - diasSinSeguimiento(a, ahora));
+    this.sinSeguimiento = lista;
+    this.sinSeguimientoCriticos = lista.filter(c => nivelSeguimiento(c, ahora) === 'critico').length;
+    this.sinSeguimientoAvisos = lista.length - this.sinSeguimientoCriticos;
+    // Si ya no queda nada pendiente, colapsa el detalle
+    if (lista.length === 0) this.mostrarSinSeguimiento = false;
+  }
+
+  toggleSinSeguimiento() {
+    this.mostrarSinSeguimiento = !this.mostrarSinSeguimiento;
+  }
+
+  diasSinSeguimiento(c: any): number { return diasSinSeguimiento(c); }
+  nivelSeguimiento(c: any): NivelSeguimiento { return nivelSeguimiento(c); }
 
   /**
    * Agrupa los candidatos por una clave (zona o puesto) y cuenta total,

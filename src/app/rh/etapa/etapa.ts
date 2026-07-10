@@ -12,6 +12,7 @@ import {
 } from '../../core/models/proceso.model';
 import { urlWhatsApp } from '../../core/models/puestos.model';
 import { normalizarCiudad } from '../../core/models/normalizacion.model';
+import { nivelSeguimiento, diasSinSeguimiento, NivelSeguimiento } from '../../core/models/seguimiento.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -181,12 +182,15 @@ export class EtapaComponent implements OnInit, OnDestroy {
     return 'badge-consolidado';
   }
 
+  // === SEGUIMIENTO: días sin que RH toque el expediente (ver seguimiento.model.ts) ===
   isCandidatoAlerta(c: any): boolean {
-    if (c.status === ID_ETAPAS.CONTRATADO || c.status === ID_ETAPAS.RECHAZADO) return false;
-    if (!c.createdAt) return false;
-    const d = typeof c.createdAt.toDate === 'function' ? c.createdAt.toDate() : new Date(c.createdAt);
-    const horas = Math.abs(new Date().getTime() - d.getTime()) / 36e5;
-    return this.etapa?.slaHoras ? horas > this.etapa.slaHoras : horas > 72;
+    return nivelSeguimiento(c) !== 'ok';
+  }
+  nivelSeguimiento(c: any): NivelSeguimiento {
+    return nivelSeguimiento(c);
+  }
+  diasSinSeguimiento(c: any): number {
+    return diasSinSeguimiento(c);
   }
 
   contactarWhatsApp(c: any) {

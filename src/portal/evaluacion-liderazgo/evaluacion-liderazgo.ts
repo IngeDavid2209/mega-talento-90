@@ -205,7 +205,7 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
       await this.candidateService.updateCandidate(this.candidatoId, {
         cuestionarioLiderazgo: this.respuestas,
         ultimaActividadCuestionario: new Date()
-      });
+      }, { marcarActividad: false }); // lo contesta el candidato, no cuenta como seguimiento de RH
     } catch (e) {
       console.error('Error al guardar respuesta:', e);
       this.error = 'No se pudo guardar. Revisa tu conexión.';

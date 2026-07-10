@@ -146,7 +146,7 @@ export class SolicitudComponent implements OnInit {
           // Actualizar nombre y teléfono por si el candidato los corrigió
           nombre: this.solicitud.datosPersonales.nombre,
           telefono: this.solicitud.contacto.telefono
-        });
+        }, { marcarActividad: false }); // acción del candidato, no seguimiento de RH
       } else {
         // Sin candidato previo: validar duplicados antes de crear
         const duplicado = await this.candidateService.buscarDuplicado(

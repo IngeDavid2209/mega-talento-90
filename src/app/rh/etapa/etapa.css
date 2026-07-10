@@ -183,9 +183,13 @@
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
+/* Alerta de seguimiento: ámbar = por atender, rojo Mega = abandonado */
 .card-alerta {
-  border-left: 3px solid var(--red);
+  border-left: 3px solid var(--amber);
   padding-left: 16px;
+}
+.card-critico {
+  border-left-color: var(--red-brand);
 }
 
 .card-top {
@@ -204,12 +208,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.alert-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--red);
+.seg-badge {
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px var(--red-bg);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--amber-text);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber);
+  white-space: nowrap;
+}
+.seg-badge.critico {
+  color: #fff;
+  background: var(--red-brand);
+  border-color: var(--red-brand);
 }
 .card-sub {
   margin: 4px 0 0;

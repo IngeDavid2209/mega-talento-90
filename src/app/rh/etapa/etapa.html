@@ -52,12 +52,16 @@
       @for (candidato of grupo.candidatos; track candidato.id) {
         <div class="etapa-card"
              [class.card-alerta]="isCandidatoAlerta(candidato)"
+             [class.card-critico]="nivelSeguimiento(candidato) === 'critico'"
              (click)="abrirExpediente(candidato)">
 
           <div class="card-top">
             <span class="card-name">{{ capitalHumano.displayName(candidato) }}</span>
             @if (isCandidatoAlerta(candidato)) {
-              <span class="alert-dot" title="SLA vencido"></span>
+              <span class="seg-badge" [class.critico]="nivelSeguimiento(candidato) === 'critico'"
+                    [title]="'Lleva ' + diasSinSeguimiento(candidato) + ' días sin seguimiento'">
+                {{ diasSinSeguimiento(candidato) }} d sin seguimiento
+              </span>
             }
           </div>
 

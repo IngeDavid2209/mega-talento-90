@@ -114,10 +114,22 @@ export class CandidateService {
     return unsubscribe;
   }
 
-  async updateCandidate(id: string, data: any) {
+  /**
+   * Actualiza un candidato. Por defecto sella `ultimaActividad` con la hora del
+   * servidor, de modo que CUALQUIER acción de RH (mover etapa, checklist, nota,
+   * rúbrica, documentos) marca el expediente como "atendido". Esto alimenta la
+   * detección de candidatos sin seguimiento (ver seguimiento.model.ts).
+   * Los flujos PÚBLICOS donde el propio candidato edita su registro (solicitud,
+   * evaluación de liderazgo) deben pasar { marcarActividad: false } para no
+   * "limpiar" el reloj: que el candidato actúe no significa que RH lo revisó.
+   */
+  async updateCandidate(id: string, data: any, opts: { marcarActividad?: boolean } = {}) {
     try {
       const candidateRef = doc(db, 'candidates', id);
-      await updateDoc(candidateRef, data);
+      const payload = opts.marcarActividad === false
+        ? data
+        : { ...data, ultimaActividad: serverTimestamp() };
+      await updateDoc(candidateRef, payload);
       return true;
     } catch (error) {
       console.error("Error al actualizar candidato:", error);
