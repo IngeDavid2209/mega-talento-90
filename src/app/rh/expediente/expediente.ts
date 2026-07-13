@@ -121,11 +121,22 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     const r = this.resultadoLiderazgo();
     this.candidato.dictamen.competencias = r.porcentaje;
 
+    // Al completar las 12 preguntas, avanza a la 2ª fase (Entrevista Orientación),
+    // igual que cuando el candidato la contesta por su cuenta. Solo si sigue en
+    // Filtro Inicial (o 'nuevo'): no retrocede a quien ya va más adelante.
+    const estado = this.candidato.status;
+    const seCompleto = r.contestadas === r.total && r.total > 0;
+    const debeAvanzar = seCompleto && (!estado || estado === ID_ETAPAS.FILTRO || estado === ID_ETAPAS.NUEVO);
+
+    const payload: any = {
+      cuestionarioLiderazgo: this.candidato.cuestionarioLiderazgo,
+      dictamen: this.candidato.dictamen
+    };
+    if (debeAvanzar) payload.status = ID_ETAPAS.RH;
+
     try {
-      await this.candidateService.updateCandidate(this.candidato.id, {
-        cuestionarioLiderazgo: this.candidato.cuestionarioLiderazgo,
-        dictamen: this.candidato.dictamen
-      });
+      await this.candidateService.updateCandidate(this.candidato.id, payload);
+      if (debeAvanzar) this.candidato.status = ID_ETAPAS.RH;
     } catch (e) {
       console.error('Error al guardar respuesta del cuestionario:', e);
     }
