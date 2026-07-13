@@ -1,0 +1,102 @@
+<div class="res-wrapper">
+
+  <header class="res-header">
+    <span class="eyebrow">Evaluación de liderazgo</span>
+    <h2>Resultados de la encuesta</h2>
+    <p class="res-desc">
+      Candidatos que ya contestaron las 12 preguntas de la evaluación, con su puntuación.
+      Ordenados de mayor a menor porcentaje. Haz clic en un nombre para abrir su expediente.
+    </p>
+  </header>
+
+  @if (cargando) {
+    <div class="state-block">
+      <div class="spinner"></div>
+      <p>Cargando resultados...</p>
+    </div>
+  } @else {
+
+    <!-- RESUMEN -->
+    <div class="res-resumen">
+      <div class="chip chip-ok">
+        <span class="chip-num">{{ totalCompletos }}</span>
+        <span class="chip-lbl">Ya contestaron</span>
+      </div>
+      <div class="chip chip-prog">
+        <span class="chip-num">{{ totalEnProgreso }}</span>
+        <span class="chip-lbl">En progreso</span>
+      </div>
+      <div class="chip chip-avg">
+        <span class="chip-num">{{ promedio }}%</span>
+        <span class="chip-lbl">Promedio</span>
+      </div>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="res-controles">
+      <div class="buscador">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" placeholder="Buscar por nombre, puesto o ciudad..."
+               [(ngModel)]="termino" (ngModelChange)="clasificar()">
+      </div>
+      <button class="btn-export" (click)="exportarExcel()" [disabled]="totalCompletos === 0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Exportar Excel
+      </button>
+    </div>
+
+    @if (completos.length === 0) {
+      <div class="state-block empty">
+        <h3>Sin evaluaciones contestadas todavía</h3>
+        <p>
+          @if (termino) { Ningún resultado coincide con la búsqueda. }
+          @else { Cuando un candidato complete su encuesta de liderazgo, aparecerá aquí con su puntuación. }
+        </p>
+      </div>
+    } @else {
+      <div class="tabla-scroll">
+        <table class="res-tabla">
+          <thead>
+            <tr>
+              <th>Candidato</th>
+              <th>Puesto</th>
+              <th class="num">Puntaje</th>
+              <th class="num">%</th>
+              <th class="num">Tarea</th>
+              <th class="num">Relaciones</th>
+              <th>Estilo</th>
+              <th>Nivel</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of completos; track f.c.id) {
+              <tr>
+                <td class="td-cand">
+                  <span class="avatar">{{ getInitials(f.c.nombre) }}</span>
+                  <span class="nombre" (click)="abrirExpediente(f)">{{ f.c.nombre || 'Sin nombre' }}</span>
+                </td>
+                <td>{{ f.c.puesto || '—' }}</td>
+                <td class="num mono"><strong>{{ f.r.puntaje }}</strong><span class="de">/{{ f.r.puntajeMax }}</span></td>
+                <td class="num">
+                  <span class="pct" [class]="'nivel-' + f.r.nivel">{{ f.r.porcentaje }}%</span>
+                </td>
+                <td class="num mono">{{ f.r.puntajeTarea }}<span class="de">/30</span></td>
+                <td class="num mono">{{ f.r.puntajeRelaciones }}<span class="de">/30</span></td>
+                <td class="estilo">{{ f.r.estiloInfo.nombre }}</td>
+                <td>
+                  <span class="nivel-badge" [class]="'nivel-' + f.r.nivel">{{ nivelLabel(f.r.nivel) }}</span>
+                </td>
+                <td class="cell-muted">{{ formatearFecha(f.c.ultimaActividadCuestionario) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
