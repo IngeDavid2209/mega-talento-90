@@ -188,3 +188,16 @@ export function calcularResultadoLiderazgo(respuestas: RespuestasCuestionario | 
     interpretacion, nivel
   };
 }
+
+// =====================================================================
+// APTITUD EN LA EVALUACIÓN
+// Umbral con el que un candidato "califica" en la encuesta: 66% o más
+// (nivel sólido o destacado). Es el mismo corte que usa el filtro
+// "Más aptos" del tablero de Resultados. Fuente única para todo el sistema.
+// =====================================================================
+export const UMBRAL_APTITUD = 66;
+
+/** ¿El candidato COMPLETÓ la encuesta Y calificó (>= UMBRAL_APTITUD)? */
+export function calificaEnEvaluacion(r: ResultadoCuestionario | undefined): boolean {
+  return !!r && r.contestadas === r.total && r.total > 0 && r.porcentaje >= UMBRAL_APTITUD;
+}

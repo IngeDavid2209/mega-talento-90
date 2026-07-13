@@ -5,7 +5,8 @@ import { CandidateService } from '../../app/core/services/candidate';
 import { VozService } from '../../app/core/services/voz.service';
 import { AvatarHablanteComponent } from '../avatar-hablante/avatar-hablante';
 import {
-  CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario
+  CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario,
+  calcularResultadoLiderazgo, calificaEnEvaluacion
 } from '../../app/core/models/cuestionario-liderazgo.model';
 import { ID_ETAPAS } from '../../app/core/models/proceso.model';
 
@@ -242,13 +243,15 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Mueve al candidato a la etapa 2 (entrevista_rh) al terminar la encuesta.
-   * Solo AVANZA: si ya está en Filtro Inicial (o 'nuevo'), lo sube; si ya va
-   * más adelante, o fue rechazado/contratado, no lo toca. Es "mejor esfuerzo":
-   * si falla, no rompe la pantalla de agradecimiento.
+   * Mueve al candidato a la etapa 2 (entrevista_rh) al terminar la encuesta,
+   * SOLO si CALIFICÓ (>= UMBRAL_APTITUD). Los que no califican se quedan en
+   * Filtro Inicial. Solo AVANZA: si ya va más adelante o fue rechazado/
+   * contratado, no lo toca. Es "mejor esfuerzo": si falla, no rompe la pantalla.
    */
   private async avanzarAConductual() {
     if (!this.candidatoId) return;
+    // Solo pasan a la 2ª fase los que CALIFICAN en la encuesta.
+    if (!calificaEnEvaluacion(calcularResultadoLiderazgo(this.respuestas))) return;
     const actual = this.candidato?.status;
     // Solo reubicamos a quienes siguen en la 1ª fase (o sin etapa / 'nuevo').
     if (actual && actual !== ID_ETAPAS.FILTRO && actual !== ID_ETAPAS.NUEVO) return;

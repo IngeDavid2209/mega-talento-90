@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import {
-  calcularResultadoLiderazgo, ResultadoCuestionario
+  calcularResultadoLiderazgo, ResultadoCuestionario, calificaEnEvaluacion
 } from '../../core/models/cuestionario-liderazgo.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import { ID_ETAPAS } from '../../core/models/proceso.model';
@@ -85,10 +85,11 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
 
   /**
    * Reubica a la 2ª fase (Entrevista Orientación) a los candidatos que YA
-   * contestaron la encuesta pero siguen en Filtro Inicial (o 'nuevo'). Cubre a
-   * quienes la contestaron ANTES de que el avance fuera automático. Solo AVANZA
-   * (nunca retrocede a quien va más adelante ni toca rechazados/contratados) y
-   * es idempotente: una vez movidos, dejan de cumplir la condición.
+   * CALIFICARON en la encuesta (>= umbral) pero siguen en Filtro Inicial (o
+   * 'nuevo'). Cubre a quienes la contestaron ANTES de que el avance fuera
+   * automático. Los que contestaron pero NO calificaron se quedan en Filtro.
+   * Solo AVANZA (nunca retrocede ni toca rechazados/contratados) y es
+   * idempotente: una vez movidos, dejan de cumplir la condición.
    */
   private reubicarCompletadosAFaseConductual() {
     for (const c of this.todos) {
@@ -96,7 +97,7 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
       const estado = c.status;
       if (estado && estado !== ID_ETAPAS.FILTRO && estado !== ID_ETAPAS.NUEVO) continue;
       const r = calcularResultadoLiderazgo(c.cuestionarioLiderazgo);
-      if (r.contestadas !== r.total || r.total === 0) continue; // aún no la completa
+      if (!calificaEnEvaluacion(r)) continue; // solo los que califican pasan
       this.yaReubicados.add(c.id);
       this.candidateService
         .updateCandidate(c.id, { status: ID_ETAPAS.RH }, { marcarActividad: false })

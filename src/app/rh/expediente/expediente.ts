@@ -16,7 +16,7 @@ import {
 } from '../../core/models/proceso.model';
 import {
   CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario,
-  calcularResultadoLiderazgo
+  calcularResultadoLiderazgo, calificaEnEvaluacion
 } from '../../core/models/cuestionario-liderazgo.model';
 import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 import { ToastService } from '../../core/services/toast.service';
@@ -121,12 +121,12 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     const r = this.resultadoLiderazgo();
     this.candidato.dictamen.competencias = r.porcentaje;
 
-    // Al completar las 12 preguntas, avanza a la 2ª fase (Entrevista Orientación),
-    // igual que cuando el candidato la contesta por su cuenta. Solo si sigue en
-    // Filtro Inicial (o 'nuevo'): no retrocede a quien ya va más adelante.
+    // Al completar las 12 preguntas Y CALIFICAR (>= umbral), avanza a la 2ª fase
+    // (Entrevista Orientación), igual que cuando el candidato la contesta por su
+    // cuenta. Solo si sigue en Filtro Inicial (o 'nuevo'): no retrocede a quien
+    // ya va más adelante. Si completó pero NO calificó, se queda en Filtro.
     const estado = this.candidato.status;
-    const seCompleto = r.contestadas === r.total && r.total > 0;
-    const debeAvanzar = seCompleto && (!estado || estado === ID_ETAPAS.FILTRO || estado === ID_ETAPAS.NUEVO);
+    const debeAvanzar = calificaEnEvaluacion(r) && (!estado || estado === ID_ETAPAS.FILTRO || estado === ID_ETAPAS.NUEVO);
 
     const payload: any = {
       cuestionarioLiderazgo: this.candidato.cuestionarioLiderazgo,
