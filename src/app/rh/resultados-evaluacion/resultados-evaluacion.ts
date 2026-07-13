@@ -6,6 +6,7 @@ import { CandidateService } from '../../core/services/candidate';
 import {
   calcularResultadoLiderazgo, ResultadoCuestionario
 } from '../../core/models/cuestionario-liderazgo.model';
+import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import * as XLSX from 'xlsx';
 
 interface FilaEval {
@@ -48,10 +49,17 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
   filtro: 'todos' | 'aptos' | 'noAptos' | 'practicantes' = 'todos';
   readonly UMBRAL_APTO = 66;
 
-  // Conteos por categoría (sobre lo que coincide con la búsqueda)
+  // Conteos por categoría (sobre lo que coincide con la búsqueda + ciudad + puesto)
   countAptos = 0;
   countNoAptos = 0;
   countPracticantes = 0;
+
+  // Selectores de ciudad y puesto (vacío = todas/todos). Se combinan con el
+  // buscador y el filtro por aptitud.
+  ciudadSel = '';
+  puestoSel = '';
+  ciudades: string[] = [];   // opciones disponibles (candidatos que ya contestaron)
+  puestos: string[] = [];
 
   // Totales globales (sin filtrar)
   totalCompletos = 0;
@@ -84,24 +92,35 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
       ? Math.round(completos.reduce((a, f) => a + f.r.porcentaje, 0) / completos.length)
       : 0;
 
+    // Opciones de los selectores: todas las ciudades y puestos de quienes
+    // contestaron (etiquetas normalizadas para unir variantes equivalentes).
+    this.ciudades = Array.from(new Set(completos.map(f => normalizarCiudad(f.c.ciudad || f.c.sucursal))))
+      .sort((a, b) => a.localeCompare(b));
+    this.puestos = Array.from(new Set(completos.map(f => normalizarPuesto(f.c.puesto))))
+      .sort((a, b) => a.localeCompare(b));
+
     const t = this.termino.trim().toLowerCase();
     const coincide = (c: any) => !t
       || (c.nombre || '').toLowerCase().includes(t)
       || (c.puesto || '').toLowerCase().includes(t)
       || (c.ciudad || c.sucursal || '').toLowerCase().includes(t);
 
-    const buscados = completos.filter(f => coincide(f.c));
+    // Alcance actual: búsqueda + ciudad + puesto. Sobre esto se cuentan los
+    // botones y se aplica el filtro por aptitud.
+    let scope = completos.filter(f => coincide(f.c));
+    if (this.ciudadSel) scope = scope.filter(f => normalizarCiudad(f.c.ciudad || f.c.sucursal) === this.ciudadSel);
+    if (this.puestoSel) scope = scope.filter(f => normalizarPuesto(f.c.puesto) === this.puestoSel);
 
     // Conteos por categoría para mostrarlos en los botones del filtro.
-    this.countAptos = buscados.filter(f => f.r.porcentaje >= this.UMBRAL_APTO).length;
-    this.countNoAptos = buscados.length - this.countAptos;
-    this.countPracticantes = buscados.filter(f => this.esPracticante(f.c)).length;
+    this.countAptos = scope.filter(f => f.r.porcentaje >= this.UMBRAL_APTO).length;
+    this.countNoAptos = scope.length - this.countAptos;
+    this.countPracticantes = scope.filter(f => this.esPracticante(f.c)).length;
 
-    // Aplicar el filtro seleccionado.
-    let lista = buscados;
-    if (this.filtro === 'aptos') lista = buscados.filter(f => f.r.porcentaje >= this.UMBRAL_APTO);
-    else if (this.filtro === 'noAptos') lista = buscados.filter(f => f.r.porcentaje < this.UMBRAL_APTO);
-    else if (this.filtro === 'practicantes') lista = buscados.filter(f => this.esPracticante(f.c));
+    // Aplicar el filtro por aptitud seleccionado.
+    let lista = scope;
+    if (this.filtro === 'aptos') lista = scope.filter(f => f.r.porcentaje >= this.UMBRAL_APTO);
+    else if (this.filtro === 'noAptos') lista = scope.filter(f => f.r.porcentaje < this.UMBRAL_APTO);
+    else if (this.filtro === 'practicantes') lista = scope.filter(f => this.esPracticante(f.c));
 
     // "Menos aptos": peor primero (ascendente) para que salten arriba;
     // en el resto, mejor primero (descendente) como siempre.

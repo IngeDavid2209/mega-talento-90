@@ -124,6 +124,35 @@
   flex: 1; border: none; background: transparent;
   padding: 11px 0; font-size: 13.5px; font-family: inherit; color: var(--text); outline: none;
 }
+.res-select { position: relative; display: flex; }
+.res-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius);
+  padding: 11px 34px 11px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  max-width: 200px;
+}
+.res-select select:hover { border-color: var(--border-strong); }
+.res-select select:focus { border-color: var(--brand); }
+/* Flecha del select */
+.res-select::after {
+  content: '';
+  position: absolute;
+  right: 13px; top: 50%;
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: translateY(-65%) rotate(45deg);
+  pointer-events: none;
+}
+
 .btn-export {
   display: flex; align-items: center; gap: 7px;
   padding: 11px 16px;
