@@ -136,6 +136,53 @@
 .btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-export svg { width: 15px; height: 15px; }
 
+/* FILTRO POR APTITUD */
+.res-filtros {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.filtro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-med);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filtro-btn:hover { border-color: var(--border-strong); color: var(--ink); }
+.filtro-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface2);
+  color: var(--text2);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.filtro-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.filtro-btn.active .filtro-count { background: rgba(255,255,255,0.2); color: #fff; }
+.filtro-btn.apto.active { background: var(--green); border-color: var(--green); }
+.filtro-btn.noapto.active { background: var(--red); border-color: var(--red); }
+.filtro-hint {
+  font-size: 11.5px;
+  color: var(--text3);
+  margin-left: auto;
+}
+
 /* TABLA */
 .tabla-scroll {
   overflow-x: auto;

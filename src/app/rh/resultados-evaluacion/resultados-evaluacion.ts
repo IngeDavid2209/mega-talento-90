@@ -36,8 +36,21 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
   cargando = true;
   private todos: any[] = [];
 
-  completos: FilaEval[] = [];   // ya contestaron las 12 (filtrado por búsqueda)
+  completos: FilaEval[] = [];   // ya contestaron las 12 (filtrado por búsqueda + aptitud)
   termino = '';
+
+  /**
+   * Filtro por aptitud según el % de la evaluación:
+   *   - 'aptos'   → mejores promedios (>= UMBRAL_APTO): sólidos y destacados.
+   *   - 'noAptos' → peores promedios (< UMBRAL_APTO): en/requiere desarrollo.
+   * El umbral 66 coincide con el corte "sólido" que ya usa el resto del sistema.
+   */
+  filtro: 'todos' | 'aptos' | 'noAptos' = 'todos';
+  readonly UMBRAL_APTO = 66;
+
+  // Conteos por aptitud (sobre lo que coincide con la búsqueda)
+  countAptos = 0;
+  countNoAptos = 0;
 
   // Totales globales (sin filtrar)
   totalCompletos = 0;
@@ -76,9 +89,28 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
       || (c.puesto || '').toLowerCase().includes(t)
       || (c.ciudad || c.sucursal || '').toLowerCase().includes(t);
 
-    this.completos = completos
-      .filter(f => coincide(f.c))
-      .sort((a, b) => b.r.porcentaje - a.r.porcentaje);
+    const buscados = completos.filter(f => coincide(f.c));
+
+    // Conteos por aptitud para mostrarlos en los botones del filtro.
+    this.countAptos = buscados.filter(f => f.r.porcentaje >= this.UMBRAL_APTO).length;
+    this.countNoAptos = buscados.length - this.countAptos;
+
+    // Aplicar el filtro por aptitud seleccionado.
+    let lista = buscados;
+    if (this.filtro === 'aptos') lista = buscados.filter(f => f.r.porcentaje >= this.UMBRAL_APTO);
+    else if (this.filtro === 'noAptos') lista = buscados.filter(f => f.r.porcentaje < this.UMBRAL_APTO);
+
+    // "Menos aptos": peor primero (ascendente) para que salten arriba;
+    // en el resto, mejor primero (descendente) como siempre.
+    const asc = this.filtro === 'noAptos';
+    this.completos = lista.sort((a, b) =>
+      asc ? a.r.porcentaje - b.r.porcentaje : b.r.porcentaje - a.r.porcentaje);
+  }
+
+  /** Cambia el filtro por aptitud y reordena la lista. */
+  setFiltro(f: 'todos' | 'aptos' | 'noAptos') {
+    this.filtro = f;
+    this.clasificar();
   }
 
   // ====== Acciones ======
@@ -88,10 +120,8 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
   }
 
   exportarExcel() {
-    const datos = this.todos
-      .map(c => ({ c, r: calcularResultadoLiderazgo(c.cuestionarioLiderazgo) }))
-      .filter(f => f.r.contestadas === f.r.total && f.r.total > 0)
-      .sort((a, b) => b.r.porcentaje - a.r.porcentaje)
+    // Exporta exactamente lo que se está viendo (búsqueda + filtro + orden).
+    const datos = this.completos
       .map(f => ({
         'Nombre': f.c.nombre || '',
         'Teléfono': f.c.telefono || '',

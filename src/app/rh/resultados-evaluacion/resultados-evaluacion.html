@@ -41,12 +41,26 @@
         <input type="text" placeholder="Buscar por nombre, puesto o ciudad..."
                [(ngModel)]="termino" (ngModelChange)="clasificar()">
       </div>
-      <button class="btn-export" (click)="exportarExcel()" [disabled]="totalCompletos === 0">
+      <button class="btn-export" (click)="exportarExcel()" [disabled]="completos.length === 0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
         Exportar Excel
       </button>
+    </div>
+
+    <!-- FILTRO POR APTITUD -->
+    <div class="res-filtros" role="group" aria-label="Filtrar por aptitud">
+      <button type="button" class="filtro-btn" [class.active]="filtro === 'todos'" (click)="setFiltro('todos')">
+        Todos
+      </button>
+      <button type="button" class="filtro-btn apto" [class.active]="filtro === 'aptos'" (click)="setFiltro('aptos')">
+        Más aptos <span class="filtro-count">{{ countAptos }}</span>
+      </button>
+      <button type="button" class="filtro-btn noapto" [class.active]="filtro === 'noAptos'" (click)="setFiltro('noAptos')">
+        Menos aptos <span class="filtro-count">{{ countNoAptos }}</span>
+      </button>
+      <span class="filtro-hint">Corte: {{ UMBRAL_APTO }}% o más = apto</span>
     </div>
 
     @if (completos.length === 0) {
