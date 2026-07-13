@@ -16,6 +16,29 @@ import { CapitalHumanoService } from '../../core/services/capital-humano.service
 import { ToastService } from '../../core/services/toast.service';
 import { BotService } from '../../core/services/bot.service';
 
+/**
+ * Vista-modelo de una tarjeta del tablero. TODOS sus campos se precalculan
+ * UNA sola vez (al llegar/cambiar los candidatos), para que la plantilla solo
+ * lea propiedades y no ejecute métodos en cada ciclo de detección de cambios.
+ * Esto elimina el lag que se sentía al abrir el menú o teclear con el tablero
+ * lleno (antes se recalculaban ~10 métodos por tarjeta en cada evento).
+ */
+interface TarjetaVM {
+  c: any;              // referencia al candidato (para navegar/contactar)
+  id: string;
+  puesto: string;
+  alerta: boolean;
+  critico: boolean;
+  dias: number;
+  progreso: { hechos: number; total: number; pct: number } | null;
+  contratado: boolean;
+  permEtiqueta: string;
+  permClase: string;
+  cvTipo: 'pdf' | 'foto' | null;
+  cvUrl: string;
+  fecha: string;
+}
+
 @Component({
   selector: 'app-etapa',
   standalone: true,
@@ -44,7 +67,7 @@ export class EtapaComponent implements OnInit, OnDestroy {
 
   private todos: any[] = [];
   candidatos: any[] = [];
-  gruposCandidatos: { zona: string; candidatos: any[] }[] = [];
+  gruposCandidatos: { zona: string; tarjetas: TarjetaVM[] }[] = [];
   zonasColapsadas = new Set<string>();
   busqueda = '';
 
@@ -123,15 +146,38 @@ export class EtapaComponent implements OnInit, OnDestroy {
 
   /** Agrupa los candidatos de la etapa por zona (ciudad), de mayor a menor volumen. */
   private agruparPorZona() {
-    const map = new Map<string, any[]>();
+    const map = new Map<string, TarjetaVM[]>();
     for (const c of this.candidatos) {
       const zona = normalizarCiudad(c.ciudad || c.sucursal);
       if (!map.has(zona)) map.set(zona, []);
-      map.get(zona)!.push(c);
+      map.get(zona)!.push(this.construirTarjeta(c));
     }
     this.gruposCandidatos = Array.from(map.entries())
-      .map(([zona, candidatos]) => ({ zona, candidatos }))
-      .sort((a, b) => b.candidatos.length - a.candidatos.length);
+      .map(([zona, tarjetas]) => ({ zona, tarjetas }))
+      .sort((a, b) => b.tarjetas.length - a.tarjetas.length);
+  }
+
+  /** Precalcula TODO lo que la tarjeta necesita mostrar (una sola vez). */
+  private construirTarjeta(c: any): TarjetaVM {
+    const nivel = nivelSeguimiento(c);
+    const dias = diasSinSeguimiento(c);
+    const contratado = c.status === ID_ETAPAS.CONTRATADO;
+    const diasPerm = contratado ? this.getDiasPermanencia(c.hiredAt) : 0;
+    return {
+      c,
+      id: c.id,
+      puesto: c.puesto || 'Sin puesto',
+      alerta: nivel !== 'ok',
+      critico: nivel === 'critico',
+      dias: dias < 0 ? 0 : dias,
+      progreso: this.getProgresoEtapa(c),
+      contratado,
+      permEtiqueta: contratado ? this.getEtiquetaPermanencia(diasPerm) : '',
+      permClase: contratado ? this.getClasePermanencia(diasPerm) : '',
+      cvTipo: this.tipoCV(c),
+      cvUrl: c.cvUrl || '',
+      fecha: this.formatearFecha(c.createdAt)
+    };
   }
 
   toggleZona(zona: string) {

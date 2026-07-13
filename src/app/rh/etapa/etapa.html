@@ -45,31 +45,31 @@
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
         <span class="zona-name">{{ grupo.zona }}</span>
-        <span class="zona-count">{{ grupo.candidatos.length }}</span>
+        <span class="zona-count">{{ grupo.tarjetas.length }}</span>
       </button>
       @if (!zonasColapsadas.has(grupo.zona)) {
     <div class="card-grid">
-      @for (candidato of grupo.candidatos; track candidato.id) {
+      @for (t of grupo.tarjetas; track t.id) {
         <div class="etapa-card"
-             [class.card-alerta]="isCandidatoAlerta(candidato)"
-             [class.card-critico]="nivelSeguimiento(candidato) === 'critico'"
-             (click)="abrirExpediente(candidato)">
+             [class.card-alerta]="t.alerta"
+             [class.card-critico]="t.critico"
+             (click)="abrirExpediente(t.c)">
 
           <div class="card-top">
-            <span class="card-name">{{ capitalHumano.displayName(candidato) }}</span>
-            @if (isCandidatoAlerta(candidato)) {
-              <span class="seg-badge" [class.critico]="nivelSeguimiento(candidato) === 'critico'"
-                    [title]="'Lleva ' + diasSinSeguimiento(candidato) + ' días sin seguimiento'">
-                {{ diasSinSeguimiento(candidato) }} d sin seguimiento
+            <span class="card-name">{{ capitalHumano.displayName(t.c) }}</span>
+            @if (t.alerta) {
+              <span class="seg-badge" [class.critico]="t.critico"
+                    [title]="'Lleva ' + t.dias + ' días sin seguimiento'">
+                {{ t.dias }} d sin seguimiento
               </span>
             }
           </div>
 
           <p class="card-sub">
-            {{ candidato.puesto || 'Sin puesto' }}
+            {{ t.puesto }}
           </p>
 
-          @if (getProgresoEtapa(candidato); as p) {
+          @if (t.progreso; as p) {
             @if (p.total > 0) {
               <div class="progress-row">
                 <div class="progress-bar">
@@ -80,17 +80,17 @@
             }
           }
 
-          @if (candidato.status === ID_ETAPAS.CONTRATADO) {
-            <div class="permanencia-badge" [ngClass]="getClasePermanencia(getDiasPermanencia(candidato.hiredAt))">
-              {{ getEtiquetaPermanencia(getDiasPermanencia(candidato.hiredAt)) }}
+          @if (t.contratado) {
+            <div class="permanencia-badge" [ngClass]="t.permClase">
+              {{ t.permEtiqueta }}
             </div>
           }
 
           <!-- Indicador de CV -->
           <div class="cv-row">
-            @if (tipoCV(candidato); as tipo) {
+            @if (t.cvTipo; as tipo) {
               <a class="cv-chip" [class.cv-foto]="tipo === 'foto'"
-                 [href]="candidato.cvUrl" target="_blank"
+                 [href]="t.cvUrl" target="_blank"
                  (click)="$event.stopPropagation()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   @if (tipo === 'foto') {
@@ -116,17 +116,17 @@
           </div>
 
           <div class="card-foot">
-            <span class="foot-date">{{ formatearFecha(candidato.createdAt) }}</span>
+            <span class="foot-date">{{ t.fecha }}</span>
             <div class="foot-actions">
               <button class="icon-btn" title="Abrir expediente"
-                      (click)="$event.stopPropagation(); abrirExpediente(candidato)">
+                      (click)="$event.stopPropagation(); abrirExpediente(t.c)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                 </svg>
               </button>
               <button class="icon-btn contact" title="Conectar con el bot por WhatsApp"
-                      [disabled]="enviandoInvitacion.has(candidato.id)"
-                      (click)="$event.stopPropagation(); contactarWhatsApp(candidato)">
+                      [disabled]="enviandoInvitacion.has(t.id)"
+                      (click)="$event.stopPropagation(); contactarWhatsApp(t.c)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"></path>
                 </svg>
