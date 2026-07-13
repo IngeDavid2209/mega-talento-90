@@ -101,11 +101,6 @@
         </header>
         <div class="resumen-grid">
           <div class="resumen-item">
-            <span class="resumen-label">Filtro Inicial</span>
-            <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoFiltro().pct"></div></div>
-            <span class="resumen-num">{{ progresoFiltro().hechos }}/{{ progresoFiltro().total }}</span>
-          </div>
-          <div class="resumen-item">
             <span class="resumen-label">Competencias STAR</span>
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoStar().pct"></div></div>
             <span class="resumen-num">{{ progresoStar().hechos }}/{{ progresoStar().total }}</span>
@@ -129,26 +124,8 @@
       <div class="section-card">
         <header class="section-head">
           <h3>Filtro Inicial · Primer contacto</h3>
-          <p class="section-desc">Validación obligatoria antes de invertir tiempo operativo en el candidato.</p>
+          <p class="section-desc">Bandeja de entrada del candidato. Aquí haces el primer contacto por WhatsApp antes de agendar la entrevista conductual.</p>
         </header>
-
-        <div class="check-list">
-          @for (item of CHECKLIST_FILTRO; track item.key) {
-            <div class="check-row"
-                 [class.row-si]="candidato.filtroChecklist?.[item.key] === 'verde'"
-                 [class.row-no]="candidato.filtroChecklist?.[item.key] === 'rojo'">
-              <span class="check-label">{{ item.label }}</span>
-              <div class="yn-group">
-                <button type="button" class="btn-yn btn-si"
-                        [class.active]="candidato.filtroChecklist?.[item.key] === 'verde'"
-                        (click)="setEstadoCheck('filtroChecklist', item.key, 'verde')">Sí</button>
-                <button type="button" class="btn-yn btn-no"
-                        [class.active]="candidato.filtroChecklist?.[item.key] === 'rojo'"
-                        (click)="setEstadoCheck('filtroChecklist', item.key, 'rojo')">No</button>
-              </div>
-            </div>
-          }
-        </div>
 
         <div class="hint-box">
           <span class="hint-tag">Regla crítica</span>

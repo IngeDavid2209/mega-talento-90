@@ -6,7 +6,7 @@ import { CandidateService } from '../../core/services/candidate';
 import { Timestamp } from 'firebase/firestore';
 import {
   ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EstadoCheck,
-  CHECKLIST_FILTRO, COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
+  COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
   PSICOMETRIA_ITEMS, CHECKLIST_JEFE, CHECKLIST_DOCUMENTAL,
   CHECKLIST_OFERTA, CHECKLIST_CONTRATADO, AREAS_DICTAMEN,
   ItemChecklist, ResultadoDictamen, AptitudItem,
@@ -39,7 +39,6 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
   FLUJO_LINEAL = FLUJO_LINEAL;
-  CHECKLIST_FILTRO = CHECKLIST_FILTRO;
   COMPETENCIAS_STAR = COMPETENCIAS_STAR;
   APTITUDES_POR_TIPO = APTITUDES_POR_TIPO;
   NIVELES_RUBRICA = NIVELES_RUBRICA;
@@ -86,7 +85,6 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   inicializarChecklists() {
     if (!this.candidato) return;
     const vacio = (items: ItemChecklist[]) => items.reduce((a, i) => ({ ...a, [i.key]: 'gris' }), {});
-    this.candidato.filtroChecklist       ||= vacio(CHECKLIST_FILTRO);
     this.candidato.starChecklist         ||= vacio(COMPETENCIAS_STAR);
     this.candidato.starNotas             ||= {};
     this.candidato.aptitudesResultados   ||= { puntaje: 0, tiempo: '', aprobado: false, notas: '' };
@@ -167,7 +165,9 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
         // Recibida → se considera "lista" en cuanto exista el candidato
         return true;
       case ID_ETAPAS.FILTRO:
-        return checklistCompleto(this.candidato.filtroChecklist, CHECKLIST_FILTRO);
+        // Filtro Inicial ya no tiene checklist: es solo la bandeja de entrada.
+        // Se considera superada en cuanto el candidato existe (primer contacto).
+        return true;
       case ID_ETAPAS.RH:
         return this.progresoStar().pct === 100;
       case ID_ETAPAS.APTITUDES:
@@ -196,7 +196,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     if (!this.candidato) return 0;
     switch (etapaId) {
       case ID_ETAPAS.NUEVO:        return 100;
-      case ID_ETAPAS.FILTRO:       return progresoChecklist(this.candidato.filtroChecklist, CHECKLIST_FILTRO).pct;
+      case ID_ETAPAS.FILTRO:       return 100; // bandeja de entrada, sin checklist que llenar
       case ID_ETAPAS.RH:           return this.progresoStar().pct;
       case ID_ETAPAS.APTITUDES: {
         // Promedio del puntaje de aptitudes y el avance de la entrevista técnica
@@ -259,7 +259,6 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   }
 
   // PROGRESO
-  progresoFiltro() { return progresoChecklist(this.candidato?.filtroChecklist, CHECKLIST_FILTRO); }
   /** Entrevista Conductual: el progreso se cuenta por las preguntas contestadas del cuestionario */
   progresoStar() {
     const r = this.resultadoLiderazgo();

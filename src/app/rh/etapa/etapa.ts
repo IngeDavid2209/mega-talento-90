@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 import { CandidateService } from '../../core/services/candidate';
 import {
   ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EtapaConfig,
-  CHECKLIST_FILTRO, COMPETENCIAS_STAR, PSICOMETRIA_ITEMS, CHECKLIST_JEFE,
+  COMPETENCIAS_STAR, PSICOMETRIA_ITEMS, CHECKLIST_JEFE,
   CHECKLIST_DOCUMENTAL, CHECKLIST_OFERTA, CHECKLIST_CONTRATADO,
   progresoChecklist
 } from '../../core/models/proceso.model';
@@ -142,7 +142,7 @@ export class EtapaComponent implements OnInit, OnDestroy {
   // Progreso de la etapa actual (mini barra en tarjeta)
   getProgresoEtapa(c: any): { hechos: number; total: number; pct: number } | null {
     switch (c.status) {
-      case ID_ETAPAS.FILTRO:      return progresoChecklist(c.filtroChecklist, CHECKLIST_FILTRO);
+      // Filtro Inicial es solo bandeja de entrada: sin checklist, sin barra de progreso.
       case ID_ETAPAS.RH:          return this.progresoStarTexto(c);
       case ID_ETAPAS.PSICOMETRIA: return progresoChecklist(c.psicometriaChecklist, PSICOMETRIA_ITEMS);
       case ID_ETAPAS.JEFE:        return progresoChecklist(c.jefeChecklist, CHECKLIST_JEFE);

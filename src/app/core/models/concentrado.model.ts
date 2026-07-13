@@ -13,7 +13,7 @@
 // =====================================================================
 
 import {
-  CHECKLIST_FILTRO, CHECKLIST_JEFE, PSICOMETRIA_ITEMS,
+  CHECKLIST_JEFE, PSICOMETRIA_ITEMS,
   APTITUDES_POR_TIPO, EstadoCheck,
   progresoChecklist, calcularPuntajeRubrica, UMBRAL_APROBACION_APTITUDES
 } from './proceso.model';
@@ -24,7 +24,7 @@ import { calcularResultadoLiderazgo } from './cuestionario-liderazgo.model';
 // ---------------------------------------------------------------------
 
 export interface SubEtapaEval {
-  key: 'filtro' | 'conductual' | 'aptitudes' | 'tecnica' | 'psicometria';
+  key: 'conductual' | 'aptitudes' | 'tecnica' | 'psicometria';
   label: string;
   puntaje: number;      // 0-100
   evaluada: boolean;    // ¿RH ya la calificó? Si no, no cuenta en el promedio
@@ -50,14 +50,12 @@ export function calcularEvaluacion(candidato: any): PuntajeEvaluacion {
   const tipo = (candidato?.tipoVacante || 'operativo') as keyof typeof APTITUDES_POR_TIPO;
   const aptitudesItems = APTITUDES_POR_TIPO[tipo] || APTITUDES_POR_TIPO['operativo'];
 
-  const filtro = progresoChecklist(candidato?.filtroChecklist, CHECKLIST_FILTRO);
   const conductual = calcularResultadoLiderazgo(candidato?.cuestionarioLiderazgo);
   const aptitudes = calcularPuntajeRubrica(candidato?.rubricaAptitudes, aptitudesItems);
   const tecnica = progresoChecklist(candidato?.jefeChecklist, CHECKLIST_JEFE);
   const psico = progresoChecklist(candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS);
 
   const subetapas: SubEtapaEval[] = [
-    { key: 'filtro',      label: 'Filtro inicial',    puntaje: filtro.pct,          evaluada: checklistTocado(candidato?.filtroChecklist), peso: 0.10 },
     { key: 'conductual',  label: 'Conductual',        puntaje: conductual.porcentaje, evaluada: conductual.contestadas > 0, peso: 0.25 },
     { key: 'aptitudes',   label: 'Aptitudes',         puntaje: aptitudes.puntaje,    evaluada: aptitudes.calificadas > 0, peso: 0.30 },
     { key: 'tecnica',     label: 'Entrevista técnica', puntaje: tecnica.pct,         evaluada: checklistTocado(candidato?.jefeChecklist), peso: 0.25 },
