@@ -17,6 +17,7 @@ import { HistorialComponent } from './rh/historial/historial';
 import { VacantesComponent } from './rh/vacantes/vacantes';
 import { DuplicadosComponent } from './rh/duplicados/duplicados';
 import { PapeleraComponent } from './rh/papelera/papelera';
+import { ContactadosComponent } from './rh/contactados/contactados';
 
 export const routes: Routes = [
   {
@@ -31,6 +32,7 @@ export const routes: Routes = [
       { path: 'historial', component: HistorialComponent },
       { path: 'vacantes',  component: VacantesComponent },
       { path: 'duplicados', component: DuplicadosComponent },
+      { path: 'contactados', component: ContactadosComponent },
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },

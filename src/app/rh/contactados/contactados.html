@@ -1,0 +1,173 @@
+<div class="con-wrapper">
+
+  <header class="con-header">
+    <span class="eyebrow">Cobertura de contacto</span>
+    <h2>Contacto por WhatsApp</h2>
+    <p class="con-desc">
+      Quién ya tuvo conversación con el bot de reclutamiento y a quién todavía le falta.
+      Un candidato cuenta como <strong>contactado</strong> cuando su registro entró o se completó
+      por el bot de WhatsApp. Los demás (formulario web u otra fuente) siguen pendientes de contactar.
+    </p>
+  </header>
+
+  @if (cargando) {
+    <div class="state-block">
+      <div class="spinner"></div>
+      <p>Clasificando candidatos...</p>
+    </div>
+  } @else {
+
+    <!-- RESUMEN -->
+    <div class="con-resumen">
+      <div class="chip">
+        <span class="chip-num">{{ totalGlobal }}</span>
+        <span class="chip-lbl">Total candidatos</span>
+      </div>
+      <div class="chip chip-ok">
+        <span class="chip-num">{{ totalContactados }}</span>
+        <span class="chip-lbl">Contactados</span>
+      </div>
+      <div class="chip chip-pend">
+        <span class="chip-num">{{ totalNo }}</span>
+        <span class="chip-lbl">Sin contactar</span>
+      </div>
+      <div class="chip chip-cob">
+        <span class="chip-num">{{ cobertura }}%</span>
+        <span class="chip-lbl">Cobertura</span>
+      </div>
+    </div>
+
+    <!-- BARRA DE COBERTURA -->
+    <div class="cobertura-bar" [attr.aria-label]="'Cobertura ' + cobertura + '%'">
+      <div class="cobertura-fill" [style.width.%]="cobertura"></div>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="con-controles">
+      <div class="buscador">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" placeholder="Buscar por nombre, teléfono, puesto o ciudad..."
+               [(ngModel)]="termino" (ngModelChange)="clasificar()">
+      </div>
+      <button class="btn-export" (click)="exportarExcel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Exportar Excel
+      </button>
+    </div>
+
+    <!-- ── NO CONTACTADOS (accionable) ───────────────────────────── -->
+    <section class="grupo-card">
+      <button class="grupo-head" (click)="toggle('no')">
+        <div class="grupo-head-left">
+          <span class="grupo-tag tag-pend">Pendientes</span>
+          <strong>No contactados</strong>
+        </div>
+        <div class="grupo-head-right">
+          <span class="grupo-count">{{ noContactados.length }}</span>
+          <span class="chevron" [class.open]="abierto.no">⌄</span>
+        </div>
+      </button>
+
+      @if (abierto.no) {
+        @if (noContactados.length === 0) {
+          <p class="grupo-vacio">
+            @if (termino) { Ningún pendiente coincide con la búsqueda. }
+            @else { No hay candidatos sin contactar. 🎉 }
+          </p>
+        } @else {
+          <div class="tabla-scroll">
+            <table class="con-tabla">
+              <thead>
+                <tr>
+                  <th>Candidato</th><th>Teléfono</th><th>Puesto</th>
+                  <th>Ciudad</th><th>Registro</th><th>Etapa</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of noContactados; track c.id) {
+                  <tr>
+                    <td class="td-cand">
+                      <span class="avatar">{{ getInitials(c.nombre) }}</span>
+                      <span class="nombre" (click)="abrirExpediente(c)">{{ c.nombre || 'Sin nombre' }}</span>
+                    </td>
+                    <td class="mono">{{ formatearTelefono(c.telefono) }}</td>
+                    <td>{{ c.puesto || '—' }}</td>
+                    <td>{{ c.ciudad || c.sucursal || '—' }}</td>
+                    <td>{{ formatearFecha(c.createdAt) }}</td>
+                    <td>
+                      <span class="etapa-dot" [style.background-color]="colorEtapa(c.status)"></span>
+                      {{ nombreEtapa(c.status) }}
+                    </td>
+                    <td class="td-accion">
+                      <button class="btn-wa" (click)="contactar(c)" title="Contactar por WhatsApp">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.03c-.24.68-1.42 1.31-1.96 1.35-.5.04-.5.4-3.15-.66-2.65-1.06-4.32-3.77-4.45-3.95-.13-.18-1.06-1.41-1.06-2.69 0-1.28.67-1.91.91-2.17.24-.26.53-.33.71-.33.18 0 .35 0 .5.01.16.01.38-.06.59.45.24.58.81 2 .88 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.19.69-.81.87-1.09.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.26.13.44.2.5.31.06.11.06.63-.18 1.31z"/></svg>
+                        WhatsApp
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- ── CONTACTADOS ───────────────────────────────────────────── -->
+    <section class="grupo-card">
+      <button class="grupo-head" (click)="toggle('contactados')">
+        <div class="grupo-head-left">
+          <span class="grupo-tag tag-ok">Con contacto</span>
+          <strong>Contactados por WhatsApp</strong>
+        </div>
+        <div class="grupo-head-right">
+          <span class="grupo-count">{{ contactados.length }}</span>
+          <span class="chevron" [class.open]="abierto.contactados">⌄</span>
+        </div>
+      </button>
+
+      @if (abierto.contactados) {
+        @if (contactados.length === 0) {
+          <p class="grupo-vacio">
+            @if (termino) { Ningún contactado coincide con la búsqueda. }
+            @else { Todavía no hay candidatos contactados por el bot. }
+          </p>
+        } @else {
+          <div class="tabla-scroll">
+            <table class="con-tabla">
+              <thead>
+                <tr>
+                  <th>Candidato</th><th>Teléfono</th><th>Puesto</th>
+                  <th>Ciudad</th><th>Registro</th><th>Etapa</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of contactados; track c.id) {
+                  <tr>
+                    <td class="td-cand">
+                      <span class="avatar avatar-ok">{{ getInitials(c.nombre) }}</span>
+                      <span class="nombre" (click)="abrirExpediente(c)">{{ c.nombre || 'Sin nombre' }}</span>
+                    </td>
+                    <td class="mono">{{ formatearTelefono(c.telefono) }}</td>
+                    <td>{{ c.puesto || '—' }}</td>
+                    <td>{{ c.ciudad || c.sucursal || '—' }}</td>
+                    <td>{{ formatearFecha(c.createdAt) }}</td>
+                    <td>
+                      <span class="etapa-dot" [style.background-color]="colorEtapa(c.status)"></span>
+                      {{ nombreEtapa(c.status) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </section>
+
+  }
+</div>

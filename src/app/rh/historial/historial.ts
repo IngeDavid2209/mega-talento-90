@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
-import { urlWhatsApp } from '../../core/models/puestos.model';
 import { normalizarCiudad } from '../../core/models/normalizacion.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import { ToastService } from '../../core/services/toast.service';
+import { BotService } from '../../core/services/bot.service';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -19,8 +19,12 @@ import * as XLSX from 'xlsx';
 export class HistorialComponent implements OnInit {
   private candidateService = inject(CandidateService);
   private toast = inject(ToastService);
+  private botService = inject(BotService);
   // Público para que el template use displayName() en la tabla
   capitalHumano = inject(CapitalHumanoService);
+
+  /** Ids de candidatos con una invitación al bot en curso (para deshabilitar el botón) */
+  enviandoInvitacion = new Set<string>();
 
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
@@ -115,22 +119,49 @@ export class HistorialComponent implements OnInit {
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
+  /**
+   * Conecta al candidato con el BOT de reclutamiento: le pide al bot que le
+   * escriba por WhatsApp desde el número oficial para que continúe su proceso
+   * directamente en el chat automático (no abre el WhatsApp personal del RH).
+   */
   async contactarWhatsApp(c: any) {
-    const url = urlWhatsApp(c);
-    if (!url) {
-      this.toast.alerta(
-        `El teléfono (${c.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
-        `Teléfono de ${c.nombre || 'este candidato'} inválido`
-      );
-      return;
-    }
-    window.open(url, '_blank');
+    if (!c?.id) return;
+    if (this.enviandoInvitacion.has(c.id)) return;
 
-    if (c.status === ID_ETAPAS.NUEVO) {
-      try {
-        await this.candidateService.updateCandidate(c.id, { status: ID_ETAPAS.FILTRO });
-        c.status = ID_ETAPAS.FILTRO;
-      } catch {}
+    const ok = await this.toast.confirmar({
+      titulo: `Conectar a ${c.nombre || 'este candidato'} con el bot`,
+      mensaje: 'El bot de reclutamiento le enviará un WhatsApp desde el número oficial para que continúe su proceso directamente en el chat. ¿Enviar ahora?',
+      textoConfirmar: 'Sí, enviar',
+      textoCancelar: 'Cancelar',
+    });
+    if (!ok) return;
+
+    this.enviandoInvitacion.add(c.id);
+    try {
+      const r = await this.botService.invitarPorWhatsApp(c.id);
+      if (r.ok && r.invitado) {
+        this.toast.exito(
+          `El bot le escribió a ${c.nombre || 'el candidato'} por WhatsApp.`,
+          'Invitación enviada'
+        );
+      } else if (r.ok && r.motivo === 'ya_en_proceso') {
+        this.toast.info(
+          `${c.nombre || 'El candidato'} ya tiene una conversación en curso con el bot.`,
+          'Sin cambios'
+        );
+      } else if (r.ok) {
+        this.toast.error(
+          'El bot no pudo enviar el mensaje. Revisa que la plantilla de WhatsApp esté aprobada en Meta y que el teléfono sea válido.',
+          'No se envió'
+        );
+      } else {
+        this.toast.error(
+          r.error || 'No se pudo contactar al bot. Revisa tu conexión e intenta de nuevo.',
+          'Error'
+        );
+      }
+    } finally {
+      this.enviandoInvitacion.delete(c.id);
     }
   }
 

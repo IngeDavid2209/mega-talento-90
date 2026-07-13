@@ -79,6 +79,11 @@
             <span class="nav-icon">⊠</span> Vacantes
           </a>
         </li>
+        <li (click)="isMenuOpen = false">
+          <a routerLink="/app/contactados" routerLinkActive="active">
+            <span class="nav-icon">✆</span> Contacto WhatsApp
+          </a>
+        </li>
         <li>
           <a (click)="abrirPortal()" class="nav-external" style="cursor: pointer;">
             <span class="nav-icon">↗</span>
