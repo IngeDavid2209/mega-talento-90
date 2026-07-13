@@ -52,11 +52,12 @@
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 
 .app-logo-img {
-  height: 38px;
+  height: 44px;
   width: auto;
   object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: 0.95;
+  /* Se muestra el logo REAL a color. Antes se forzaba a silueta blanca con
+     brightness(0) invert(1), pero este logo tiene demasiado detalle (óvalo,
+     texto bicolor, banda) y quedaba como una mancha ilegible sobre el navy. */
 }
 
 .app-title {
@@ -578,7 +579,7 @@
 @media (max-width: 768px) {
   .top-bar { padding: 0 16px; height: 60px; }
   .app-subtitle { display: none; }
-  .app-logo-img { height: 30px; }
+  .app-logo-img { height: 36px; }
   .app-title { font-size: 11px; letter-spacing: 0.1em; }
   .env-badge { font-size: 9.5px; padding: 4px 9px; }
   .brand-section { padding-left: 14px; }
