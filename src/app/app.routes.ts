@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './rh/layout/layout';
 import { DashboardComponent } from './rh/dashboard/dashboard';
+import { ConcentradoComponent } from './rh/concentrado/concentrado';
 import { EtapaComponent } from './rh/etapa/etapa';
 import { ExpedienteComponent } from './rh/expediente/expediente';
 import { CandidateFormComponent } from '../portal/candidate-form/candidate-form';
@@ -24,6 +25,7 @@ export const routes: Routes = [
     canActivate: [authGuard], // <-- Nuestro "cadenero" validando la sesión en Firebase
     children: [
       { path: 'dashboard', component: DashboardComponent },
+      { path: 'concentrado', component: ConcentradoComponent },
       { path: 'etapa/:etapaId', component: EtapaComponent },
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'historial', component: HistorialComponent },

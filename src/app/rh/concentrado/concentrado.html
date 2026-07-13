@@ -1,0 +1,167 @@
+<div class="concentrado">
+
+  <!-- ENCABEZADO -->
+  <header class="cc-header">
+    <div class="cc-title">
+      <h1>Concentrado de candidatos</h1>
+      <p>Mejores candidatos por puesto solicitado · ordenados por evaluación del proceso</p>
+    </div>
+    <div class="cc-actions no-print">
+      <button class="btn-print" (click)="imprimir()">
+        <span class="ico">⎙</span> Imprimir / PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Membrete que SOLO aparece al imprimir -->
+  <div class="print-membrete print-only">
+    <strong>Mega Dulces de Los Altos · Capital Humano</strong>
+    <span>Concentrado de mejores candidatos por puesto</span>
+    <span>Generado: {{ fechaReporteTexto }}</span>
+  </div>
+
+  @if (cargando) {
+    <div class="cc-loading">Cargando candidatos…</div>
+  } @else if (!vacantesActivas.length) {
+    <div class="cc-empty">
+      <h3>No hay vacantes activas</h3>
+      <p>El concentrado agrupa candidatos por las vacantes marcadas como activas.
+         Activa al menos una en <a routerLink="/app/vacantes">Vacantes</a>.</p>
+    </div>
+  } @else {
+
+    <!-- Resumen -->
+    <div class="cc-resumen no-print">
+      <div class="chip"><span class="n">{{ vacantesActivas.length }}</span> vacantes activas</div>
+      <div class="chip"><span class="n">{{ totalCandidatosEnConcentrado() }}</span> candidatos considerados</div>
+      @if (excluidosSinVacante > 0) {
+        <div class="chip aviso" title="Postulados a un puesto sin vacante activa. No aparecen en este concentrado.">
+          <span class="n">{{ excluidosSinVacante }}</span> fuera (sin vacante activa)
+        </div>
+      }
+    </div>
+
+    <!-- Leyenda de las dos señales -->
+    <div class="cc-leyenda">
+      <div><span class="dot eval"></span><strong>Evaluación</strong>: desempeño en el proceso (filtro, conductual, aptitudes, técnica, psicométricas).</div>
+      <div><span class="dot tray"></span><strong>Trayectoria</strong>: historial de la solicitud (experiencia, estabilidad, escolaridad, motivos de salida).</div>
+    </div>
+
+    @for (g of grupos; track g.nombre) {
+      <section class="puesto-card">
+        <div class="puesto-head">
+          <div class="puesto-nombre">
+            <h2>{{ g.nombre }}</h2>
+            @if (g.vacante.sucursales) { <span class="puesto-sub">{{ g.vacante.sucursales }}</span> }
+          </div>
+          <span class="puesto-count">{{ g.total }} candidato{{ g.total === 1 ? '' : 's' }}</span>
+        </div>
+
+        @if (g.total === 0) {
+          <div class="puesto-vacio">Sin candidatos postulados a esta vacante todavía.</div>
+        } @else {
+          <div class="tabla-wrap">
+            <table class="ranking">
+              <thead>
+                <tr>
+                  <th class="c-rank">#</th>
+                  <th class="c-cand">Candidato</th>
+                  <th class="c-eval">Evaluación</th>
+                  <th class="c-tray">Trayectoria</th>
+                  <th class="c-detalle">Detalle</th>
+                  <th class="c-estatus">Estatus</th>
+                  <th class="c-seg no-print">Seguim.</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (f of filasVisibles(g); track f.candidato.id; let i = $index) {
+                  <tr (click)="abrirExpediente(f)">
+                    <td class="c-rank"><span class="rank-num" [class.top]="i === 0">{{ i + 1 }}</span></td>
+
+                    <td class="c-cand">
+                      <div class="cand">
+                        <span class="avatar">{{ getInitials(f.candidato.nombre) }}</span>
+                        <div class="cand-txt">
+                          <span class="cand-nombre">{{ f.candidato.nombre || 'Sin nombre' }}</span>
+                          <span class="cand-meta">{{ f.candidato.ciudad || f.candidato.sucursal || '—' }}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td class="c-eval">
+                      @if (f.evaluacion.sinEvaluar) {
+                        <span class="score sin-dato">Sin evaluar</span>
+                      } @else {
+                        <span class="score" [class]="claseScore(f.evaluacion.score)">{{ f.evaluacion.score }}</span>
+                        <span class="score-sub">{{ f.evaluacion.etapasEvaluadas }}/{{ f.evaluacion.totalEtapas }} etapas</span>
+                        @if (f.evaluacion.aptitudesAprobado) { <span class="tag apto">Aptitudes ✓</span> }
+                      }
+                    </td>
+
+                    <td class="c-tray">
+                      @if (!f.trayectoria.disponible) {
+                        <span class="score sin-dato">Sin solicitud</span>
+                      } @else {
+                        <span class="score" [class]="claseScore(f.trayectoria.score)">{{ f.trayectoria.score }}</span>
+                        <span class="score-sub">{{ f.trayectoria.aniosExperiencia }} años · {{ f.trayectoria.numEmpleos }} empleo{{ f.trayectoria.numEmpleos === 1 ? '' : 's' }}</span>
+                        @if (f.trayectoria.rotacionAlta) { <span class="tag riesgo">Rotación alta</span> }
+                        @if (f.trayectoria.banderasNegativas > 0) { <span class="tag riesgo">{{ f.trayectoria.banderasNegativas }} motivo(s) ⚑</span> }
+                      }
+                    </td>
+
+                    <td class="c-detalle">
+                      @if (f.trayectoria.disponible) {
+                        <span class="detalle-linea">{{ f.trayectoria.escolaridadLabel }}</span>
+                      } @else {
+                        <span class="detalle-linea muted">—</span>
+                      }
+                      <div class="mini-etapas">
+                        @for (s of f.evaluacion.subetapas; track s.key) {
+                          <span class="mini-dot"
+                                [class.on]="s.evaluada"
+                                [title]="s.label + (s.evaluada ? ': ' + s.puntaje : ': sin evaluar')"></span>
+                        }
+                      </div>
+                    </td>
+
+                    <td class="c-estatus">
+                      <span class="estatus-badge" [style.color]="colorEtapa(f.candidato.status)"
+                            [style.border-color]="colorEtapa(f.candidato.status)">
+                        {{ nombreEtapa(f.candidato.status) }}
+                      </span>
+                    </td>
+
+                    <td class="c-seg no-print">
+                      @if (seguimiento(f.candidato) === 'critico') {
+                        <span class="seg critico" title="Sin seguimiento">{{ dias(f.candidato) }}d</span>
+                      } @else if (seguimiento(f.candidato) === 'aviso') {
+                        <span class="seg aviso" title="Empieza a descuidarse">{{ dias(f.candidato) }}d</span>
+                      } @else {
+                        <span class="seg ok">✓</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (hayMas(g)) {
+            <button class="ver-mas no-print" (click)="toggleExpandir(g.nombre)">
+              Ver los {{ g.total - topPorPuesto }} restantes ▾
+            </button>
+          } @else if (puestosExpandidos.has(g.nombre) && g.total > topPorPuesto) {
+            <button class="ver-mas no-print" (click)="toggleExpandir(g.nombre)">
+              Mostrar solo el Top {{ topPorPuesto }} ▴
+            </button>
+          }
+        }
+      </section>
+    }
+
+    <footer class="cc-footer print-only">
+      Documento generado automáticamente por Mega Talento. La Evaluación refleja lo capturado por RH en el proceso;
+      la Trayectoria se deriva de la solicitud electrónica del candidato.
+    </footer>
+  }
+</div>
