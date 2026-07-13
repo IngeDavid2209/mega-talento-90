@@ -93,6 +93,7 @@
             <tr>
               <th>Candidato</th>
               <th>Puesto</th>
+              <th>Ciudad</th>
               <th class="num">Puntaje</th>
               <th class="num">%</th>
               <th class="num">Tarea</th>
@@ -110,6 +111,7 @@
                   <span class="nombre" (click)="abrirExpediente(f)">{{ f.c.nombre || 'Sin nombre' }}</span>
                 </td>
                 <td>{{ f.c.puesto || '—' }}</td>
+                <td class="cell-muted">{{ f.c.ciudad || f.c.sucursal || '—' }}</td>
                 <td class="num mono"><strong>{{ f.r.puntaje }}</strong><span class="de">/{{ f.r.puntajeMax }}</span></td>
                 <td class="num">
                   <span class="pct" [class]="'nivel-' + f.r.nivel">{{ f.r.porcentaje }}%</span>

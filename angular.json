@@ -23,6 +23,10 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": [
+              "xlsx",
+              "xlsx-js-style"
+            ],
             "assets": [
               {
                 "glob": "**/*",

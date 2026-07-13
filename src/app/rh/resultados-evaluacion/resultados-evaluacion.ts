@@ -8,7 +8,7 @@ import {
 } from '../../core/models/cuestionario-liderazgo.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import { ID_ETAPAS } from '../../core/models/proceso.model';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 interface FilaEval {
   c: any;
@@ -178,25 +178,106 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
   }
 
   exportarExcel() {
-    // Exporta exactamente lo que se está viendo (búsqueda + filtro + orden).
-    const datos = this.completos
-      .map(f => ({
-        'Nombre': f.c.nombre || '',
-        'Teléfono': f.c.telefono || '',
-        'Puesto': f.c.puesto || '',
-        'Ciudad / Sucursal': f.c.ciudad || f.c.sucursal || '',
-        'Puntaje': f.r.puntaje,
-        'Puntaje máximo': f.r.puntajeMax,
-        'Porcentaje': f.r.porcentaje + '%',
-        'Orientación a la tarea': f.r.puntajeTarea,
-        'Orientación a las relaciones': f.r.puntajeRelaciones,
-        'Estilo': f.r.estiloInfo.nombre,
-        'Nivel': this.nivelLabel(f.r.nivel),
-        'Fecha': this.formatearFecha(f.c.ultimaActividadCuestionario),
-      }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
+    // Exporta exactamente lo que se está viendo (búsqueda + filtro + orden),
+    // con diseño corporativo: banner de título, encabezado navy, bordes,
+    // filas alternadas, % como número y colores por nivel.
+    const encabezados = [
+      'Nombre', 'Teléfono', 'Puesto', 'Ciudad / Sucursal', 'Puntaje',
+      'Puntaje máximo', 'Porcentaje', 'Orientación a la tarea',
+      'Orientación a las relaciones', 'Estilo', 'Nivel', 'Fecha'
+    ];
+    const niveles = this.completos.map(f => f.r.nivel);
+    const filas = this.completos.map(f => [
+      f.c.nombre || '',
+      (f.c.telefono || '').toString(),
+      f.c.puesto || '',
+      f.c.ciudad || f.c.sucursal || '',
+      f.r.puntaje,
+      f.r.puntajeMax,
+      f.r.porcentaje / 100,               // fracción → se muestra como %
+      f.r.puntajeTarea,
+      f.r.puntajeRelaciones,
+      f.r.estiloInfo.nombre,
+      this.nivelLabel(f.r.nivel),
+      this.formatearFecha(f.c.ultimaActividadCuestionario),
+    ]);
+
+    const NCOL = encabezados.length;
+    const partes: string[] = [];
+    if (this.filtro === 'aptos') partes.push('Más aptos');
+    else if (this.filtro === 'noAptos') partes.push('Menos aptos');
+    else if (this.filtro === 'practicantes') partes.push('Practicantes');
+    if (this.ciudadSel) partes.push(this.ciudadSel);
+    if (this.puestoSel) partes.push(this.puestoSel);
+    const filtroTxt = partes.length ? partes.join(' · ') : 'Todos';
+    const fechaGen = new Date().toLocaleDateString('es-MX', {
+      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const subtitulo = `Filtro: ${filtroTxt} · ${this.completos.length} candidato(s) · Generado ${fechaGen}`;
+
+    const aoa: any[][] = [
+      ['MEGA DULCES DE LOS ALTOS · Resultados de la evaluación de liderazgo'],
+      [subtitulo],
+      encabezados,
+      ...filas
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Paleta / bordes
+    const NAVY = '1A2F4E', WHITE = 'FFFFFF';
+    const bd = { style: 'thin', color: { rgb: 'D9DEE7' } };
+    const bordes = { top: bd, bottom: bd, left: bd, right: bd };
+    const fill = (rgb: string) => ({ patternType: 'solid', fgColor: { rgb } });
+    const nivelColor: Record<string, { bg: string; fg: string }> = {
+      'destacado':            { bg: 'E6F2EC', fg: '0D4A2A' },
+      'solido':               { bg: 'E0F2FE', fg: '0369A1' },
+      'en-desarrollo':        { bg: 'F9EFD6', fg: '6B3D02' },
+      'requiere-desarrollo':  { bg: 'FEE2E2', fg: 'B91C1C' },
+      'sin-evaluar':          { bg: 'EEF2F8', fg: '4A5568' },
+    };
+    const colsNumericas = new Set([4, 5, 6, 7, 8]);
+
+    for (let r = 0; r < aoa.length; r++) {
+      for (let c = 0; c < NCOL; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+        if (r === 0) {
+          ws[ref].s = { font: { bold: true, sz: 14, color: { rgb: WHITE } }, fill: fill(NAVY), alignment: { horizontal: 'left', vertical: 'center' } };
+        } else if (r === 1) {
+          ws[ref].s = { font: { italic: true, sz: 10, color: { rgb: 'D9E2EF' } }, fill: fill(NAVY), alignment: { horizontal: 'left', vertical: 'center' } };
+        } else if (r === 2) {
+          ws[ref].s = { font: { bold: true, sz: 11, color: { rgb: WHITE } }, fill: fill(NAVY), alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: bordes };
+        } else {
+          const filaDatos = r - 3;
+          const zebra = filaDatos % 2 === 1;
+          if (c === 10) {
+            const nc = nivelColor[niveles[filaDatos]] || nivelColor['sin-evaluar'];
+            ws[ref].s = { font: { bold: true, sz: 10, color: { rgb: nc.fg } }, fill: fill(nc.bg), alignment: { horizontal: 'center', vertical: 'center' }, border: bordes };
+          } else {
+            ws[ref].s = {
+              font: { sz: 10, color: { rgb: '1A2F4E' } },
+              fill: fill(zebra ? 'F4F6FA' : 'FFFFFF'),
+              alignment: { horizontal: colsNumericas.has(c) ? 'center' : 'left', vertical: 'center' },
+              border: bordes
+            };
+          }
+          if (c === 6) ws[ref].z = '0%'; // porcentaje como número con formato %
+        }
+      }
+    }
+
+    // Anchos, alturas, celdas combinadas y autofiltro
+    ws['!cols'] = [26, 14, 20, 18, 9, 12, 11, 16, 20, 22, 18, 15].map(wch => ({ wch }));
+    ws['!rows'] = [{ hpt: 26 }, { hpt: 16 }, { hpt: 20 }];
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: NCOL - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: NCOL - 1 } },
+    ];
+    const ultimaFila = 3 + this.completos.length; // fila Excel (1-based) del último dato
+    ws['!autofilter'] = { ref: `A3:${XLSX.utils.encode_col(NCOL - 1)}${ultimaFila}` };
+
     const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Evaluaciones');
+    XLSX.utils.book_append_sheet(libro, ws, 'Evaluaciones');
     XLSX.writeFile(libro, 'Resultados_Evaluacion_Liderazgo.xlsx');
   }
 
