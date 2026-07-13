@@ -7,6 +7,7 @@ import { AvatarHablanteComponent } from '../avatar-hablante/avatar-hablante';
 import {
   CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario
 } from '../../app/core/models/cuestionario-liderazgo.model';
+import { ID_ETAPAS } from '../../app/core/models/proceso.model';
 
 @Component({
   selector: 'app-evaluacion-liderazgo',
@@ -233,8 +234,33 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     } else if (this.todasContestadas()) {
       this.terminado = true;
       this.voz.parar();
+      // Al completar la encuesta, el candidato pasa solo a la 2ª fase
+      // (Entrevista Orientación Conductual). No bloquea la pantalla final.
+      this.avanzarAConductual();
     }
     setTimeout(() => { this.avanzando = false; }, 50);
+  }
+
+  /**
+   * Mueve al candidato a la etapa 2 (entrevista_rh) al terminar la encuesta.
+   * Solo AVANZA: si ya está en Filtro Inicial (o 'nuevo'), lo sube; si ya va
+   * más adelante, o fue rechazado/contratado, no lo toca. Es "mejor esfuerzo":
+   * si falla, no rompe la pantalla de agradecimiento.
+   */
+  private async avanzarAConductual() {
+    if (!this.candidatoId) return;
+    const actual = this.candidato?.status;
+    // Solo reubicamos a quienes siguen en la 1ª fase (o sin etapa / 'nuevo').
+    if (actual && actual !== ID_ETAPAS.FILTRO && actual !== ID_ETAPAS.NUEVO) return;
+    try {
+      await this.candidateService.updateCandidate(
+        this.candidatoId,
+        { status: ID_ETAPAS.RH },
+        { marcarActividad: false } // lo dispara el candidato, no es seguimiento de RH
+      );
+    } catch (e) {
+      console.warn('No se pudo avanzar el candidato a Entrevista Orientación:', e);
+    }
   }
 
   todasContestadas(): boolean {

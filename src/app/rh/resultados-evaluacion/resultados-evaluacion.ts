@@ -7,6 +7,7 @@ import {
   calcularResultadoLiderazgo, ResultadoCuestionario
 } from '../../core/models/cuestionario-liderazgo.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
+import { ID_ETAPAS } from '../../core/models/proceso.model';
 import * as XLSX from 'xlsx';
 
 interface FilaEval {
@@ -67,15 +68,40 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
   promedio = 0;    // % promedio de los que completaron
 
   private unsub: any;
+  // Ids que ya intentamos reubicar en esta sesión (evita reintentos en cada
+  // emisión del listener en tiempo real).
+  private yaReubicados = new Set<string>();
 
   ngOnInit() {
     this.unsub = this.candidateService.listenToCandidates(datos => {
       this.ngZone.run(() => {
         this.todos = datos;
         this.clasificar();
+        this.reubicarCompletadosAFaseConductual();
         this.cargando = false;
       });
     });
+  }
+
+  /**
+   * Reubica a la 2ª fase (Entrevista Orientación) a los candidatos que YA
+   * contestaron la encuesta pero siguen en Filtro Inicial (o 'nuevo'). Cubre a
+   * quienes la contestaron ANTES de que el avance fuera automático. Solo AVANZA
+   * (nunca retrocede a quien va más adelante ni toca rechazados/contratados) y
+   * es idempotente: una vez movidos, dejan de cumplir la condición.
+   */
+  private reubicarCompletadosAFaseConductual() {
+    for (const c of this.todos) {
+      if (!c?.id || this.yaReubicados.has(c.id)) continue;
+      const estado = c.status;
+      if (estado && estado !== ID_ETAPAS.FILTRO && estado !== ID_ETAPAS.NUEVO) continue;
+      const r = calcularResultadoLiderazgo(c.cuestionarioLiderazgo);
+      if (r.contestadas !== r.total || r.total === 0) continue; // aún no la completa
+      this.yaReubicados.add(c.id);
+      this.candidateService
+        .updateCandidate(c.id, { status: ID_ETAPAS.RH }, { marcarActividad: false })
+        .catch(e => console.warn('No se pudo reubicar a Entrevista Orientación:', c.id, e));
+    }
   }
 
   ngOnDestroy() {
