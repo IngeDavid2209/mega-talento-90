@@ -124,8 +124,11 @@ export class VozService {
     if (!this.azureDisponible) return;
     // Carga del SDK
     this.cargarSDK().catch(() => { this.azureDisponible = false; });
-    // Token (se almacena en caché 8 minutos)
-    this.obtenerTokenAzure().catch(() => { /* silencioso: fallback en runtime */ });
+    // Token (se almacena en caché 8 minutos). Si falla aquí (p. ej. la cuenta
+    // de Azure está pausada/expirada), desactivamos Azure de una vez para que
+    // la PRIMERA pregunta arranque directo con la voz nativa, sin esperar a
+    // que Azure vuelva a fallar en runtime. Se reintenta al recargar la página.
+    this.obtenerTokenAzure().catch(() => { this.azureDisponible = false; });
   }
 
   /**
@@ -408,21 +411,68 @@ export class VozService {
 
   // ============== TTS NATIVO: implementación ==============
 
+  /** Locales de español LATINOAMERICANO (nunca es-ES de España). */
+  private readonly LOCALES_LATAM = [
+    'es-mx', 'es-us', 'es-419', 'es-la', 'es-ar', 'es-co', 'es-cl', 'es-pe',
+    've', 'es-ec', 'es-gt', 'es-cr', 'es-pa', 'es-do', 'es-bo', 'es-py',
+    'es-uy', 'es-ni', 'es-hn', 'es-sv', 'es-pr'
+  ];
+  /** Nombres de voces claramente latinas (varían por SO/navegador). */
+  private readonly NOMBRES_LATAM = [
+    'sabina', 'paulina', 'juan', 'estados unidos', 'mexico', 'latino',
+    'americ', 'dalia', 'jorge', 'angelo'
+  ];
+  /** Nombres de voces de España, a evitar salvo que no haya otra cosa. */
+  private readonly NOMBRES_ESPANA = [
+    'monica', 'helena', 'laura', 'pablo', 'elvira', 'espana', 'spain', 'castellano'
+  ];
+
   private cargarVozNativa(): void {
     if (!this.synthNativa) return;
     const elegir = () => {
       if (!this.synthNativa) return;
       const voces = this.synthNativa.getVoices();
-      this.vozNativa =
-        voces.find(v => v.lang === 'es-MX') ||
-        voces.find(v => v.lang === 'es-US') ||
-        voces.find(v => v.lang === 'es-ES') ||
-        voces.find(v => v.lang.startsWith('es-')) ||
-        voces.find(v => v.lang.toLowerCase().startsWith('es')) ||
-        null;
+      if (!voces || voces.length === 0) return;
+      this.vozNativa = this.elegirVozLatina(voces);
     };
     elegir();
     this.synthNativa.onvoiceschanged = elegir;
+  }
+
+  /**
+   * Elige la mejor voz de español disponible priorizando SIEMPRE acento
+   * latinoamericano. España (es-ES) solo se usa como último recurso absoluto,
+   * cuando el equipo no tiene NINGUNA voz latina instalada. No puede inventar
+   * un acento que el dispositivo no tenga: si el equipo solo trae voces de
+   * España, esa será la única opción posible con TTS nativo.
+   */
+  private elegirVozLatina(voces: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+    const norm = (s: string) =>
+      (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const esEspanol = (v: SpeechSynthesisVoice) => norm(v.lang).startsWith('es');
+    const esLatam = (v: SpeechSynthesisVoice) => {
+      const l = v.lang.toLowerCase();
+      return this.LOCALES_LATAM.some(loc => l === loc || l.includes(loc));
+    };
+    const nombreLatam = (v: SpeechSynthesisVoice) =>
+      this.NOMBRES_LATAM.some(n => norm(v.name).includes(n));
+    const nombreEspana = (v: SpeechSynthesisVoice) =>
+      norm(v.lang) === 'es-es' || this.NOMBRES_ESPANA.some(n => norm(v.name).includes(n));
+
+    // 1. Locale latino explícito (si además el nombre es latino, mejor).
+    const latam = voces.filter(esLatam);
+    if (latam.length) return latam.find(nombreLatam) || latam[0];
+
+    // 2. Español que NO sea de España (por locale ni por nombre).
+    const espanol = voces.filter(esEspanol);
+    const noEspana = espanol.filter(v => !nombreEspana(v));
+    if (noEspana.length) return noEspana.find(nombreLatam) || noEspana[0];
+
+    // 3. Último recurso: cualquier español, aunque sea de España.
+    if (espanol.length) return espanol[0];
+
+    // 4. No hay ninguna voz de español en el equipo.
+    return null;
   }
 
   private hablarConNativa(
@@ -435,6 +485,9 @@ export class VozService {
     }
     const utt = new SpeechSynthesisUtterance(texto);
     if (this.vozNativa) utt.voice = this.vozNativa;
+    // Si hay voz elegida, usamos su locale. Si no hay ninguna voz de español,
+    // pedimos es-MX como pista de pronunciación latina (algunos motores la
+    // aproximan). Nunca pedimos es-ES explícitamente.
     utt.lang = this.vozNativa?.lang || 'es-MX';
     utt.rate = opciones.rate ?? 0.95;
     utt.pitch = 1;
