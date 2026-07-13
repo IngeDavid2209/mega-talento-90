@@ -1,0 +1,274 @@
+/* ============================================================
+   GUÍA DE EVALUACIÓN DE LIDERAZGO (rúbrica) · Look corporativo
+   ============================================================ */
+.guia-wrapper {
+  padding: 32px 44px 60px;
+  max-width: 1120px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.guia-header {
+  margin-bottom: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 6px;
+}
+.guia-header h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.022em;
+}
+.guia-desc {
+  margin: 8px 0 0;
+  color: var(--text2);
+  font-size: 14px;
+  max-width: 780px;
+  line-height: 1.6;
+}
+
+/* MÉTRICAS */
+.metricas-fila {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.metrica {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.metrica-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.metrica-lbl {
+  font-size: 11px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* PANELES */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 18px;
+}
+.panel-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.panel-sub {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.doble-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.doble-panel .panel { margin-bottom: 18px; }
+
+/* GRID SVG */
+.grid-box {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+.grid-svg {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+}
+.grid-svg .tick {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  fill: var(--ink);
+  font-weight: 600;
+}
+.grid-svg .axis-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--brand);
+  letter-spacing: 0.02em;
+}
+.grid-svg .coord {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+
+/* ESTILOS */
+.estilos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.estilo-card {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--slate, #94a3b8);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.estilo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.estilo-head strong {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.estilo-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.estilo-coord {
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  color: var(--text2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+.estilo-card p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+/* LIKERT */
+.likert-list, .rango-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.likert-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.likert-val {
+  width: 26px; height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-family: 'DM Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.likert-txt { font-size: 12.5px; color: var(--text); line-height: 1.4; }
+.likert-txt strong { color: var(--ink); }
+
+/* RANGOS EJE */
+.rango-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.rango-chip {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.eje-bajo  { background: var(--red-bg, #fee2e2);   color: var(--red-text, #b91c1c); }
+.eje-medio { background: var(--amber-bg); color: var(--amber-text); }
+.eje-alto  { background: var(--green-bg); color: var(--green-text); }
+.rango-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* NIVELES GLOBALES */
+.niveles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.nivel-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border-top: 3px solid var(--slate, #94a3b8);
+}
+.nivel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.nivel-top strong { font-size: 14px; color: var(--ink); }
+.nivel-rango {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 600;
+}
+.nivel-card p { margin: 0; font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+
+.nivel-destacado           { border-top-color: var(--green); background: var(--green-bg); }
+.nivel-solido              { border-top-color: #0ea5e9; }
+.nivel-en-desarrollo       { border-top-color: var(--amber-text); }
+.nivel-requiere-desarrollo { border-top-color: #b91c1c; }
+
+@media (max-width: 860px) {
+  .metricas-fila { grid-template-columns: repeat(2, 1fr); }
+  .doble-panel { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .guia-wrapper { padding: 20px 18px 40px; }
+}

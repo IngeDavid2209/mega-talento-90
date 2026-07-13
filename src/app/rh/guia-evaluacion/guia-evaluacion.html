@@ -1,0 +1,149 @@
+<div class="guia-wrapper">
+
+  <header class="guia-header">
+    <span class="eyebrow">Rúbrica de evaluación</span>
+    <h2>Guía de la Evaluación de Liderazgo</h2>
+    <p class="guia-desc">
+      Cómo se obtienen los puntos de la entrevista conductual. Se basa en los
+      <strong>modelos interaccionistas del liderazgo</strong>: conducta orientada a la
+      <strong>tarea</strong> y conducta orientada a las <strong>relaciones</strong>, ubicadas en el
+      <strong>Grid Gerencial de Blake &amp; Mouton</strong>.
+    </p>
+  </header>
+
+  <!-- ── CÓMO SE CALIFICA (resumen numérico) ─────────────────────── -->
+  <div class="metricas-fila">
+    <div class="metrica">
+      <span class="metrica-num">{{ totalPreguntas }}</span>
+      <span class="metrica-lbl">Preguntas (Likert 1–5)</span>
+    </div>
+    <div class="metrica">
+      <span class="metrica-num">{{ preguntasTarea }} + {{ preguntasRelaciones }}</span>
+      <span class="metrica-lbl">Tarea + Relaciones</span>
+    </div>
+    <div class="metrica">
+      <span class="metrica-num">6–30</span>
+      <span class="metrica-lbl">Puntos por dimensión</span>
+    </div>
+    <div class="metrica">
+      <span class="metrica-num">{{ totalPreguntas }}–{{ puntajeMax }}</span>
+      <span class="metrica-lbl">Puntaje total</span>
+    </div>
+  </div>
+
+  <!-- ── GRID GERENCIAL ──────────────────────────────────────────── -->
+  <section class="panel">
+    <h3 class="panel-title">Grid Gerencial · Blake &amp; Mouton</h3>
+    <p class="panel-sub">
+      Cada eje suma de <strong>6 a 30</strong> (6 preguntas × 1–5). El cruce de ambos puntajes
+      ubica al candidato en uno de los 5 estilos.
+    </p>
+
+    <div class="grid-box">
+      <svg viewBox="0 0 360 340" class="grid-svg" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Grid Gerencial Blake-Mouton">
+
+        <!-- Líneas de la cuadrícula -->
+        @for (v of VALS; track v) {
+          <!-- verticales -->
+          <line [attr.x1]="gx(v)" [attr.y1]="gy(30)" [attr.x2]="gx(v)" [attr.y2]="gy(6)"
+                stroke="#cbd5e1" stroke-width="1" />
+          <!-- horizontales -->
+          <line [attr.x1]="gx(6)" [attr.y1]="gy(v)" [attr.x2]="gx(30)" [attr.y2]="gy(v)"
+                stroke="#cbd5e1" stroke-width="1" />
+        }
+        <!-- Marco exterior -->
+        <rect [attr.x]="gx(6)" [attr.y]="gy(30)"
+              [attr.width]="gx(30) - gx(6)" [attr.height]="gy(6) - gy(30)"
+              fill="none" stroke="#0f172a" stroke-width="1.5" />
+
+        <!-- Ejes: etiquetas numéricas -->
+        <text [attr.x]="gx(6) - 16" [attr.y]="gy(6) + 16" class="tick">0</text>
+        @for (v of VALS; track v) {
+          <text [attr.x]="gx(v)" [attr.y]="gy(6) + 20" text-anchor="middle" class="tick">{{ v }}</text>
+          <text [attr.x]="gx(6) - 14" [attr.y]="gy(v) + 4" text-anchor="end" class="tick">{{ v }}</text>
+        }
+
+        <!-- Títulos de los ejes -->
+        <text [attr.x]="(gx(6) + gx(30)) / 2" [attr.y]="gy(6) + 42"
+              text-anchor="middle" class="axis-title">Preocupación por las TAREAS →</text>
+        <text [attr.x]="-(gy(6) + gy(30)) / 2" [attr.y]="16" transform="rotate(-90)"
+              text-anchor="middle" class="axis-title">← Preocupación por las RELACIONES</text>
+
+        <!-- Marcadores de los 5 estilos -->
+        @for (m of marcadores; track m.id) {
+          <circle [attr.cx]="gx(m.t)" [attr.cy]="gy(m.r)" r="6"
+                  [attr.fill]="m.color" stroke="#fff" stroke-width="1.5" />
+          <text [attr.x]="gx(m.t) + m.dx" [attr.y]="gy(m.r) + m.dy"
+                [attr.text-anchor]="m.anchor" class="coord">({{ m.t }}, {{ m.r }})</text>
+        }
+      </svg>
+    </div>
+  </section>
+
+  <!-- ── LOS 5 ESTILOS ───────────────────────────────────────────── -->
+  <section class="panel">
+    <h3 class="panel-title">Los 5 estilos de liderazgo</h3>
+    <div class="estilos-grid">
+      @for (id of ordenEstilos; track id) {
+        <div class="estilo-card" [style.border-left-color]="colorDe(id)">
+          <div class="estilo-head">
+            <span class="estilo-dot" [style.background-color]="colorDe(id)"></span>
+            <strong>{{ ESTILOS[id].nombre }}</strong>
+            <span class="estilo-coord">{{ ESTILOS[id].coordenada }}</span>
+          </div>
+          <p>{{ ESTILOS[id].resumen }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ── ESCALA + RANGOS ─────────────────────────────────────────── -->
+  <div class="doble-panel">
+    <section class="panel">
+      <h3 class="panel-title">Escala por pregunta (Likert)</h3>
+      <p class="panel-sub">Cada una de las {{ totalPreguntas }} conductas se califica del 1 al 5.</p>
+      <ul class="likert-list">
+        @for (n of NIVELES_LIKERT; track n.valor) {
+          <li>
+            <span class="likert-val">{{ n.valor }}</span>
+            <span class="likert-txt"><strong>{{ n.etiquetaCorta }}</strong> · {{ n.etiquetaLarga }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h3 class="panel-title">Nivel de cada dimensión</h3>
+      <p class="panel-sub">Aplica por separado a Tarea y a Relaciones (eje 6–30).</p>
+      <ul class="rango-list">
+        @for (r of rangosEje; track r.nivel) {
+          <li>
+            <span class="rango-chip" [class]="'eje-' + r.clase">{{ r.nivel }}</span>
+            <span class="rango-val">{{ r.rango }} pts</span>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <!-- ── NIVEL GLOBAL POR % ──────────────────────────────────────── -->
+  <section class="panel">
+    <h3 class="panel-title">Nivel global (por porcentaje del puntaje total)</h3>
+    <p class="panel-sub">
+      Porcentaje = puntaje obtenido ÷ {{ puntajeMax }} × 100. Define la etiqueta final del candidato.
+    </p>
+    <div class="niveles-grid">
+      @for (n of nivelesGlobales; track n.nivel) {
+        <div class="nivel-card" [class]="'nivel-' + n.clase">
+          <div class="nivel-top">
+            <strong>{{ n.nivel }}</strong>
+            <span class="nivel-rango">{{ n.rango }}</span>
+          </div>
+          <p>{{ n.desc }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+</div>

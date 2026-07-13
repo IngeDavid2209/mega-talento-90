@@ -18,6 +18,7 @@ import { VacantesComponent } from './rh/vacantes/vacantes';
 import { DuplicadosComponent } from './rh/duplicados/duplicados';
 import { PapeleraComponent } from './rh/papelera/papelera';
 import { ContactadosComponent } from './rh/contactados/contactados';
+import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
 
 export const routes: Routes = [
   {
@@ -33,6 +34,7 @@ export const routes: Routes = [
       { path: 'vacantes',  component: VacantesComponent },
       { path: 'duplicados', component: DuplicadosComponent },
       { path: 'contactados', component: ContactadosComponent },
+      { path: 'guia-evaluacion', component: GuiaEvaluacionComponent },
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },
