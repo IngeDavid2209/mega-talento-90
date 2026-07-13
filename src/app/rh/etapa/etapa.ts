@@ -10,11 +10,11 @@ import {
   CHECKLIST_DOCUMENTAL, CHECKLIST_OFERTA, CHECKLIST_CONTRATADO,
   progresoChecklist
 } from '../../core/models/proceso.model';
-import { urlWhatsApp } from '../../core/models/puestos.model';
 import { normalizarCiudad } from '../../core/models/normalizacion.model';
 import { nivelSeguimiento, diasSinSeguimiento, NivelSeguimiento } from '../../core/models/seguimiento.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import { ToastService } from '../../core/services/toast.service';
+import { BotService } from '../../core/services/bot.service';
 
 @Component({
   selector: 'app-etapa',
@@ -31,6 +31,10 @@ export class EtapaComponent implements OnInit, OnDestroy {
   // Público para que el template lea el signal y use displayName()
   capitalHumano = inject(CapitalHumanoService);
   private toast = inject(ToastService);
+  private botService = inject(BotService);
+
+  /** Ids con una invitación al bot en curso (deshabilita el botón) */
+  enviandoInvitacion = new Set<string>();
 
   ID_ETAPAS = ID_ETAPAS;
 
@@ -193,16 +197,9 @@ export class EtapaComponent implements OnInit, OnDestroy {
     return diasSinSeguimiento(c);
   }
 
+  /** Conecta al candidato con el bot (le escribe por WhatsApp desde el número oficial). */
   contactarWhatsApp(c: any) {
-    const url = urlWhatsApp(c);
-    if (!url) {
-      this.toast.alerta(
-        `El teléfono (${c.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
-        `Teléfono de ${c.nombre || 'este candidato'} inválido`
-      );
-      return;
-    }
-    window.open(url, '_blank');
+    return this.botService.conectarConBot(c, this.enviandoInvitacion);
   }
 
   /** Detecta si el candidato envió CV y de qué tipo (pdf / foto) */

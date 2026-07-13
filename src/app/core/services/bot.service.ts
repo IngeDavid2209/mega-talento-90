@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import { ToastService } from './toast.service';
 
 /**
  * Puente con el bot de reclutamiento (proyecto BOT-RH, desplegado en Railway).
@@ -21,6 +22,8 @@ export interface InvitacionResp {
 
 @Injectable({ providedIn: 'root' })
 export class BotService {
+  private toast = inject(ToastService);
+
   /**
    * Pide al bot que le escriba al candidato por WhatsApp y lo conecte con la
    * conversación automática. Nunca lanza: devuelve un objeto con el resultado
@@ -41,6 +44,59 @@ export class BotService {
       return data as InvitacionResp;
     } catch (e: any) {
       return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+    }
+  }
+
+  /**
+   * Flujo COMPLETO para el botón "Conectar con el bot" que usan varias
+   * pantallas (historial, etapa, expediente, contacto): pide confirmación,
+   * llama al bot y muestra el toast según el resultado.
+   *
+   * @param c        candidato (necesita `id` de Firestore, `nombre` opcional)
+   * @param enviando Set opcional de ids "en curso" para deshabilitar el botón
+   *                 mientras se envía. El método lo agrega/quita solo.
+   */
+  async conectarConBot(c: any, enviando?: Set<string>): Promise<void> {
+    if (!c?.id) {
+      this.toast.error('Este candidato no tiene un identificador válido.', 'No se puede contactar');
+      return;
+    }
+    if (enviando?.has(c.id)) return;
+
+    const ok = await this.toast.confirmar({
+      titulo: `Conectar a ${c.nombre || 'este candidato'} con el bot`,
+      mensaje: 'El bot de reclutamiento le enviará un WhatsApp desde el número oficial para que continúe su proceso directamente en el chat. ¿Enviar ahora?',
+      textoConfirmar: 'Sí, enviar',
+      textoCancelar: 'Cancelar',
+    });
+    if (!ok) return;
+
+    enviando?.add(c.id);
+    try {
+      const r = await this.invitarPorWhatsApp(c.id);
+      if (r.ok && r.invitado) {
+        this.toast.exito(
+          `El bot le escribió a ${c.nombre || 'el candidato'} por WhatsApp.`,
+          'Invitación enviada'
+        );
+      } else if (r.ok && r.motivo === 'ya_en_proceso') {
+        this.toast.info(
+          `${c.nombre || 'El candidato'} ya tiene una conversación en curso con el bot.`,
+          'Sin cambios'
+        );
+      } else if (r.ok) {
+        this.toast.error(
+          'El bot no pudo enviar el mensaje. Revisa que la plantilla de WhatsApp esté aprobada en Meta y que el teléfono sea válido.',
+          'No se envió'
+        );
+      } else {
+        this.toast.error(
+          r.error || 'No se pudo contactar al bot. Revisa tu conexión e intenta de nuevo.',
+          'Error'
+        );
+      }
+    } finally {
+      enviando?.delete(c.id);
     }
   }
 }

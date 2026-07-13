@@ -124,45 +124,8 @@ export class HistorialComponent implements OnInit {
    * escriba por WhatsApp desde el número oficial para que continúe su proceso
    * directamente en el chat automático (no abre el WhatsApp personal del RH).
    */
-  async contactarWhatsApp(c: any) {
-    if (!c?.id) return;
-    if (this.enviandoInvitacion.has(c.id)) return;
-
-    const ok = await this.toast.confirmar({
-      titulo: `Conectar a ${c.nombre || 'este candidato'} con el bot`,
-      mensaje: 'El bot de reclutamiento le enviará un WhatsApp desde el número oficial para que continúe su proceso directamente en el chat. ¿Enviar ahora?',
-      textoConfirmar: 'Sí, enviar',
-      textoCancelar: 'Cancelar',
-    });
-    if (!ok) return;
-
-    this.enviandoInvitacion.add(c.id);
-    try {
-      const r = await this.botService.invitarPorWhatsApp(c.id);
-      if (r.ok && r.invitado) {
-        this.toast.exito(
-          `El bot le escribió a ${c.nombre || 'el candidato'} por WhatsApp.`,
-          'Invitación enviada'
-        );
-      } else if (r.ok && r.motivo === 'ya_en_proceso') {
-        this.toast.info(
-          `${c.nombre || 'El candidato'} ya tiene una conversación en curso con el bot.`,
-          'Sin cambios'
-        );
-      } else if (r.ok) {
-        this.toast.error(
-          'El bot no pudo enviar el mensaje. Revisa que la plantilla de WhatsApp esté aprobada en Meta y que el teléfono sea válido.',
-          'No se envió'
-        );
-      } else {
-        this.toast.error(
-          r.error || 'No se pudo contactar al bot. Revisa tu conexión e intenta de nuevo.',
-          'Error'
-        );
-      }
-    } finally {
-      this.enviandoInvitacion.delete(c.id);
-    }
+  contactarWhatsApp(c: any) {
+    return this.botService.conectarConBot(c, this.enviandoInvitacion);
   }
 
   async cambiarEstatus(id: string, event: any) {

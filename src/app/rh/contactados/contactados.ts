@@ -4,8 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS } from '../../core/models/proceso.model';
-import { urlWhatsApp } from '../../core/models/puestos.model';
-import { ToastService } from '../../core/services/toast.service';
+import { BotService } from '../../core/services/bot.service';
 import * as XLSX from 'xlsx';
 
 /**
@@ -33,7 +32,10 @@ export class ContactadosComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
-  private toast = inject(ToastService);
+  private botService = inject(BotService);
+
+  /** Ids con una invitación al bot en curso (deshabilita el botón) */
+  enviandoInvitacion = new Set<string>();
 
   cargando = true;
   todos: any[] = [];
@@ -116,17 +118,9 @@ export class ContactadosComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/expediente', c.id]);
   }
 
-  /** Abre WhatsApp con el mensaje de primer contacto (para la lista pendiente). */
+  /** Pide al bot que le escriba al candidato por WhatsApp (número oficial). */
   contactar(c: any) {
-    const url = urlWhatsApp(c);
-    if (!url) {
-      this.toast.alerta(
-        `El teléfono (${c.telefono || 'vacío'}) no es válido. Corrígelo en el expediente para poder enviar WhatsApp.`,
-        `Teléfono de ${c.nombre || 'este candidato'} inválido`
-      );
-      return;
-    }
-    window.open(url, '_blank');
+    return this.botService.conectarConBot(c, this.enviandoInvitacion);
   }
 
   exportarExcel() {

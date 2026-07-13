@@ -20,6 +20,7 @@ import {
 } from '../../core/models/cuestionario-liderazgo.model';
 import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 import { ToastService } from '../../core/services/toast.service';
+import { BotService } from '../../core/services/bot.service';
 
 @Component({
   selector: 'app-expediente',
@@ -34,6 +35,10 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
+  private botService = inject(BotService);
+
+  /** Ids con una invitación al bot en curso (deshabilita el botón) */
+  enviandoInvitacion = new Set<string>();
 
   // Constantes expuestas al template
   ETAPAS = ETAPAS;
@@ -413,13 +418,9 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return numero;
   }
 
-  // WHATSAPP rapport
+  // WHATSAPP: conecta al candidato con el bot (le escribe desde el número oficial).
   contactarWhatsApp() {
-    const numero = this.obtenerNumeroValido();
-    if (!numero) return;
-    const msg =
-`Hola ${this.candidato.nombre}, te contacto de Capital Humano de Mega Dulces. ¿Cómo te encuentras?`;
-    window.open(`https://wa.me/52${numero}?text=${encodeURIComponent(msg)}`, '_blank');
+    return this.botService.conectarConBot(this.candidato, this.enviandoInvitacion);
   }
 
   /** Envía por WhatsApp el link único para que el candidato llene la Evaluación de Liderazgo en vivo */

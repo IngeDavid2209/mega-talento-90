@@ -35,7 +35,11 @@
         </div>
 
         <div class="profile-actions">
-          <button class="btn-secondary" (click)="contactarWhatsApp()">Contactar</button>
+          <button class="btn-secondary" (click)="contactarWhatsApp()"
+                  [disabled]="enviandoInvitacion.has(candidato.id)"
+                  title="Conectar con el bot por WhatsApp">
+            {{ enviandoInvitacion.has(candidato.id) ? 'Enviando…' : 'Contactar' }}
+          </button>
           @if (candidato.cvFormato === 'fotos' && candidato.cvUrl) {
             <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">CV (frente)</a>
             @if (candidato.cvUrlReverso) {
