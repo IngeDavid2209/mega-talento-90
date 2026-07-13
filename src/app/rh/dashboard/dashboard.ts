@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
@@ -17,7 +17,7 @@ import {
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
   private router = inject(Router);
@@ -68,8 +68,13 @@ export class DashboardComponent implements OnInit {
   readonly AVISO_DIAS = SEGUIMIENTO_AVISO_DIAS;
   readonly CRITICO_DIAS = SEGUIMIENTO_CRITICO_DIAS;
 
+  // Handle del listener de Firestore para poder cerrarlo al salir de la vista.
+  // Sin esto se acumulaba un onSnapshot a TODA la colección en cada visita al
+  // dashboard (nunca se liberaban), degradando la app progresivamente.
+  private unsubscribeFn: (() => void) | null = null;
+
   async ngOnInit() {
-    this.candidateService.listenToCandidates(datos => {
+    this.unsubscribeFn = this.candidateService.listenToCandidates(datos => {
       this.ngZone.run(() => {
         this.candidatos = datos;
         this.calcularKpis();
@@ -81,6 +86,10 @@ export class DashboardComponent implements OnInit {
     // los candidatos que ya existían antes de crear el índice. Se corre una
     // sola vez por navegador de RH (guarda en localStorage).
     this.backfillIndiceTelefonos();
+  }
+
+  ngOnDestroy() {
+    if (this.unsubscribeFn) { this.unsubscribeFn(); this.unsubscribeFn = null; }
   }
 
   private async backfillIndiceTelefonos() {
