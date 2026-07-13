@@ -45,12 +45,13 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
    *   - 'noAptos' → peores promedios (< UMBRAL_APTO): en/requiere desarrollo.
    * El umbral 66 coincide con el corte "sólido" que ya usa el resto del sistema.
    */
-  filtro: 'todos' | 'aptos' | 'noAptos' = 'todos';
+  filtro: 'todos' | 'aptos' | 'noAptos' | 'practicantes' = 'todos';
   readonly UMBRAL_APTO = 66;
 
-  // Conteos por aptitud (sobre lo que coincide con la búsqueda)
+  // Conteos por categoría (sobre lo que coincide con la búsqueda)
   countAptos = 0;
   countNoAptos = 0;
+  countPracticantes = 0;
 
   // Totales globales (sin filtrar)
   totalCompletos = 0;
@@ -91,14 +92,16 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
 
     const buscados = completos.filter(f => coincide(f.c));
 
-    // Conteos por aptitud para mostrarlos en los botones del filtro.
+    // Conteos por categoría para mostrarlos en los botones del filtro.
     this.countAptos = buscados.filter(f => f.r.porcentaje >= this.UMBRAL_APTO).length;
     this.countNoAptos = buscados.length - this.countAptos;
+    this.countPracticantes = buscados.filter(f => this.esPracticante(f.c)).length;
 
-    // Aplicar el filtro por aptitud seleccionado.
+    // Aplicar el filtro seleccionado.
     let lista = buscados;
     if (this.filtro === 'aptos') lista = buscados.filter(f => f.r.porcentaje >= this.UMBRAL_APTO);
     else if (this.filtro === 'noAptos') lista = buscados.filter(f => f.r.porcentaje < this.UMBRAL_APTO);
+    else if (this.filtro === 'practicantes') lista = buscados.filter(f => this.esPracticante(f.c));
 
     // "Menos aptos": peor primero (ascendente) para que salten arriba;
     // en el resto, mejor primero (descendente) como siempre.
@@ -107,10 +110,19 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
       asc ? a.r.porcentaje - b.r.porcentaje : b.r.porcentaje - a.r.porcentaje);
   }
 
-  /** Cambia el filtro por aptitud y reordena la lista. */
-  setFiltro(f: 'todos' | 'aptos' | 'noAptos') {
+  /** Cambia el filtro y reordena la lista. */
+  setFiltro(f: 'todos' | 'aptos' | 'noAptos' | 'practicantes') {
     this.filtro = f;
     this.clasificar();
+  }
+
+  /**
+   * Detecta practicantes por el texto del puesto (no hay un campo dedicado en
+   * el sistema). Cubre "practicante", "prácticas", "becario" y "pasante".
+   */
+  private esPracticante(c: any): boolean {
+    const p = (c?.puesto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return p.includes('practic') || p.includes('becari') || p.includes('pasant');
   }
 
   // ====== Acciones ======

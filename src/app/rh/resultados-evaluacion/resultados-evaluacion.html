@@ -60,6 +60,9 @@
       <button type="button" class="filtro-btn noapto" [class.active]="filtro === 'noAptos'" (click)="setFiltro('noAptos')">
         Menos aptos <span class="filtro-count">{{ countNoAptos }}</span>
       </button>
+      <button type="button" class="filtro-btn practi" [class.active]="filtro === 'practicantes'" (click)="setFiltro('practicantes')">
+        Practicantes <span class="filtro-count">{{ countPracticantes }}</span>
+      </button>
       <span class="filtro-hint">Corte: {{ UMBRAL_APTO }}% o más = apto</span>
     </div>
 

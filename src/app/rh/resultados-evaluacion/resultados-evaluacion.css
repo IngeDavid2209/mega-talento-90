@@ -177,6 +177,8 @@
 .filtro-btn.active .filtro-count { background: rgba(255,255,255,0.2); color: #fff; }
 .filtro-btn.apto.active { background: var(--green); border-color: var(--green); }
 .filtro-btn.noapto.active { background: var(--red); border-color: var(--red); }
+.filtro-btn.practi.active { background: var(--gold); border-color: var(--gold); color: var(--ink-deep); }
+.filtro-btn.practi.active .filtro-count { background: rgba(15,31,61,0.18); color: var(--ink-deep); }
 .filtro-hint {
   font-size: 11.5px;
   color: var(--text3);
