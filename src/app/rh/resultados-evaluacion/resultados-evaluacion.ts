@@ -242,7 +242,7 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
         const ref = XLSX.utils.encode_cell({ r, c });
         if (!ws[ref]) ws[ref] = { t: 's', v: '' };
         if (r === 0) {
-          ws[ref].s = { font: { bold: true, sz: 14, color: { rgb: WHITE } }, fill: fill(NAVY), alignment: { horizontal: 'left', vertical: 'center' } };
+          ws[ref].s = { font: { bold: true, sz: 14, color: { rgb: WHITE } }, fill: fill(NAVY), alignment: { horizontal: 'left', vertical: 'center' }, border: { bottom: { style: 'medium', color: { rgb: 'E5A300' } } } };
         } else if (r === 1) {
           ws[ref].s = { font: { italic: true, sz: 10, color: { rgb: 'D9E2EF' } }, fill: fill(NAVY), alignment: { horizontal: 'left', vertical: 'center' } };
         } else if (r === 2) {
@@ -266,9 +266,11 @@ export class ResultadosEvaluacionComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Anchos, alturas, celdas combinadas y autofiltro
-    ws['!cols'] = [26, 14, 20, 18, 9, 12, 11, 16, 20, 22, 18, 15].map(wch => ({ wch }));
-    ws['!rows'] = [{ hpt: 26 }, { hpt: 16 }, { hpt: 20 }];
+    // Anchos, alturas, celdas combinadas y autofiltro.
+    // La fila de encabezado (índice 2) va más alta para que quepan los títulos
+    // de dos líneas ("Orientación a la tarea", etc.) sin cortarse.
+    ws['!cols'] = [28, 13, 20, 16, 9, 11, 12, 15, 16, 22, 17, 13].map(wch => ({ wch }));
+    ws['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 40 }];
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: NCOL - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: NCOL - 1 } },
