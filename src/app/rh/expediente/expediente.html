@@ -84,7 +84,6 @@
     <!-- TABS -->
     <div class="tabs-bar">
       <button class="tab" [class.active]="tabActiva === 'resumen'"     (click)="tabActiva = 'resumen'">Resumen</button>
-      <button class="tab" [class.active]="tabActiva === 'filtro'"      (click)="tabActiva = 'filtro'">Filtro inicial</button>
       <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista Orientación Conductual</button>
       <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes y Entrevista Técnica</button>
       <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicométricas</button>
@@ -115,21 +114,6 @@
             <div class="mini-bar"><div class="mini-fill" [style.width.%]="progresoPsicom().pct"></div></div>
             <span class="resumen-num">{{ progresoPsicom().hechos }}/{{ progresoPsicom().total }}</span>
           </div>
-        </div>
-      </div>
-    }
-
-    <!-- ============== TAB: FILTRO INICIAL ============== -->
-    @if (tabActiva === 'filtro') {
-      <div class="section-card">
-        <header class="section-head">
-          <h3>Filtro Inicial · Primer contacto</h3>
-          <p class="section-desc">Bandeja de entrada del candidato. Aquí haces el primer contacto por WhatsApp antes de agendar la entrevista conductual.</p>
-        </header>
-
-        <div class="hint-box">
-          <span class="hint-tag">Regla crítica</span>
-          No agendar entrevista a candidatos que no hayan confirmado horario, sueldo, ubicación y experiencia mínima.
         </div>
       </div>
     }
