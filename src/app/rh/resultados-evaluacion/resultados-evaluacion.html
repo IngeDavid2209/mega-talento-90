@@ -90,15 +90,15 @@
       <div class="tabla-scroll">
         <table class="res-tabla">
           <colgroup>
-            <col style="width: 16%"> <!-- Candidato -->
+            <col style="width: 15%"> <!-- Candidato -->
             <col style="width: 11%"> <!-- Puesto -->
-            <col style="width: 9%">  <!-- Ciudad -->
+            <col style="width: 12%"> <!-- Ciudad -->
             <col style="width: 7%">  <!-- Puntaje -->
             <col style="width: 6%">  <!-- % -->
             <col style="width: 7%">  <!-- Tarea -->
             <col style="width: 8%">  <!-- Relaciones -->
-            <col style="width: 13%"> <!-- Estilo -->
-            <col style="width: 12%"> <!-- Nivel -->
+            <col style="width: 12%"> <!-- Estilo -->
+            <col style="width: 11%"> <!-- Nivel -->
             <col style="width: 11%"> <!-- Fecha -->
           </colgroup>
           <thead>
@@ -123,7 +123,7 @@
                   <span class="nombre" (click)="abrirExpediente(f)">{{ f.c.nombre || 'Sin nombre' }}</span>
                 </td>
                 <td>{{ f.c.puesto || '—' }}</td>
-                <td class="cell-muted">{{ f.c.ciudad || f.c.sucursal || '—' }}</td>
+                <td class="cell-muted td-ciudad">{{ f.c.ciudad || f.c.sucursal || '—' }}</td>
                 <td class="num mono"><strong>{{ f.r.puntaje }}</strong><span class="de">/{{ f.r.puntajeMax }}</span></td>
                 <td class="num">
                   <span class="pct" [class]="'nivel-' + f.r.nivel">{{ f.r.porcentaje }}%</span>

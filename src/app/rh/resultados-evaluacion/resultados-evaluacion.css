@@ -250,8 +250,10 @@
   vertical-align: middle;
   overflow-wrap: anywhere;   /* nombres/estilos largos se parten sin desbordar */
 }
-/* Fecha, ciudad y números en una sola línea (no se parten) */
+/* Fecha y números en una sola línea (no se parten) */
 .res-tabla td.num, .res-tabla .cell-muted { white-space: nowrap; }
+/* Ciudad SÍ puede partirse: los nombres largos no deben desbordar la columna */
+.res-tabla td.td-ciudad { white-space: normal; overflow-wrap: anywhere; }
 .res-tabla tr:last-child td { border-bottom: none; }
 .res-tabla tbody tr:hover { background: var(--surface3); }
 
