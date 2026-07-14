@@ -9,6 +9,7 @@ import {
   COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
   PSICOMETRIA_ITEMS, CHECKLIST_JEFE, CHECKLIST_DOCUMENTAL,
   CHECKLIST_OFERTA, CHECKLIST_CONTRATADO, AREAS_DICTAMEN,
+  DOCUMENTOS_EXPEDIENTE,
   ItemChecklist, ResultadoDictamen, AptitudItem,
   NIVELES_RUBRICA, NivelRubrica, UMBRAL_APROBACION_APTITUDES,
   calcularPuntajeRubrica,
@@ -61,6 +62,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   CHECKLIST_DOCUMENTAL = CHECKLIST_DOCUMENTAL;
   CHECKLIST_OFERTA = CHECKLIST_OFERTA;
   CHECKLIST_CONTRATADO = CHECKLIST_CONTRATADO;
+  DOCUMENTOS_EXPEDIENTE = DOCUMENTOS_EXPEDIENTE;
   AREAS_DICTAMEN = AREAS_DICTAMEN;
   // Cuestionario de Liderazgo (12 preguntas Likert) que reemplaza a STAR
   CUESTIONARIO_LIDERAZGO = CUESTIONARIO_LIDERAZGO;
@@ -69,6 +71,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   candidato: any = null;
   cargando = true;
   subiendoDoc = false;
+  /** key del slot del portafolio que se está subiendo (null = ninguno) */
+  subiendoDocKey: string | null = null;
   tabActiva: string = 'resumen';
   mensajeBloqueo: { titulo: string; faltantes: string[] } | null = null;
 
@@ -472,6 +476,55 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       this.subiendoDoc = false;
       event.target.value = '';
     }
+  }
+
+  // ====== PORTAFOLIO DE DOCUMENTOS DEL EXPEDIENTE ======
+
+  /** Keys de los slots del portafolio, para separar lo que llega "suelto". */
+  private readonly SLOT_KEYS = new Set(DOCUMENTOS_EXPEDIENTE.map(d => d.key));
+
+  /** Archivo actual de un slot, con fallback a bot y a los campos del registro. */
+  docExpediente(key: string): { url: string; nombre?: string; fecha?: string } | null {
+    const e = this.candidato?.expedienteDocs?.[key];
+    if (e?.url) return e;
+    // Documento que el bot recibió por WhatsApp etiquetado con este tipo
+    const bot = (this.candidato?.documentosBot || []).find((d: any) => d?.tipo === key && d?.url);
+    if (bot) return { url: bot.url, nombre: bot.nombre || 'Recibido por WhatsApp', fecha: bot.recibidoEn };
+    // Compatibilidad: CV y licencia pueden venir del alta del candidato
+    if (key === 'cv' && this.candidato?.cvUrl) return { url: this.candidato.cvUrl, nombre: 'CV enviado al registrarse' };
+    if (key === 'licencia' && this.candidato?.licenciaUrl) return { url: this.candidato.licenciaUrl, nombre: 'Enviada al registrarse' };
+    return null;
+  }
+
+  /** Documentos del bot que no empatan con ningún slot conocido. */
+  docsBotSueltos(): any[] {
+    return (this.candidato?.documentosBot || []).filter((d: any) => d?.url && !this.SLOT_KEYS.has(d?.tipo));
+  }
+
+  /** Sube el archivo de un slot del portafolio (INE, contrato firmado, etc.). */
+  async subirDocExpediente(key: string, event: any) {
+    const file = event.target.files?.[0];
+    if (!file || !this.candidato) return;
+
+    this.subiendoDocKey = key;
+    try {
+      const url = await this.candidateService.uploadDocument(file, this.candidato.id);
+      if (!this.candidato.expedienteDocs) this.candidato.expedienteDocs = {};
+      this.candidato.expedienteDocs[key] = { nombre: file.name, url, fecha: new Date().toISOString() };
+      await this.candidateService.updateCandidate(this.candidato.id, { expedienteDocs: this.candidato.expedienteDocs });
+    } catch (error) {
+      this.toast.error('Hubo un error al subir el archivo.', 'No se pudo subir');
+    } finally {
+      this.subiendoDocKey = null;
+      if (event?.target) event.target.value = '';
+    }
+  }
+
+  /** Cuántos documentos esperados ya están cargados (para el resumen del portafolio). */
+  progresoExpediente(): { hechos: number; total: number } {
+    const total = DOCUMENTOS_EXPEDIENTE.length;
+    const hechos = DOCUMENTOS_EXPEDIENTE.filter(d => this.docExpediente(d.key)).length;
+    return { hechos, total };
   }
 
   /** Normaliza el teléfono del candidato actual y, si es inválido, alerta */

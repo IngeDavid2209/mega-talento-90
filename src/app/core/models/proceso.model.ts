@@ -326,6 +326,25 @@ export const CHECKLIST_DOCUMENTAL: ItemChecklist[] = [
   { key: 'avisoPrivacidad',label: 'Aviso de privacidad',  icon: '🔐', obligatorio: true }
 ];
 
+// 6-BIS. PORTAFOLIO DE DOCUMENTOS DEL EXPEDIENTE
+// Espacios por tipo de documento donde RH sube/consulta los archivos del
+// candidato (incluye el contrato ya firmado). "obligatorio" solo marca cuáles
+// se esperan; no bloquea nada.
+export interface DocExpedienteSlot { key: string; label: string; obligatorio: boolean; }
+export const DOCUMENTOS_EXPEDIENTE: DocExpedienteSlot[] = [
+  { key: 'cv',              label: 'Currículum vitae',        obligatorio: true },
+  { key: 'ine',             label: 'INE',                     obligatorio: true },
+  { key: 'curp',            label: 'CURP',                    obligatorio: true },
+  { key: 'rfc',             label: 'RFC',                     obligatorio: true },
+  { key: 'nss',             label: 'NSS',                     obligatorio: true },
+  { key: 'comprobante',     label: 'Comprobante de domicilio',obligatorio: true },
+  { key: 'acta',            label: 'Acta de nacimiento',      obligatorio: true },
+  { key: 'banco',           label: 'Cuenta bancaria',         obligatorio: true },
+  { key: 'avisoPrivacidad', label: 'Aviso de privacidad',     obligatorio: true },
+  { key: 'licencia',        label: 'Licencia de manejo',      obligatorio: false },
+  { key: 'contrato',        label: 'Contrato firmado',        obligatorio: false }
+];
+
 // 7. OFERTA — Validación pre-ingreso (regla crítica del director)
 export const CHECKLIST_OFERTA: ItemChecklist[] = [
   { key: 'ofertaAceptada',  label: 'Oferta aceptada',          icon: '💰', obligatorio: true },

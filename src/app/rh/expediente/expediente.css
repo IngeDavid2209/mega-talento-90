@@ -1886,6 +1886,102 @@
 .doc-item small { color: var(--text3); font-size: 11.5px; }
 
 /* ============================================================
+   EXPEDIENTE · Portafolio de documentos por tipo
+   ============================================================ */
+.exp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.exp-progreso { font-size: 13px; color: var(--text2); }
+.exp-progreso strong { color: var(--ink); font-size: 15px; font-weight: 700; }
+.exp-actions-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.exp-btn-sec {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.exp-btn-sec:hover { border-color: var(--ink); background: var(--surface3); }
+.exp-btn-sec:disabled { opacity: 0.5; cursor: default; }
+
+.doc-portfolio {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.doc-slot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.doc-slot:last-child { border-bottom: none; }
+.doc-slot.tiene { background: linear-gradient(90deg, var(--green-bg) 0%, var(--surface) 40%); }
+
+.doc-slot-state {
+  width: 22px; height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-med);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.doc-slot-state.ok { background: var(--green); border-color: var(--green); }
+
+.doc-slot-main { flex: 1; min-width: 0; }
+.doc-slot-main strong { display: block; color: var(--ink); font-size: 13.5px; font-weight: 600; }
+.doc-slot-main small { font-size: 11.5px; color: var(--text3); }
+.doc-slot-main small.pend { color: var(--amber); font-weight: 600; }
+.doc-slot-file {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: block; max-width: 100%;
+}
+
+.doc-slot-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.doc-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-med);
+  transition: all 0.16s ease;
+}
+.doc-mini-btn.ver { color: var(--ink); background: var(--surface); text-decoration: none; }
+.doc-mini-btn.ver:hover { border-color: var(--ink); background: var(--surface3); }
+.doc-mini-btn.subir { color: #fff; background: var(--ink); border-color: var(--ink); }
+.doc-mini-btn.subir:hover { background: var(--ink-deep); }
+
+.exp-otros-title {
+  margin: 24px 0 12px !important;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ============================================================
    SOLICITUD ELECTRÓNICA — vista en el expediente
    ============================================================ */
 .sol-pendiente {

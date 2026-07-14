@@ -91,10 +91,8 @@
       <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista Orientación Conductual</button>
       <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes y Entrevista Técnica</button>
       <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicométricas</button>
-      <button class="tab" [class.active]="tabActiva === 'dictamen'"    (click)="tabActiva = 'dictamen'">Dictamen</button>
-      <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Archivos</button>
+      <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Expediente</button>
       <button class="tab" [class.active]="tabActiva === 'solicitud'"   (click)="tabActiva = 'solicitud'">Solicitud</button>
-      <button class="tab" [class.active]="tabActiva === 'contratado'"  (click)="tabActiva = 'contratado'">Contratado</button>
     </div>
 
     <!-- ============== TAB: RESUMEN ============== -->
@@ -838,88 +836,81 @@
       </div>
     }
 
-    <!-- ============== TAB: ARCHIVOS ============== -->
+    <!-- ============== TAB: EXPEDIENTE (portafolio de documentos) ============== -->
     @if (tabActiva === 'archivos') {
       <div class="section-card">
         <header class="section-head">
-          <h3>Documentos del expediente</h3>
-          <p class="section-desc">INE, contratos, actas, comprobantes y demás respaldo.</p>
+          <h3>Expediente · Documentos</h3>
+          <p class="section-desc">Portafolio de documentos del candidato. Sube cada uno, pídelos por WhatsApp o guarda aquí el contrato ya firmado.</p>
         </header>
 
-        <div class="upload-area">
-          <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
-          <label for="docUpload" class="upload-btn" [style.opacity]="subiendoDoc ? '0.5' : '1'">
-            <span class="upload-title">{{ subiendoDoc ? 'Subiendo a la nube...' : 'Agregar documento' }}</span>
-            <small>Formatos: PDF, JPG o PNG</small>
-          </label>
-
-          <button type="button" class="upload-btn" style="border:0;cursor:pointer;font:inherit;text-align:center"
-                  (click)="solicitarDocumentosPorBot()" [disabled]="pidiendoDocs.has(candidato.id)"
-                  [style.opacity]="pidiendoDocs.has(candidato.id) ? '0.5' : '1'">
-            <span class="upload-title">{{ pidiendoDocs.has(candidato.id) ? 'Enviando solicitud...' : 'Pedir documentos por WhatsApp' }}</span>
-            <small>El bot se los pide al candidato y aparecen aquí</small>
-          </button>
+        <!-- Resumen + acciones globales -->
+        <div class="exp-actions">
+          <span class="exp-progreso">
+            <strong>{{ progresoExpediente().hechos }}</strong> de {{ progresoExpediente().total }} documentos
+          </span>
+          <div class="exp-actions-btns">
+            <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.jpeg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
+            <label for="docUpload" class="exp-btn-sec">{{ subiendoDoc ? 'Subiendo...' : '+ Otro documento' }}</label>
+            <button type="button" class="exp-btn-sec" (click)="solicitarDocumentosPorBot()" [disabled]="pidiendoDocs.has(candidato.id)">
+              {{ pidiendoDocs.has(candidato.id) ? 'Enviando...' : 'Pedir por WhatsApp' }}
+            </button>
+          </div>
         </div>
 
-        <div class="doc-list">
-          @if (candidato.cvFormato === 'fotos' && candidato.cvUrl) {
-            <a [href]="candidato.cvUrl" target="_blank" class="doc-item">
-              <div class="doc-thumb">CV</div>
-              <div>
-                <strong>CV - Frente</strong>
-                <small>Foto enviada por el candidato</small>
+        <!-- Portafolio por tipo de documento -->
+        <div class="doc-portfolio">
+          @for (slot of DOCUMENTOS_EXPEDIENTE; track slot.key) {
+            <div class="doc-slot" [class.tiene]="docExpediente(slot.key)">
+              <span class="doc-slot-state" [class.ok]="docExpediente(slot.key)">
+                {{ docExpediente(slot.key) ? '✓' : '' }}
+              </span>
+              <div class="doc-slot-main">
+                <strong>{{ slot.label }}</strong>
+                @if (docExpediente(slot.key); as d) {
+                  <small class="doc-slot-file">{{ d.nombre }}</small>
+                } @else {
+                  <small [class.pend]="slot.obligatorio">{{ slot.obligatorio ? 'Pendiente' : 'Opcional' }}</small>
+                }
               </div>
-            </a>
+              <div class="doc-slot-actions">
+                @if (docExpediente(slot.key); as d) {
+                  <a [href]="d.url" target="_blank" class="doc-mini-btn ver">Ver</a>
+                }
+                <input type="file" [id]="'doc-' + slot.key" class="hidden-input" accept=".pdf,.jpg,.jpeg,.png"
+                       (change)="subirDocExpediente(slot.key, $event)" [disabled]="subiendoDocKey === slot.key">
+                <label [for]="'doc-' + slot.key" class="doc-mini-btn subir">
+                  {{ subiendoDocKey === slot.key ? 'Subiendo…' : (docExpediente(slot.key) ? 'Reemplazar' : 'Subir') }}
+                </label>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Otros documentos (libres, reverso del CV y bot sin clasificar) -->
+        @if (candidato.documentos?.length || docsBotSueltos().length || candidato.cvUrlReverso) {
+          <h4 class="exp-otros-title">Otros documentos</h4>
+          <div class="doc-list">
             @if (candidato.cvUrlReverso) {
               <a [href]="candidato.cvUrlReverso" target="_blank" class="doc-item">
                 <div class="doc-thumb">CV</div>
-                <div>
-                  <strong>CV - Reverso</strong>
-                  <small>Foto enviada por el candidato</small>
-                </div>
+                <div><strong>CV — Reverso</strong><small>Foto enviada al registrarse</small></div>
               </a>
             }
-          } @else if (candidato.cvUrl) {
-            <a [href]="candidato.cvUrl" target="_blank" class="doc-item">
-              <div class="doc-thumb">CV</div>
-              <div>
-                <strong>Curriculum Vitae</strong>
-                <small>Documento inicial</small>
-              </div>
-            </a>
-          }
-          @if (candidato.licenciaUrl) {
-            <a [href]="candidato.licenciaUrl" target="_blank" class="doc-item">
-              <div class="doc-thumb">LIC</div>
-              <div>
-                <strong>Licencia de manejo</strong>
-                <small>Enviada al postularse para {{ candidato.puesto }}</small>
-              </div>
-            </a>
-          }
-          @if (candidato.documentos) {
             @for (doc of candidato.documentos; track doc.url) {
               <a [href]="doc.url" target="_blank" class="doc-item">
-                <div class="doc-thumb">PDF</div>
-                <div>
-                  <strong>{{ doc.nombre }}</strong>
-                  <small>{{ doc.fecha | date:'dd/MM/yyyy' }}</small>
-                </div>
+                <div class="doc-thumb">DOC</div>
+                <div><strong>{{ doc.nombre }}</strong><small>{{ doc.fecha | date:'dd/MM/yyyy' }}</small></div>
               </a>
             }
-          }
-          @if (candidato.documentosBot) {
-            @for (doc of candidato.documentosBot; track doc.url) {
+            @for (doc of docsBotSueltos(); track doc.url) {
               <a [href]="doc.url" target="_blank" class="doc-item">
                 <div class="doc-thumb">📱</div>
-                <div>
-                  <strong>{{ doc.nombre || doc.tipo || 'Documento' }}</strong>
-                  <small>Enviado por WhatsApp · {{ doc.recibidoEn | date:'dd/MM/yyyy' }}</small>
-                </div>
+                <div><strong>{{ doc.nombre || doc.tipo || 'Documento' }}</strong><small>Por WhatsApp · {{ doc.recibidoEn | date:'dd/MM/yyyy' }}</small></div>
               </a>
             }
-          }
-        </div>
+          </div>
+        }
       </div>
     }
 
