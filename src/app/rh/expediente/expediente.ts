@@ -46,6 +46,12 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   /** Ids con una petición de documentos al bot en curso (deshabilita el botón) */
   pidiendoDocs = new Set<string>();
 
+  /** Conversación del bot con el candidato (pestaña "Conversación") */
+  conversacion: any[] = [];
+  cargandoConv = false;
+  convError = '';
+  convCargada = false;
+
   // Constantes expuestas al template
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
@@ -563,6 +569,22 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   // WHATSAPP: conecta al candidato con el bot (le escribe desde el número oficial).
   contactarWhatsApp() {
     return this.botService.conectarConBot(this.candidato, this.enviandoInvitacion);
+  }
+
+  /** Carga (o refresca) el historial de la conversación del bot con el candidato. */
+  async cargarConversacion(forzar = false) {
+    if (!this.candidato?.id || this.cargandoConv) return;
+    if (this.convCargada && !forzar) return;
+    this.cargandoConv = true;
+    this.convError = '';
+    const r = await this.botService.obtenerConversacion(this.candidato.id);
+    if (r.ok) {
+      this.conversacion = r.mensajes || [];
+      this.convCargada = true;
+    } else {
+      this.convError = r.error || 'No se pudo cargar la conversación';
+    }
+    this.cargandoConv = false;
   }
 
   /** Pide al bot que le solicite al candidato su documentación pendiente por WhatsApp.

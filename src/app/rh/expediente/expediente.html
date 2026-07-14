@@ -97,6 +97,7 @@
       <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes y Entrevista Técnica</button>
       <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicométricas</button>
       <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Expediente</button>
+      <button class="tab" [class.active]="tabActiva === 'conversacion'" (click)="tabActiva = 'conversacion'; cargarConversacion()">Conversación</button>
       <button class="tab" [class.active]="tabActiva === 'solicitud'"   (click)="tabActiva = 'solicitud'">Solicitud</button>
     </div>
 
@@ -913,6 +914,45 @@
                 <div class="doc-thumb">📱</div>
                 <div><strong>{{ doc.nombre || doc.tipo || 'Documento' }}</strong><small>Por WhatsApp · {{ doc.recibidoEn | date:'dd/MM/yyyy' }}</small></div>
               </a>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ============== TAB: CONVERSACIÓN (WhatsApp con el bot) ============== -->
+    @if (tabActiva === 'conversacion') {
+      <div class="section-card">
+        <header class="section-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div>
+            <h3>Conversación por WhatsApp</h3>
+            <p class="section-desc">Historial de mensajes entre el bot y el candidato. Se registra a partir de su activación.</p>
+          </div>
+          <button type="button" class="btn-outline" (click)="cargarConversacion(true)" [disabled]="cargandoConv">
+            {{ cargandoConv ? 'Cargando…' : '↻ Refrescar' }}
+          </button>
+        </header>
+
+        @if (cargandoConv && !conversacion.length) {
+          <p class="section-desc" style="padding:20px 0">Cargando conversación…</p>
+        } @else if (convError) {
+          <p class="section-desc" style="padding:20px 0;color:#b91c1c">⚠️ {{ convError }}</p>
+        } @else if (!conversacion.length) {
+          <p class="section-desc" style="padding:20px 0">Aún no hay mensajes registrados con este candidato.</p>
+        } @else {
+          <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0;max-height:520px;overflow-y:auto">
+            @for (m of conversacion; track $index) {
+              <div [style.align-self]="m.direccion === 'out' ? 'flex-end' : 'flex-start'"
+                   [style.background]="m.direccion === 'out' ? '#d1f4cc' : '#f1f5f9'"
+                   style="max-width:78%;padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.4;color:#0f172a">
+                <div style="white-space:pre-wrap;word-break:break-word">{{ m.texto || '(archivo)' }}</div>
+                @if (m.media_url) {
+                  <a [href]="m.media_url" target="_blank" style="font-size:12px;font-weight:600">📎 Ver archivo</a>
+                }
+                <div style="font-size:11px;color:#64748b;margin-top:3px;text-align:right">
+                  {{ m.direccion === 'out' ? 'Bot' : 'Candidato' }} · {{ m.creado_en | date:'dd/MM/yy HH:mm' }}
+                </div>
+              </div>
             }
           </div>
         }

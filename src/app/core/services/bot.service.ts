@@ -33,6 +33,15 @@ export interface DocSlotPeticion {
   label: string;
 }
 
+/** Un mensaje del historial de la conversación bot ↔ candidato. */
+export interface MensajeBot {
+  direccion: 'in' | 'out';   // in = candidato→bot | out = bot→candidato
+  tipo: string;              // text | image | document | template | ...
+  texto: string | null;
+  media_url: string | null;
+  creado_en: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BotService {
   private toast = inject(ToastService);
@@ -180,6 +189,22 @@ export class BotService {
       }
     } finally {
       enviando?.delete(c.id);
+    }
+  }
+
+  /**
+   * Trae el historial de la conversación del bot con un candidato (por su id del
+   * portal). Nunca lanza: devuelve { ok, mensajes | error }.
+   */
+  async obtenerConversacion(candidateId: string): Promise<{ ok: boolean; mensajes?: MensajeBot[]; error?: string }> {
+    try {
+      const res = await fetch(`${BOT_URL}/api/conversacion?candidateId=${encodeURIComponent(candidateId)}`);
+      let data: any = {};
+      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
+      if (!res.ok) return { ok: false, error: data?.error || `HTTP ${res.status}` };
+      return { ok: true, mensajes: (data.mensajes || []) as MensajeBot[] };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
     }
   }
 }
