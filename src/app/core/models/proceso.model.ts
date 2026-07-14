@@ -27,6 +27,17 @@ export const ETAPAS: EtapaConfig[] = [
   { id: 'psicometria',      title: 'Psicométricas',                     shortLabel: 'Psicométricas', icon: '4', color: '#3F5C7A', description: 'Personalidad, honestidad, inteligencia y compatibilidad (apoyo, no decisión).', slaHoras: 72 }
 ];
 
+// Desenlace del proceso: candidatos ya contratados. No es una etapa del flujo
+// (no está en ETAPAS ni en FLUJO_LINEAL), pero se muestra como filtro aparte.
+export const ETAPA_CONTRATADO: EtapaConfig = {
+  id: 'contratado',
+  title: 'Contratados',
+  shortLabel: 'Contratados',
+  icon: '✓',
+  color: '#1F7A4C',
+  description: 'Candidatos que completaron el proceso y ya fueron contratados.'
+};
+
 // Los ids 'nuevo', 'entrevista_jefe', 'documental', 'oferta', 'dictamen',
 // 'contratado' y 'rechazado' ya NO son etapas visibles del flujo. Se conservan
 // como constantes (no se borran de ID_ETAPAS) para no romper datos históricos

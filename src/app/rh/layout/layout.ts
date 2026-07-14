@@ -5,7 +5,7 @@ import { CandidateService } from '../../core/services/candidate';
 import { NotificacionesService, EstadoNotif } from '../../core/services/notificaciones.service';
 import { UpdateCheckerService } from '../../core/services/update-checker.service';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
-import { ETAPAS, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
+import { ETAPAS, ETAPA_CONTRATADO, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
 
 @Component({
   selector: 'app-layout',
@@ -28,6 +28,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   year = new Date().getFullYear();
 
   ETAPAS = ETAPAS;
+  ETAPA_CONTRATADO = ETAPA_CONTRATADO;
   ID_ETAPAS = ID_ETAPAS;
 
   // Conteo de candidatos por etapa (badge en el menú)

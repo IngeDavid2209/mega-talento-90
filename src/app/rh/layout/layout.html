@@ -64,9 +64,18 @@
             </a>
           </li>
         }
+        <li (click)="isMenuOpen = false">
+          <a [routerLink]="['/app/etapa', ID_ETAPAS.CONTRATADO]" routerLinkActive="active">
+            <span class="nav-num" [style.background-color]="ETAPA_CONTRATADO.color">{{ ETAPA_CONTRATADO.icon }}</span>
+            <span class="nav-text">{{ ETAPA_CONTRATADO.title }}</span>
+            @if (conteos[ID_ETAPAS.CONTRATADO]) {
+              <span class="nav-count">{{ conteos[ID_ETAPAS.CONTRATADO] }}</span>
+            }
+          </a>
+        </li>
       </ul>
 
-      <!-- GESTIÓN -->0
+      <!-- GESTIÓN -->
       <span class="nav-section">Gestión</span>
       <ul class="nav-list">
         <li (click)="isMenuOpen = false">

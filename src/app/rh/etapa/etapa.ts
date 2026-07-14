@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CandidateService } from '../../core/services/candidate';
 import {
-  ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EtapaConfig,
+  ETAPAS, ETAPA_CONTRATADO, ID_ETAPAS, FLUJO_LINEAL, EtapaConfig,
   COMPETENCIAS_STAR, CHECKLIST_JEFE,
   CHECKLIST_DOCUMENTAL, CHECKLIST_OFERTA, CHECKLIST_CONTRATADO,
   progresoChecklist, progresoPsicoDeCandidato
@@ -88,7 +88,8 @@ export class EtapaComponent implements OnInit, OnDestroy {
     // Reaccionar al cambio de etapa en la URL (el componente se reutiliza)
     this.paramSub = this.route.paramMap.subscribe(params => {
       this.etapaId = params.get('etapaId') || ID_ETAPAS.FILTRO;
-      this.etapa = ETAPAS.find(e => e.id === this.etapaId) || null;
+      this.etapa = ETAPAS.find(e => e.id === this.etapaId)
+        || (this.etapaId === ID_ETAPAS.CONTRATADO ? ETAPA_CONTRATADO : null);
       this.busqueda = '';
       this.aplicarFiltro();
     });
