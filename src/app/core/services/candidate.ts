@@ -77,21 +77,21 @@ export class CandidateService {
   async getCandidates() {
     const snapshot = await getDocs(collection(db, 'candidates'));
     return snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .map(doc => ({ ...doc.data(), id: doc.id }))
       .filter((c: any) => !c.deletedAt);
   }
 
   /** Como getCandidates pero también incluye los borrados (para detectar duplicados) */
   async getCandidatesIncluyendoBorrados() {
     const snapshot = await getDocs(collection(db, 'candidates'));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
   }
 
   listenToCandidates(callback: (candidatos: any[]) => void) {
     const queryRef = collection(db, 'candidates');
     const unsubscribe = onSnapshot(queryRef, (snapshot) => {
       const candidatos = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => ({ ...doc.data(), id: doc.id }))
         .filter((c: any) => !c.deletedAt);
       callback(candidatos);
     }, (error) => {
@@ -105,7 +105,7 @@ export class CandidateService {
     const queryRef = collection(db, 'candidates');
     const unsubscribe = onSnapshot(queryRef, (snapshot) => {
       const candidatos = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => ({ ...doc.data(), id: doc.id }))
         .filter((c: any) => !!c.deletedAt);
       callback(candidatos);
     }, (error) => {
@@ -217,7 +217,7 @@ export class CandidateService {
     const docRef = doc(db, 'candidates', id);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        callback({ id: docSnap.id, ...docSnap.data() });
+        callback({ ...docSnap.data(), id: docSnap.id });
       } else if (onError) {
         onError({ code: 'not-found' });
       }
