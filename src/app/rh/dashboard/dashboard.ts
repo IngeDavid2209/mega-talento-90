@@ -6,10 +6,9 @@ import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import {
-  nivelSeguimiento, diasSinSeguimiento, esActivoEnProceso, debeCerrarseSeguimiento,
-  SEGUIMIENTO_AVISO_DIAS, SEGUIMIENTO_CRITICO_DIAS, SEGUIMIENTO_CIERRE_DIAS, NivelSeguimiento
+  nivelSeguimiento, diasSinSeguimiento, esActivoEnProceso,
+  SEGUIMIENTO_AVISO_DIAS, SEGUIMIENTO_CRITICO_DIAS, NivelSeguimiento
 } from '../../core/models/seguimiento.model';
-import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,7 +23,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   // Público para que el template use displayName() en las listas desplegables
   capitalHumano = inject(CapitalHumanoService);
-  private toast = inject(ToastService);
 
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
@@ -69,11 +67,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   mostrarSinSeguimiento = false;
   readonly AVISO_DIAS = SEGUIMIENTO_AVISO_DIAS;
   readonly CRITICO_DIAS = SEGUIMIENTO_CRITICO_DIAS;
-  readonly CIERRE_DIAS = SEGUIMIENTO_CIERRE_DIAS;
-
-  // Candidatos que califican para cierre (10+ días) — alimenta el botón masivo
-  paraCerrar: any[] = [];
-  cerrandoSeguimiento = false;
 
   // Handle del listener de Firestore para poder cerrarlo al salir de la vista.
   // Sin esto se acumulaba un onSnapshot a TODA la colección en cada visita al
@@ -208,42 +201,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.sinSeguimiento = lista;
     this.sinSeguimientoCriticos = lista.filter(c => nivelSeguimiento(c, ahora) === 'critico').length;
     this.sinSeguimientoAvisos = lista.length - this.sinSeguimientoCriticos;
-    this.paraCerrar = lista.filter(c => debeCerrarseSeguimiento(c, ahora));
     // Si ya no queda nada pendiente, colapsa el detalle
     if (lista.length === 0) this.mostrarSinSeguimiento = false;
   }
 
   toggleSinSeguimiento() {
     this.mostrarSinSeguimiento = !this.mostrarSinSeguimiento;
-  }
-
-  /**
-   * Cierre de seguimiento MASIVO: manda a la Papelera a todos los candidatos
-   * activos con 10+ días sin seguimiento. Pide confirmación; es recuperable.
-   */
-  async cerrarSeguimientoMasivo() {
-    const objetivo = [...this.paraCerrar];
-    if (!objetivo.length || this.cerrandoSeguimiento) return;
-    const n = objetivo.length;
-
-    const ok = await this.toast.confirmar({
-      titulo: `Cerrar ${n} candidato${n === 1 ? '' : 's'} abandonado${n === 1 ? '' : 's'}`,
-      mensaje: `Se enviarán a la Papelera los candidatos activos con ${this.CIERRE_DIAS}+ días sin seguimiento. Podrás recuperarlos desde la Papelera. ¿Continuar?`,
-      textoConfirmar: 'Sí, cerrar',
-      textoCancelar: 'Cancelar'
-    });
-    if (!ok) return;
-
-    this.cerrandoSeguimiento = true;
-    let cerrados = 0;
-    for (const c of objetivo) {
-      try { await this.candidateService.cerrarSeguimiento(c.id); cerrados++; } catch { /* seguirá saliendo si falla */ }
-    }
-    this.cerrandoSeguimiento = false;
-    this.toast.exito(
-      `${cerrados} candidato${cerrados === 1 ? '' : 's'} movido${cerrados === 1 ? '' : 's'} a la Papelera.`,
-      'Cierre de seguimiento'
-    );
   }
 
   diasSinSeguimiento(c: any): number { return diasSinSeguimiento(c); }

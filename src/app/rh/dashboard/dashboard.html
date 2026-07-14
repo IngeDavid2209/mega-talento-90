@@ -20,66 +20,6 @@
     </div>
   } @else {
 
-    <!-- ALERTA · Candidatos sin seguimiento -->
-    @if (sinSeguimiento.length > 0) {
-      <section class="seguimiento-alerta"
-               [class.tiene-criticos]="sinSeguimientoCriticos > 0">
-        <button class="seg-cabecera" type="button" (click)="toggleSinSeguimiento()"
-                [attr.aria-expanded]="mostrarSinSeguimiento">
-          <span class="seg-icono" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-          </span>
-          <span class="seg-texto">
-            <strong>{{ sinSeguimiento.length }} candidato{{ sinSeguimiento.length === 1 ? '' : 's' }} sin seguimiento</strong>
-            <span class="seg-sub">
-              @if (sinSeguimientoCriticos > 0) {
-                {{ sinSeguimientoCriticos }} abandonado{{ sinSeguimientoCriticos === 1 ? '' : 's' }} (+{{ CRITICO_DIAS }} días)
-              }
-              @if (sinSeguimientoCriticos > 0 && sinSeguimientoAvisos > 0) { · }
-              @if (sinSeguimientoAvisos > 0) {
-                {{ sinSeguimientoAvisos }} por atender (+{{ AVISO_DIAS }} días)
-              }
-            </span>
-          </span>
-          <svg class="seg-chevron" [class.abierto]="mostrarSinSeguimiento" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        @if (paraCerrar.length > 0) {
-          <div class="seg-cierre">
-            <span class="seg-cierre-txt">
-              {{ paraCerrar.length }} llevan {{ CIERRE_DIAS }}+ días sin seguimiento
-            </span>
-            <button type="button" class="seg-cierre-btn"
-                    (click)="cerrarSeguimientoMasivo()" [disabled]="cerrandoSeguimiento">
-              {{ cerrandoSeguimiento ? 'Cerrando…' : 'Cerrar seguimiento (' + paraCerrar.length + ')' }}
-            </button>
-          </div>
-        }
-
-        @if (mostrarSinSeguimiento) {
-          <div class="seg-lista">
-            @for (c of sinSeguimiento; track c.id) {
-              <button class="seg-item" type="button" (click)="abrirExpediente(c)">
-                <span class="seg-nivel" [class.critico]="nivelSeguimiento(c) === 'critico'"></span>
-                <span class="seg-info">
-                  <span class="seg-nombre">{{ capitalHumano.displayName(c) }}</span>
-                  <span class="seg-detalle">{{ getNombreEtapa(c.status) }} · {{ c.ciudad || c.sucursal || 'Sin zona' }}</span>
-                </span>
-                <span class="seg-dias" [class.critico]="nivelSeguimiento(c) === 'critico'">
-                  {{ diasSinSeguimiento(c) }} d
-                </span>
-              </button>
-            }
-          </div>
-        }
-      </section>
-    }
 
     <!-- KPIs -->
     <section class="kpi-section">
