@@ -27,6 +27,12 @@ export interface PedirDocsResp {
   error?: string;
 }
 
+/** Slot de documento que el bot debe pedir (key debe coincidir con el expediente). */
+export interface DocSlotPeticion {
+  key: string;
+  label: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BotService {
   private toast = inject(ToastService);
@@ -114,7 +120,7 @@ export class BotService {
    * @param documentos lista opcional de documentos; si se omite, el bot usa una
    *                   lista por defecto (INE, CURP, comprobantes, etc.).
    */
-  async pedirDocumentos(candidateId: string, documentos?: string[]): Promise<PedirDocsResp> {
+  async pedirDocumentos(candidateId: string, documentos?: DocSlotPeticion[]): Promise<PedirDocsResp> {
     try {
       const body: any = { candidateId };
       if (documentos?.length) body.documentos = documentos;
@@ -138,7 +144,7 @@ export class BotService {
    * Flujo COMPLETO para el botón "Pedir documentos por WhatsApp": confirma,
    * llama al bot y muestra el toast según el resultado.
    */
-  async solicitarDocumentos(c: any, documentos?: string[], enviando?: Set<string>): Promise<void> {
+  async solicitarDocumentos(c: any, documentos?: DocSlotPeticion[], enviando?: Set<string>): Promise<void> {
     if (!c?.id) {
       this.toast.error('Este candidato no tiene un identificador válido.', 'No se puede contactar');
       return;

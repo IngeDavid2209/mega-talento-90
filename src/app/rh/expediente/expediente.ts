@@ -546,9 +546,15 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return this.botService.conectarConBot(this.candidato, this.enviandoInvitacion);
   }
 
-  /** Pide al bot que le solicite al candidato su documentación pendiente por WhatsApp. */
+  /** Pide al bot que le solicite al candidato su documentación pendiente por WhatsApp.
+   *  Manda los slots que AÚN faltan (key + label) para que el bot pida solo esos
+   *  y, al clasificar cada archivo, lo acomode en su casillero del expediente. */
   solicitarDocumentosPorBot() {
-    return this.botService.solicitarDocumentos(this.candidato, undefined, this.pidiendoDocs);
+    const pendientes = DOCUMENTOS_EXPEDIENTE
+      .filter(d => !this.docExpediente(d.key))
+      .map(d => ({ key: d.key, label: d.label }));
+    const lista = pendientes.length ? pendientes : DOCUMENTOS_EXPEDIENTE.map(d => ({ key: d.key, label: d.label }));
+    return this.botService.solicitarDocumentos(this.candidato, lista, this.pidiendoDocs);
   }
 
   /** Envía por WhatsApp el link único para que el candidato llene la Evaluación de Liderazgo en vivo */
