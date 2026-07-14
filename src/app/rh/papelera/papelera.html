@@ -12,10 +12,10 @@
     </div>
     @if (candidatos.length > 0) {
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        @if (contestaronEncuesta().length > 0) {
-          <button class="btn-restaurar-encuesta" (click)="pedirRestaurarEncuesta()" [disabled]="procesando"
+        @if (avanzaronDeEtapa().length > 0) {
+          <button class="btn-restaurar-encuesta" (click)="pedirRestaurarAvanzados()" [disabled]="procesando"
                   style="padding:9px 16px;border:1px solid #16a34a;color:#166534;background:#dcfce7;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
-            ↺ Restaurar los que contestaron la encuesta ({{ contestaronEncuesta().length }})
+            ↺ Restaurar los que ya avanzaron de etapa ({{ avanzaronDeEtapa().length }})
           </button>
         }
         <button class="btn-vaciar" (click)="pedirVaciar()" [disabled]="procesando">

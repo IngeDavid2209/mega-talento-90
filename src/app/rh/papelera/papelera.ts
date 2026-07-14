@@ -3,13 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
-import { ETAPAS } from '../../core/models/proceso.model';
-import { respondioEvaluacion } from '../../core/models/seguimiento.model';
+import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 
 type Accion =
   | { tipo: 'restaurar'; candidato: any }
   | { tipo: 'definitivo'; candidato: any }
-  | { tipo: 'restaurarEncuesta' }
+  | { tipo: 'restaurarAvanzados' }
   | { tipo: 'vaciar' };
 
 @Component({
@@ -81,21 +80,27 @@ export class PapeleraComponent implements OnInit, OnDestroy {
     };
   }
 
-  /** Candidatos en la papelera que ya contestaron (o empezaron) la encuesta. */
-  contestaronEncuesta(): any[] {
-    return this.candidatos.filter(c => respondioEvaluacion(c));
+  // Etapas posteriores a "Filtro Inicial": candidatos que YA avanzaron.
+  private readonly ETAPAS_AVANZADAS = new Set<string>([
+    ID_ETAPAS.RH, ID_ETAPAS.APTITUDES, ID_ETAPAS.PSICOMETRIA,
+    ID_ETAPAS.JEFE, ID_ETAPAS.DOCUMENTAL, ID_ETAPAS.OFERTA, ID_ETAPAS.DICTAMEN,
+  ]);
+
+  /** Candidatos en la papelera que ya habían avanzado de etapa (más allá de Filtro Inicial). */
+  avanzaronDeEtapa(): any[] {
+    return this.candidatos.filter(c => this.ETAPAS_AVANZADAS.has(c.status));
   }
 
-  pedirRestaurarEncuesta() {
-    const lista = this.contestaronEncuesta();
+  pedirRestaurarAvanzados() {
+    const lista = this.avanzaronDeEtapa();
     if (!lista.length) {
-      this.mostrarFlash('ok', 'No hay candidatos en la papelera que hayan contestado la encuesta.');
+      this.mostrarFlash('ok', 'No hay candidatos avanzados de etapa en la papelera.');
       return;
     }
     this.confirmacion = {
-      titulo: 'Restaurar los que contestaron la encuesta',
-      mensaje: `Se sacarán de la papelera ${lista.length} candidato(s) que ya respondieron la evaluación de liderazgo y volverán al proceso.`,
-      accion: { tipo: 'restaurarEncuesta' }
+      titulo: 'Restaurar los que ya avanzaron de etapa',
+      mensaje: `Se sacarán de la papelera ${lista.length} candidato(s) que iban en Entrevista, Aptitudes o Psicométricas y volverán al proceso. Los de Filtro Inicial se quedan.`,
+      accion: { tipo: 'restaurarAvanzados' }
     };
   }
 
@@ -124,13 +129,13 @@ export class PapeleraComponent implements OnInit, OnDestroy {
       } else if (accion.tipo === 'definitivo') {
         await this.candidateService.eliminarCandidatoDefinitivo(accion.candidato.id);
         this.mostrarFlash('ok', `Se eliminó definitivamente a ${accion.candidato.nombre}`);
-      } else if (accion.tipo === 'restaurarEncuesta') {
-        const lista = this.contestaronEncuesta();
+      } else if (accion.tipo === 'restaurarAvanzados') {
+        const lista = this.avanzaronDeEtapa();
         let n = 0;
         for (const c of lista) {
           try { await this.candidateService.restaurarCandidato(c.id); n++; } catch { /* sigue con los demás */ }
         }
-        this.mostrarFlash('ok', `Se ${n === 1 ? 'restauró' : 'restauraron'} ${n} candidato(s) que contestaron la encuesta.`);
+        this.mostrarFlash('ok', `Se ${n === 1 ? 'restauró' : 'restauraron'} ${n} candidato(s) que ya habían avanzado de etapa.`);
       } else if (accion.tipo === 'vaciar') {
         for (const c of this.candidatos) {
           await this.candidateService.eliminarCandidatoDefinitivo(c.id);
