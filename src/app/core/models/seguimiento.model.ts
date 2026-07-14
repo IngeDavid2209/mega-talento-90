@@ -60,6 +60,11 @@ export function nivelSeguimiento(c: any, ahora: Date = new Date()): NivelSeguimi
  */
 export function debeCerrarseSeguimiento(c: any, ahora: Date = new Date()): boolean {
   if (!esActivoEnProceso(c)) return false;
+  // Solo auto-cerramos a candidatos que RH YA trabajó al menos una vez (tienen
+  // `ultimaActividad`). A los que nunca se han revisado NO los mandamos solos a
+  // la Papelera, aunque lleven días desde que se postularon: cerrarlos sería
+  // descartar gente que nadie alcanzó a ver. Esos se cierran manualmente.
+  if (!aFecha(c?.ultimaActividad)) return false;
   const d = diasSinSeguimiento(c, ahora);
   return d >= SEGUIMIENTO_CIERRE_DIAS;
 }
