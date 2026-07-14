@@ -528,31 +528,82 @@
       <div class="section-card">
         <header class="section-head">
           <h3>Psicometría · Herramienta de apoyo</h3>
-          <p class="section-desc">La psicometría es complemento, no decisión absoluta. Detecta riesgos y valida conducta.</p>
+          <p class="section-desc">Captura el resultado de cada prueba. Es complemento, no decisión absoluta: el riesgo del dictamen se calcula solo a partir de estos puntajes.</p>
         </header>
 
-        <div class="check-list">
-          @for (item of PSICOMETRIA_ITEMS; track item.key) {
-            <div class="check-row"
-                 [class.row-si]="candidato.psicometriaChecklist?.[item.key] === 'verde'"
-                 [class.row-no]="candidato.psicometriaChecklist?.[item.key] === 'rojo'">
-              <div class="check-label-wrap">
-                <span class="check-label">{{ item.label }}</span>
-                @if (!item.obligatorio) { <span class="opcional">opcional</span> }
+        <div class="psico-grid">
+
+          <!-- ===== IntegriTEST ===== -->
+          <div class="psico-test">
+            <div class="psico-test-head">
+              <h4>IntegriTEST</h4>
+              <span class="psico-test-sub">Recomendación de contratación</span>
+            </div>
+            <div class="psico-pills">
+              @for (n of INTEGRITEST_NIVELES; track n.key) {
+                <button type="button" class="psico-pill" [ngClass]="n.clase"
+                        [class.active]="candidato.psicoTests?.integritest === n.key"
+                        (click)="setPsicoNivel('integritest', n.key)">
+                  <span class="psico-dot"></span>{{ n.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- ===== StabiliTEST ===== -->
+          <div class="psico-test">
+            <div class="psico-test-head">
+              <h4>StabiliTEST</h4>
+              <span class="psico-test-sub">Nivel de riesgo</span>
+            </div>
+            <div class="psico-pills">
+              @for (n of STABILITEST_NIVELES; track n.key) {
+                <button type="button" class="psico-pill" [ngClass]="n.clase"
+                        [class.active]="candidato.psicoTests?.stabilitest === n.key"
+                        (click)="setPsicoNivel('stabilitest', n.key)">
+                  <span class="psico-dot"></span>{{ n.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- ===== HR Avatar ===== -->
+          <div class="psico-test">
+            <div class="psico-test-head">
+              <h4>HR Avatar</h4>
+              <span class="psico-test-sub">Puntuación e interpretación</span>
+            </div>
+
+            <div class="hravatar-row">
+              <div class="hravatar-input">
+                <label>Puntuación</label>
+                <input type="number" min="0" max="100" placeholder="—"
+                       [ngModel]="candidato.psicoTests?.hrAvatar"
+                       (change)="setHrAvatar($any($event.target).value)">
+                <small>/ 100</small>
               </div>
-              <div class="yn-group">
-                <button type="button" class="btn-yn btn-si"
-                        [class.active]="candidato.psicometriaChecklist?.[item.key] === 'verde'"
-                        (click)="setEstadoCheck('psicometriaChecklist', item.key, 'verde')">Sí</button>
-                <button type="button" class="btn-yn btn-no"
-                        [class.active]="candidato.psicometriaChecklist?.[item.key] === 'rojo'"
-                        (click)="setEstadoCheck('psicometriaChecklist', item.key, 'rojo')">No</button>
+              <span class="psico-pill compacta" [ngClass]="hrAvatarInterp().clase">
+                <span class="psico-dot"></span>{{ hrAvatarInterp().label }}
+              </span>
+            </div>
+
+            <div class="hravatar-scale">
+              <div class="hravatar-track">
+                @if (candidato.psicoTests?.hrAvatar != null) {
+                  <div class="hravatar-marker" [style.left.%]="candidato.psicoTests.hrAvatar">
+                    <span class="hravatar-value">{{ candidato.psicoTests.hrAvatar }}</span>
+                  </div>
+                }
+              </div>
+              <div class="hravatar-ticks">
+                <span>0</span><span>35</span><span>50</span><span>65</span><span>80</span><span>100</span>
               </div>
             </div>
-          }
+          </div>
+
         </div>
 
-        <label>Riesgos detectados e interpretación</label>
+        <label>Interpretación y observaciones</label>
         <textarea rows="4" placeholder="Resumen de resultados, riesgos detectados, compatibilidad con el puesto."
                   [(ngModel)]="candidato.psicometriaRiesgos"
                   (change)="guardarNota('psicometriaRiesgos', candidato.psicometriaRiesgos)"></textarea>

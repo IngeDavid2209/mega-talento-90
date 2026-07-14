@@ -6,9 +6,9 @@ import { Subscription } from 'rxjs';
 import { CandidateService } from '../../core/services/candidate';
 import {
   ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EtapaConfig,
-  COMPETENCIAS_STAR, PSICOMETRIA_ITEMS, CHECKLIST_JEFE,
+  COMPETENCIAS_STAR, CHECKLIST_JEFE,
   CHECKLIST_DOCUMENTAL, CHECKLIST_OFERTA, CHECKLIST_CONTRATADO,
-  progresoChecklist
+  progresoChecklist, progresoPsicoDeCandidato
 } from '../../core/models/proceso.model';
 import { normalizarCiudad } from '../../core/models/normalizacion.model';
 import { nivelSeguimiento, diasSinSeguimiento, NivelSeguimiento } from '../../core/models/seguimiento.model';
@@ -194,7 +194,7 @@ export class EtapaComponent implements OnInit, OnDestroy {
     switch (c.status) {
       // Filtro Inicial es solo bandeja de entrada: sin checklist, sin barra de progreso.
       case ID_ETAPAS.RH:          return this.progresoStarTexto(c);
-      case ID_ETAPAS.PSICOMETRIA: return progresoChecklist(c.psicometriaChecklist, PSICOMETRIA_ITEMS);
+      case ID_ETAPAS.PSICOMETRIA: return progresoPsicoDeCandidato(c);
       case ID_ETAPAS.JEFE:        return progresoChecklist(c.jefeChecklist, CHECKLIST_JEFE);
       case ID_ETAPAS.DOCUMENTAL:  return progresoChecklist(c.documentalChecklist, CHECKLIST_DOCUMENTAL);
       case ID_ETAPAS.OFERTA:      return progresoChecklist(c.ofertaChecklist, CHECKLIST_OFERTA);

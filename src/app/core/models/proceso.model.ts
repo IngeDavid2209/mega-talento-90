@@ -165,7 +165,8 @@ export function calcularPuntajeRubrica(
   return { puntaje, aprobado, calificadas, total: aptitudes.length, desglose };
 }
 
-// 4. PSICOMETRÍA — Pruebas estándar
+// 4. PSICOMETRÍA — Pruebas estándar (checklist LEGADO, previo al rediseño)
+// Se conserva sólo para leer expedientes viejos; los nuevos usan las 3 pruebas de abajo.
 export const PSICOMETRIA_ITEMS: ItemChecklist[] = [
   { key: 'personalidad',   label: 'Personalidad laboral',  icon: '🧠', obligatorio: true },
   { key: 'honestidad',     label: 'Honestidad/confiable',  icon: '🔒', obligatorio: true },
@@ -173,6 +174,122 @@ export const PSICOMETRIA_ITEMS: ItemChecklist[] = [
   { key: 'estiloTrabajo',  label: 'Estilo de trabajo',     icon: '⚙️', obligatorio: false },
   { key: 'liderazgo',      label: 'Liderazgo (si aplica)', icon: '🏆', obligatorio: false }
 ];
+
+// =====================================================================
+// 4-BIS. PSICOMÉTRICAS — IntegriTEST · StabiliTEST · HR Avatar
+// Sólo se capturan puntajes/resultados. Cada prueba trae su propia escala.
+// =====================================================================
+
+/** IntegriTEST — recomendación de contratación (5 niveles). */
+export type IntegritestNivel =
+  | 'recomendado' | 'aclaracion' | 'marginal' | 'no_recomendado' | 'sin_resultados';
+
+/** StabiliTEST — nivel de riesgo. */
+export type StabilitestNivel = 'riesgo_bajo' | 'riesgo_alto' | 'sin_resultados';
+
+/** Un nivel seleccionable con su etiqueta y la clase de color semáforo. */
+export interface NivelPsico {
+  key: string;
+  label: string;
+  clase: 'nivel-verde' | 'nivel-verde-claro' | 'nivel-amarillo' | 'nivel-naranja' | 'nivel-rojo' | 'nivel-navy' | 'nivel-negro';
+}
+
+export const INTEGRITEST_NIVELES: NivelPsico[] = [
+  { key: 'recomendado',    label: 'Recomendado',            clase: 'nivel-verde' },
+  { key: 'aclaracion',     label: 'Se requiere aclaración', clase: 'nivel-verde-claro' },
+  { key: 'marginal',       label: 'Marginal',               clase: 'nivel-amarillo' },
+  { key: 'no_recomendado', label: 'No recomendado',         clase: 'nivel-rojo' },
+  { key: 'sin_resultados', label: 'Sin resultados',         clase: 'nivel-navy' }
+];
+
+export const STABILITEST_NIVELES: NivelPsico[] = [
+  { key: 'riesgo_bajo',    label: 'Riesgo bajo',    clase: 'nivel-verde' },
+  { key: 'riesgo_alto',    label: 'Riesgo alto',    clase: 'nivel-amarillo' },
+  { key: 'sin_resultados', label: 'Sin resultados', clase: 'nivel-negro' }
+];
+
+/** Resultado de las 3 pruebas que se guarda en el candidato. */
+export interface PsicoTests {
+  integritest?: IntegritestNivel | '';
+  stabilitest?: StabilitestNivel | '';
+  hrAvatar?: number | null;   // 0-100
+}
+
+export interface HrAvatarInterp { label: string; clase: NivelPsico['clase']; }
+
+/** Interpreta el puntaje 0-100 de HR Avatar en una banda con color. */
+export function interpretarHrAvatar(score: number | null | undefined): HrAvatarInterp {
+  if (score == null || isNaN(score)) return { label: 'Sin resultados', clase: 'nivel-navy' };
+  if (score >= 80) return { label: 'Alto',        clase: 'nivel-verde' };
+  if (score >= 65) return { label: 'Medio-alto',  clase: 'nivel-verde-claro' };
+  if (score >= 50) return { label: 'Medio',       clase: 'nivel-amarillo' };
+  if (score >= 35) return { label: 'Marginal',    clase: 'nivel-naranja' };
+  return { label: 'Bajo', clase: 'nivel-rojo' };
+}
+
+export type RiesgoPsico = 'sin_riesgo' | 'bajo_riesgo' | 'alto_riesgo';
+
+/** Deriva el riesgo global (para el dictamen) a partir de las 3 pruebas. */
+export function riesgoPsicometrico(t: PsicoTests | undefined): RiesgoPsico {
+  if (!t) return 'sin_riesgo';
+  // Alto riesgo: cualquier señal crítica
+  if (t.integritest === 'no_recomendado') return 'alto_riesgo';
+  if (t.stabilitest === 'riesgo_alto') return 'alto_riesgo';
+  if (typeof t.hrAvatar === 'number' && t.hrAvatar < 35) return 'alto_riesgo';
+  // Bajo riesgo: señales intermedias que ameritan revisar
+  if (t.integritest === 'marginal' || t.integritest === 'aclaracion') return 'bajo_riesgo';
+  if (typeof t.hrAvatar === 'number' && t.hrAvatar < 65) return 'bajo_riesgo';
+  return 'sin_riesgo';
+}
+
+/** ¿RH ya capturó al menos una prueba con resultado real? */
+export function psicoTocado(t: PsicoTests | undefined): boolean {
+  if (!t) return false;
+  return (!!t.integritest && t.integritest !== 'sin_resultados')
+      || (!!t.stabilitest && t.stabilitest !== 'sin_resultados')
+      || (typeof t.hrAvatar === 'number' && !isNaN(t.hrAvatar));
+}
+
+/** Etapa completa: IntegriTEST y StabiliTEST resueltos (aunque sea "sin resultados"). */
+export function psicoCompleto(t: PsicoTests | undefined): boolean {
+  return !!t && !!t.integritest && !!t.stabilitest;
+}
+
+/** Progreso 0-100: cuántas de las 3 pruebas tienen resultado real. */
+export function progresoPsico(t: PsicoTests | undefined): { hechos: number; total: number; pct: number } {
+  const total = 3;
+  if (!t) return { hechos: 0, total, pct: 0 };
+  let hechos = 0;
+  if (t.integritest && t.integritest !== 'sin_resultados') hechos++;
+  if (t.stabilitest && t.stabilitest !== 'sin_resultados') hechos++;
+  if (typeof t.hrAvatar === 'number' && !isNaN(t.hrAvatar)) hechos++;
+  return { hechos, total, pct: Math.round((hechos / total) * 100) };
+}
+
+/** Puntaje 0-100 de la etapa (promedio de las pruebas capturadas) para el concentrado. */
+export function puntajePsico(t: PsicoTests | undefined): { puntaje: number; evaluada: boolean } {
+  if (!t) return { puntaje: 0, evaluada: false };
+  const mapInteg: Record<string, number> = { recomendado: 100, aclaracion: 75, marginal: 50, no_recomendado: 15 };
+  const mapStab: Record<string, number> = { riesgo_bajo: 100, riesgo_alto: 30 };
+  const vals: number[] = [];
+  if (t.integritest && mapInteg[t.integritest] != null) vals.push(mapInteg[t.integritest]);
+  if (t.stabilitest && mapStab[t.stabilitest] != null) vals.push(mapStab[t.stabilitest]);
+  if (typeof t.hrAvatar === 'number' && !isNaN(t.hrAvatar)) vals.push(Math.max(0, Math.min(100, t.hrAvatar)));
+  if (!vals.length) return { puntaje: 0, evaluada: false };
+  return { puntaje: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length), evaluada: true };
+}
+
+/** Progreso de la etapa Psicométricas con compatibilidad hacia el checklist viejo. */
+export function progresoPsicoDeCandidato(c: any): { hechos: number; total: number; pct: number } {
+  const t = c?.psicoTests as PsicoTests | undefined;
+  if (psicoTocado(t)) return progresoPsico(t);
+  // Expedientes previos al rediseño: caer al checklist legado
+  const est = c?.psicometriaChecklist as Record<string, EstadoCheck> | undefined;
+  if (est && Object.values(est).some(v => v && v !== 'gris')) {
+    return progresoChecklist(est, PSICOMETRIA_ITEMS);
+  }
+  return progresoPsico(t);
+}
 
 // 5. ENTREVISTA TÉCNICA / JEFE DIRECTO
 export const CHECKLIST_JEFE: ItemChecklist[] = [

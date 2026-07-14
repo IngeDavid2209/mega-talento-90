@@ -12,7 +12,9 @@ import {
   ItemChecklist, ResultadoDictamen, AptitudItem,
   NIVELES_RUBRICA, NivelRubrica, UMBRAL_APROBACION_APTITUDES,
   calcularPuntajeRubrica,
-  checklistCompleto, itemsFaltantes, progresoChecklist
+  checklistCompleto, itemsFaltantes, progresoChecklist,
+  INTEGRITEST_NIVELES, STABILITEST_NIVELES, PsicoTests,
+  interpretarHrAvatar, riesgoPsicometrico, psicoCompleto, progresoPsicoDeCandidato
 } from '../../core/models/proceso.model';
 import {
   CUESTIONARIO_LIDERAZGO, NIVELES_LIKERT, RespuestasCuestionario,
@@ -49,6 +51,9 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   NIVELES_RUBRICA = NIVELES_RUBRICA;
   UMBRAL_APROBACION = UMBRAL_APROBACION_APTITUDES;
   PSICOMETRIA_ITEMS = PSICOMETRIA_ITEMS;
+  INTEGRITEST_NIVELES = INTEGRITEST_NIVELES;
+  STABILITEST_NIVELES = STABILITEST_NIVELES;
+  interpretarHrAvatar = interpretarHrAvatar;
   CHECKLIST_JEFE = CHECKLIST_JEFE;
   CHECKLIST_DOCUMENTAL = CHECKLIST_DOCUMENTAL;
   CHECKLIST_OFERTA = CHECKLIST_OFERTA;
@@ -96,6 +101,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     this.candidato.rubricaAptitudes      ||= {}; // { [aptitudKey]: NivelRubrica }
     this.candidato.psicometriaChecklist  ||= vacio(PSICOMETRIA_ITEMS);
     this.candidato.psicometriaRiesgos    ||= '';
+    this.candidato.psicoTests            ||= { integritest: '', stabilitest: '', hrAvatar: null } as PsicoTests;
     this.candidato.jefeChecklist         ||= vacio(CHECKLIST_JEFE);
     this.candidato.jefeNotas             ||= '';
     this.candidato.documentalChecklist   ||= vacio(CHECKLIST_DOCUMENTAL);
@@ -191,7 +197,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
         return this.calcularPuntajeAptitudes().aprobado &&
                checklistCompleto(this.candidato.jefeChecklist, CHECKLIST_JEFE);
       case ID_ETAPAS.PSICOMETRIA:
-        return checklistCompleto(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS);
+        return psicoCompleto(this.candidato.psicoTests) ||
+               checklistCompleto(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS);
       case ID_ETAPAS.JEFE:
         return checklistCompleto(this.candidato.jefeChecklist, CHECKLIST_JEFE);
       case ID_ETAPAS.DOCUMENTAL:
@@ -220,7 +227,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
         const jefe = progresoChecklist(this.candidato.jefeChecklist, CHECKLIST_JEFE).pct;
         return Math.round((apt + jefe) / 2);
       }
-      case ID_ETAPAS.PSICOMETRIA:  return progresoChecklist(this.candidato.psicometriaChecklist, PSICOMETRIA_ITEMS).pct;
+      case ID_ETAPAS.PSICOMETRIA:  return progresoPsicoDeCandidato(this.candidato).pct;
       case ID_ETAPAS.JEFE:         return progresoChecklist(this.candidato.jefeChecklist, CHECKLIST_JEFE).pct;
       case ID_ETAPAS.DOCUMENTAL:   return progresoChecklist(this.candidato.documentalChecklist, CHECKLIST_DOCUMENTAL).pct;
       case ID_ETAPAS.OFERTA:       return progresoChecklist(this.candidato.ofertaChecklist, CHECKLIST_OFERTA).pct;
@@ -280,7 +287,56 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     const r = this.resultadoLiderazgo();
     return { hechos: r.contestadas, total: r.total, pct: r.total === 0 ? 100 : Math.round((r.contestadas / r.total) * 100) };
   }
-  progresoPsicom() { return progresoChecklist(this.candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS); }
+  progresoPsicom() { return progresoPsicoDeCandidato(this.candidato); }
+
+  // ====== PSICOMÉTRICAS · IntegriTEST / StabiliTEST / HR Avatar ======
+
+  /** Interpretación (banda + color) del puntaje de HR Avatar. */
+  hrAvatarInterp() { return interpretarHrAvatar(this.candidato?.psicoTests?.hrAvatar); }
+
+  /** Recalcula el riesgo del dictamen a partir de las 3 pruebas. */
+  private sincronizarRiesgoPsico() {
+    if (!this.candidato?.dictamen) return;
+    this.candidato.dictamen.psicometria = riesgoPsicometrico(this.candidato.psicoTests);
+  }
+
+  /** Selecciona un nivel de IntegriTEST/StabiliTEST (re-clic deselecciona). */
+  async setPsicoNivel(prueba: 'integritest' | 'stabilitest', valor: string) {
+    if (!this.candidato.psicoTests) this.candidato.psicoTests = {};
+    const prev = this.candidato.psicoTests[prueba] || '';
+    this.candidato.psicoTests[prueba] = prev === valor ? '' : valor;
+    this.sincronizarRiesgoPsico();
+    try {
+      await this.candidateService.updateCandidate(this.candidato.id, {
+        psicoTests: this.candidato.psicoTests,
+        dictamen: this.candidato.dictamen
+      });
+    } catch (e) {
+      this.candidato.psicoTests[prueba] = prev;
+      this.sincronizarRiesgoPsico();
+    }
+  }
+
+  /** Guarda el puntaje 0-100 de HR Avatar (o lo limpia si viene vacío). */
+  async setHrAvatar(valor: any) {
+    if (!this.candidato.psicoTests) this.candidato.psicoTests = {};
+    const prev = this.candidato.psicoTests.hrAvatar ?? null;
+    const raw = `${valor ?? ''}`.trim();
+    let n: number | null = raw === '' ? null : Math.round(Number(raw));
+    if (n !== null && isNaN(n)) n = null;
+    if (n !== null) n = Math.max(0, Math.min(100, n));
+    this.candidato.psicoTests.hrAvatar = n;
+    this.sincronizarRiesgoPsico();
+    try {
+      await this.candidateService.updateCandidate(this.candidato.id, {
+        psicoTests: this.candidato.psicoTests,
+        dictamen: this.candidato.dictamen
+      });
+    } catch (e) {
+      this.candidato.psicoTests.hrAvatar = prev;
+      this.sincronizarRiesgoPsico();
+    }
+  }
   progresoJefe() { return progresoChecklist(this.candidato?.jefeChecklist, CHECKLIST_JEFE); }
   progresoDocs() { return progresoChecklist(this.candidato?.documentalChecklist, CHECKLIST_DOCUMENTAL); }
   progresoOferta() { return progresoChecklist(this.candidato?.ofertaChecklist, CHECKLIST_OFERTA); }

@@ -15,7 +15,8 @@
 import {
   CHECKLIST_JEFE, PSICOMETRIA_ITEMS,
   APTITUDES_POR_TIPO, EstadoCheck,
-  progresoChecklist, calcularPuntajeRubrica, UMBRAL_APROBACION_APTITUDES
+  progresoChecklist, calcularPuntajeRubrica, UMBRAL_APROBACION_APTITUDES,
+  puntajePsico
 } from './proceso.model';
 import { calcularResultadoLiderazgo } from './cuestionario-liderazgo.model';
 
@@ -53,13 +54,19 @@ export function calcularEvaluacion(candidato: any): PuntajeEvaluacion {
   const conductual = calcularResultadoLiderazgo(candidato?.cuestionarioLiderazgo);
   const aptitudes = calcularPuntajeRubrica(candidato?.rubricaAptitudes, aptitudesItems);
   const tecnica = progresoChecklist(candidato?.jefeChecklist, CHECKLIST_JEFE);
-  const psico = progresoChecklist(candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS);
+
+  // Psicométricas: nuevas 3 pruebas (IntegriTEST / StabiliTEST / HR Avatar) con
+  // fallback al checklist legado para expedientes previos al rediseño.
+  let psico = puntajePsico(candidato?.psicoTests);
+  if (!psico.evaluada && checklistTocado(candidato?.psicometriaChecklist)) {
+    psico = { puntaje: progresoChecklist(candidato?.psicometriaChecklist, PSICOMETRIA_ITEMS).pct, evaluada: true };
+  }
 
   const subetapas: SubEtapaEval[] = [
     { key: 'conductual',  label: 'Conductual',        puntaje: conductual.porcentaje, evaluada: conductual.contestadas > 0, peso: 0.25 },
     { key: 'aptitudes',   label: 'Aptitudes',         puntaje: aptitudes.puntaje,    evaluada: aptitudes.calificadas > 0, peso: 0.30 },
     { key: 'tecnica',     label: 'Entrevista técnica', puntaje: tecnica.pct,         evaluada: checklistTocado(candidato?.jefeChecklist), peso: 0.25 },
-    { key: 'psicometria', label: 'Psicométricas',     puntaje: psico.pct,            evaluada: checklistTocado(candidato?.psicometriaChecklist), peso: 0.10 }
+    { key: 'psicometria', label: 'Psicométricas',     puntaje: psico.puntaje,        evaluada: psico.evaluada, peso: 0.10 }
   ];
 
   const evaluadas = subetapas.filter(s => s.evaluada);

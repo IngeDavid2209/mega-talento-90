@@ -1283,6 +1283,168 @@
 .btn-yn.btn-si.active:hover { background: #1A6E43; }
 .btn-yn.btn-no.active:hover { background: #8E2222; }
 
+/* =====================================================================
+   PSICOMÉTRICAS · IntegriTEST / StabiliTEST / HR Avatar
+   ===================================================================== */
+.psico-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.psico-test {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.psico-test-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.psico-test-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.psico-test-sub {
+  font-size: 11.5px;
+  color: var(--text3);
+  font-weight: 500;
+}
+
+/* Pastillas de nivel (semáforo) */
+.psico-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.psico-pill {
+  --c: var(--text2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-med);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+.psico-pill:hover { border-color: var(--c); color: var(--ink); }
+.psico-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--c);
+  flex-shrink: 0;
+}
+.psico-pill.active {
+  background: var(--c);
+  border-color: var(--c);
+  color: #fff;
+  box-shadow: var(--shadow-xs);
+}
+.psico-pill.active .psico-dot { background: #fff; }
+.psico-pill.compacta { cursor: default; }
+
+/* Paleta de niveles */
+.psico-pill.nivel-verde       { --c: #2F8F4E; }
+.psico-pill.nivel-verde-claro { --c: #6FB65A; }
+.psico-pill.nivel-amarillo    { --c: #E5A300; }
+.psico-pill.nivel-naranja     { --c: #D9770B; }
+.psico-pill.nivel-rojo        { --c: #B02A2A; }
+.psico-pill.nivel-navy        { --c: #1A2F4E; }
+.psico-pill.nivel-negro       { --c: #1A1A1A; }
+
+/* HR Avatar — puntuación + barra de interpretación */
+.hravatar-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.hravatar-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hravatar-input label {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+}
+.hravatar-input input[type="number"] {
+  width: 82px !important;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+.hravatar-input small { color: var(--text3); font-size: 12px; font-weight: 600; }
+
+.hravatar-scale { padding: 0 4px; }
+.hravatar-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    #B02A2A 0%, #D9770B 30%, #E5A300 50%, #8FB03E 68%, #2F8F4E 100%);
+}
+.hravatar-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 22px;
+  background: var(--ink);
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.hravatar-value {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+.hravatar-value::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--ink);
+}
+.hravatar-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+
 /* STAR — bloque con header simple y textarea de evidencia */
 .star-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
 .star-block {
