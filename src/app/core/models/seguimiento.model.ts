@@ -60,6 +60,9 @@ export function nivelSeguimiento(c: any, ahora: Date = new Date()): NivelSeguimi
  */
 export function debeCerrarseSeguimiento(c: any, ahora: Date = new Date()): boolean {
   if (!esActivoEnProceso(c)) return false;
+  // Protegemos a quien ya está "adentro" del proceso: si el candidato contestó
+  // (o al menos empezó) la evaluación de liderazgo, NUNCA se cierra solo.
+  if (respondioEvaluacion(c)) return false;
   // Solo auto-cerramos a candidatos que RH YA trabajó al menos una vez (tienen
   // `ultimaActividad`). A los que nunca se han revisado NO los mandamos solos a
   // la Papelera, aunque lleven días desde que se postularon: cerrarlos sería
@@ -67,4 +70,11 @@ export function debeCerrarseSeguimiento(c: any, ahora: Date = new Date()): boole
   if (!aFecha(c?.ultimaActividad)) return false;
   const d = diasSinSeguimiento(c, ahora);
   return d >= SEGUIMIENTO_CIERRE_DIAS;
+}
+
+/** ¿El candidato ya contestó (o empezó) la evaluación de liderazgo? */
+export function respondioEvaluacion(c: any): boolean {
+  const resp = c?.cuestionarioLiderazgo;
+  if (!resp || typeof resp !== 'object') return false;
+  return Object.values(resp).some((v: any) => typeof v === 'number' && v >= 1 && v <= 5);
 }

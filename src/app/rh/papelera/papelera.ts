@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS } from '../../core/models/proceso.model';
+import { respondioEvaluacion } from '../../core/models/seguimiento.model';
 
 type Accion =
   | { tipo: 'restaurar'; candidato: any }
   | { tipo: 'definitivo'; candidato: any }
+  | { tipo: 'restaurarEncuesta' }
   | { tipo: 'vaciar' };
 
 @Component({
@@ -79,6 +81,24 @@ export class PapeleraComponent implements OnInit, OnDestroy {
     };
   }
 
+  /** Candidatos en la papelera que ya contestaron (o empezaron) la encuesta. */
+  contestaronEncuesta(): any[] {
+    return this.candidatos.filter(c => respondioEvaluacion(c));
+  }
+
+  pedirRestaurarEncuesta() {
+    const lista = this.contestaronEncuesta();
+    if (!lista.length) {
+      this.mostrarFlash('ok', 'No hay candidatos en la papelera que hayan contestado la encuesta.');
+      return;
+    }
+    this.confirmacion = {
+      titulo: 'Restaurar los que contestaron la encuesta',
+      mensaje: `Se sacarán de la papelera ${lista.length} candidato(s) que ya respondieron la evaluación de liderazgo y volverán al proceso.`,
+      accion: { tipo: 'restaurarEncuesta' }
+    };
+  }
+
   pedirVaciar() {
     if (this.candidatos.length === 0) return;
     this.confirmacion = {
@@ -104,6 +124,13 @@ export class PapeleraComponent implements OnInit, OnDestroy {
       } else if (accion.tipo === 'definitivo') {
         await this.candidateService.eliminarCandidatoDefinitivo(accion.candidato.id);
         this.mostrarFlash('ok', `Se eliminó definitivamente a ${accion.candidato.nombre}`);
+      } else if (accion.tipo === 'restaurarEncuesta') {
+        const lista = this.contestaronEncuesta();
+        let n = 0;
+        for (const c of lista) {
+          try { await this.candidateService.restaurarCandidato(c.id); n++; } catch { /* sigue con los demás */ }
+        }
+        this.mostrarFlash('ok', `Se ${n === 1 ? 'restauró' : 'restauraron'} ${n} candidato(s) que contestaron la encuesta.`);
       } else if (accion.tipo === 'vaciar') {
         for (const c of this.candidatos) {
           await this.candidateService.eliminarCandidatoDefinitivo(c.id);
