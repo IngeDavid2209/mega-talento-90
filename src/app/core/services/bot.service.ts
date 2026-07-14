@@ -20,6 +20,13 @@ export interface InvitacionResp {
   error?: string;
 }
 
+export interface PedirDocsResp {
+  ok: boolean;
+  /** true si el bot logró enviar el aviso (plantilla o dentro de ventana 24h) */
+  enviado?: boolean;
+  error?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BotService {
   private toast = inject(ToastService);
@@ -87,6 +94,76 @@ export class BotService {
       } else if (r.ok) {
         this.toast.error(
           'El bot no pudo enviar el mensaje. Revisa que la plantilla de WhatsApp esté aprobada en Meta y que el teléfono sea válido.',
+          'No se envió'
+        );
+      } else {
+        this.toast.error(
+          r.error || 'No se pudo contactar al bot. Revisa tu conexión e intenta de nuevo.',
+          'Error'
+        );
+      }
+    } finally {
+      enviando?.delete(c.id);
+    }
+  }
+
+  /**
+   * Pide al bot que le solicite al candidato su documentación pendiente por
+   * WhatsApp (post-psicométricas). El bot lo pone en modo recolección y le manda
+   * la lista; los archivos que envíe aparecen en su expediente (documentosBot).
+   * @param documentos lista opcional de documentos; si se omite, el bot usa una
+   *                   lista por defecto (INE, CURP, comprobantes, etc.).
+   */
+  async pedirDocumentos(candidateId: string, documentos?: string[]): Promise<PedirDocsResp> {
+    try {
+      const body: any = { candidateId };
+      if (documentos?.length) body.documentos = documentos;
+      const res = await fetch(`${BOT_URL}/api/pedir-documentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      let data: any = {};
+      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
+      if (!res.ok) {
+        return { ok: false, error: data?.error || `HTTP ${res.status}` };
+      }
+      return data as PedirDocsResp;
+    } catch (e: any) {
+      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+    }
+  }
+
+  /**
+   * Flujo COMPLETO para el botón "Pedir documentos por WhatsApp": confirma,
+   * llama al bot y muestra el toast según el resultado.
+   */
+  async solicitarDocumentos(c: any, documentos?: string[], enviando?: Set<string>): Promise<void> {
+    if (!c?.id) {
+      this.toast.error('Este candidato no tiene un identificador válido.', 'No se puede contactar');
+      return;
+    }
+    if (enviando?.has(c.id)) return;
+
+    const ok = await this.toast.confirmar({
+      titulo: `Pedir documentos a ${c.nombre || 'este candidato'}`,
+      mensaje: 'El bot le enviará un WhatsApp desde el número oficial pidiéndole su documentación pendiente (INE, CURP, comprobantes, etc.). Los archivos que mande aparecerán aquí en Archivos. ¿Enviar ahora?',
+      textoConfirmar: 'Sí, pedir documentos',
+      textoCancelar: 'Cancelar',
+    });
+    if (!ok) return;
+
+    enviando?.add(c.id);
+    try {
+      const r = await this.pedirDocumentos(c.id, documentos);
+      if (r.ok && r.enviado) {
+        this.toast.exito(
+          `El bot le pidió sus documentos a ${c.nombre || 'el candidato'} por WhatsApp.`,
+          'Solicitud enviada'
+        );
+      } else if (r.ok) {
+        this.toast.error(
+          'El bot no pudo enviar el mensaje. Revisa que la plantilla "documentos_pendientes" esté aprobada en Meta, o que el candidato haya escrito en las últimas 24 h.',
           'No se envió'
         );
       } else {

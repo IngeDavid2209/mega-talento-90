@@ -850,6 +850,13 @@
             <span class="upload-title">{{ subiendoDoc ? 'Subiendo a la nube...' : 'Agregar documento' }}</span>
             <small>Formatos: PDF, JPG o PNG</small>
           </label>
+
+          <button type="button" class="upload-btn" style="border:0;cursor:pointer;font:inherit;text-align:center"
+                  (click)="solicitarDocumentosPorBot()" [disabled]="pidiendoDocs.has(candidato.id)"
+                  [style.opacity]="pidiendoDocs.has(candidato.id) ? '0.5' : '1'">
+            <span class="upload-title">{{ pidiendoDocs.has(candidato.id) ? 'Enviando solicitud...' : 'Pedir documentos por WhatsApp' }}</span>
+            <small>El bot se los pide al candidato y aparecen aquí</small>
+          </button>
         </div>
 
         <div class="doc-list">
@@ -895,6 +902,17 @@
                 <div>
                   <strong>{{ doc.nombre }}</strong>
                   <small>{{ doc.fecha | date:'dd/MM/yyyy' }}</small>
+                </div>
+              </a>
+            }
+          }
+          @if (candidato.documentosBot) {
+            @for (doc of candidato.documentosBot; track doc.url) {
+              <a [href]="doc.url" target="_blank" class="doc-item">
+                <div class="doc-thumb">📱</div>
+                <div>
+                  <strong>{{ doc.nombre || doc.tipo || 'Documento' }}</strong>
+                  <small>Enviado por WhatsApp · {{ doc.recibidoEn | date:'dd/MM/yyyy' }}</small>
                 </div>
               </a>
             }

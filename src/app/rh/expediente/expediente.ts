@@ -42,6 +42,9 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   /** Ids con una invitación al bot en curso (deshabilita el botón) */
   enviandoInvitacion = new Set<string>();
 
+  /** Ids con una petición de documentos al bot en curso (deshabilita el botón) */
+  pidiendoDocs = new Set<string>();
+
   // Constantes expuestas al template
   ETAPAS = ETAPAS;
   ID_ETAPAS = ID_ETAPAS;
@@ -488,6 +491,11 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   // WHATSAPP: conecta al candidato con el bot (le escribe desde el número oficial).
   contactarWhatsApp() {
     return this.botService.conectarConBot(this.candidato, this.enviandoInvitacion);
+  }
+
+  /** Pide al bot que le solicite al candidato su documentación pendiente por WhatsApp. */
+  solicitarDocumentosPorBot() {
+    return this.botService.solicitarDocumentos(this.candidato, undefined, this.pidiendoDocs);
   }
 
   /** Envía por WhatsApp el link único para que el candidato llene la Evaluación de Liderazgo en vivo */
