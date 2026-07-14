@@ -165,6 +165,25 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return this.candidato?.cuestionarioLiderazgo?.[num];
   }
 
+  /** Cierre de seguimiento individual: manda este candidato a la Papelera. */
+  async cerrarSeguimientoActual() {
+    if (!this.candidato?.id) return;
+    const ok = await this.toast.confirmar({
+      titulo: `Cerrar seguimiento de ${this.candidato.nombre || 'este candidato'}`,
+      mensaje: 'Se enviará a la Papelera. Podrás recuperarlo desde ahí si hace falta. ¿Continuar?',
+      textoConfirmar: 'Sí, cerrar',
+      textoCancelar: 'Cancelar'
+    });
+    if (!ok) return;
+    try {
+      await this.candidateService.cerrarSeguimiento(this.candidato.id);
+      this.toast.exito(`${this.candidato.nombre || 'El candidato'} se movió a la Papelera.`, 'Cierre de seguimiento');
+      this.volver();
+    } catch (e) {
+      this.toast.error('No se pudo cerrar el seguimiento.', 'Error');
+    }
+  }
+
   volver() {
     // Regresa a la vista de la etapa donde está el candidato (o al dashboard)
     const etapa = this.candidato?.status;

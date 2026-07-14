@@ -50,6 +50,18 @@
           </svg>
         </button>
 
+        @if (paraCerrar.length > 0) {
+          <div class="seg-cierre">
+            <span class="seg-cierre-txt">
+              {{ paraCerrar.length }} llevan {{ CIERRE_DIAS }}+ días sin seguimiento
+            </span>
+            <button type="button" class="seg-cierre-btn"
+                    (click)="cerrarSeguimientoMasivo()" [disabled]="cerrandoSeguimiento">
+              {{ cerrandoSeguimiento ? 'Cerrando…' : 'Cerrar seguimiento (' + paraCerrar.length + ')' }}
+            </button>
+          </div>
+        }
+
         @if (mostrarSinSeguimiento) {
           <div class="seg-lista">
             @for (c of sinSeguimiento; track c.id) {

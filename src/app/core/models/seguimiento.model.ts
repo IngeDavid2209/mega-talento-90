@@ -12,6 +12,7 @@ import { ID_ETAPAS } from './proceso.model';
 // Umbrales de días sin seguimiento (decisión de negocio)
 export const SEGUIMIENTO_AVISO_DIAS = 2;    // amarillo: empieza a descuidarse
 export const SEGUIMIENTO_CRITICO_DIAS = 5;  // rojo: abandonado
+export const SEGUIMIENTO_CIERRE_DIAS = 10;  // cierre: se manda a la Papelera
 
 export type NivelSeguimiento = 'ok' | 'aviso' | 'critico';
 
@@ -51,4 +52,14 @@ export function nivelSeguimiento(c: any, ahora: Date = new Date()): NivelSeguimi
   if (d >= SEGUIMIENTO_CRITICO_DIAS) return 'critico';
   if (d >= SEGUIMIENTO_AVISO_DIAS) return 'aviso';
   return 'ok';
+}
+
+/**
+ * ¿Debe cerrarse (mandarse a la Papelera) por llevar demasiados días sin
+ * seguimiento? Solo aplica a candidatos ACTIVOS en proceso.
+ */
+export function debeCerrarseSeguimiento(c: any, ahora: Date = new Date()): boolean {
+  if (!esActivoEnProceso(c)) return false;
+  const d = diasSinSeguimiento(c, ahora);
+  return d >= SEGUIMIENTO_CIERRE_DIAS;
 }

@@ -154,6 +154,19 @@ export class CandidateService {
     });
   }
 
+  /**
+   * Cierre de seguimiento: manda el candidato a la Papelera (borrado suave,
+   * recuperable) dejando registrado el motivo para poder distinguirlo de un
+   * borrado manual. NO sella `ultimaActividad` (se está cerrando, no atendiendo).
+   */
+  async cerrarSeguimiento(id: string): Promise<void> {
+    await updateDoc(doc(db, 'candidates', id), {
+      deletedAt: serverTimestamp(),
+      motivoBorrado: 'cierre_seguimiento',
+      cerradoSeguimientoEn: serverTimestamp()
+    });
+  }
+
   /** Restaura un candidato que estaba en la papelera */
   async restaurarCandidato(id: string): Promise<void> {
     await updateDoc(doc(db, 'candidates', id), {

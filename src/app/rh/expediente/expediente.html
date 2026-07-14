@@ -51,6 +51,10 @@
           @if (candidato.licenciaUrl) {
             <a [href]="candidato.licenciaUrl" target="_blank" class="btn-outline">Ver licencia</a>
           }
+          <button class="btn-cerrar-seg" (click)="cerrarSeguimientoActual()"
+                  title="Cerrar seguimiento y enviar a la Papelera">
+            Cerrar seguimiento
+          </button>
         </div>
       </div>
     </header>
@@ -85,6 +89,7 @@
       </div>
     </div>
 
+    
     <!-- TABS -->
     <div class="tabs-bar">
       <button class="tab" [class.active]="tabActiva === 'resumen'"     (click)="tabActiva = 'resumen'">Resumen</button>

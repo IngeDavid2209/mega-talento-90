@@ -119,6 +119,20 @@
   background: var(--surface3);
   border-color: var(--ink);
 }
+.btn-cerrar-seg {
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  background: var(--surface);
+  color: var(--red-brand);
+  border: 1px solid var(--red-brand);
+}
+.btn-cerrar-seg:hover { background: var(--red-brand); color: #fff; }
 
 /* STEPPER · llenado por progreso real */
 .stepper-card {

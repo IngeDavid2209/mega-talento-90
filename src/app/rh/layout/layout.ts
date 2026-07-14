@@ -6,6 +6,8 @@ import { NotificacionesService, EstadoNotif } from '../../core/services/notifica
 import { UpdateCheckerService } from '../../core/services/update-checker.service';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
 import { ETAPAS, ETAPA_CONTRATADO, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
+import { debeCerrarseSeguimiento } from '../../core/models/seguimiento.model';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-layout',
@@ -23,6 +25,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   updateChecker = inject(UpdateCheckerService);
   // Público para que el template lea el signal activo() del modo Capital Humano
   capitalHumano = inject(CapitalHumanoService);
+  private toast = inject(ToastService);
+
+  /** El cierre automático de seguimiento corre una sola vez por sesión. */
+  private cierreEjecutado = false;
 
   isMenuOpen = false;
   year = new Date().getFullYear();
@@ -62,8 +68,34 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.ngZone.run(() => {
         this.calcularConteos(datos);
         this.detectarNuevos(datos);
+        this.ejecutarCierreAutomatico(datos);
       });
     });
+  }
+
+  /**
+   * Cierre de seguimiento AUTOMÁTICO: al abrir la app, manda a la Papelera a los
+   * candidatos activos con 10+ días sin seguimiento. Corre una sola vez por
+   * sesión y es recuperable (van a la Papelera, no se borran de verdad).
+   */
+  private async ejecutarCierreAutomatico(datos: any[]) {
+    if (this.cierreEjecutado) return;
+    this.cierreEjecutado = true;
+
+    const ahora = new Date();
+    const paraCerrar = datos.filter(c => debeCerrarseSeguimiento(c, ahora));
+    if (!paraCerrar.length) return;
+
+    let cerrados = 0;
+    for (const c of paraCerrar) {
+      try { await this.candidateService.cerrarSeguimiento(c.id); cerrados++; } catch { /* se reintenta al recargar */ }
+    }
+    if (cerrados > 0) {
+      this.toast.info(
+        `${cerrados} candidato${cerrados === 1 ? '' : 's'} sin seguimiento (10+ días) se ${cerrados === 1 ? 'movió' : 'movieron'} a la Papelera.`,
+        'Cierre de seguimiento'
+      );
+    }
   }
 
   async activarNotificaciones() {
