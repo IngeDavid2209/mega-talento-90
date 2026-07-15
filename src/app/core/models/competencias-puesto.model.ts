@@ -1994,7 +1994,24 @@ export const CATALOGO_COMPETENCIAS: Record<string, HojaCompetencias> = {
 export const HOJAS_COMPETENCIAS: { key: string; nombre: string; total: number }[] =
   Object.values(CATALOGO_COMPETENCIAS).map(h => ({ key: h.key, nombre: h.nombre, total: h.competencias.length }));
 
-const norm = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+// Abreviaturas comunes de puestos \u2192 forma larga (para el match autom\u00e1tico).
+const ABREV_PUESTO: Record<string, string> = { aux: 'auxiliar', axu: 'auxiliar', vend: 'vendedor' };
+
+/**
+ * Normaliza un nombre para COMPARAR puesto \u2194 hoja: quita acentos, marcas de
+ * g\u00e9nero entre par\u00e9ntesis "(a)"/"(o)", expande abreviaturas y pliega la
+ * terminaci\u00f3n de g\u00e9nero (o/a) de cada palabra. As\u00ed "Cajero(a)" \u2248 "CAJERA" y
+ * "Aux de chofer" \u2248 "AUXILIAR DE CHOFER" sin necesidad de asignaci\u00f3n manual.
+ */
+function normMatch(s: string): string {
+  let t = (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  t = t.replace(/\((?:a|o|as|os)\)/g, ' ');          // marcas de g\u00e9nero (a)/(o)/(as)/(os)
+  t = t.replace(/[^a-z0-9]+/g, ' ').trim();
+  return t.split(/\s+/).filter(Boolean)
+    .map(w => ABREV_PUESTO[w] || w)                   // expande abreviaturas (aux\u2192auxiliar)
+    .map(w => w.replace(/([a-z]{3,})[oa]$/, '$1~'))   // pliega g\u00e9nero final (cajero\u2248cajera)
+    .join(' ');
+}
 
 /** Hoja oficial por su key de cat\u00e1logo (la que RH eligi\u00f3 en el puesto). */
 export function hojaPorKey(key: string | undefined): HojaCompetencias | undefined {
@@ -2003,10 +2020,10 @@ export function hojaPorKey(key: string | undefined): HojaCompetencias | undefine
 
 /** Encuentra la hoja oficial cuyo nombre coincide con el nombre del puesto. */
 export function hojaPorNombrePuesto(nombrePuesto: string | undefined): HojaCompetencias | undefined {
-  const n = norm(nombrePuesto || '');
+  const n = normMatch(nombrePuesto || '');
   if (!n) return undefined;
   const vals = Object.values(CATALOGO_COMPETENCIAS);
   // match exacto normalizado, luego "empieza con" en cualquier sentido
-  return vals.find(h => norm(h.nombre) === n)
-    || vals.find(h => norm(h.nombre).startsWith(n) || n.startsWith(norm(h.nombre)));
+  return vals.find(h => normMatch(h.nombre) === n)
+    || vals.find(h => { const hn = normMatch(h.nombre); return hn.startsWith(n) || n.startsWith(hn); });
 }
