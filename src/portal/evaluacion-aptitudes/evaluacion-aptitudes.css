@@ -1,0 +1,166 @@
+:host {
+  --ink: #1A2233;
+  --ink-soft: #2A3550;
+  --gold: #C9A24B;
+  --border: #E5E1D8;
+  --bg: #F4F2EC;
+  --text2: #6B7280;
+  --verde: #047857;
+  --rojo: #B91C1C;
+  display: block;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.ev-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 96px;
+}
+
+/* Header */
+.ev-header { text-align: center; margin-bottom: 20px; }
+.ev-brand {
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+}
+.ev-header h1 { font-size: 26px; margin: 6px 0 2px; color: var(--ink); }
+.ev-sub { color: var(--text2); font-size: 14px; margin: 0; }
+
+/* Card base */
+.ev-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.ev-card-titulo { font-size: 16px; margin: 0 0 12px; color: var(--ink); }
+
+.ev-estado { text-align: center; color: var(--text2); }
+.ev-error { border-color: #FCA5A5; background: #FEF2F2; color: var(--rojo); }
+
+/* Candidato */
+.ev-candidato { text-align: center; background: var(--ink); border-color: var(--ink); }
+.ev-candidato-nombre { font-size: 20px; font-weight: 700; color: #fff; }
+.ev-candidato-puesto { font-size: 14px; color: var(--gold); margin-top: 2px; }
+
+/* Campos */
+.ev-campo { margin-bottom: 12px; }
+.ev-campo:last-child { margin-bottom: 0; }
+.ev-campo label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--ink-soft); }
+.ev-campo .req { color: var(--rojo); }
+.ev-campo input, .ev-campo textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.ev-campo input:focus, .ev-campo textarea:focus { outline: none; border-color: var(--gold); }
+.ev-campo textarea { resize: vertical; }
+
+/* Rúbrica */
+.ev-rubrica-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.ev-puntaje-vivo {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text2);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ev-puntaje-vivo.ok { color: var(--verde); }
+.ev-progreso { font-size: 12px; font-weight: 600; color: var(--text2); }
+
+.ev-aptitud {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.ev-aptitud:first-of-type { border-top: none; }
+.ev-aptitud-nombre { font-size: 15px; font-weight: 700; color: var(--ink); }
+.ev-aptitud-criterio { font-size: 13px; color: var(--text2); margin: 3px 0 10px; line-height: 1.4; }
+
+.ev-niveles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ev-nivel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.ev-nivel:hover { border-color: var(--nivel-color); }
+.ev-nivel.sel {
+  border-color: var(--nivel-color);
+  background: var(--nivel-color);
+  color: #fff;
+}
+.ev-nivel-peso { font-size: 16px; font-weight: 800; }
+.ev-nivel-label { font-size: 12px; font-weight: 600; }
+
+/* Barra guardar */
+.ev-guardar-barra {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  padding: 14px 0 0;
+}
+.ev-guardar-hint { text-align: center; font-size: 13px; color: var(--text2); }
+.ev-guardar {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--ink);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(26,34,51,.25);
+}
+.ev-guardar:hover:not(:disabled) { background: var(--ink-soft); }
+.ev-guardar:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+
+/* Final */
+.ev-final { text-align: center; }
+.ev-check {
+  width: 60px; height: 60px; line-height: 60px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--verde);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+}
+.ev-final h2 { margin: 0 0 8px; }
+.ev-final-score {
+  display: inline-block;
+  margin: 14px 0 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.ev-final-score.aprobado { background: #ECFDF5; color: var(--verde); }
+.ev-final-score.reprobado { background: #FEF2F2; color: var(--rojo); }
+.ev-final-cerrar { font-size: 13px; color: var(--text2); }
+
+@media (max-width: 420px) {
+  .ev-nivel-label { font-size: 11px; }
+  .ev-niveles { gap: 6px; }
+}

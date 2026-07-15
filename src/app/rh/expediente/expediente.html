@@ -405,8 +405,44 @@
       <div class="section-card">
         <header class="section-head">
           <h3>Pruebas de Aptitudes</h3>
-          <p class="section-desc">Selecciona el tipo de vacante y califica cada aptitud observada. El puntaje se calcula automáticamente.</p>
+          <p class="section-desc">Esta entrevista la realiza el <strong>jefe/gerente directo</strong>. Genera el link y compártelo con él; el puntaje llega solo aquí y RH lo monitorea.</p>
         </header>
+
+        <!-- EVALUACIÓN POR EL JEFE DIRECTO (link) -->
+        <div class="eval-link-box">
+          <div class="eval-link-head">
+            <div>
+              <strong>Evaluación por el jefe directo</strong>
+              <p>El gerente califica las aptitudes desde su celular, sin necesidad de entrar al portal.</p>
+            </div>
+            <button type="button" class="btn-generar-link" (click)="generarLinkAptitudes()" [disabled]="generandoLinkApt">
+              {{ generandoLinkApt ? 'Generando…' : (candidato?.aptitudesEval ? 'Regenerar link' : 'Generar link de evaluación') }}
+            </button>
+          </div>
+
+          @if (linkAptitudes) {
+            <div class="eval-link-copiar">
+              <input type="text" [value]="linkAptitudes" readonly (focus)="$any($event.target).select()">
+              <button type="button" (click)="copiarLinkAptitudes()">Copiar</button>
+            </div>
+            <small class="eval-link-hint">Comparte este link por WhatsApp con el jefe/gerente que hará la entrevista técnica.</small>
+          }
+
+          <!-- RESULTADO (read-only): quién evaluó y cuándo -->
+          @if (candidato?.aptitudesEval; as ev) {
+            <div class="eval-resultado" [class.aprobado]="ev.aprobado">
+              <div class="eval-resultado-top">
+                <span class="eval-resultado-badge">{{ ev.puntaje }}/100 · {{ ev.aprobado ? 'Aprobado' : 'No alcanza el mínimo' }}</span>
+                <span class="eval-resultado-quien">Evaluó: <strong>{{ ev.evaluador }}</strong>@if (ev.cargoEvaluador) { · {{ ev.cargoEvaluador }} }</span>
+              </div>
+              <div class="eval-resultado-meta">
+                @if (ev.tiempo) { <span>⏱ {{ ev.tiempo }}</span> }
+                @if (ev.completadaEn) { <span>📅 {{ ev.completadaEn | date:'dd/MM/yyyy HH:mm' }}</span> }
+              </div>
+              @if (ev.observaciones) { <p class="eval-resultado-obs">"{{ ev.observaciones }}"</p> }
+            </div>
+          }
+        </div>
 
         <!-- Tipo de vacante -->
         <div class="tipo-vacante-row">

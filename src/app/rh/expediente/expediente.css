@@ -2406,3 +2406,99 @@
   .rubrica-niveles { grid-template-columns: repeat(2, 1fr); }
   .form-grid.two-col { grid-template-columns: 1fr; }
 }
+
+/* ====== Evaluación de aptitudes por el jefe directo (link + resultado) ====== */
+.eval-link-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 10px);
+  background: #FAFAF8;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.eval-link-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.eval-link-head strong { color: var(--ink); font-size: 15px; }
+.eval-link-head p { margin: 3px 0 0; font-size: 13px; color: var(--text2); }
+.btn-generar-link {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold-bright, #F5D07A);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+}
+.btn-generar-link:hover:not(:disabled) { background: var(--ink-soft); }
+.btn-generar-link:disabled { opacity: .5; cursor: not-allowed; }
+
+.eval-link-copiar {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.eval-link-copiar input {
+  flex: 1;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+}
+.eval-link-copiar button {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+}
+.eval-link-copiar button:hover { background: var(--ink); color: #fff; }
+.eval-link-hint { display: block; margin-top: 6px; font-size: 12px; color: var(--text2); }
+
+.eval-resultado {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius, 8px);
+  border: 1px solid #FCA5A5;
+  background: #FEF6F6;
+}
+.eval-resultado.aprobado { border-color: #A7F3D0; background: #F0FDF9; }
+.eval-resultado-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.eval-resultado-badge {
+  font-weight: 800;
+  font-size: 14px;
+  color: #B91C1C;
+}
+.eval-resultado.aprobado .eval-resultado-badge { color: #047857; }
+.eval-resultado-quien { font-size: 13px; color: var(--text2); }
+.eval-resultado-meta {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.eval-resultado-obs {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--ink);
+  font-style: italic;
+  line-height: 1.45;
+}

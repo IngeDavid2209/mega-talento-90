@@ -193,6 +193,31 @@ export class BotService {
   }
 
   /**
+   * Avisa al bot que un gerente TERMINÓ la evaluación de aptitudes de un
+   * candidato, para que el bot notifique a RH por WhatsApp (plantilla
+   * `evaluacion_completa`). Mejor esfuerzo: nunca lanza (la evaluación ya quedó
+   * guardada en Firestore aunque el aviso falle).
+   */
+  async avisarEvaluacionCompleta(
+    candidateId: string,
+    datos: { puntaje?: number; aprobado?: boolean } = {}
+  ): Promise<{ ok: boolean; avisados?: number; error?: string }> {
+    try {
+      const res = await fetch(`${BOT_URL}/api/evaluacion-completa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateId, puntaje: datos.puntaje, aprobado: datos.aprobado }),
+      });
+      let data: any = {};
+      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
+      if (!res.ok) return { ok: false, error: data?.error || `HTTP ${res.status}` };
+      return data as { ok: boolean; avisados?: number };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+    }
+  }
+
+  /**
    * Trae el historial de la conversación del bot con un candidato (por su id del
    * portal). Nunca lanza: devuelve { ok, mensajes | error }.
    */

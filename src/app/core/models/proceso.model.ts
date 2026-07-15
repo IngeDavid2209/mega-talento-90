@@ -149,6 +149,31 @@ export const APTITUDES_POR_TIPO: Record<string, AptitudItem[]> = {
 
 export const UMBRAL_APROBACION_APTITUDES = 70; // 0-100
 
+/** Tipos de vacante base para los presets de aptitudes. */
+export type TipoAptitud = 'operativo' | 'administrativo' | 'ventas' | 'jefatura';
+
+export const TIPOS_APTITUD: { key: TipoAptitud; label: string }[] = [
+  { key: 'operativo',      label: 'Operativo' },
+  { key: 'administrativo', label: 'Administrativo' },
+  { key: 'ventas',         label: 'Ventas' },
+  { key: 'jefatura',       label: 'Jefatura' }
+];
+
+/**
+ * Resuelve las aptitudes que se deben calificar para un candidato/puesto.
+ * Prioridad: aptitudes CUSTOM del puesto → preset del `tipo` → preset operativo.
+ * `custom` son las aptitudes propias del puesto (colección `puestos`);
+ * `tipo` es el tipo de vacante (del candidato o del puesto) para el fallback.
+ */
+export function resolverAptitudes(
+  custom: AptitudItem[] | undefined,
+  tipo: string | undefined
+): AptitudItem[] {
+  if (Array.isArray(custom) && custom.length) return custom;
+  const t = (tipo || 'operativo') as string;
+  return APTITUDES_POR_TIPO[t] || APTITUDES_POR_TIPO['operativo'];
+}
+
 /** Calcula puntaje normalizado 0-100 a partir de la rúbrica del candidato */
 export function calcularPuntajeRubrica(
   rubrica: Record<string, NivelRubrica> | undefined,

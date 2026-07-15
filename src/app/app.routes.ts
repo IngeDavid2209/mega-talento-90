@@ -10,6 +10,7 @@ import { EmpleosComponent } from '../portal/empleos/empleos';
 import { PortalComponent } from '../portal/portal/portal';
 import { BolsaComponent } from '../portal/bolsa/bolsa';
 import { EvaluacionLiderazgoComponent } from '../portal/evaluacion-liderazgo/evaluacion-liderazgo';
+import { EvaluacionAptitudesComponent } from '../portal/evaluacion-aptitudes/evaluacion-aptitudes';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
@@ -49,6 +50,7 @@ export const routes: Routes = [
   { path: 'portal', component: PortalComponent },
   { path: 'bolsa', component: BolsaComponent },
   { path: 'evaluacion/:id', component: EvaluacionLiderazgoComponent },
+  { path: 'evaluar-aptitudes/:id', component: EvaluacionAptitudesComponent },
   { path: 'solicitud/:id', component: SolicitudComponent },
   { path: 'solicitud',     component: SolicitudComponent },
   { path: 'login', component: LoginComponent },

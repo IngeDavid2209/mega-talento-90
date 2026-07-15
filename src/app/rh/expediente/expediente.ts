@@ -12,7 +12,7 @@ import {
   DOCUMENTOS_EXPEDIENTE,
   ItemChecklist, ResultadoDictamen, AptitudItem,
   NIVELES_RUBRICA, NivelRubrica, UMBRAL_APROBACION_APTITUDES,
-  calcularPuntajeRubrica,
+  calcularPuntajeRubrica, resolverAptitudes,
   checklistCompleto, itemsFaltantes, progresoChecklist,
   INTEGRITEST_NIVELES, STABILITEST_NIVELES, PsicoTests,
   interpretarHrAvatar, riesgoPsicometrico, psicoCompleto, progresoPsicoDeCandidato
@@ -24,6 +24,7 @@ import {
 import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 import { ToastService } from '../../core/services/toast.service';
 import { BotService } from '../../core/services/bot.service';
+import { PuestosService, Puesto } from '../../core/services/puestos.service';
 
 @Component({
   selector: 'app-expediente',
@@ -39,6 +40,14 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
   private botService = inject(BotService);
+  private puestosService = inject(PuestosService);
+
+  /** Catálogo de puestos (para resolver las aptitudes propias de cada puesto). */
+  puestosLista: Puesto[] = [];
+
+  /** Link de evaluación de aptitudes generado (para copiar/compartir con el gerente). */
+  linkAptitudes = '';
+  generandoLinkApt = false;
 
   /** Ids con una invitación al bot en curso (deshabilita el botón) */
   enviandoInvitacion = new Set<string>();
@@ -88,6 +97,12 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private unsubscribeFn: any;
 
   ngOnInit() {
+    // Catálogo de puestos: para resolver las aptitudes propias del puesto del
+    // candidato (mejor esfuerzo; si falla, se usa el preset por tipo de vacante).
+    this.puestosService.obtener()
+      .then(lista => this.ngZone.run(() => { this.puestosLista = lista; }))
+      .catch(() => { /* sin catálogo: caemos al preset por tipo */ });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.unsubscribeFn = this.candidateService.listenToCandidate(id, (data) => {
@@ -405,9 +420,66 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     });
   }
 
-  // APTITUDES por tipo — ahora regresan objetos {key, label, criterio}
+  /** El puesto del candidato dentro del catálogo (match por nombre). */
+  puestoDelCandidato(): Puesto | undefined {
+    const nombre = (this.candidato?.puesto || '').trim().toLowerCase();
+    if (!nombre) return undefined;
+    return this.puestosLista.find(p => (p.nombre || '').trim().toLowerCase() === nombre);
+  }
+
+  // APTITUDES: primero las CONGELADAS en el candidato (aptitudesConfig, si RH ya
+  // generó el link), luego las propias del puesto, y por último el preset del tipo.
   getAptitudesActivas(): AptitudItem[] {
-    return APTITUDES_POR_TIPO[this.tipoVacante] || [];
+    if (Array.isArray(this.candidato?.aptitudesConfig) && this.candidato.aptitudesConfig.length) {
+      return this.candidato.aptitudesConfig;
+    }
+    return resolverAptitudes(this.puestoDelCandidato()?.aptitudes, this.tipoVacante);
+  }
+
+  /**
+   * Genera (y copia) el link público de evaluación de aptitudes para que RH se
+   * lo comparta al jefe/gerente. Congela en el candidato la lista de aptitudes
+   * (aptitudesConfig) para que el gerente evalúe exactamente lo que RH definió,
+   * aunque el puesto cambie después.
+   */
+  async generarLinkAptitudes() {
+    if (!this.candidato?.id || this.generandoLinkApt) return;
+    this.generandoLinkApt = true;
+    try {
+      const aptitudes = this.getAptitudesActivas();
+      if (!aptitudes.length) {
+        this.toast.error('Este puesto no tiene aptitudes configuradas. Defínelas en Vacantes o elige un tipo de vacante.', 'Sin aptitudes');
+        return;
+      }
+      await this.candidateService.updateCandidate(this.candidato.id, {
+        aptitudesConfig: aptitudes,
+        tipoVacante: this.tipoVacante
+      }, { marcarActividad: false });
+
+      this.linkAptitudes = `${window.location.origin}/evaluar-aptitudes/${this.candidato.id}`;
+      try {
+        await navigator.clipboard.writeText(this.linkAptitudes);
+        this.toast.exito('Link copiado. Compártelo por WhatsApp con el jefe/gerente que hará la entrevista técnica.', 'Link de evaluación listo');
+      } catch {
+        // clipboard bloqueado: el link queda visible para copiarlo a mano
+        this.toast.info('Link generado. Cópialo del recuadro para compartirlo.', 'Link de evaluación');
+      }
+    } catch (e) {
+      console.error('Error al generar el link de evaluación:', e);
+      this.toast.error('No se pudo generar el link. Intenta de nuevo.', 'Error');
+    } finally {
+      this.generandoLinkApt = false;
+    }
+  }
+
+  async copiarLinkAptitudes() {
+    if (!this.linkAptitudes) return;
+    try {
+      await navigator.clipboard.writeText(this.linkAptitudes);
+      this.toast.exito('Link copiado.', 'Listo');
+    } catch {
+      this.toast.info('Selecciona el texto del recuadro y cópialo manualmente.', 'Copiar link');
+    }
   }
 
   // === Rúbrica: el reclutador marca un nivel por aptitud y el puntaje se calcula solo ===

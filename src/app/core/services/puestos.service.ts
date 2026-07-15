@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { PUESTOS as PUESTOS_SEMILLA } from '../models/puestos.model';
 import { inferirSucursalIds, sucursalPorId } from '../models/sucursales.model';
+import { AptitudItem } from '../models/proceso.model';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
@@ -33,6 +34,10 @@ export interface Puesto {
   activo: boolean;            // si está visible en la cartelera pública
   orden?: number;
   createdAt?: any;
+  // Aptitudes a calificar en la entrevista técnica de ESTE puesto (Fase: eval
+  // técnica por link). Si está vacío, se cae al preset por `tipoAptitud`.
+  aptitudes?: AptitudItem[];
+  tipoAptitud?: 'operativo' | 'administrativo' | 'ventas' | 'jefatura'; // preset base
 }
 
 /**

@@ -678,3 +678,85 @@
   .page-container { padding: 20px 18px 40px; }
   .vacantes-grid { grid-template-columns: 1fr; }
 }
+
+/* ====== Editor de aptitudes (entrevista técnica) ====== */
+.apt-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+.apt-presets-label {
+  font-size: 13px;
+  color: var(--text2);
+  margin-right: 2px;
+}
+.apt-preset-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.apt-preset-btn:hover { border-color: var(--ink); }
+.apt-preset-btn.activo {
+  background: var(--ink);
+  color: var(--gold-bright);
+  border-color: var(--ink);
+}
+.apt-vacio {
+  font-size: 13px;
+  color: var(--text2);
+  font-style: italic;
+  margin: 8px 0;
+}
+.apt-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.apt-fila-campos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.apt-fila-campos .apt-label {
+  font-weight: 600;
+}
+.apt-fila input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.apt-quitar {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: #B91C1C;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.apt-quitar:hover { background: #FEF2F2; border-color: #B91C1C; }
+.apt-agregar {
+  margin-top: 4px;
+  padding: 7px 14px;
+  font-size: 13px;
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.apt-agregar:hover { border-color: var(--ink); background: #FAFAF9; }
