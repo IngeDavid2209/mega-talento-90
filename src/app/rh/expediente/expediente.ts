@@ -13,6 +13,7 @@ import {
   ItemChecklist, ResultadoDictamen, AptitudItem,
   NIVELES_RUBRICA, NivelRubrica, UMBRAL_APROBACION_APTITUDES,
   calcularPuntajeRubrica, resolverAptitudes,
+  CompetenciaStar, NivelStar, NIVELES_STAR, calcularPuntajeStar,
   checklistCompleto, itemsFaltantes, progresoChecklist,
   INTEGRITEST_NIVELES, STABILITEST_NIVELES, PsicoTests,
   interpretarHrAvatar, riesgoPsicometrico, psicoCompleto, progresoPsicoDeCandidato
@@ -25,6 +26,7 @@ import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 import { ToastService } from '../../core/services/toast.service';
 import { BotService } from '../../core/services/bot.service';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
+import { hojaPorKey, hojaPorNombrePuesto } from '../../core/models/competencias-puesto.model';
 
 @Component({
   selector: 'app-expediente',
@@ -427,6 +429,35 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return this.puestosLista.find(p => (p.nombre || '').trim().toLowerCase() === nombre);
   }
 
+  // ====== COMPETENCIAS STAR (formato oficial de la entrevista técnica) ======
+
+  NIVELES_STAR = NIVELES_STAR;
+
+  /** Competencias efectivas del candidato: congeladas al generar el link →
+   *  hoja oficial elegida en el puesto → hoja que coincide por nombre. */
+  competenciasActivas(): CompetenciaStar[] {
+    if (Array.isArray(this.candidato?.competenciasConfig) && this.candidato.competenciasConfig.length) {
+      return this.candidato.competenciasConfig;
+    }
+    const p = this.puestoDelCandidato();
+    const hoja = hojaPorKey(p?.hojaCompetencias) || hojaPorNombrePuesto(this.candidato?.puesto);
+    return hoja?.competencias || [];
+  }
+
+  resultadoStar() {
+    return calcularPuntajeStar(this.candidato?.rubricaAptitudes, this.competenciasActivas());
+  }
+
+  nivelStarDe(key: string): NivelStar | null {
+    return this.candidato?.rubricaAptitudes?.[key] || null;
+  }
+  puntosNivelStar(nivel: NivelStar): number {
+    return NIVELES_STAR.find(n => n.id === nivel)?.puntos ?? 0;
+  }
+  etiquetaNivelStar(nivel: NivelStar): string {
+    return NIVELES_STAR.find(n => n.id === nivel)?.label || '';
+  }
+
   // APTITUDES: primero las CONGELADAS en el candidato (aptitudesConfig, si RH ya
   // generó el link), luego las propias del puesto, y por último el preset del tipo.
   getAptitudesActivas(): AptitudItem[] {
@@ -446,14 +477,13 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     if (!this.candidato?.id || this.generandoLinkApt) return;
     this.generandoLinkApt = true;
     try {
-      const aptitudes = this.getAptitudesActivas();
-      if (!aptitudes.length) {
-        this.toast.error('Este puesto no tiene aptitudes configuradas. Defínelas en Vacantes o elige un tipo de vacante.', 'Sin aptitudes');
+      const competencias = this.competenciasActivas();
+      if (!competencias.length) {
+        this.toast.error('Este puesto no tiene una hoja de competencias. Asígnala en Vacantes (campo "Hoja de competencias").', 'Sin hoja');
         return;
       }
       await this.candidateService.updateCandidate(this.candidato.id, {
-        aptitudesConfig: aptitudes,
-        tipoVacante: this.tipoVacante
+        competenciasConfig: competencias
       }, { marcarActividad: false });
 
       this.linkAptitudes = `${window.location.origin}/evaluar-aptitudes/${this.candidato.id}`;

@@ -263,35 +263,26 @@
         <small class="form-hint">Pon un requisito por línea. Se mostrará al candidato cuando vea el detalle de la vacante en el portal.</small>
       </div>
 
-      <!-- APTITUDES DE LA ENTREVISTA TÉCNICA -->
+      <!-- ENTREVISTA TÉCNICA: HOJA OFICIAL DE COMPETENCIAS (STAR) -->
       <div class="form-group">
-        <label>Aptitudes a evaluar (entrevista técnica)</label>
-        <small class="form-hint">Estas son las aptitudes que el jefe/gerente calificará por el link de evaluación. Cada puesto puede tener las suyas. Empieza de una plantilla y ajústala.</small>
+        <label>Entrevista técnica · Hoja de competencias</label>
+        <small class="form-hint">Es la hoja oficial (formato STAR, /150) que el jefe/gerente usará para calificar a los candidatos de este puesto por el link de evaluación.</small>
 
-        <div class="apt-presets">
-          <span class="apt-presets-label">Plantilla base:</span>
-          @for (t of TIPOS_APTITUD; track t.key) {
-            <button type="button" class="apt-preset-btn" [class.activo]="edicion.tipoAptitud === t.key" (click)="aplicarPresetAptitudes(t.key)">
-              {{ t.label }}
-            </button>
+        <select [(ngModel)]="edicion.hojaCompetencias" class="hoja-select">
+          <option value="">— Automática por el nombre del puesto —</option>
+          @for (h of HOJAS_COMPETENCIAS; track h.key) {
+            <option [value]="h.key">{{ h.nombre }} ({{ h.total }} competencias)</option>
           }
-        </div>
+        </select>
 
-        @if (aptitudesEdicion.length === 0) {
-          <p class="apt-vacio">Sin aptitudes aún. Elige una plantilla base o agrégalas manualmente.</p>
+        @if (hojaEfectiva) {
+          <p class="hoja-info">
+            Se usará: <strong>{{ hojaEfectiva.nombre }}</strong> · {{ hojaEfectiva.total }} competencias
+            @if (hojaEsAutomatica) { <span class="hoja-auto">(detectada por el nombre)</span> }
+          </p>
+        } @else {
+          <p class="hoja-info hoja-sin">⚠ No hay una hoja que coincida con este puesto. Elige una de la lista para que se pueda evaluar.</p>
         }
-
-        @for (apt of aptitudesEdicion; track $index) {
-          <div class="apt-fila">
-            <div class="apt-fila-campos">
-              <input type="text" class="apt-label" [(ngModel)]="apt.label" [ngModelOptions]="{standalone: true}" placeholder="Nombre de la aptitud (ej. Atención al detalle)">
-              <input type="text" class="apt-criterio" [(ngModel)]="apt.criterio" [ngModelOptions]="{standalone: true}" placeholder="Criterio observable (qué debe demostrar)">
-            </div>
-            <button type="button" class="apt-quitar" (click)="quitarAptitud($index)" title="Quitar aptitud">✕</button>
-          </div>
-        }
-
-        <button type="button" class="apt-agregar" (click)="agregarAptitud()">+ Agregar aptitud</button>
       </div>
 
       <div class="form-toggle">

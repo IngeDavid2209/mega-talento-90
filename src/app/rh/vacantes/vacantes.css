@@ -760,3 +760,19 @@
   cursor: pointer;
 }
 .apt-agregar:hover { border-color: var(--ink); background: #FAFAF9; }
+
+/* ====== Selector de hoja oficial de competencias ====== */
+.hoja-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+  margin-top: 8px;
+}
+.hoja-info { margin: 8px 0 0; font-size: 13px; color: var(--text2); }
+.hoja-info strong { color: var(--ink); }
+.hoja-auto { color: var(--text2); font-style: italic; }
+.hoja-sin { color: #B45309; }

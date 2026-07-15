@@ -149,6 +149,82 @@ export const APTITUDES_POR_TIPO: Record<string, AptitudItem[]> = {
 
 export const UMBRAL_APROBACION_APTITUDES = 70; // 0-100
 
+// =====================================================================
+// FORMATO OFICIAL DE ENTREVISTA POR COMPETENCIAS (STAR) — por puesto
+// 3 niveles con pesos 5 / 8 / 10; ~15 competencias por puesto → total /150.
+// Cada competencia trae su pregunta STAR y 3 descripciones ancla (una por
+// nivel) que guían al evaluador. Bandas de resultado por porcentaje.
+// =====================================================================
+
+export type NivelStar = 'inferior' | 'cumple' | 'supera';
+
+export interface NivelStarConfig {
+  id: NivelStar;
+  label: string;
+  puntos: number;   // 5 / 8 / 10
+  color: string;    // tono del botón seleccionado
+}
+
+export const NIVELES_STAR: NivelStarConfig[] = [
+  { id: 'inferior', label: 'Inferior a lo esperado', puntos: 5,  color: '#B91C1C' },
+  { id: 'cumple',   label: 'Cumple lo esperado',     puntos: 8,  color: '#B45309' },
+  { id: 'supera',   label: 'Supera lo esperado',     puntos: 10, color: '#047857' }
+];
+
+/** Una competencia evaluable con su pregunta STAR y las 3 anclas de calificación. */
+export interface CompetenciaStar {
+  key: string;
+  categoria: string;      // agrupador (ej. "Experiencia Comercial")
+  parametro: string;      // nombre corto de la competencia (ej. "Cumplimiento de metas")
+  preguntaStar: string;   // pregunta guía
+  anclas: { inferior: string; cumple: string; supera: string };
+}
+
+/** Banda de resultado según el porcentaje del puntaje (equivalente a las de /150). */
+export interface BandaStar { label: string; clase: 'banda-verde' | 'banda-verde-claro' | 'banda-amarillo' | 'banda-rojo'; }
+
+// Umbrales por PORCENTAJE (135/150=90%, 115/150≈76.7%, 90/150=60%) para que las
+// bandas funcionen aunque un puesto tenga un número distinto de competencias.
+export function bandaStar(pct: number): BandaStar {
+  if (pct >= 90)     return { label: 'Altamente Recomendable',       clase: 'banda-verde' };
+  if (pct >= 76.667) return { label: 'Recomendable',                 clase: 'banda-verde-claro' };
+  if (pct >= 60)     return { label: 'Recomendable con Reservas',    clase: 'banda-amarillo' };
+  return { label: 'No Recomendable', clase: 'banda-rojo' };
+}
+
+export interface ResultadoStar {
+  puntaje: number;      // suma de puntos alcanzados
+  max: number;          // 10 * total
+  pct: number;          // 0-100
+  calificadas: number;
+  total: number;
+  banda: BandaStar;
+  completa: boolean;    // todas las competencias calificadas
+}
+
+/** Calcula el puntaje /max, porcentaje y banda a partir de la rúbrica STAR. */
+export function calcularPuntajeStar(
+  rubrica: Record<string, NivelStar> | undefined,
+  competencias: CompetenciaStar[]
+): ResultadoStar {
+  const total = competencias.length;
+  const max = total * 10;
+  let puntaje = 0;
+  let calificadas = 0;
+  if (rubrica) {
+    for (const c of competencias) {
+      const nivel = rubrica[c.key];
+      if (!nivel) continue;
+      const cfg = NIVELES_STAR.find(n => n.id === nivel);
+      if (!cfg) continue;
+      puntaje += cfg.puntos;
+      calificadas++;
+    }
+  }
+  const pct = max > 0 ? Math.round((puntaje / max) * 100) : 0;
+  return { puntaje, max, pct, calificadas, total, banda: bandaStar(pct), completa: total > 0 && calificadas === total };
+}
+
 /** Tipos de vacante base para los presets de aptitudes. */
 export type TipoAptitud = 'operativo' | 'administrativo' | 'ventas' | 'jefatura';
 

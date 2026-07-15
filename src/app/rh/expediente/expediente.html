@@ -432,7 +432,7 @@
           @if (candidato?.aptitudesEval; as ev) {
             <div class="eval-resultado" [class.aprobado]="ev.aprobado">
               <div class="eval-resultado-top">
-                <span class="eval-resultado-badge">{{ ev.puntaje }}/100 · {{ ev.aprobado ? 'Aprobado' : 'No alcanza el mínimo' }}</span>
+                <span class="eval-resultado-badge">{{ ev.puntaje }}/{{ ev.max || 150 }} · {{ ev.banda || (ev.aprobado ? 'Aprobado' : 'No alcanza el mínimo') }}</span>
                 <span class="eval-resultado-quien">Evaluó: <strong>{{ ev.evaluador }}</strong>@if (ev.cargoEvaluador) { · {{ ev.cargoEvaluador }} }</span>
               </div>
               <div class="eval-resultado-meta">
@@ -444,93 +444,36 @@
           }
         </div>
 
-        <!-- Tipo de vacante -->
-        <div class="tipo-vacante-row">
-          <label>Tipo de vacante:</label>
-          @for (tipo of ['operativo','administrativo','ventas','jefatura']; track tipo) {
-            <button class="chip-btn"
-                    [class.active]="tipoVacante === tipo"
-                    (click)="cambiarTipoVacante(tipo)">{{ tipo | titlecase }}</button>
+        <!-- DESGLOSE STAR (read-only): lo captura el gerente por el link -->
+        @if (competenciasActivas().length) {
+          @if (resultadoStar(); as r) {
+            <div class="star-total" [ngClass]="r.banda.clase">
+              <span class="star-total-num">{{ r.puntaje }}/{{ r.max }}</span>
+              <span class="star-total-banda">{{ r.completa ? r.banda.label : (r.calificadas + '/' + r.total + ' calificadas') }}</span>
+            </div>
           }
-        </div>
-
-        <!-- TARJETA DE PUNTAJE CALCULADO -->
-        @if (calcularPuntajeAptitudes(); as r) {
-          <div class="puntaje-card" [class.aprobado]="r.aprobado" [class.incompleto]="r.calificadas < r.total">
-            <div class="puntaje-main">
-              <div class="puntaje-num-wrap">
-                <span class="puntaje-num">{{ r.puntaje }}</span>
-                <span class="puntaje-max">/100</span>
-              </div>
-              <div class="puntaje-info">
-                <span class="puntaje-status">
-                  @if (r.calificadas < r.total) {
-                    Califica las {{ r.total - r.calificadas }} aptitudes restantes
-                  } @else if (r.aprobado) {
-                    Aprobado · cumple el umbral de {{ UMBRAL_APROBACION }}/100
-                  } @else {
-                    No aprobado · puntaje por debajo de {{ UMBRAL_APROBACION }}/100
-                  }
-                </span>
-                <span class="puntaje-progreso">{{ r.calificadas }}/{{ r.total }} aptitudes calificadas</span>
-              </div>
-            </div>
-            <div class="desglose-row">
-              <span class="desglose-chip nivel-excelente"><strong>{{ r.desglose.excelente }}</strong> Excelente</span>
-              <span class="desglose-chip nivel-bueno"><strong>{{ r.desglose.bueno }}</strong> Bueno</span>
-              <span class="desglose-chip nivel-regular"><strong>{{ r.desglose.regular }}</strong> Regular</span>
-              <span class="desglose-chip nivel-bajo"><strong>{{ r.desglose.bajo }}</strong> Bajo</span>
-            </div>
-          </div>
-        }
-
-        <!-- RÚBRICA: cada aptitud con sus 4 niveles -->
-        <div class="rubrica-list">
-          @for (apt of getAptitudesActivas(); track apt.key) {
-            <div class="rubrica-item">
-              <div class="rubrica-header">
-                <strong class="rubrica-label">{{ apt.label }}</strong>
-                <p class="rubrica-criterio">{{ apt.criterio }}</p>
-              </div>
-              <div class="rubrica-niveles">
-                @for (nivel of NIVELES_RUBRICA; track nivel.id) {
-                  <button type="button"
-                          class="nivel-btn"
-                          [class.active]="getNivelSeleccionado(apt.key) === nivel.id"
-                          [attr.data-nivel]="nivel.id"
-                          (click)="seleccionarNivel(apt.key, nivel.id)">
-                    <span class="nivel-peso">{{ nivel.peso }}</span>
-                    <span class="nivel-label">{{ nivel.label }}</span>
-                  </button>
+          <div class="star-list">
+            @for (c of competenciasActivas(); track c.key; let i = $index) {
+              <div class="star-item">
+                <div class="star-item-info">
+                  <span class="star-item-cat">{{ c.categoria }}</span>
+                  <span class="star-item-nombre">{{ i + 1 }}. {{ c.parametro }}</span>
+                </div>
+                @if (nivelStarDe(c.key); as nv) {
+                  <span class="star-item-nivel" [attr.data-nivel]="nv">{{ puntosNivelStar(nv) }} · {{ etiquetaNivelStar(nv) }}</span>
+                } @else {
+                  <span class="star-item-nivel pend">Sin calificar</span>
                 }
               </div>
-            </div>
-          }
-        </div>
-
-        <!-- Campos adicionales (no autocalculados) -->
-        <div class="form-grid two-col">
-          <div>
-            <label>Tiempo aplicado</label>
-            <input type="text" placeholder="ej. 45 min"
-                   [(ngModel)]="candidato.aptitudesResultados.tiempo"
-                   (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)">
+            }
           </div>
-          <div>
-            <label>Puntaje (calculado)</label>
-            <input type="number" [value]="candidato.aptitudesResultados.puntaje" readonly>
+          <div class="hint-box">
+            <span class="hint-tag">Formato oficial STAR</span>
+            15 competencias × (5/8/10) = <strong>150 pts</strong>. Bandas: Altamente Recomendable (≥135) · Recomendable (≥115) · con Reservas (≥90) · No Recomendable (&lt;90). Lo califica el jefe directo con el link de arriba.
           </div>
-        </div>
-
-        <label>Observaciones</label>
-        <textarea rows="3" placeholder="Evidencias, anotaciones y áreas de oportunidad."
-                  [(ngModel)]="candidato.aptitudesResultados.notas"
-                  (change)="guardarNota('aptitudesResultados', candidato.aptitudesResultados)"></textarea>
-
-        <div class="hint-box">
-          <span class="hint-tag">Cómo se calcula</span>
-          Cada nivel pesa: Excelente 4 · Bueno 3 · Regular 2 · Bajo 1. El puntaje se normaliza a 0-100 según el peso total alcanzado. Se aprueba al llegar a <strong>{{ UMBRAL_APROBACION }}/100</strong> (equivalente a promedio "Bueno") con todas las aptitudes calificadas.
-        </div>
+        } @else {
+          <p class="hint-box">No hay una hoja de competencias para el puesto de este candidato. Asígnala en <strong>Vacantes</strong> (campo "Hoja de competencias") para poder generar el link.</p>
+        }
       </div>
 
       <!-- Entrevista técnica · Jefe directo (fusionada en esta etapa) -->

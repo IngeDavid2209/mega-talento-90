@@ -6,6 +6,8 @@
   --bg: #F4F2EC;
   --text2: #6B7280;
   --verde: #047857;
+  --verde-claro: #0E7490;
+  --amarillo: #B45309;
   --rojo: #B91C1C;
   display: block;
   min-height: 100vh;
@@ -14,21 +16,11 @@
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-.ev-wrap {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 24px 16px 96px;
-}
+.ev-wrap { max-width: 680px; margin: 0 auto; padding: 24px 16px 120px; }
 
 /* Header */
 .ev-header { text-align: center; margin-bottom: 20px; }
-.ev-brand {
-  font-size: 12px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--gold);
-  font-weight: 700;
-}
+.ev-brand { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
 .ev-header h1 { font-size: 26px; margin: 6px 0 2px; color: var(--ink); }
 .ev-sub { color: var(--text2); font-size: 14px; margin: 0; }
 
@@ -42,9 +34,9 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
 .ev-card-titulo { font-size: 16px; margin: 0 0 12px; color: var(--ink); }
-
 .ev-estado { text-align: center; color: var(--text2); }
 .ev-error { border-color: #FCA5A5; background: #FEF2F2; color: var(--rojo); }
+.ev-instruccion { margin: 12px 0 0; font-size: 13px; color: var(--text2); line-height: 1.5; }
 
 /* Candidato */
 .ev-candidato { text-align: center; background: var(--ink); border-color: var(--ink); }
@@ -68,59 +60,78 @@
 .ev-campo input:focus, .ev-campo textarea:focus { outline: none; border-color: var(--gold); }
 .ev-campo textarea { resize: vertical; }
 
-/* Rúbrica */
-.ev-rubrica-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.ev-puntaje-vivo {
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--text2);
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+/* Competencia */
+.ev-comp-cat {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
 }
-.ev-puntaje-vivo.ok { color: var(--verde); }
-.ev-progreso { font-size: 12px; font-weight: 600; color: var(--text2); }
-
-.ev-aptitud {
-  padding: 14px 0;
-  border-top: 1px solid var(--border);
+.ev-comp-nombre { font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+.ev-comp-pregunta {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 8px 0 14px;
+  line-height: 1.5;
+  padding-left: 12px;
+  border-left: 3px solid var(--border);
 }
-.ev-aptitud:first-of-type { border-top: none; }
-.ev-aptitud-nombre { font-size: 15px; font-weight: 700; color: var(--ink); }
-.ev-aptitud-criterio { font-size: 13px; color: var(--text2); margin: 3px 0 10px; line-height: 1.4; }
 
-.ev-niveles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.ev-nivel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 10px 4px;
+/* Opciones (5 / 8 / 10) con su descripción ancla */
+.ev-opciones { display: flex; flex-direction: column; gap: 8px; }
+.ev-opcion {
+  text-align: left;
+  padding: 12px 14px;
   border: 1.5px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   cursor: pointer;
   transition: all .12s ease;
 }
-.ev-nivel:hover { border-color: var(--nivel-color); }
-.ev-nivel.sel {
+.ev-opcion:hover { border-color: var(--nivel-color); }
+.ev-opcion.sel {
   border-color: var(--nivel-color);
-  background: var(--nivel-color);
-  color: #fff;
+  background: color-mix(in srgb, var(--nivel-color) 8%, #fff);
+  box-shadow: inset 0 0 0 1px var(--nivel-color);
 }
-.ev-nivel-peso { font-size: 16px; font-weight: 800; }
-.ev-nivel-label { font-size: 12px; font-weight: 600; }
+.ev-opcion-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ev-opcion-pts {
+  flex: 0 0 auto;
+  width: 30px; height: 30px; line-height: 30px;
+  text-align: center;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  background: var(--nivel-color);
+}
+.ev-opcion-label { font-weight: 700; font-size: 14px; color: var(--nivel-color); }
+.ev-opcion-ancla { display: block; font-size: 13px; color: var(--text2); line-height: 1.45; }
 
-/* Barra guardar */
+/* Barra guardar (fija abajo) */
 .ev-guardar-barra {
   position: sticky;
   bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: stretch;
-  padding: 14px 0 0;
+  padding: 14px;
+  margin: 14px 0 0;
+  background: rgba(244,242,236,.96);
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  border: 1px solid var(--border);
 }
+.ev-puntaje-vivo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 800;
+}
+.ev-puntaje-num { font-size: 22px; }
+.ev-puntaje-banda { font-size: 13px; font-weight: 700; }
 .ev-guardar-hint { text-align: center; font-size: 13px; color: var(--text2); }
 .ev-guardar {
   width: 100%;
@@ -156,11 +167,14 @@
   border-radius: 999px;
   font-weight: 800;
 }
-.ev-final-score.aprobado { background: #ECFDF5; color: var(--verde); }
-.ev-final-score.reprobado { background: #FEF2F2; color: var(--rojo); }
 .ev-final-cerrar { font-size: 13px; color: var(--text2); }
 
-@media (max-width: 420px) {
-  .ev-nivel-label { font-size: 11px; }
-  .ev-niveles { gap: 6px; }
-}
+/* Bandas de color (compartidas: puntaje vivo y score final) */
+.banda-verde       { color: var(--verde); }
+.banda-verde-claro { color: var(--verde-claro); }
+.banda-amarillo    { color: var(--amarillo); }
+.banda-rojo        { color: var(--rojo); }
+.ev-final-score.banda-verde       { background: #ECFDF5; color: var(--verde); }
+.ev-final-score.banda-verde-claro { background: #ECFEFF; color: var(--verde-claro); }
+.ev-final-score.banda-amarillo    { background: #FFFBEB; color: var(--amarillo); }
+.ev-final-score.banda-rojo        { background: #FEF2F2; color: var(--rojo); }

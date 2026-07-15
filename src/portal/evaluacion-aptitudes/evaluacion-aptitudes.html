@@ -3,8 +3,8 @@
   <!-- Encabezado -->
   <header class="ev-header">
     <div class="ev-brand">Mega Dulces · Capital Humano</div>
-    <h1>Evaluación de aptitudes</h1>
-    <p class="ev-sub">Entrevista técnica con el jefe directo</p>
+    <h1>Evaluación por competencias</h1>
+    <p class="ev-sub">Entrevista técnica con el jefe directo · método STAR</p>
   </header>
 
   @if (cargando) {
@@ -16,10 +16,15 @@
       <div class="ev-check">✓</div>
       <h2>¡Evaluación registrada!</h2>
       <p>Gracias. El resultado de <strong>{{ nombreCandidato }}</strong> quedó guardado y Capital Humano fue notificado.</p>
-      <div class="ev-final-score" [class.aprobado]="calc.aprobado" [class.reprobado]="!calc.aprobado">
-        {{ calc.puntaje }}/100 · {{ calc.aprobado ? 'Aprobado' : 'No alcanza el mínimo' }}
+      <div class="ev-final-score" [ngClass]="calc.banda.clase">
+        {{ calc.puntaje }}/{{ calc.max }} · {{ calc.banda.label }}
       </div>
       <p class="ev-final-cerrar">Ya puedes cerrar esta ventana.</p>
+    </div>
+  } @else if (sinCompetencias) {
+    <div class="ev-card ev-estado ev-error">
+      No hay una hoja de competencias asignada a este puesto ({{ puestoCandidato || 'sin puesto' }}).
+      Avisa a Capital Humano para que la configure.
     </div>
   } @else {
 
@@ -40,37 +45,35 @@
         <label>Tu cargo / sucursal</label>
         <input type="text" [(ngModel)]="cargoEvaluador" placeholder="Ej. Gerente sucursal Centro">
       </div>
+      <p class="ev-instruccion">
+        Pide ejemplos reales con estructura <strong>STAR</strong> (Situación, Tarea, Acción, Resultado) y elige la descripción que mejor corresponda a la respuesta del candidato.
+      </p>
     </div>
 
-    <!-- Rúbrica -->
-    <div class="ev-card">
-      <div class="ev-rubrica-head">
-        <h3 class="ev-card-titulo">Califica cada aptitud</h3>
-        <div class="ev-puntaje-vivo" [class.ok]="calc.aprobado && todasCalificadas">
-          {{ calc.puntaje }}/100
-          <span class="ev-progreso">{{ calc.calificadas }}/{{ calc.total }}</span>
+    <!-- Competencias -->
+    @for (c of competencias; track c.key; let idx = $index) {
+      <div class="ev-card ev-comp">
+        <div class="ev-comp-cat">{{ c.categoria }}</div>
+        <div class="ev-comp-nombre">{{ idx + 1 }}. {{ c.parametro }}</div>
+        @if (c.preguntaStar) { <p class="ev-comp-pregunta">{{ c.preguntaStar }}</p> }
+
+        <div class="ev-opciones">
+          @for (n of NIVELES_STAR; track n.id) {
+            <button type="button"
+                    class="ev-opcion"
+                    [class.sel]="nivelDe(c.key) === n.id"
+                    [style.--nivel-color]="n.color"
+                    (click)="seleccionarNivel(c.key, n.id)">
+              <div class="ev-opcion-head">
+                <span class="ev-opcion-pts">{{ n.puntos }}</span>
+                <span class="ev-opcion-label">{{ n.label }}</span>
+              </div>
+              <span class="ev-opcion-ancla">{{ ancla(c, n.id) }}</span>
+            </button>
+          }
         </div>
       </div>
-
-      @for (apt of aptitudes; track apt.key) {
-        <div class="ev-aptitud">
-          <div class="ev-aptitud-nombre">{{ apt.label }}</div>
-          @if (apt.criterio) { <div class="ev-aptitud-criterio">{{ apt.criterio }}</div> }
-          <div class="ev-niveles">
-            @for (n of NIVELES_RUBRICA; track n.id) {
-              <button type="button"
-                      class="ev-nivel"
-                      [class.sel]="nivelDe(apt.key) === n.id"
-                      [style.--nivel-color]="n.color"
-                      (click)="seleccionarNivel(apt.key, n.id)">
-                <span class="ev-nivel-peso">{{ n.peso }}</span>
-                <span class="ev-nivel-label">{{ n.label }}</span>
-              </button>
-            }
-          </div>
-        </div>
-      }
-    </div>
+    }
 
     <!-- Tiempo + observaciones -->
     <div class="ev-card">
@@ -79,17 +82,21 @@
         <input type="text" [(ngModel)]="tiempo" placeholder="Ej. 45 min">
       </div>
       <div class="ev-campo">
-        <label>Observaciones</label>
-        <textarea rows="4" [(ngModel)]="observaciones" placeholder="Comentarios sobre el desempeño del candidato en la prueba técnica…"></textarea>
+        <label>Observaciones finales</label>
+        <textarea rows="4" [(ngModel)]="observaciones" placeholder="Fortalezas, áreas de riesgo y comentarios sobre el candidato…"></textarea>
       </div>
     </div>
 
     @if (error) { <div class="ev-card ev-error">{{ error }}</div> }
 
-    <!-- Guardar -->
+    <!-- Guardar (barra fija con puntaje en vivo) -->
     <div class="ev-guardar-barra">
-      @if (!todasCalificadas) {
-        <span class="ev-guardar-hint">Califica las {{ calc.total - calc.calificadas }} aptitud(es) restante(s)</span>
+      <div class="ev-puntaje-vivo" [ngClass]="calc.banda.clase">
+        <span class="ev-puntaje-num">{{ calc.puntaje }}/{{ calc.max }}</span>
+        <span class="ev-puntaje-banda">{{ calc.completa ? calc.banda.label : (calc.calificadas + '/' + calc.total + ' calificadas') }}</span>
+      </div>
+      @if (!calc.completa) {
+        <span class="ev-guardar-hint">Califica las {{ calc.total - calc.calificadas }} competencia(s) restante(s)</span>
       } @else if (!evaluador.trim()) {
         <span class="ev-guardar-hint">Escribe tu nombre para poder guardar</span>
       }

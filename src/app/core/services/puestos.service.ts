@@ -34,10 +34,14 @@ export interface Puesto {
   activo: boolean;            // si está visible en la cartelera pública
   orden?: number;
   createdAt?: any;
-  // Aptitudes a calificar en la entrevista técnica de ESTE puesto (Fase: eval
-  // técnica por link). Si está vacío, se cae al preset por `tipoAptitud`.
+  // Entrevista técnica por link (formato STAR oficial). `hojaCompetencias` es la
+  // key del catálogo oficial (CATALOGO_COMPETENCIAS) que aplica a este puesto;
+  // si está vacía, se resuelve por el NOMBRE del puesto contra el catálogo.
+  hojaCompetencias?: string;
+  // Legado (rúbrica de 4 niveles previa al formato STAR oficial). Se conserva
+  // por compatibilidad; el flujo vigente usa `hojaCompetencias`.
   aptitudes?: AptitudItem[];
-  tipoAptitud?: 'operativo' | 'administrativo' | 'ventas' | 'jefatura'; // preset base
+  tipoAptitud?: 'operativo' | 'administrativo' | 'ventas' | 'jefatura';
 }
 
 /**

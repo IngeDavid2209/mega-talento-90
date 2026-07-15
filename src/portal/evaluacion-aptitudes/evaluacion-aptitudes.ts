@@ -5,21 +5,19 @@ import { ActivatedRoute } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
 import { BotService } from '../../app/core/services/bot.service';
 import {
-  AptitudItem, NivelRubrica, NIVELES_RUBRICA,
-  resolverAptitudes, calcularPuntajeRubrica, UMBRAL_APROBACION_APTITUDES
+  CompetenciaStar, NivelStar, NIVELES_STAR, calcularPuntajeStar
 } from '../../app/core/models/proceso.model';
+import { hojaPorNombrePuesto } from '../../app/core/models/competencias-puesto.model';
 
 /**
- * EVALUACIÓN DE APTITUDES · vista PÚBLICA (sin login).
- * La abre el jefe/gerente que entrevista al candidato, con un link que RH le
- * comparte: /evaluar-aptitudes/:id  (el id del candidato actúa como token,
- * mismo patrón que /evaluacion/:id y /solicitud/:id).
+ * EVALUACIÓN DE APTITUDES · vista PÚBLICA (sin login) · formato STAR oficial.
+ * La abre el jefe/gerente que entrevista al candidato con el link que RH le
+ * comparte: /evaluar-aptitudes/:id (el id del candidato actúa como token).
  *
- * El gerente califica cada aptitud (rúbrica 4/3/2/1), agrega su nombre y
- * observaciones, y al guardar:
- *   1. escribe la rúbrica + resultado en el candidato (update público),
- *   2. avisa al bot para que notifique a RH por WhatsApp.
- * RH sólo MONITOREA el resultado en el expediente; no captura esta entrevista.
+ * Cada competencia trae su pregunta STAR y 3 descripciones ancla (5/8/10) para
+ * guiar la calificación. Total /150 (15 competencias × 10) con banda de
+ * resultado. Al guardar: escribe la rúbrica + resultado en el candidato y avisa
+ * al bot para que notifique a RH por WhatsApp.
  */
 @Component({
   selector: 'app-evaluacion-aptitudes',
@@ -34,16 +32,15 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
   private botService = inject(BotService);
   private ngZone = inject(NgZone);
 
-  NIVELES_RUBRICA = NIVELES_RUBRICA;
-  UMBRAL = UMBRAL_APROBACION_APTITUDES;
+  NIVELES_STAR = NIVELES_STAR;
 
   candidatoId: string | null = null;
   candidato: any = null;
   cargando = true;
   error = '';
 
-  aptitudes: AptitudItem[] = [];
-  rubrica: Record<string, NivelRubrica> = {};
+  competencias: CompetenciaStar[] = [];
+  rubrica: Record<string, NivelStar> = {};
 
   // Datos del evaluador
   evaluador = '';
@@ -76,17 +73,25 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
     this.unsubscribe = this.candidateService.listenToCandidate(this.candidatoId, (data) => {
       this.ngZone.run(() => {
         this.candidato = data;
-        // Aptitudes: primero las CONGELADAS al generar el link (aptitudesConfig),
-        // si no, el preset del tipo de vacante del candidato.
-        this.aptitudes = resolverAptitudes(data?.aptitudesConfig, data?.tipoVacante);
+        // Competencias: primero las CONGELADAS al generar el link
+        // (competenciasConfig), si no, la hoja oficial que coincide por el
+        // nombre del puesto del candidato.
+        if (Array.isArray(data?.competenciasConfig) && data.competenciasConfig.length) {
+          this.competencias = data.competenciasConfig;
+        } else {
+          this.competencias = hojaPorNombrePuesto(data?.puesto)?.competencias || [];
+        }
         // Precargar rúbrica previa si existe (permite corregir sin empezar de cero).
         if (!Object.keys(this.rubrica).length && data?.rubricaAptitudes) {
           this.rubrica = { ...data.rubricaAptitudes };
         }
-        if (!this.evaluador && data?.aptitudesEval?.evaluador) this.evaluador = data.aptitudesEval.evaluador;
-        if (!this.cargoEvaluador && data?.aptitudesEval?.cargoEvaluador) this.cargoEvaluador = data.aptitudesEval.cargoEvaluador;
-        if (!this.tiempo && data?.aptitudesEval?.tiempo) this.tiempo = data.aptitudesEval.tiempo;
-        if (!this.observaciones && data?.aptitudesEval?.observaciones) this.observaciones = data.aptitudesEval.observaciones;
+        const ev = data?.aptitudesEval;
+        if (ev) {
+          if (!this.evaluador) this.evaluador = ev.evaluador || '';
+          if (!this.cargoEvaluador) this.cargoEvaluador = ev.cargoEvaluador || '';
+          if (!this.tiempo) this.tiempo = ev.tiempo || '';
+          if (!this.observaciones) this.observaciones = ev.observaciones || '';
+        }
         this.cargando = false;
       });
     }, (err) => {
@@ -105,15 +110,16 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
     document.body.style.cssText = this.estiloBodyOriginal;
   }
 
-  get nombreCandidato(): string {
-    return this.candidato?.nombre || 'el candidato';
-  }
-  get puestoCandidato(): string {
-    return this.candidato?.puesto || '';
+  get nombreCandidato(): string { return this.candidato?.nombre || 'el candidato'; }
+  get puestoCandidato(): string { return this.candidato?.puesto || ''; }
+  get sinCompetencias(): boolean { return !this.cargando && this.competencias.length === 0; }
+
+  /** Ancla (descripción) de un nivel para una competencia. */
+  ancla(c: CompetenciaStar, nivel: NivelStar): string {
+    return c.anclas ? (c.anclas as any)[nivel] : '';
   }
 
-  seleccionarNivel(key: string, nivel: NivelRubrica) {
-    // Volver a tocar el mismo nivel lo deselecciona.
+  seleccionarNivel(key: string, nivel: NivelStar) {
     if (this.rubrica[key] === nivel) {
       const copia = { ...this.rubrica };
       delete copia[key];
@@ -123,21 +129,16 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
     }
   }
 
-  nivelDe(key: string): NivelRubrica | null {
+  nivelDe(key: string): NivelStar | null {
     return this.rubrica[key] || null;
   }
 
   get calc() {
-    return calcularPuntajeRubrica(this.rubrica, this.aptitudes);
-  }
-
-  get todasCalificadas(): boolean {
-    const c = this.calc;
-    return c.total > 0 && c.calificadas === c.total;
+    return calcularPuntajeStar(this.rubrica, this.competencias);
   }
 
   get puedeGuardar(): boolean {
-    return !!this.evaluador.trim() && this.todasCalificadas && !this.guardando;
+    return !!this.evaluador.trim() && this.calc.completa && !this.guardando;
   }
 
   async guardar() {
@@ -145,13 +146,18 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
     this.guardando = true;
     this.error = '';
     const calc = this.calc;
+    // aprobado = al menos "Recomendable" (banda verde o verde-claro)
+    const aprobado = calc.pct >= 76.667;
     try {
       await this.candidateService.updateCandidate(this.candidatoId, {
         rubricaAptitudes: this.rubrica,
         aptitudesResultados: {
           puntaje: calc.puntaje,
+          max: calc.max,
+          pct: calc.pct,
           tiempo: this.tiempo.trim(),
-          aprobado: calc.aprobado,
+          aprobado,
+          banda: calc.banda.label,
           notas: this.observaciones.trim()
         },
         aptitudesEval: {
@@ -160,15 +166,18 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
           tiempo: this.tiempo.trim(),
           observaciones: this.observaciones.trim(),
           puntaje: calc.puntaje,
-          aprobado: calc.aprobado,
+          max: calc.max,
+          pct: calc.pct,
+          banda: calc.banda.label,
+          aprobado,
           completadaEn: new Date().toISOString()
         }
       }, { marcarActividad: false }); // la captura el gerente, no es seguimiento de RH
 
       // Avisar al bot para que notifique a RH por WhatsApp (mejor esfuerzo).
       this.botService.avisarEvaluacionCompleta(this.candidatoId, {
-        puntaje: calc.puntaje,
-        aprobado: calc.aprobado
+        puntajeTexto: `${calc.puntaje}/${calc.max}`,
+        resultado: calc.banda.label
       });
 
       this.terminado = true;

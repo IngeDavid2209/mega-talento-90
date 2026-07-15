@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
 import { SUCURSALES, Sucursal, sucursalPorId, inferirSucursalIds } from '../../core/models/sucursales.model';
 import { subirACloudinary } from '../../core/services/cloudinary';
-import { APTITUDES_POR_TIPO, TIPOS_APTITUD, TipoAptitud, AptitudItem } from '../../core/models/proceso.model';
+import { HOJAS_COMPETENCIAS, hojaPorNombrePuesto, hojaPorKey } from '../../core/models/competencias-puesto.model';
 
 @Component({
   selector: 'app-vacantes',
@@ -53,8 +53,8 @@ export class VacantesComponent implements OnInit, OnDestroy {
   subiendoImagen = false;
   errorImagen = '';
 
-  // Aptitudes (entrevista técnica) del puesto en edición
-  TIPOS_APTITUD = TIPOS_APTITUD;
+  // Hojas oficiales de competencias (entrevista técnica STAR)
+  HOJAS_COMPETENCIAS = HOJAS_COMPETENCIAS;
 
   private yaIntentadoSembrar = false;
 
@@ -196,8 +196,7 @@ export class VacantesComponent implements OnInit, OnDestroy {
         requisitos: (this.edicion.requisitos || '').trim(),
         imagenUrl: (this.edicion.imagenUrl || '').trim(),
         area: (this.edicion.area || '').trim(),
-        aptitudes: this.limpiarAptitudes(this.edicion.aptitudes || []),
-        tipoAptitud: this.edicion.tipoAptitud || null,
+        hojaCompetencias: this.edicion.hojaCompetencias || '',
         activo: this.edicion.activo,
         orden: this.edicion.orden ?? this.puestos.length
       };
@@ -331,58 +330,22 @@ export class VacantesComponent implements OnInit, OnDestroy {
     this.errorImagen = '';
   }
 
-  // ====== APTITUDES DE LA ENTREVISTA TÉCNICA (por puesto) ======
+  // ====== ENTREVISTA TÉCNICA: HOJA OFICIAL DE COMPETENCIAS (STAR) ======
 
-  /** Aptitudes actuales del puesto en edición (siempre un arreglo manipulable). */
-  get aptitudesEdicion(): AptitudItem[] {
-    if (!Array.isArray(this.edicion.aptitudes)) this.edicion.aptitudes = [];
-    return this.edicion.aptitudes;
+  /** Hoja oficial EFECTIVA del puesto en edición: la elegida a mano o, si no,
+   *  la que coincide por nombre. Devuelve {key,nombre,total} o null. */
+  get hojaEfectiva(): { key: string; nombre: string; total: number } | null {
+    if (this.edicion.hojaCompetencias) {
+      const h = hojaPorKey(this.edicion.hojaCompetencias);
+      if (h) return { key: h.key, nombre: h.nombre, total: h.competencias.length };
+    }
+    const auto = hojaPorNombrePuesto(this.edicion.nombre);
+    return auto ? { key: auto.key, nombre: auto.nombre, total: auto.competencias.length } : null;
   }
 
-  /** Carga un preset (operativo/administrativo/ventas/jefatura) como punto de partida. */
-  aplicarPresetAptitudes(tipo: TipoAptitud) {
-    const preset = APTITUDES_POR_TIPO[tipo] || [];
-    this.edicion.aptitudes = preset.map(a => ({ ...a }));
-    this.edicion.tipoAptitud = tipo;
-  }
-
-  /** Agrega una aptitud vacía para capturarla a mano. */
-  agregarAptitud() {
-    this.aptitudesEdicion.push({ key: '', label: '', criterio: '' });
-  }
-
-  quitarAptitud(i: number) {
-    this.aptitudesEdicion.splice(i, 1);
-  }
-
-  /** Slug estable para la key de una aptitud (a partir de su etiqueta). */
-  private slugAptitud(label: string): string {
-    const acentos = new RegExp('[\\u0300-\\u036f]', 'g');
-    return (label || '')
-      .toLowerCase()
-      .normalize('NFD').replace(acentos, '')
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 40);
-  }
-
-  /**
-   * Depura las aptitudes antes de guardar: descarta las que no tienen etiqueta,
-   * genera una key estable/única por aptitud (la key ancla la calificación del
-   * gerente, así que no debe cambiar entre ediciones si ya tenía una).
-   */
-  private limpiarAptitudes(lista: AptitudItem[]): AptitudItem[] {
-    const usadas = new Set<string>();
-    const out: AptitudItem[] = [];
-    (lista || []).forEach((a, idx) => {
-      const label = (a.label || '').trim();
-      if (!label) return;
-      let key = (a.key || '').trim() || this.slugAptitud(label) || `apt_${idx}`;
-      while (usadas.has(key)) key = `${key}_${idx}`;
-      usadas.add(key);
-      out.push({ key, label, criterio: (a.criterio || '').trim() });
-    });
-    return out;
+  /** True si la hoja se está tomando automáticamente por el nombre (no elegida a mano). */
+  get hojaEsAutomatica(): boolean {
+    return !this.edicion.hojaCompetencias && !!this.hojaEfectiva;
   }
 
   /** Activar/desactivar visibilidad pública sin abrir editor */

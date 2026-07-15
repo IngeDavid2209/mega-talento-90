@@ -200,13 +200,13 @@ export class BotService {
    */
   async avisarEvaluacionCompleta(
     candidateId: string,
-    datos: { puntaje?: number; aprobado?: boolean } = {}
+    datos: { puntajeTexto?: string; resultado?: string } = {}
   ): Promise<{ ok: boolean; avisados?: number; error?: string }> {
     try {
       const res = await fetch(`${BOT_URL}/api/evaluacion-completa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateId, puntaje: datos.puntaje, aprobado: datos.aprobado }),
+        body: JSON.stringify({ candidateId, puntajeTexto: datos.puntajeTexto, resultado: datos.resultado }),
       });
       let data: any = {};
       try { data = await res.json(); } catch { /* respuesta sin JSON */ }
