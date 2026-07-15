@@ -1,40 +1,43 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
-import {
-  SolicitudElectronica, solicitudVacia,
-  ESTADOS_CIVILES, NIVELES_ESCOLARIDAD, TURNOS
-} from '../../app/core/models/solicitud.model';
+import { subirACloudinary } from '../../app/core/services/cloudinary';
 
+type TipoCV = 'pdf' | 'fotos';
+
+/**
+ * /solicitud/:id — Página para que un candidato que YA está registrado (le llegó
+ * un link personalizado) suba su CV, que es lo único que faltaba. No es un
+ * formulario de datos: solo el CV (PDF o dos fotos), misma mecánica que /unete.
+ * Sin :id no hay a quién asociar el archivo, así que se redirige a /unete.
+ */
 @Component({
   selector: 'app-solicitud',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './solicitud.html',
   styleUrl: './solicitud.css'
 })
 export class SolicitudComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private candidateService = inject(CandidateService);
-
-  ESTADOS_CIVILES = ESTADOS_CIVILES;
-  NIVELES_ESCOLARIDAD = NIVELES_ESCOLARIDAD;
-  TURNOS = TURNOS;
 
   candidatoId: string | null = null;
   cargando = true;
   enviando = false;
-  yaEnviada = false;
-
-  // Datos del candidato existente (si llegó por link)
+  yaEnviada = false;        // el candidato ya tiene CV registrado
+  noEncontrado = false;     // el link no corresponde a ningún candidato
   candidato: any = null;
 
-  // Datos del wizard
-  solicitud: SolicitudElectronica = solicitudVacia();
-  paso = 1;
-  TOTAL_PASOS = 8;
+  // ===== CV — misma mecánica que /unete: PDF o dos fotos (frente y reverso) =====
+  tipoCV: TipoCV = 'pdf';
+  archivoPDF: File | null = null;
+  fotoFrente: File | null = null;
+  fotoReverso: File | null = null;
+  previewFrente = '';
+  previewReverso = '';
 
   // Feedback
   modal: { tipo: 'exito' | 'error'; titulo: string; mensaje: string } | null = null;
@@ -42,148 +45,157 @@ export class SolicitudComponent implements OnInit {
   async ngOnInit() {
     this.candidatoId = this.route.snapshot.paramMap.get('id');
 
-    if (this.candidatoId) {
-      // Buscar al candidato para autocompletar lo que ya se sabe
-      try {
-        const todos = await this.candidateService.getCandidates() as any[];
-        this.candidato = todos.find(c => c.id === this.candidatoId);
-        if (this.candidato) {
-          // Pre-llenar lo que ya tenemos
-          this.solicitud.datosPersonales.nombre = this.candidato.nombre || '';
-          this.solicitud.contacto.telefono = this.candidato.telefono || '';
-          this.solicitud.domicilio.ciudad = this.candidato.ciudad || '';
-          this.solicitud.puestoDeseado.puesto = this.candidato.puesto || '';
+    // Sin link personalizado no hay a quién asociarle el CV: se manda al
+    // formulario completo /unete, que recoge datos + CV de candidatos nuevos.
+    if (!this.candidatoId) {
+      this.router.navigate(['/unete']);
+      return;
+    }
 
-          // Si ya envió solicitud, mostrar mensaje
-          if (this.candidato.solicitudElectronica?.enviadaAt) {
-            this.yaEnviada = true;
-          }
-        }
-      } catch (e) {
-        console.error('Error al cargar candidato:', e);
+    try {
+      this.candidato = await this.candidateService.getCandidateById(this.candidatoId);
+      if (!this.candidato) {
+        this.noEncontrado = true;
+      } else if (this.candidato.cvUrl) {
+        // Ya nos había mandado su CV antes.
+        this.yaEnviada = true;
       }
+    } catch (e) {
+      console.error('Error al cargar candidato:', e);
+      this.noEncontrado = true;
     }
     this.cargando = false;
   }
 
-  // ===== Navegación =====
-  siguiente() {
-    if (this.paso < this.TOTAL_PASOS) {
-      this.paso++;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  // ===== CV =====
+
+  /** El CV está completo si hay PDF, o si hay frente y reverso. */
+  get cvCompleto(): boolean {
+    if (this.tipoCV === 'pdf') return !!this.archivoPDF;
+    return !!this.fotoFrente && !!this.fotoReverso;
   }
-  anterior() {
-    if (this.paso > 1) {
-      this.paso--;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+
+  /** Cambiar entre PDF y Fotos limpia los archivos de la otra modalidad */
+  cambiarTipoCV(tipo: TipoCV) {
+    if (this.tipoCV === tipo) return;
+    this.tipoCV = tipo;
+    this.archivoPDF = null;
+    this.fotoFrente = null;
+    this.fotoReverso = null;
+    this.previewFrente = '';
+    this.previewReverso = '';
   }
-  irAPaso(n: number) {
-    if (n >= 1 && n <= this.TOTAL_PASOS) {
-      this.paso = n;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  /** Selección de archivo del CV según el slot (pdf / frente / reverso) */
+  onFileSelected(event: any, slot: 'pdf' | 'frente' | 'reverso') {
+    const file = event.target.files[0] as File | undefined;
+    if (!file) return;
+
+    // Límite de 5 MB por archivo
+    if (file.size > 5_000_000) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Archivo muy pesado',
+        mensaje: 'El archivo supera los 5 MB. Comprime o reduce la calidad y vuelve a intentarlo.'
+      };
+      event.target.value = '';
+      return;
+    }
+
+    const name = file.name.toLowerCase();
+    if (slot === 'pdf' && !name.endsWith('.pdf')) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Formato incorrecto',
+        mensaje: 'En este modo solo se acepta PDF. Si vas a subir fotos, cambia a la opción "Fotos del CV".'
+      };
+      event.target.value = '';
+      return;
+    }
+    if (slot !== 'pdf' && !/\.(jpe?g|png|webp|heic)$/.test(name)) {
+      this.modal = {
+        tipo: 'error',
+        titulo: 'Formato incorrecto',
+        mensaje: 'Sube una foto en JPG, PNG, WEBP o HEIC.'
+      };
+      event.target.value = '';
+      return;
+    }
+
+    if (slot === 'pdf') {
+      this.archivoPDF = file;
+    } else if (slot === 'frente') {
+      this.fotoFrente = file;
+      this.leerComoDataUrl(file).then(url => this.previewFrente = url);
+    } else {
+      this.fotoReverso = file;
+      this.leerComoDataUrl(file).then(url => this.previewReverso = url);
     }
   }
 
-  get progresoPorcentaje(): number {
-    return Math.round((this.paso / this.TOTAL_PASOS) * 100);
-  }
-
-  agregarEmpleo() {
-    if (this.solicitud.experiencia.length < 3) {
-      this.solicitud.experiencia.push({
-        empresa: '', puesto: '', fechaInicio: '', fechaFin: '',
-        jefeDirecto: '', telefonoJefe: '', sueldoMensual: '', motivoSalida: ''
-      });
-    }
-  }
-
-  quitarEmpleo(idx: number) {
-    if (this.solicitud.experiencia.length > 1) {
-      this.solicitud.experiencia.splice(idx, 1);
-    }
-  }
-
-  // ===== Validación mínima por paso =====
-  pasoValido(p: number): boolean {
-    const s = this.solicitud;
-    switch (p) {
-      case 1: return !!(s.datosPersonales.nombre && s.datosPersonales.fechaNacimiento && s.datosPersonales.sexo);
-      case 2: return !!(s.identificacion.curp && s.identificacion.curp.length >= 10);
-      case 3: return !!(s.domicilio.calle && s.domicilio.colonia && s.domicilio.ciudad && s.domicilio.estado);
-      case 4: return !!(s.contacto.telefono && s.contacto.telefono.length >= 10);
-      case 5: return !!s.escolaridad.nivelMaximo;
-      case 6: return s.experiencia.length > 0 && !!s.experiencia[0].empresa;
-      case 7: return !!(s.referencias[0].nombre && s.referencias[0].telefono);
-      case 8: return !!(s.puestoDeseado.puesto && s.aceptaAvisoPrivacidad && s.aceptaVeracidad);
-      default: return false;
-    }
+  private leerComoDataUrl(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
   }
 
   // ===== Envío =====
   async enviar() {
-    if (!this.pasoValido(8)) {
+    if (!this.candidatoId || !this.candidato) return;
+    if (!this.cvCompleto) {
       this.modal = {
         tipo: 'error',
-        titulo: 'Datos incompletos',
-        mensaje: 'Por favor revisa que hayas completado todos los campos obligatorios y aceptado el aviso de privacidad.'
+        titulo: 'Falta tu CV',
+        mensaje: this.tipoCV === 'pdf'
+          ? 'Es obligatorio adjuntar tu CV en PDF.'
+          : 'Es obligatorio subir las DOS fotos de tu CV: frente y reverso.'
       };
       return;
     }
 
     this.enviando = true;
     try {
-      const payload = {
-        ...this.solicitud,
-        enviadaAt: new Date()
-      };
-
-      if (this.candidatoId && this.candidato) {
-        // Asociar la solicitud al candidato existente
-        await this.candidateService.updateCandidate(this.candidatoId, {
-          solicitudElectronica: payload,
-          // Actualizar nombre y teléfono por si el candidato los corrigió
-          nombre: this.solicitud.datosPersonales.nombre,
-          telefono: this.solicitud.contacto.telefono
-        }, { marcarActividad: false }); // acción del candidato, no seguimiento de RH
-      } else {
-        // Sin candidato previo: validar duplicados antes de crear
-        const duplicado = await this.candidateService.buscarDuplicado(
-          this.solicitud.contacto.telefono,
-          this.solicitud.datosPersonales.nombre
-        );
-        if (duplicado) {
-          this.modal = {
-            tipo: 'error',
-            titulo: 'Ya estás postulado/a',
-            mensaje: 'Detectamos que ya hay un candidato registrado con ese nombre o teléfono. Capital Humano de Mega Dulces ya tiene tus datos y te contactará pronto.'
-          };
-          this.enviando = false;
-          return;
-        }
-        await this.candidateService.createCandidate({
-          nombre: this.solicitud.datosPersonales.nombre,
-          telefono: this.solicitud.contacto.telefono,
-          ciudad: this.solicitud.domicilio.ciudad,
-          puesto: this.solicitud.puestoDeseado.puesto,
-          fuente: 'Solicitud electrónica',
-          solicitudElectronica: payload
-        });
+      // Subir el CV a Cloudinary (1 archivo si es PDF, 2 si son fotos).
+      const subidas: Promise<string>[] = [];
+      const indices: { cv?: number; cvReverso?: number } = {};
+      if (this.tipoCV === 'pdf' && this.archivoPDF) {
+        indices.cv = subidas.length;
+        subidas.push(subirACloudinary(this.archivoPDF, 'cvs'));
+      } else if (this.tipoCV === 'fotos' && this.fotoFrente && this.fotoReverso) {
+        indices.cv = subidas.length;
+        subidas.push(subirACloudinary(this.fotoFrente, 'cvs'));
+        indices.cvReverso = subidas.length;
+        subidas.push(subirACloudinary(this.fotoReverso, 'cvs'));
       }
+      const urls = await Promise.all(subidas);
+      const cvUrl = indices.cv !== undefined ? urls[indices.cv] : '';
+      const cvUrlReverso = indices.cvReverso !== undefined ? urls[indices.cvReverso] : '';
+
+      const updateData: any = { cvUrl, cvFormato: this.tipoCV };
+      if (cvUrlReverso) updateData.cvUrlReverso = cvUrlReverso;
+
+      // Acción del candidato, no seguimiento de RH → no marcar actividad.
+      await this.candidateService.updateCandidate(this.candidatoId, updateData, { marcarActividad: false });
 
       this.modal = {
         tipo: 'exito',
-        titulo: '¡Solicitud enviada!',
-        mensaje: 'Tu información se envió correctamente. Capital Humano de Mega Dulces te contactará pronto para los siguientes pasos.'
+        titulo: '¡CV recibido!',
+        mensaje: 'Recibimos tu CV correctamente. Capital Humano de Mega Dulces te contactará pronto para los siguientes pasos.'
       };
       this.yaEnviada = true;
-    } catch (e) {
-      console.error('Error al enviar solicitud:', e);
+    } catch (e: any) {
+      console.error('Error al enviar el CV:', e);
+      let mensaje = 'Hubo un problema al guardar tu CV. Verifica tu conexión e intenta de nuevo en unos momentos.';
+      if (/cloudinary/i.test(e?.message || '')) {
+        mensaje = 'No se pudo subir tu CV. Revisa que el archivo no supere 5 MB y vuelve a intentar.';
+      }
       this.modal = {
         tipo: 'error',
-        titulo: 'No pudimos enviar tu solicitud',
-        mensaje: 'Hubo un problema al guardar tu información. Verifica tu conexión e intenta de nuevo en unos momentos.'
+        titulo: 'No pudimos recibir tu CV',
+        mensaje
       };
     } finally {
       this.enviando = false;
@@ -191,21 +203,4 @@ export class SolicitudComponent implements OnInit {
   }
 
   cerrarModal() { this.modal = null; }
-
-  /** Sanitiza dígitos para campos numéricos (teléfono, NSS, CP, etc.) */
-  soloNumeros(valor: string, maxLength?: number): string {
-    let v = (valor || '').replace(/\D/g, '');
-    if (maxLength) v = v.slice(0, maxLength);
-    return v;
-  }
-
-  /** CURP: 18 chars, alfanuméricos en mayúsculas */
-  sanitizarCurp(valor: string): string {
-    return (valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 18);
-  }
-
-  /** RFC: 13 chars max, alfanumérico mayúsculas */
-  sanitizarRfc(valor: string): string {
-    return (valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 13);
-  }
 }

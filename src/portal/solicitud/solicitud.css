@@ -308,6 +308,148 @@
 }
 .sol-aviso strong { color: #92400e; }
 
+/* ============================================================
+   PASO DE CV
+   ============================================================ */
+
+/* Aviso de que ya tenemos su CV */
+.sol-cv-ok {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-left: 3px solid #10B981;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.sol-cv-ok svg {
+  width: 30px; height: 30px;
+  color: #10B981;
+  flex-shrink: 0;
+}
+.sol-cv-ok strong {
+  display: block;
+  font-size: 14px;
+  color: #065f46;
+  margin-bottom: 3px;
+}
+.sol-cv-ok span {
+  font-size: 12.5px;
+  color: #047857;
+  line-height: 1.45;
+}
+
+/* Tabs PDF / Fotos */
+.sol-cv-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.sol-cv-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.sol-cv-tab svg { width: 18px; height: 18px; }
+.sol-cv-tab.active {
+  border-color: #DC2626;
+  background: #fff;
+  color: #DC2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+/* Zona de subida (PDF) */
+.sol-file-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 18px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.18s;
+}
+.sol-file-area:hover { border-color: #DC2626; background: #fff; }
+.sol-file-area svg { width: 30px; height: 30px; color: #94a3b8; flex-shrink: 0; }
+.sol-file-area.ok { border-style: solid; border-color: #10B981; background: #f0fdf4; }
+.sol-file-area.ok svg { color: #10B981; }
+.sol-file-text { display: flex; flex-direction: column; overflow: hidden; }
+.sol-file-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+.sol-file-hint {
+  font-size: 12.5px; color: #64748b; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sol-file-input { display: none; }
+.sol-file-note {
+  font-size: 11.5px; color: #64748b; margin: 8px 2px 0; line-height: 1.45;
+}
+.sol-file-note strong { color: #334155; }
+
+/* Grid de fotos frente / reverso */
+.sol-fotos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.sol-foto-slot { display: flex; flex-direction: column; gap: 8px; }
+.sol-foto-upload {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.18s;
+}
+.sol-foto-upload:hover { border-color: #DC2626; background: #fff; }
+.sol-foto-upload svg { width: 26px; height: 26px; color: #94a3b8; }
+.sol-foto-upload.ok { border-style: solid; border-color: #10B981; }
+.sol-foto-label { font-size: 12px; font-weight: 700; color: #475569; letter-spacing: 0.04em; }
+.sol-foto-hint { font-size: 10.5px; color: #94a3b8; }
+.sol-foto-preview { width: 100%; height: 100%; object-fit: cover; }
+.sol-foto-overlay {
+  position: absolute; inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  opacity: 0; transition: opacity 0.18s;
+}
+.sol-foto-upload:hover .sol-foto-overlay { opacity: 1; }
+.sol-foto-tag {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 5px;
+}
+.sol-foto-tag.ok { color: #047857; background: #ecfdf5; }
+
 /* NAVEGACIÓN */
 .sol-nav {
   display: flex;
@@ -354,7 +496,11 @@
   background: #f8fafc;
 }
 
-/* CARD FINAL (ya enviada) */
+/* Nav de un solo botón (enviar CV): botón a todo lo ancho */
+.sol-nav-single { justify-content: stretch; }
+.sol-nav-single .sol-btn-primary { flex: 1; }
+
+/* CARD FINAL (ya enviada / no encontrada) */
 .sol-card-final {
   text-align: center;
   padding: 50px 30px 40px;
@@ -368,6 +514,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.sol-icon-ok.sol-icon-warn {
+  background: #fef2f2;
+  color: #DC2626;
+}
+.sol-btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  text-decoration: none;
 }
 .sol-icon-ok svg { width: 40px; height: 40px; }
 .sol-card-final h2 {

@@ -81,6 +81,13 @@ export class CandidateService {
       .filter((c: any) => !c.deletedAt);
   }
 
+  /** Lee un solo candidato por id (sin listar la colección completa). */
+  async getCandidateById(id: string): Promise<any | null> {
+    const snap = await getDoc(doc(db, 'candidates', id));
+    // El id real de Firestore siempre gana (por eso va después del spread).
+    return snap.exists() ? { ...snap.data(), id: snap.id } : null;
+  }
+
   /** Como getCandidates pero también incluye los borrados (para detectar duplicados) */
   async getCandidatesIncluyendoBorrados() {
     const snapshot = await getDocs(collection(db, 'candidates'));
