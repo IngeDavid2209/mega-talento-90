@@ -1,55 +1,32 @@
-import { Injectable } from '@angular/core';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import {
-  getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot,
-  getDocs, setDoc
-} from 'firebase/firestore';
+import { Injectable, inject } from '@angular/core';
+import { ApiService } from './api.service';
 import { PUESTOS as PUESTOS_SEMILLA } from '../models/puestos.model';
 import { inferirSucursalIds, sucursalPorId } from '../models/sucursales.model';
 import { AptitudItem } from '../models/proceso.model';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCZ2ADjjBFWgwPybDxwFSUg_lzWDO_Y5lI",
-  authDomain: "megatalento-a3450.firebaseapp.com",
-  projectId: "megatalento-a3450",
-  storageBucket: "megatalento-a3450.firebasestorage.app",
-  messagingSenderId: "794979076803",
-  appId: "1:794979076803:web:034f492c57852ad3c3b076"
-};
-
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 export interface Puesto {
   id?: string;
   nombre: string;
   descripcion: string;
-  sucursalIds?: string[];    // ids del catálogo de sucursales activas para el puesto
-  sucursales?: string;       // nombres separados por comas (para portal/cartelera/filtro)
-  sueldo?: string;            // texto libre (puede ser rango)
+  sucursalIds?: string[];
+  sucursales?: string;
+  sueldo?: string;
   horario?: string;
-  requisitos?: string;        // texto libre, una línea por requisito
-  imagenUrl?: string;         // URL pública de una foto contextual del puesto
-  area?: string;              // categoría/área (ej. Comercial, Producción, Almacén)
-  activo: boolean;            // si está visible en la cartelera pública
+  requisitos?: string;
+  imagenUrl?: string;
+  area?: string;
+  activo: boolean;
   orden?: number;
   createdAt?: any;
-  // Entrevista técnica por link (formato STAR oficial). `hojaCompetencias` es la
-  // key del catálogo oficial (CATALOGO_COMPETENCIAS) que aplica a este puesto;
-  // si está vacía, se resuelve por el NOMBRE del puesto contra el catálogo.
   hojaCompetencias?: string;
-  // Legado (rúbrica de 4 niveles previa al formato STAR oficial). Se conserva
-  // por compatibilidad; el flujo vigente usa `hojaCompetencias`.
   aptitudes?: AptitudItem[];
   tipoAptitud?: 'operativo' | 'administrativo' | 'ventas' | 'jefatura';
 }
 
 /**
- * Quita puestos DUPLICADOS por nombre (normalizado: sin espacios/acentos/mayúsculas),
- * p. ej. "Cajero (a)" y "Cajero(a)" se colapsan en uno. Si hay duplicado, conserva
- * el que tenga `sucursalIds` (filtra bien por ciudad). USAR SOLO en vistas de
- * candidatos (cartelera /empleos y formulario /unete); el admin ve la lista completa
- * para poder gestionarlos.
+ * Quita puestos DUPLICADOS por nombre normalizado (sin acentos/espacios). Si hay
+ * duplicado, conserva el que tenga `sucursalIds`. USAR SOLO en vistas de
+ * candidatos (/empleos y /unete).
  */
 export function dedupPuestos(lista: Puesto[]): Puesto[] {
   const norm = (s: string) =>
@@ -62,194 +39,119 @@ export function dedupPuestos(lista: Puesto[]): Puesto[] {
     if (!previo) { porNombre.set(k, p); continue; }
     const previoTiene = Array.isArray(previo.sucursalIds) && previo.sucursalIds.length > 0;
     const actualTiene = Array.isArray(p.sucursalIds) && p.sucursalIds.length > 0;
-    if (!previoTiene && actualTiene) porNombre.set(k, p); // preferir el que filtra por ciudad
+    if (!previoTiene && actualTiene) porNombre.set(k, p);
   }
   return Array.from(porNombre.values());
 }
 
 @Injectable({ providedIn: 'root' })
 export class PuestosService {
-
+  private api = inject(ApiService);
   private readonly CACHE_KEY = 'mt_puestos_cache_v1';
+  private readonly POLL_MS = 15000;
+
+  private ordenar(lista: Puesto[]): Puesto[] {
+    return [...lista].sort((a, b) => {
+      const oa = a.orden ?? 999, ob = b.orden ?? 999;
+      if (oa !== ob) return oa - ob;
+      return (a.nombre || '').localeCompare(b.nombre || '');
+    });
+  }
 
   /**
-   * Escucha en vivo la lista de puestos. Para que la UI se sienta instantánea
-   * incluso cuando Firestore tarda en responder, primero entrega lo último
-   * guardado en localStorage (si lo hay) y después la versión fresca cuando
-   * llega del servidor.
-   *
-   * Si Firestore responde con error (reglas bloquean, sin red, etc.) se llama
-   * al onError opcional para que la UI pueda mostrar el problema en lugar de
-   * quedarse cargando para siempre.
+   * Escucha la lista de puestos. Entrega primero el cache local (respuesta
+   * instantánea) y luego refresca por polling desde la API.
    */
-  listar(
-    callback: (puestos: Puesto[]) => void,
-    onError?: (error: any) => void
-  ) {
-    // 1. Respuesta INSTANTÁNEA con cache local (si tenemos algo guardado)
+  listar(callback: (puestos: Puesto[]) => void, onError?: (error: any) => void) {
     const cached = this.leerCache();
-    if (cached.length > 0) {
-      // Microtask para no llamar al callback dentro del mismo tick que el ngOnInit
-      Promise.resolve().then(() => callback(cached));
-    }
+    if (cached.length) Promise.resolve().then(() => callback(cached));
 
-    // 2. Suscripción real a Firestore (actualiza cuando llegue la respuesta)
-    const ref = collection(db, 'puestos');
-    return onSnapshot(ref, (snap) => {
-      const lista = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Puesto[];
-      lista.sort((a, b) => {
-        const oa = a.orden ?? 999;
-        const ob = b.orden ?? 999;
-        if (oa !== ob) return oa - ob;
-        return (a.nombre || '').localeCompare(b.nombre || '');
-      });
-      this.escribirCache(lista);
-      callback(lista);
-    }, (err) => {
-      console.error('Error al listar puestos:', err);
-      if (onError) onError(err);
-    });
+    let activo = true;
+    const tick = async () => {
+      if (!activo) return;
+      try {
+        const lista = this.ordenar(await this.api.get<Puesto[]>('/puestos'));
+        this.escribirCache(lista);
+        callback(lista);
+      } catch (err) {
+        console.error('Error al listar puestos:', err);
+        if (onError) onError(err);
+      }
+    };
+    tick();
+    const id = setInterval(tick, this.POLL_MS);
+    return () => { activo = false; clearInterval(id); };
   }
 
   private leerCache(): Puesto[] {
     try {
       const raw = localStorage.getItem(this.CACHE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
+      const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
-
   private escribirCache(lista: Puesto[]) {
-    try {
-      localStorage.setItem(this.CACHE_KEY, JSON.stringify(lista));
-    } catch {
-      // localStorage lleno o deshabilitado — no es crítico, seguimos
-    }
+    try { localStorage.setItem(this.CACHE_KEY, JSON.stringify(lista)); } catch { /* noop */ }
   }
 
-  /** Carga los puestos una vez (no en vivo). Útil para sembrado inicial. */
   async obtener(): Promise<Puesto[]> {
-    const snap = await getDocs(collection(db, 'puestos'));
-    return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Puesto[];
+    return this.ordenar(await this.api.get<Puesto[]>('/puestos'));
   }
 
   async crear(p: Omit<Puesto, 'id'>): Promise<void> {
-    await addDoc(collection(db, 'puestos'), {
-      ...p,
-      createdAt: new Date()
-    });
+    await this.api.post('/puestos', p);
   }
 
   async actualizar(id: string, cambios: Partial<Puesto>): Promise<void> {
-    await updateDoc(doc(db, 'puestos', id), cambios as any);
+    await this.api.patch(`/puestos/${id}`, cambios);
   }
 
   async eliminar(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'puestos', id));
+    await this.api.delete(`/puestos/${id}`);
   }
 
-  /**
-   * Siembra el catálogo estático en Firestore SIN verificar si ya hay datos.
-   * El componente que llame esto debe confirmar primero que la colección
-   * está vacía (típicamente a partir de la primera respuesta de listar()).
-   * Esto evita hacer un getDocs extra en cada carga de la vista admin.
-   */
+  /** Siembra el catálogo estático (crea cada puesto vía API). */
   async sembrar(): Promise<void> {
     let i = 0;
     for (const p of PUESTOS_SEMILLA) {
-      const id = this.slugDePuesto(p.nombre);
-      await setDoc(doc(db, 'puestos', id), {
-        nombre: p.nombre,
-        descripcion: p.descripcion,
-        sucursales: '',
-        sueldo: '',
-        horario: '',
-        activo: true,
-        orden: i++,
-        createdAt: new Date()
-      });
+      await this.crear({
+        nombre: p.nombre, descripcion: p.descripcion, sucursales: '',
+        sueldo: '', horario: '', activo: true, orden: i++
+      } as Omit<Puesto, 'id'>);
     }
-    console.log('Catálogo de puestos sembrado con', PUESTOS_SEMILLA.length, 'puestos.');
   }
 
-  /**
-   * Carga las vacantes del catálogo SOLO si no existen ya (por nombre normalizado).
-   * Devuelve { creados, omitidos } para que la UI muestre el resultado.
-   * Útil cuando el RH ya tiene algunas vacantes manuales y quiere completar
-   * el catálogo sin sobreescribir lo que ya configuró.
-   */
+  /** Crea del catálogo solo los que faltan (por nombre). */
   async cargarCatalogoSiFaltan(): Promise<{ creados: string[]; omitidos: string[] }> {
     const existentes = await this.obtener();
-    const nombresExistentes = new Set(
-      existentes.map(p => (p.nombre || '').trim().toLowerCase())
-    );
-    const creados: string[] = [];
-    const omitidos: string[] = [];
-    let ordenBase = existentes.length;
-
+    const nombres = new Set(existentes.map(p => (p.nombre || '').trim().toLowerCase()));
+    const creados: string[] = [], omitidos: string[] = [];
+    let orden = existentes.length;
     for (const p of PUESTOS_SEMILLA) {
       const clave = p.nombre.trim().toLowerCase();
-      if (nombresExistentes.has(clave)) {
-        omitidos.push(p.nombre);
-        continue;
-      }
-      const id = this.slugDePuesto(p.nombre);
-      await setDoc(doc(db, 'puestos', id), {
-        nombre: p.nombre,
-        descripcion: p.descripcion,
-        sucursales: '',
-        sueldo: '',
-        horario: '',
-        activo: true,
-        orden: ordenBase++,
-        createdAt: new Date()
-      });
+      if (nombres.has(clave)) { omitidos.push(p.nombre); continue; }
+      await this.crear({
+        nombre: p.nombre, descripcion: p.descripcion, sucursales: '',
+        sueldo: '', horario: '', activo: true, orden: orden++
+      } as Omit<Puesto, 'id'>);
       creados.push(p.nombre);
     }
     return { creados, omitidos };
   }
 
-  /**
-   * Vincula automáticamente las vacantes existentes con el catálogo de
-   * sucursales, infiriendo los ids a partir del texto libre que ya tienen. No
-   * toca las que ya tienen sucursalIds. Devuelve el desglose para mostrarlo.
-   */
+  /** Vincula automáticamente sucursales a partir del texto libre. */
   async vincularSucursalesAutomatico(): Promise<{ vinculados: string[]; sinCoincidencia: string[]; yaTenian: string[] }> {
     const puestos = await this.obtener();
-    const vinculados: string[] = [];
-    const sinCoincidencia: string[] = [];
-    const yaTenian: string[] = [];
-
+    const vinculados: string[] = [], sinCoincidencia: string[] = [], yaTenian: string[] = [];
     for (const p of puestos) {
       if (!p.id) continue;
-      if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) {
-        yaTenian.push(p.nombre);
-        continue;
-      }
+      if (Array.isArray(p.sucursalIds) && p.sucursalIds.length) { yaTenian.push(p.nombre); continue; }
       const ids = inferirSucursalIds(p.sucursales || '');
-      if (!ids.length) {
-        sinCoincidencia.push(p.nombre);
-        continue;
-      }
+      if (!ids.length) { sinCoincidencia.push(p.nombre); continue; }
       const texto = ids.map(id => sucursalPorId(id)?.direccion).filter(Boolean).join(' · ');
       await this.actualizar(p.id, { sucursalIds: ids, sucursales: texto });
       vinculados.push(p.nombre);
     }
     return { vinculados, sinCoincidencia, yaTenian };
-  }
-
-  /** Slug seguro para usar como ID de documento de Firestore */
-  private slugDePuesto(nombre: string): string {
-    // Rango ̀-ͯ cubre los marcadores combinantes (acentos)
-    const acentos = new RegExp('[\\u0300-\\u036f]', 'g');
-    return nombre
-      .toLowerCase()
-      .normalize('NFD').replace(acentos, '')
-      .replace(/[()]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
   }
 }

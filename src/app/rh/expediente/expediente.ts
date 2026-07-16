@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
-import { Timestamp } from 'firebase/firestore';
 import {
   ETAPAS, ID_ETAPAS, FLUJO_LINEAL, EstadoCheck,
   COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
@@ -306,8 +305,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     }
 
     const actualizacion: any = { status: nuevaEtapa };
-    if (nuevaEtapa === ID_ETAPAS.CONTRATADO) actualizacion.hiredAt = Timestamp.now();
-    if (nuevaEtapa === ID_ETAPAS.RECHAZADO) actualizacion.rejectedAt = Timestamp.now();
+    if (nuevaEtapa === ID_ETAPAS.CONTRATADO) actualizacion.hiredAt = new Date().toISOString();
+    if (nuevaEtapa === ID_ETAPAS.RECHAZADO) actualizacion.rejectedAt = new Date().toISOString();
     try {
       await this.candidateService.updateCandidate(this.candidato.id, actualizacion);
     } catch (error) {

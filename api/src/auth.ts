@@ -30,7 +30,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
   try {
     const { rows } = await pool.query(
-      `SELECT uid, correo, username, nombre, apellido, role, password_hash
+      `SELECT uid, correo, username, nombre, apellido, role, password_hash, activo
        FROM usuarios
        WHERE lower(correo) = lower($1) OR lower(username) = lower($1)
        LIMIT 1`,
@@ -39,6 +39,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const u = rows[0];
     if (!u || !u.password_hash) {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
+    }
+    if (u.activo === false) {
+      return res.status(403).json({ error: 'Tu cuenta fue desactivada. Contacta al administrador.' });
     }
     const ok = await bcrypt.compare(password, u.password_hash);
     if (!ok) {
