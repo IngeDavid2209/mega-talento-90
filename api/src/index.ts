@@ -4,6 +4,9 @@ import { env } from './env';
 import { pool } from './db';
 import { authRouter } from './auth';
 import { checadorRouter } from './checador';
+import { candidatosRouter } from './candidatos';
+import { puestosRouter } from './puestos';
+import { usuariosRouter } from './usuarios';
 
 const app = express();
 
@@ -30,10 +33,9 @@ app.get('/health/db', async (_req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/checador', checadorRouter);
-
-// Próximas fases (candidatos, puestos) se montan aquí:
-//   app.use('/candidatos', candidatosRouter);
-//   app.use('/puestos', puestosRouter);
+app.use('/candidatos', candidatosRouter);
+app.use('/puestos', puestosRouter);
+app.use('/usuarios', usuariosRouter);
 
 app.listen(env.PORT, () => {
   console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);
