@@ -1,0 +1,2 @@
+# El backend vive en /api y se despliega en Railway, NO en Vercel.
+api/

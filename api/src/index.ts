@@ -1,0 +1,40 @@
+import express from 'express';
+import cors from 'cors';
+import { env } from './env';
+import { pool } from './db';
+import { authRouter } from './auth';
+import { checadorRouter } from './checador';
+
+const app = express();
+
+app.use(cors({
+  origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map(s => s.trim())
+}));
+app.use(express.json({ limit: '2mb' }));
+
+/** Salud del servicio (no toca la base). */
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, servicio: 'mega-talento-api', hora: new Date().toISOString() });
+});
+
+/** Salud de la base: confirma que el pool conecta a Postgres. */
+app.get('/health/db', async (_req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT now() AS ahora');
+    res.json({ ok: true, postgres: rows[0].ahora });
+  } catch (e: any) {
+    console.error('[health/db] error:', e);
+    res.status(500).json({ ok: false, error: 'No se pudo conectar a Postgres.' });
+  }
+});
+
+app.use('/auth', authRouter);
+app.use('/checador', checadorRouter);
+
+// Próximas fases (candidatos, puestos) se montan aquí:
+//   app.use('/candidatos', candidatosRouter);
+//   app.use('/puestos', puestosRouter);
+
+app.listen(env.PORT, () => {
+  console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);
+});
