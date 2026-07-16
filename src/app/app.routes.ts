@@ -21,6 +21,7 @@ import { PapeleraComponent } from './rh/papelera/papelera';
 import { ContactadosComponent } from './rh/contactados/contactados';
 import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
 import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/resultados-evaluacion';
+import { HorariosComponent } from './rh/horarios/horarios';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,7 @@ export const routes: Routes = [
       { path: 'contactados', component: ContactadosComponent },
       { path: 'guia-evaluacion', component: GuiaEvaluacionComponent },
       { path: 'resultados-evaluacion', component: ResultadosEvaluacionComponent },
+      { path: 'horarios', component: HorariosComponent },
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },

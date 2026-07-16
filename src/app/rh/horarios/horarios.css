@@ -1,0 +1,313 @@
+/* ============================================================
+   HORARIOS Y CHECADAS · Panel RH
+   Acento rojo #b8232f, tablas limpias, modales centrados.
+   ============================================================ */
+
+.hz-page {
+  padding: 22px 24px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  color: #1f2937;
+}
+
+/* ENCABEZADO */
+.hz-header { margin-bottom: 18px; }
+.hz-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+.hz-sub { margin: 4px 0 0; color: #6b7280; font-size: 13.5px; }
+
+/* BARRA superior (sucursal) */
+.hz-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+/* CAMPOS */
+.hz-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+.hz-field label { font-size: 12px; font-weight: 600; color: #374151; }
+.hz-field label small { color: #9ca3af; font-weight: 500; }
+.hz-field input,
+.hz-field select {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 9px;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #111827;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.hz-field input:focus,
+.hz-field select:focus {
+  border-color: #b8232f;
+  box-shadow: 0 0 0 3px rgba(184, 35, 47, 0.1);
+}
+.hz-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.hz-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #374151;
+  margin: 6px 0 4px;
+  cursor: pointer;
+}
+.hz-check input { width: 16px; height: 16px; accent-color: #b8232f; }
+
+/* PESTAÑAS */
+.hz-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #f0f0f2;
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+.hz-tabs button {
+  border: none;
+  background: none;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s;
+}
+.hz-tabs button:hover { color: #b8232f; }
+.hz-tabs button.active { color: #b8232f; border-bottom-color: #b8232f; }
+
+/* PANEL */
+.hz-panel { animation: hz-fade 0.2s ease; }
+@keyframes hz-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.hz-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.hz-panel-head h2 { margin: 0; font-size: 16px; font-weight: 700; color: #111827; }
+
+/* BOTONES */
+.hz-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.hz-btn-primary { background: #b8232f; color: #fff; }
+.hz-btn-primary:hover { background: #9a1c27; }
+.hz-btn-ghost { background: #fff; color: #374151; border-color: #d1d5db; }
+.hz-btn-ghost:hover { border-color: #b8232f; color: #b8232f; }
+.hz-disabled { opacity: 0.6; pointer-events: none; }
+
+/* Barra de checadas */
+.hz-checadas-bar {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.hz-bar-actions { display: flex; gap: 10px; align-items: flex-end; flex: 1; justify-content: flex-end; flex-wrap: wrap; }
+
+.hz-hint {
+  font-size: 12.5px;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #f0f0f2;
+  border-left: 3px solid #b8232f;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 4px 0 16px;
+  line-height: 1.5;
+}
+
+/* Resumen de importación */
+.hz-resumen { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.hz-chip {
+  font-size: 12px; font-weight: 700;
+  padding: 5px 11px; border-radius: 999px;
+  background: #f3f4f6; color: #374151;
+}
+.hz-chip-ok { background: #ecfdf5; color: #047857; }
+.hz-chip-warn { background: #fffbeb; color: #b45309; }
+.hz-chip-mute { background: #f3f4f6; color: #9ca3af; }
+
+/* Estados vacíos */
+.hz-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+  background: #fafafa;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+}
+
+/* DÍA (checadas) */
+.hz-dia {
+  border: 1px solid #ececef;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+.hz-dia-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #ececef;
+  text-transform: capitalize;
+}
+.hz-dia-head strong { font-size: 14.5px; color: #111827; }
+.hz-dia-fecha { font-size: 12px; color: #9ca3af; font-variant-numeric: tabular-nums; }
+.hz-dia-count { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+/* TABLAS */
+.hz-tabla-wrap { overflow-x: auto; }
+.hz-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.hz-tabla thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9ca3af;
+  border-bottom: 1px solid #ececef;
+  white-space: nowrap;
+}
+.hz-tabla tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+.hz-tabla tbody tr:last-child td { border-bottom: none; }
+.hz-tabla tbody tr:hover { background: #fcfcfd; }
+.hz-inactivo { opacity: 0.5; }
+.hz-mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; }
+
+.hz-emp-nombre { font-weight: 600; color: #111827; }
+.hz-emp-cod { font-size: 11.5px; color: #9ca3af; margin-top: 2px; }
+
+/* Marcas del día */
+.hz-marcas { display: flex; flex-wrap: wrap; gap: 4px; }
+.hz-marca {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  background: #f3f4f6;
+  color: #4b5563;
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: default;
+}
+
+/* Badges de estado */
+.hz-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.hz-badge-good { background: #ecfdf5; color: #047857; }
+.hz-badge-bad { background: #fef2f2; color: #b8232f; }
+.hz-badge-mute { background: #f3f4f6; color: #9ca3af; }
+
+/* Acciones de fila */
+.hz-acciones { white-space: nowrap; text-align: right; }
+.hz-link {
+  border: none; background: none;
+  color: #b8232f; font-weight: 600; font-size: 13px;
+  cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  font-family: inherit;
+}
+.hz-link:hover { background: #fef2f2; }
+.hz-danger { color: #dc2626; }
+
+/* Selector de días (modal horario) */
+.hz-dias { display: flex; gap: 6px; flex-wrap: wrap; }
+.hz-dia-btn {
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 44px;
+  transition: all 0.15s;
+}
+.hz-dia-btn.on { background: #b8232f; border-color: #b8232f; color: #fff; }
+
+/* MODALES */
+.hz-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  animation: hz-fade 0.18s ease;
+}
+.hz-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 24px 20px;
+  width: calc(100% - 32px);
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  animation: hz-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes hz-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.hz-modal h3 { margin: 0 0 16px; font-size: 17px; font-weight: 700; color: #111827; }
+.hz-modal .hz-field { margin-bottom: 12px; }
+.hz-modal .hz-row .hz-field { margin-bottom: 12px; }
+.hz-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f2;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .hz-page { padding: 16px 14px 48px; }
+  .hz-header h1 { font-size: 19px; }
+  .hz-bar-actions { justify-content: stretch; }
+  .hz-bar-actions .hz-btn { flex: 1; }
+  .hz-row { flex-direction: column; gap: 0; }
+  .hz-modal { padding: 20px 18px 16px; }
+}

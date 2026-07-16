@@ -1,0 +1,394 @@
+<div class="hz-page">
+
+  <!-- ENCABEZADO -->
+  <header class="hz-header">
+    <div>
+      <h1>Horarios y checadas</h1>
+      <p class="hz-sub">Gestiona los horarios de sucursales y áreas, e importa la asistencia desde el reloj checador.</p>
+    </div>
+  </header>
+
+  <!-- BARRA: sucursal (compartida) -->
+  <div class="hz-toolbar">
+    <div class="hz-field">
+      <label>Sucursal</label>
+      <select [(ngModel)]="sucursalFiltro" (change)="onSucursalChange()">
+        @for (s of SUCURSALES; track s.id) {
+          <option [value]="s.id">{{ nombreSucursal(s.id) }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- PESTAÑAS -->
+  <nav class="hz-tabs">
+    <button [class.active]="tabActiva === 'checadas'" (click)="cambiarTab('checadas')">Checadas</button>
+    <button [class.active]="tabActiva === 'horarios'" (click)="cambiarTab('horarios')">Horarios</button>
+    <button [class.active]="tabActiva === 'areas'" (click)="cambiarTab('areas')">Áreas / checadores</button>
+    <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
+  </nav>
+
+  <!-- ============================ CHECADAS ============================ -->
+  @if (tabActiva === 'checadas') {
+    <section class="hz-panel">
+
+      <div class="hz-checadas-bar">
+        <div class="hz-field">
+          <label>Desde</label>
+          <input type="date" [(ngModel)]="desde" (change)="cargarChecadas()">
+        </div>
+        <div class="hz-field">
+          <label>Hasta</label>
+          <input type="date" [(ngModel)]="hasta" (change)="cargarChecadas()">
+        </div>
+
+        <div class="hz-bar-actions">
+          <label class="hz-btn hz-btn-primary" [class.hz-disabled]="importando">
+            {{ importando ? 'Importando…' : 'Importar archivo del reloj' }}
+            <input type="file" hidden accept=".dat,.txt,.csv,.xlsx,.xls"
+                   (change)="onArchivoSeleccionado($event)" [disabled]="importando">
+          </label>
+          <button class="hz-btn hz-btn-ghost" (click)="exportarExcel()">Exportar a Excel</button>
+        </div>
+      </div>
+
+      <p class="hz-hint">
+        Acepta el <strong>attlog.dat</strong> del reloj, CSV o Excel. Las marcas se asocian a la sucursal seleccionada y
+        se identifican por el código del reloj (regístralos en la pestaña <strong>Empleados</strong>).
+      </p>
+
+      @if (importResumen) {
+        <div class="hz-resumen">
+          <span class="hz-chip hz-chip-ok">{{ importResumen.nuevas }} nuevas</span>
+          <span class="hz-chip">{{ importResumen.duplicadas }} duplicadas</span>
+          <span class="hz-chip hz-chip-warn">{{ importResumen.sinEmpleado }} sin empleado</span>
+          <span class="hz-chip hz-chip-mute">{{ importResumen.leidas }} leídas</span>
+        </div>
+      }
+
+      @if (cargandoChecadas) {
+        <div class="hz-empty">Cargando checadas…</div>
+      } @else if (!gruposChecadas.length) {
+        <div class="hz-empty">
+          No hay checadas en este rango para esta sucursal. Importa el archivo del reloj o ajusta las fechas.
+        </div>
+      } @else {
+        @for (dia of gruposChecadas; track dia.fecha) {
+          <div class="hz-dia">
+            <div class="hz-dia-head">
+              <strong>{{ dia.diaLabel }}</strong>
+              <span class="hz-dia-fecha">{{ dia.fecha }}</span>
+              <span class="hz-dia-count">{{ dia.empleados.length }} empleado(s)</span>
+            </div>
+
+            <div class="hz-tabla-wrap">
+              <table class="hz-tabla">
+                <thead>
+                  <tr>
+                    <th>Empleado</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Marcas</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (emp of dia.empleados; track emp.empleadoCodigo) {
+                    <tr>
+                      <td>
+                        <div class="hz-emp-nombre">{{ emp.empleadoNombre || '(sin registrar)' }}</div>
+                        <div class="hz-emp-cod">
+                          Cód. {{ emp.empleadoCodigo }}
+                          @if (emp.areaId) { · {{ nombreArea(emp.areaId) }} }
+                        </div>
+                      </td>
+                      <td class="hz-mono">{{ emp.primera }}</td>
+                      <td class="hz-mono">{{ emp.ultima }}</td>
+                      <td>
+                        <div class="hz-marcas">
+                          @for (m of emp.marcas; track m.id || m.fechaHora) {
+                            <span class="hz-marca" [title]="tipoLabel(m.tipo)">{{ m.hora }}</span>
+                          }
+                        </div>
+                      </td>
+                      <td>
+                        @if (emp.retardo === null) {
+                          <span class="hz-badge hz-badge-mute">Sin horario</span>
+                        } @else if (emp.retardo) {
+                          <span class="hz-badge hz-badge-bad">Retardo +{{ emp.minutosRetardo }} min</span>
+                        } @else {
+                          <span class="hz-badge hz-badge-good">A tiempo</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      }
+    </section>
+  }
+
+  <!-- ============================ HORARIOS ============================ -->
+  @if (tabActiva === 'horarios') {
+    <section class="hz-panel">
+      <div class="hz-panel-head">
+        <h2>Horarios de {{ nombreSucursal(sucursalFiltro) }}</h2>
+        <button class="hz-btn hz-btn-primary" (click)="nuevoHorario()">+ Nuevo horario</button>
+      </div>
+
+      @if (!horariosFiltrados.length) {
+        <div class="hz-empty">Aún no hay horarios para esta sucursal.</div>
+      } @else {
+        <div class="hz-tabla-wrap">
+          <table class="hz-tabla">
+            <thead>
+              <tr>
+                <th>Horario</th><th>Aplica a</th><th>Días</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Tol.</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (h of horariosFiltrados; track h.id) {
+                <tr [class.hz-inactivo]="!h.activo">
+                  <td><strong>{{ h.nombre }}</strong></td>
+                  <td>{{ h.areaId ? nombreArea(h.areaId) : 'Toda la sucursal' }}</td>
+                  <td>{{ diasLabel(h.dias) }}</td>
+                  <td class="hz-mono">{{ h.entrada }}</td>
+                  <td class="hz-mono">{{ h.inicioComida && h.finComida ? (h.inicioComida + '–' + h.finComida) : '—' }}</td>
+                  <td class="hz-mono">{{ h.salida }}</td>
+                  <td class="hz-mono">{{ h.toleranciaMin }}m</td>
+                  <td class="hz-acciones">
+                    <button class="hz-link" (click)="editarHorario(h)">Editar</button>
+                    <button class="hz-link hz-danger" (click)="borrarHorario(h)">Borrar</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ============================ ÁREAS ============================ -->
+  @if (tabActiva === 'areas') {
+    <section class="hz-panel">
+      <div class="hz-panel-head">
+        <h2>Áreas / checadores de {{ nombreSucursal(sucursalFiltro) }}</h2>
+        <button class="hz-btn hz-btn-primary" (click)="nuevaArea()">+ Nueva área</button>
+      </div>
+
+      @if (!areasFiltradas.length) {
+        <div class="hz-empty">Aún no hay áreas con checador para esta sucursal.</div>
+      } @else {
+        <div class="hz-tabla-wrap">
+          <table class="hz-tabla">
+            <thead>
+              <tr><th>Área</th><th>IP checador</th><th>ID reloj</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (a of areasFiltradas; track a.id) {
+                <tr [class.hz-inactivo]="!a.activo">
+                  <td><strong>{{ a.nombre }}</strong></td>
+                  <td class="hz-mono">{{ a.ipChecador || '—' }}</td>
+                  <td class="hz-mono">{{ a.deviceId || '—' }}</td>
+                  <td>{{ a.activo ? 'Activa' : 'Inactiva' }}</td>
+                  <td class="hz-acciones">
+                    <button class="hz-link" (click)="editarArea(a)">Editar</button>
+                    <button class="hz-link hz-danger" (click)="borrarArea(a)">Borrar</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ============================ EMPLEADOS ============================ -->
+  @if (tabActiva === 'empleados') {
+    <section class="hz-panel">
+      <div class="hz-panel-head">
+        <h2>Empleados de {{ nombreSucursal(sucursalFiltro) }}</h2>
+        <button class="hz-btn hz-btn-primary" (click)="nuevoEmpleado()">+ Nuevo empleado</button>
+      </div>
+
+      <p class="hz-hint">
+        El <strong>código del reloj</strong> es el número con el que cada persona checa. Es el que enlaza sus marcas con su
+        nombre. El mismo código puede repetirse entre sucursales distintas.
+      </p>
+
+      @if (!empleadosFiltrados.length) {
+        <div class="hz-empty">Aún no hay empleados registrados para esta sucursal.</div>
+      } @else {
+        <div class="hz-tabla-wrap">
+          <table class="hz-tabla">
+            <thead>
+              <tr><th>Código</th><th>Nombre</th><th>Puesto</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (e of empleadosFiltrados; track e.id) {
+                <tr [class.hz-inactivo]="!e.activo">
+                  <td class="hz-mono">{{ e.codigoChecador }}</td>
+                  <td><strong>{{ e.nombre }}</strong></td>
+                  <td>{{ e.puesto || '—' }}</td>
+                  <td>{{ e.activo ? 'Activo' : 'Inactivo' }}</td>
+                  <td class="hz-acciones">
+                    <button class="hz-link" (click)="editarEmpleado(e)">Editar</button>
+                    <button class="hz-link hz-danger" (click)="borrarEmpleado(e)">Borrar</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ============================ MODAL ÁREA ============================ -->
+  @if (areaEdit) {
+    <div class="hz-modal-overlay" (click)="cerrarModales()"></div>
+    <div class="hz-modal" role="dialog" aria-modal="true">
+      <h3>{{ areaEdit.id ? 'Editar área' : 'Nueva área' }}</h3>
+      <div class="hz-field">
+        <label>Sucursal</label>
+        <select [(ngModel)]="areaEdit.sucursalId">
+          @for (s of SUCURSALES; track s.id) { <option [value]="s.id">{{ nombreSucursal(s.id) }}</option> }
+        </select>
+      </div>
+      <div class="hz-field">
+        <label>Nombre del área</label>
+        <input type="text" [(ngModel)]="areaEdit.nombre" placeholder="Ej. Piso de venta, Almacén">
+      </div>
+      <div class="hz-row">
+        <div class="hz-field">
+          <label>IP del checador <small>(documental)</small></label>
+          <input type="text" [(ngModel)]="areaEdit.ipChecador" placeholder="Ej. 192.168.1.201">
+        </div>
+        <div class="hz-field">
+          <label>ID del reloj <small>(en el archivo)</small></label>
+          <input type="text" [(ngModel)]="areaEdit.deviceId" placeholder="Ej. 1">
+        </div>
+      </div>
+      <label class="hz-check">
+        <input type="checkbox" [(ngModel)]="areaEdit.activo"> Área activa
+      </label>
+      <div class="hz-modal-actions">
+        <button class="hz-btn hz-btn-ghost" (click)="cerrarModales()">Cancelar</button>
+        <button class="hz-btn hz-btn-primary" (click)="guardarAreaModal()">Guardar</button>
+      </div>
+    </div>
+  }
+
+  <!-- ============================ MODAL HORARIO ============================ -->
+  @if (horarioEdit) {
+    <div class="hz-modal-overlay" (click)="cerrarModales()"></div>
+    <div class="hz-modal" role="dialog" aria-modal="true">
+      <h3>{{ horarioEdit.id ? 'Editar horario' : 'Nuevo horario' }}</h3>
+      <div class="hz-field">
+        <label>Sucursal</label>
+        <select [(ngModel)]="horarioEdit.sucursalId">
+          @for (s of SUCURSALES; track s.id) { <option [value]="s.id">{{ nombreSucursal(s.id) }}</option> }
+        </select>
+      </div>
+      <div class="hz-row">
+        <div class="hz-field">
+          <label>Nombre del horario</label>
+          <input type="text" [(ngModel)]="horarioEdit.nombre" placeholder="Ej. Turno general">
+        </div>
+        <div class="hz-field">
+          <label>Aplica a</label>
+          <select [(ngModel)]="horarioEdit.areaId">
+            <option value="">Toda la sucursal</option>
+            @for (a of areasDeSucursal(horarioEdit.sucursalId); track a.id) {
+              <option [value]="a.id">{{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="hz-field">
+        <label>Días</label>
+        <div class="hz-dias">
+          @for (d of DIAS_SEMANA; track $index) {
+            <button type="button" class="hz-dia-btn" [class.on]="diaActivo($index)" (click)="toggleDia($index)">{{ d }}</button>
+          }
+        </div>
+      </div>
+
+      <div class="hz-row">
+        <div class="hz-field">
+          <label>Entrada</label>
+          <input type="time" [(ngModel)]="horarioEdit.entrada">
+        </div>
+        <div class="hz-field">
+          <label>Salida</label>
+          <input type="time" [(ngModel)]="horarioEdit.salida">
+        </div>
+        <div class="hz-field">
+          <label>Tolerancia (min)</label>
+          <input type="number" min="0" [(ngModel)]="horarioEdit.toleranciaMin">
+        </div>
+      </div>
+
+      <div class="hz-row">
+        <div class="hz-field">
+          <label>Inicio comida <small>(opcional)</small></label>
+          <input type="time" [(ngModel)]="horarioEdit.inicioComida">
+        </div>
+        <div class="hz-field">
+          <label>Fin comida <small>(opcional)</small></label>
+          <input type="time" [(ngModel)]="horarioEdit.finComida">
+        </div>
+      </div>
+
+      <label class="hz-check">
+        <input type="checkbox" [(ngModel)]="horarioEdit.activo"> Horario activo
+      </label>
+      <div class="hz-modal-actions">
+        <button class="hz-btn hz-btn-ghost" (click)="cerrarModales()">Cancelar</button>
+        <button class="hz-btn hz-btn-primary" (click)="guardarHorarioModal()">Guardar</button>
+      </div>
+    </div>
+  }
+
+  <!-- ============================ MODAL EMPLEADO ============================ -->
+  @if (empleadoEdit) {
+    <div class="hz-modal-overlay" (click)="cerrarModales()"></div>
+    <div class="hz-modal" role="dialog" aria-modal="true">
+      <h3>{{ empleadoEdit.id ? 'Editar empleado' : 'Nuevo empleado' }}</h3>
+      <div class="hz-field">
+        <label>Sucursal</label>
+        <select [(ngModel)]="empleadoEdit.sucursalId">
+          @for (s of SUCURSALES; track s.id) { <option [value]="s.id">{{ nombreSucursal(s.id) }}</option> }
+        </select>
+      </div>
+      <div class="hz-row">
+        <div class="hz-field">
+          <label>Código del reloj</label>
+          <input type="text" [(ngModel)]="empleadoEdit.codigoChecador" placeholder="Ej. 12">
+        </div>
+        <div class="hz-field">
+          <label>Puesto <small>(opcional)</small></label>
+          <input type="text" [(ngModel)]="empleadoEdit.puesto" placeholder="Ej. Cajero">
+        </div>
+      </div>
+      <div class="hz-field">
+        <label>Nombre completo</label>
+        <input type="text" [(ngModel)]="empleadoEdit.nombre" placeholder="Nombre del empleado">
+      </div>
+      <label class="hz-check">
+        <input type="checkbox" [(ngModel)]="empleadoEdit.activo"> Empleado activo
+      </label>
+      <div class="hz-modal-actions">
+        <button class="hz-btn hz-btn-ghost" (click)="cerrarModales()">Cancelar</button>
+        <button class="hz-btn hz-btn-primary" (click)="guardarEmpleadoModal()">Guardar</button>
+      </div>
+    </div>
+  }
+
+</div>
