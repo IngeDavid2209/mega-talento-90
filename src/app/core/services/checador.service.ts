@@ -77,8 +77,15 @@ export class ChecadorService {
   }
 
   // ===================== CHECADAS =====================
-  async getChecadas(sucursalId: string, desde: string, hasta: string): Promise<Checada[]> {
-    return this.api.get<Checada[]>('/checador/checadas', { sucursalId, desde, hasta });
+  async getChecadas(sucursalId: string, desde: string, hasta: string, codigo?: string): Promise<Checada[]> {
+    const params: any = { sucursalId, desde, hasta };
+    if (codigo) params.codigo = codigo;
+    return this.api.get<Checada[]>('/checador/checadas', params);
+  }
+
+  /** Rango de fechas con datos de una sucursal: { min, max } (o null). */
+  async getRangoChecadas(sucursalId: string): Promise<{ min: string | null; max: string | null }> {
+    return this.api.get('/checador/checadas/rango', { sucursalId });
   }
 
   /**

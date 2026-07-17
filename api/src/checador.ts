@@ -176,17 +176,33 @@ checadorRouter.delete('/empleados/:id', async (req: Request, res: Response) => {
 });
 
 // ===================== CHECADAS =====================
+// Rango de fechas con datos para una sucursal (para poner un default útil).
+checadorRouter.get('/checadas/rango', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId } = req.query as any;
+    if (!sucursalId) return res.status(400).json({ error: 'Falta sucursalId.' });
+    const { rows } = await pool.query(
+      'SELECT min(fecha) AS min, max(fecha) AS max FROM checadas WHERE sucursal_id=$1',
+      [sucursalId]
+    );
+    res.json({ min: rows[0]?.min || null, max: rows[0]?.max || null });
+  } catch (e) { fallo(res, e, 'No se pudo leer el rango.'); }
+});
+
 checadorRouter.get('/checadas', async (req: Request, res: Response) => {
   try {
-    const { sucursalId, desde, hasta } = req.query as any;
+    const { sucursalId, desde, hasta, codigo } = req.query as any;
     if (!sucursalId || !desde || !hasta) {
       return res.status(400).json({ error: 'Faltan sucursalId, desde y hasta.' });
     }
+    const params: any[] = [sucursalId, desde, hasta];
+    let filtroCodigo = '';
+    if (codigo) { params.push(codigo); filtroCodigo = ` AND empleado_codigo = $${params.length}`; }
     const { rows } = await pool.query(
       `SELECT * FROM checadas
-       WHERE sucursal_id=$1 AND fecha>=$2 AND fecha<=$3
+       WHERE sucursal_id=$1 AND fecha>=$2 AND fecha<=$3${filtroCodigo}
        ORDER BY fecha, fecha_hora`,
-      [sucursalId, desde, hasta]
+      params
     );
     res.json(rows.map(mapChecada));
   } catch (e) { fallo(res, e, 'No se pudieron leer las checadas.'); }

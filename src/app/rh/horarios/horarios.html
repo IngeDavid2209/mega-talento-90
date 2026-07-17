@@ -33,15 +33,6 @@
     <section class="hz-panel">
 
       <div class="hz-checadas-bar">
-        <div class="hz-field">
-          <label>Desde</label>
-          <input type="date" [(ngModel)]="desde" (change)="cargarChecadas()">
-        </div>
-        <div class="hz-field">
-          <label>Hasta</label>
-          <input type="date" [(ngModel)]="hasta" (change)="cargarChecadas()">
-        </div>
-
         <div class="hz-bar-actions">
           <label class="hz-btn hz-btn-primary" [class.hz-disabled]="importando">
             {{ importando ? 'Importando…' : 'Importar archivo del reloj' }}
@@ -53,8 +44,9 @@
       </div>
 
       <p class="hz-hint">
-        Acepta el <strong>attlog.dat</strong> del reloj, CSV o Excel. Las marcas se asocian a la sucursal seleccionada y
-        se identifican por el código del reloj (regístralos en la pestaña <strong>Empleados</strong>).
+        Muestra los últimos días con actividad. Da clic en cualquier empleado para ver su
+        <strong>detalle con fechas propias</strong> (semana, mes, retardos acumulados).
+        Para importar acepta el <strong>attlog.dat</strong> del reloj, CSV o Excel.
       </p>
 
       @if (importResumen) {
@@ -438,57 +430,74 @@
         <button class="hz-det-close" (click)="cerrarDetalle()">✕</button>
       </div>
 
-      <!-- Resumen -->
-      <div class="hz-det-tiles">
-        <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumulado > empleadoDetalle.presupuesto">
-          <span class="hz-det-tile-num">{{ empleadoDetalle.acumulado }} min</span>
-          <span class="hz-det-tile-lbl">Retardo acumulado</span>
+      <!-- Fechas PROPIAS de este empleado (independientes) -->
+      <div class="hz-det-fechas">
+        <div class="hz-field">
+          <label>Desde</label>
+          <input type="date" [(ngModel)]="empleadoDetalle.desde" (change)="cargarDetalle()">
         </div>
-        <div class="hz-det-tile">
-          <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
-          <span class="hz-det-tile-lbl">Presupuesto del periodo</span>
-        </div>
-        <div class="hz-det-tile" [class.hz-tile-bad]="(empleadoDetalle.presupuesto - empleadoDetalle.acumulado) < 0">
-          <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto - empleadoDetalle.acumulado }} min</span>
-          <span class="hz-det-tile-lbl">Restante</span>
-        </div>
-        <div class="hz-det-tile">
-          <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.dias.length }}</span>
-          <span class="hz-det-tile-lbl">Días con retardo</span>
+        <div class="hz-field">
+          <label>Hasta</label>
+          <input type="date" [(ngModel)]="empleadoDetalle.hasta" (change)="cargarDetalle()">
         </div>
       </div>
 
-      @if (empleadoDetalle.acumulado > empleadoDetalle.presupuesto) {
-        <div class="hz-det-alerta">⚠️ Superó el presupuesto de {{ empleadoDetalle.presupuesto }} min de retardo en este periodo.</div>
+      @if (empleadoDetalle.cargando) {
+        <div class="hz-empty">Cargando asistencia…</div>
+      } @else {
+        <!-- Resumen -->
+        <div class="hz-det-tiles">
+          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumulado > empleadoDetalle.presupuesto">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.acumulado }} min</span>
+            <span class="hz-det-tile-lbl">Retardo acumulado</span>
+          </div>
+          <div class="hz-det-tile">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
+            <span class="hz-det-tile-lbl">Presupuesto</span>
+          </div>
+          <div class="hz-det-tile" [class.hz-tile-bad]="(empleadoDetalle.presupuesto - empleadoDetalle.acumulado) < 0">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto - empleadoDetalle.acumulado }} min</span>
+            <span class="hz-det-tile-lbl">Restante</span>
+          </div>
+          <div class="hz-det-tile">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.dias.length }}</span>
+            <span class="hz-det-tile-lbl">Días con retardo</span>
+          </div>
+        </div>
+
+        @if (empleadoDetalle.acumulado > empleadoDetalle.presupuesto) {
+          <div class="hz-det-alerta">⚠️ Superó el presupuesto de {{ empleadoDetalle.presupuesto }} min de retardo en este periodo.</div>
+        }
+
+        @if (!empleadoDetalle.dias.length) {
+          <div class="hz-empty">Sin checadas en este periodo. Ajusta las fechas.</div>
+        } @else {
+          <div class="hz-tabla-wrap hz-det-tabla">
+            <table class="hz-tabla">
+              <thead>
+                <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+              </thead>
+              <tbody>
+                @for (d of empleadoDetalle.dias; track d.fecha) {
+                  <tr>
+                    <td class="hz-cap hz-nowrap">{{ d.diaLabel }}</td>
+                    <td class="hz-mono">{{ d.entrada }}</td>
+                    <td class="hz-mono">{{ d.comida }}</td>
+                    <td class="hz-mono">{{ d.salida }}</td>
+                    <td>
+                      @if (d.retardoMin > 0) {
+                        <span class="hz-badge hz-badge-bad">+{{ d.retardoMin }} min</span>
+                      } @else {
+                        <span class="hz-badge hz-badge-good">A tiempo</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       }
-
-      <p class="hz-det-rango">Periodo: <strong>{{ desde }}</strong> al <strong>{{ hasta }}</strong> · <small>ajusta las fechas de arriba para ver semana o mes</small></p>
-
-      <!-- Detalle por día -->
-      <div class="hz-tabla-wrap hz-det-tabla">
-        <table class="hz-tabla">
-          <thead>
-            <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
-          </thead>
-          <tbody>
-            @for (d of empleadoDetalle.dias; track d.fecha) {
-              <tr>
-                <td class="hz-cap">{{ d.diaLabel }}</td>
-                <td class="hz-mono">{{ d.entrada }}</td>
-                <td class="hz-mono">{{ d.comida }}</td>
-                <td class="hz-mono">{{ d.salida }}</td>
-                <td>
-                  @if (d.retardoMin > 0) {
-                    <span class="hz-badge hz-badge-bad">+{{ d.retardoMin }} min</span>
-                  } @else {
-                    <span class="hz-badge hz-badge-good">A tiempo</span>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
 
       <div class="hz-modal-actions">
         <button class="hz-btn hz-btn-primary" (click)="cerrarDetalle()">Cerrar</button>

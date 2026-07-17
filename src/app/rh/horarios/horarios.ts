@@ -95,7 +95,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       this.ngZone.run(() => this.empleados = lista);
     });
 
-    this.cargarChecadas();
+    this.ajustarRangoYCargar();
   }
 
   ngOnDestroy() {
@@ -151,6 +151,22 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   onSucursalChange() {
     this.importResumen = null;
+    this.ajustarRangoYCargar();
+  }
+
+  /** Ajusta el rango de la lista principal a los últimos 30 días CON DATOS de la sucursal. */
+  async ajustarRangoYCargar() {
+    if (!this.sucursalFiltro) { this.gruposChecadas = []; return; }
+    try {
+      const r = await this.checador.getRangoChecadas(this.sucursalFiltro);
+      if (r.max) {
+        const max = new Date(r.max + 'T00:00:00');
+        const desde = new Date(max); desde.setDate(max.getDate() - 29);
+        const min = r.min ? new Date(r.min + 'T00:00:00') : desde;
+        this.hasta = aFechaLocal(max);
+        this.desde = aFechaLocal(desde < min ? min : desde);
+      }
+    } catch { /* si falla, se queda el rango por defecto */ }
     this.cargarChecadas();
   }
 
@@ -439,45 +455,92 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.empleadoEdit = { ...e };
   }
 
-  /** Detalle completo de un empleado (modal). Null = cerrado. */
+  /** Detalle de un empleado (modal), con SU PROPIO rango de fechas independiente. */
   empleadoDetalle: {
-    nombre: string; codigo: string; sucursalId: string; fotoUrl: string;
+    nombre: string; codigo: string; sucursalId: string; fotoUrl: string; areaId?: string;
+    desde: string; hasta: string; cargando: boolean;
     dias: { fecha: string; diaLabel: string; entrada: string; comida: string; salida: string; retardoMin: number }[];
     acumulado: number; diasConRetardo: number; presupuesto: number;
   } | null = null;
 
-  /** Separa las marcas de un día en entrada / comida / salida (heurística por orden). */
+  /** Segundos desde medianoche de 'HH:mm:ss'. */
+  private minSeg(hhmmss: string): number {
+    const m = /^(\d{1,2}):(\d{2}):?(\d{2})?/.exec(hhmmss || '');
+    if (!m) return -1;
+    return (+m[1]) * 3600 + (+m[2]) * 60 + (+(m[3] || 0));
+  }
+
+  /**
+   * Separa las marcas de un día en entrada / comida / salida. Primero COLAPSA
+   * las marcas a menos de 2 min entre sí (doble-checada del mismo evento), que
+   * es lo que ensuciaba la "comida".
+   */
   private desglosarDia(marcas: Checada[]): { entrada: string; comida: string; salida: string } {
-    const horas = marcas.map(m => m.hora).sort();
-    const entrada = horas[0] || '—';
-    const salida = horas.length > 1 ? horas[horas.length - 1] : '—';
+    const horas = marcas.map(m => m.hora).filter(Boolean).sort();
+    const limpio: string[] = [];
+    for (const h of horas) {
+      const prev = limpio[limpio.length - 1];
+      if (!prev || (this.minSeg(h) - this.minSeg(prev)) >= 120) limpio.push(h);
+    }
+    const entrada = limpio[0] || '—';
+    const salida = limpio.length > 1 ? limpio[limpio.length - 1] : '—';
     let comida = '—';
-    const medio = horas.slice(1, -1);
+    const medio = limpio.slice(1, -1);
     if (medio.length >= 2) comida = `${medio[0]} – ${medio[medio.length - 1]}`;
     else if (medio.length === 1) comida = medio[0];
     return { entrada, comida, salida };
   }
 
-  /** Abre el detalle de un empleado con TODO su periodo cargado (rango de fechas). */
+  /** Abre el detalle de un empleado. Su rango arranca igual al de la lista pero es independiente. */
   abrirDetalle(emp: GrupoEmpleado) {
-    const codigo = emp.empleadoCodigo;
-    const dias: any[] = [];
-    let acumulado = 0, diasConRetardo = 0;
-    for (const dia of this.gruposChecadas) {
-      const e = dia.empleados.find(x => x.empleadoCodigo === codigo);
-      if (!e) continue;
-      const des = this.desglosarDia(e.marcas);
-      const rm = e.minutosRetardo || 0;
-      acumulado += rm;
-      if (rm > 0) diasConRetardo++;
-      dias.push({ fecha: dia.fecha, diaLabel: dia.diaLabel, entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
-    }
-    const hor = this.horarioAplicable(this.sucursalFiltro, emp.areaId, this.hasta || '');
     this.empleadoDetalle = {
       nombre: emp.empleadoNombre || '(sin registrar)',
-      codigo, sucursalId: this.sucursalFiltro, fotoUrl: this.fotoDe(codigo),
-      dias, acumulado, diasConRetardo, presupuesto: hor?.toleranciaMin ?? 15
+      codigo: emp.empleadoCodigo,
+      sucursalId: this.sucursalFiltro,
+      fotoUrl: this.fotoDe(emp.empleadoCodigo),
+      areaId: emp.areaId,
+      desde: this.desde, hasta: this.hasta, cargando: true,
+      dias: [], acumulado: 0, diasConRetardo: 0, presupuesto: 15
     };
+    this.cargarDetalle();
+  }
+
+  /** Carga (o recarga al cambiar fechas) las checadas del empleado en su rango. */
+  async cargarDetalle() {
+    const d = this.empleadoDetalle;
+    if (!d) return;
+    d.cargando = true;
+    try {
+      const checadas = await this.checador.getChecadas(d.sucursalId, d.desde, d.hasta, d.codigo);
+      const porFecha = new Map<string, Checada[]>();
+      for (const c of checadas) {
+        if (!porFecha.has(c.fecha)) porFecha.set(c.fecha, []);
+        porFecha.get(c.fecha)!.push(c);
+      }
+      const hor = this.horarioAplicable(d.sucursalId, d.areaId, d.hasta);
+      const base = hor ? this.minutos(hor.entrada) : -1;
+      const dias: any[] = [];
+      let acum = 0, conRet = 0;
+      for (const f of Array.from(porFecha.keys()).sort()) {
+        const marcas = porFecha.get(f)!.sort((a, b) => (a.fechaHora < b.fechaHora ? -1 : 1));
+        const des = this.desglosarDia(marcas);
+        let rm = 0;
+        const pMin = this.minutos(des.entrada);
+        if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
+        acum += rm;
+        if (rm > 0) conRet++;
+        dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
+      }
+      d.dias = dias;
+      d.acumulado = acum;
+      d.diasConRetardo = conRet;
+      d.presupuesto = hor?.toleranciaMin ?? 15;
+    } catch (e) {
+      console.error(e);
+      this.toast.error('No se pudo cargar el detalle del empleado.');
+    } finally {
+      d.cargando = false;
+    }
   }
   cerrarDetalle() { this.empleadoDetalle = null; }
 
