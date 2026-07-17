@@ -74,12 +74,9 @@ export const SUCURSALES: Sucursal[] = [
  * el portal de candidatos (/unete, /empleos).
  */
 export const CENTROS_INTERNOS: Sucursal[] = [
-  {
-    id: 'corporativo',
-    ciudad: 'Corporativo',
-    direccion: 'Oficinas Corporativas',
-    mapsUrl: ''
-  }
+  { id: 'corporativo', ciudad: 'Corporativo', direccion: 'Oficinas Corporativas', mapsUrl: '' },
+  { id: 'cedis',       ciudad: 'CEDIS',       direccion: 'Centro de Distribución', mapsUrl: '' },
+  { id: '8-esquinas',  ciudad: 'Morelia',     direccion: '8 Esquinas', mapsUrl: '' }
 ];
 
 /** Ubicaciones para el módulo de checador: sucursales públicas + centros internos. */
