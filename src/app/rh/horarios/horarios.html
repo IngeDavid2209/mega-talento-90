@@ -416,53 +416,62 @@
 
       @if (empleadoDetalle.cargando) {
         <div class="hz-empty">Cargando asistencia…</div>
+      } @else if (!empleadoDetalle.semanas.length) {
+        <div class="hz-empty">Sin checadas en este periodo. Ajusta las fechas.</div>
       } @else {
-        <!-- Resumen -->
+        <!-- Resumen del periodo -->
         <div class="hz-det-tiles">
-          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumulado > 0">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.acumulado }} min</span>
-            <span class="hz-det-tile-lbl">Retardo acumulado</span>
+          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumuladoTotal > 0">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.acumuladoTotal }} min</span>
+            <span class="hz-det-tile-lbl">Retardo total</span>
           </div>
-          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.diasConRetardo > 0">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.dias.length }}</span>
+          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.semanasExcedidas > 0">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.semanasExcedidas }}</span>
+            <span class="hz-det-tile-lbl">Semanas excedidas</span>
+          </div>
+          <div class="hz-det-tile">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.diasRegistrados }}</span>
             <span class="hz-det-tile-lbl">Días con retardo</span>
           </div>
           <div class="hz-det-tile">
             <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
-            <span class="hz-det-tile-lbl">Tolerancia diaria</span>
-          </div>
-          <div class="hz-det-tile">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.dias.length }}</span>
-            <span class="hz-det-tile-lbl">Días registrados</span>
+            <span class="hz-det-tile-lbl">Tolerancia semanal</span>
           </div>
         </div>
 
-        @if (!empleadoDetalle.dias.length) {
-          <div class="hz-empty">Sin checadas en este periodo. Ajusta las fechas.</div>
-        } @else {
-          <div class="hz-tabla-wrap hz-det-tabla">
-            <table class="hz-tabla">
-              <thead>
-                <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
-              </thead>
-              <tbody>
-                @for (d of empleadoDetalle.dias; track d.fecha) {
-                  <tr>
-                    <td class="hz-cap hz-nowrap">{{ d.diaLabel }}</td>
-                    <td class="hz-mono">{{ d.entrada }}</td>
-                    <td class="hz-mono">{{ d.comida }}</td>
-                    <td class="hz-mono">{{ d.salida }}</td>
-                    <td>
-                      @if (d.retardoMin > 0) {
-                        <span class="hz-badge hz-badge-bad">+{{ d.retardoMin }} min</span>
-                      } @else {
-                        <span class="hz-badge hz-badge-good">A tiempo</span>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+        <!-- Cada semana (miércoles → martes) con su acumulado vs la tolerancia -->
+        @for (sem of empleadoDetalle.semanas; track sem.inicio) {
+          <div class="hz-sem" [class.hz-sem-bad]="sem.excedido">
+            <div class="hz-sem-head">
+              <span class="hz-sem-rango hz-cap">Semana: {{ sem.label }}</span>
+              <span class="hz-badge" [class.hz-badge-bad]="sem.excedido" [class.hz-badge-good]="!sem.excedido">
+                {{ sem.acumulado }} / {{ empleadoDetalle.presupuesto }} min
+              </span>
+            </div>
+            <div class="hz-tabla-wrap">
+              <table class="hz-tabla">
+                <thead>
+                  <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+                </thead>
+                <tbody>
+                  @for (d of sem.dias; track d.fecha) {
+                    <tr>
+                      <td class="hz-cap hz-nowrap">{{ d.diaLabel }}</td>
+                      <td class="hz-mono">{{ d.entrada }}</td>
+                      <td class="hz-mono">{{ d.comida }}</td>
+                      <td class="hz-mono">{{ d.salida }}</td>
+                      <td>
+                        @if (d.retardoMin > 0) {
+                          <span class="hz-badge hz-badge-bad">+{{ d.retardoMin }} min</span>
+                        } @else {
+                          <span class="hz-badge hz-badge-good">A tiempo</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         }
       }

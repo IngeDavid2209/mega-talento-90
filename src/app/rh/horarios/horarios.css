@@ -305,6 +305,23 @@
 .hz-cap { text-transform: capitalize; }
 .hz-nowrap { white-space: nowrap; }
 
+/* Secciones por semana (mié→mar) dentro del detalle */
+.hz-sem {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.hz-sem.hz-sem-bad { border-left-color: var(--red); }
+.hz-sem-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.hz-sem-rango { font-size: 13px; font-weight: 700; color: var(--ink); }
+
 /* Fechas propias del empleado dentro del modal */
 .hz-det-fechas {
   display: flex; gap: 12px; flex-wrap: wrap;

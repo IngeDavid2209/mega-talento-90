@@ -280,13 +280,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
         let minutosRetardo = 0;
         const hor = this.horarioAplicable(primera.sucursalId, areaId, fecha);
         if (hor) {
-          // Tolerancia diaria de 15 min: a tiempo si llega dentro del límite
-          // (entrada + tolerancia). Pasando el límite, cuenta los minutos extra.
+          // Retardo diario = minutos EXACTOS de tardanza desde la hora de entrada
+          // (9:03 con entrada 9:00 = 3 min). La tolerancia de 15 min es TOTAL por
+          // semana (mié→mar); se acumula en el detalle del empleado.
           const base = this.minutos(hor.entrada);
-          const tol = hor.toleranciaMin || 0;
           const primeraMin = this.minutos(primera.hora);
           if (base >= 0 && primeraMin >= 0) {
-            minutosRetardo = Math.max(0, primeraMin - base - tol);
+            minutosRetardo = Math.max(0, primeraMin - base);
             retardo = minutosRetardo > 0;
           }
         }
@@ -456,13 +456,29 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.empleadoEdit = { ...e };
   }
 
-  /** Detalle de un empleado (modal), con SU PROPIO rango de fechas independiente. */
+  /** Detalle de un empleado (modal), con SU PROPIO rango, agrupado por SEMANA (mié→mar). */
   empleadoDetalle: {
     nombre: string; codigo: string; sucursalId: string; fotoUrl: string; areaId?: string;
     desde: string; hasta: string; cargando: boolean;
-    dias: { fecha: string; diaLabel: string; entrada: string; comida: string; salida: string; retardoMin: number }[];
-    acumulado: number; diasConRetardo: number; presupuesto: number;
+    presupuesto: number; acumuladoTotal: number; diasConRetardo: number; diasRegistrados: number; semanasExcedidas: number;
+    semanas: {
+      inicio: string; label: string; acumulado: number; excedido: boolean;
+      dias: { fecha: string; diaLabel: string; entrada: string; comida: string; salida: string; retardoMin: number }[];
+    }[];
   } | null = null;
+
+  /** Inicio de la semana (miércoles) que contiene a la fecha dada. */
+  private inicioSemana(fecha: string): Date {
+    const d = new Date(fecha + 'T00:00:00');
+    const off = (d.getDay() - 3 + 7) % 7; // días transcurridos desde el miércoles
+    d.setDate(d.getDate() - off);
+    return d;
+  }
+  private etiquetaSemana(inicio: Date): string {
+    const fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
+    const f = (x: Date) => x.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' });
+    return `${f(inicio)} → ${f(fin)}`;
+  }
 
   /** Segundos desde medianoche de 'HH:mm:ss'. */
   private minSeg(hhmmss: string): number {
@@ -501,7 +517,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       fotoUrl: this.fotoDe(emp.empleadoCodigo),
       areaId: emp.areaId,
       desde: this.desde, hasta: this.hasta, cargando: true,
-      dias: [], acumulado: 0, diasConRetardo: 0, presupuesto: 15
+      presupuesto: 15, acumuladoTotal: 0, diasConRetardo: 0, diasRegistrados: 0, semanasExcedidas: 0, semanas: []
     };
     this.cargarDetalle();
   }
@@ -515,7 +531,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       fotoUrl: e.fotoUrl || '',
       areaId: undefined,
       desde: this.desde, hasta: this.hasta, cargando: true,
-      dias: [], acumulado: 0, diasConRetardo: 0, presupuesto: 15
+      presupuesto: 15, acumuladoTotal: 0, diasConRetardo: 0, diasRegistrados: 0, semanasExcedidas: 0, semanas: []
     };
     this.cargarDetalle();
   }
@@ -534,23 +550,42 @@ export class HorariosComponent implements OnInit, OnDestroy {
       }
       const hor = this.horarioAplicable(d.sucursalId, d.areaId, d.hasta);
       const base = hor ? this.minutos(hor.entrada) : -1;
-      const tol = hor?.toleranciaMin || 0;
-      const dias: any[] = [];
-      let acum = 0, conRet = 0;
+      const presupuesto = hor?.toleranciaMin ?? 15;
+
+      // Día por día (retardo = minutos exactos desde la entrada) agrupado por semana (mié→mar).
+      const porSemana = new Map<string, any>();
+      let acumTotal = 0, conRet = 0, diasReg = 0;
       for (const f of Array.from(porFecha.keys()).sort()) {
         const marcas = porFecha.get(f)!.sort((a, b) => (a.fechaHora < b.fechaHora ? -1 : 1));
         const des = this.desglosarDia(marcas);
         let rm = 0;
         const pMin = this.minutos(des.entrada);
-        if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base - tol);
-        acum += rm;
+        if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
+        acumTotal += rm; diasReg++;
         if (rm > 0) conRet++;
-        dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
+
+        const claveIni = aFechaLocal(this.inicioSemana(f));
+        if (!porSemana.has(claveIni)) {
+          porSemana.set(claveIni, {
+            inicio: claveIni, label: this.etiquetaSemana(this.inicioSemana(f)),
+            acumulado: 0, excedido: false, dias: []
+          });
+        }
+        const sem = porSemana.get(claveIni);
+        sem.acumulado += rm;
+        sem.dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
       }
-      d.dias = dias;
-      d.acumulado = acum;
+
+      const semanas = Array.from(porSemana.values()).sort((a, b) => (a.inicio < b.inicio ? -1 : 1));
+      let semExc = 0;
+      for (const s of semanas) { s.excedido = s.acumulado > presupuesto; if (s.excedido) semExc++; }
+
+      d.semanas = semanas;
+      d.acumuladoTotal = acumTotal;
       d.diasConRetardo = conRet;
-      d.presupuesto = hor?.toleranciaMin ?? 15;
+      d.diasRegistrados = diasReg;
+      d.semanasExcedidas = semExc;
+      d.presupuesto = presupuesto;
     } catch (e) {
       console.error(e);
       this.toast.error('No se pudo cargar el detalle del empleado.');
