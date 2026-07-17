@@ -68,6 +68,28 @@ export const SUCURSALES: Sucursal[] = [
   }
 ];
 
+/**
+ * Centros de trabajo INTERNOS (corporativo, bodegas, etc.) que NO son sucursales
+ * públicas: sirven para el módulo de Horarios/checadas pero NO deben aparecer en
+ * el portal de candidatos (/unete, /empleos).
+ */
+export const CENTROS_INTERNOS: Sucursal[] = [
+  {
+    id: 'corporativo',
+    ciudad: 'Corporativo',
+    direccion: 'Oficinas Corporativas',
+    mapsUrl: ''
+  }
+];
+
+/** Ubicaciones para el módulo de checador: sucursales públicas + centros internos. */
+export const CENTROS_CHECADOR: Sucursal[] = [...SUCURSALES, ...CENTROS_INTERNOS];
+
+/** Busca una ubicación de checador (sucursal pública o centro interno) por id. */
+export function centroChecadorPorId(id: string): Sucursal | undefined {
+  return CENTROS_CHECADOR.find(s => s.id === id);
+}
+
 /** Ciudades únicas del catálogo, en el orden en que aparecen. */
 export function ciudadesUnicas(): string[] {
   const out: string[] = [];
