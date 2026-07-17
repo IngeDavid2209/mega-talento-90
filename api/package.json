@@ -11,7 +11,8 @@
     "migrate": "node dist/scripts/migrate.js",
     "migrate:dev": "tsx src/scripts/migrate.ts",
     "seed:admin": "node dist/scripts/seed-admin.js",
-    "seed:admin:dev": "tsx src/scripts/seed-admin.ts"
+    "seed:admin:dev": "tsx src/scripts/seed-admin.ts",
+    "limpiar:dup-rfc": "tsx src/scripts/limpiar-dup-rfc.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

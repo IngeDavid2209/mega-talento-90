@@ -83,12 +83,12 @@
 
             <div class="hz-chk-cards">
               @for (emp of dia.empleados; track emp.empleadoCodigo) {
-                <div class="hz-chk-card"
+                <div class="hz-chk-card hz-chk-click"
                      [class.hz-chk-retardo]="emp.retardo === true"
                      [class.hz-chk-ok]="emp.retardo === false"
-                     [class.hz-chk-abierta]="estaExpandido(dia.fecha, emp.empleadoCodigo)">
-                  <!-- Fila principal (clic = desplegar detalle) -->
-                  <div class="hz-chk-top" (click)="toggleDetalle(dia.fecha, emp.empleadoCodigo)">
+                     (click)="abrirDetalle(emp)"
+                     title="Ver detalle del empleado">
+                  <div class="hz-chk-top">
                     <div class="hz-emp-avatar hz-avatar-sm">
                       @if (fotoDe(emp.empleadoCodigo)) {
                         <img [src]="fotoDe(emp.empleadoCodigo)" [alt]="emp.empleadoNombre">
@@ -116,29 +116,8 @@
                         <span class="hz-badge hz-badge-good">A tiempo</span>
                       }
                     </div>
-                    <span class="hz-chk-chevron">▾</span>
+                    <span class="hz-chk-chevron">›</span>
                   </div>
-
-                  <!-- Detalle desplegable -->
-                  @if (estaExpandido(dia.fecha, emp.empleadoCodigo)) {
-                    <div class="hz-chk-detalle">
-                      <div class="hz-chk-det-title">Todas las marcas del día</div>
-                      <div class="hz-marcas">
-                        @for (m of emp.marcas; track m.id || m.fechaHora) {
-                          <span class="hz-marca">
-                            {{ m.hora }}@if (tipoLabel(m.tipo)) { <small>· {{ tipoLabel(m.tipo) }}</small> }
-                          </span>
-                        }
-                      </div>
-                      <div class="hz-chk-det-info">
-                        <span><strong>Entrada:</strong> {{ emp.primera }}</span>
-                        <span><strong>Salida:</strong> {{ emp.ultima }}</span>
-                        <span><strong>Total marcas:</strong> {{ emp.marcas.length }}</span>
-                        @if (emp.areaId) { <span><strong>Área:</strong> {{ nombreArea(emp.areaId) }}</span> }
-                        @if (emp.retardo) { <span class="hz-emp-inactivo-tag"><strong>Retardo:</strong> {{ emp.minutosRetardo }} min</span> }
-                      </div>
-                    </div>
-                  }
                 </div>
               }
             </div>
@@ -436,6 +415,83 @@
       <div class="hz-modal-actions">
         <button class="hz-btn hz-btn-ghost" (click)="cerrarModales()">Cancelar</button>
         <button class="hz-btn hz-btn-primary" (click)="guardarEmpleadoModal()">Guardar</button>
+      </div>
+    </div>
+  }
+
+  <!-- ============================ MODAL DETALLE EMPLEADO ============================ -->
+  @if (empleadoDetalle) {
+    <div class="hz-modal-overlay" (click)="cerrarDetalle()"></div>
+    <div class="hz-modal hz-modal-lg" role="dialog" aria-modal="true">
+      <div class="hz-det-head">
+        <div class="hz-emp-avatar hz-avatar-lg">
+          @if (empleadoDetalle.fotoUrl) {
+            <img [src]="empleadoDetalle.fotoUrl" [alt]="empleadoDetalle.nombre">
+          } @else {
+            <span>{{ iniciales(empleadoDetalle.nombre) }}</span>
+          }
+        </div>
+        <div class="hz-det-head-info">
+          <h3>{{ empleadoDetalle.nombre }}</h3>
+          <div class="hz-det-sub">Cód. {{ empleadoDetalle.codigo }} · {{ nombreSucursal(empleadoDetalle.sucursalId) }}</div>
+        </div>
+        <button class="hz-det-close" (click)="cerrarDetalle()">✕</button>
+      </div>
+
+      <!-- Resumen -->
+      <div class="hz-det-tiles">
+        <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumulado > empleadoDetalle.presupuesto">
+          <span class="hz-det-tile-num">{{ empleadoDetalle.acumulado }} min</span>
+          <span class="hz-det-tile-lbl">Retardo acumulado</span>
+        </div>
+        <div class="hz-det-tile">
+          <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
+          <span class="hz-det-tile-lbl">Presupuesto del periodo</span>
+        </div>
+        <div class="hz-det-tile" [class.hz-tile-bad]="(empleadoDetalle.presupuesto - empleadoDetalle.acumulado) < 0">
+          <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto - empleadoDetalle.acumulado }} min</span>
+          <span class="hz-det-tile-lbl">Restante</span>
+        </div>
+        <div class="hz-det-tile">
+          <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.dias.length }}</span>
+          <span class="hz-det-tile-lbl">Días con retardo</span>
+        </div>
+      </div>
+
+      @if (empleadoDetalle.acumulado > empleadoDetalle.presupuesto) {
+        <div class="hz-det-alerta">⚠️ Superó el presupuesto de {{ empleadoDetalle.presupuesto }} min de retardo en este periodo.</div>
+      }
+
+      <p class="hz-det-rango">Periodo: <strong>{{ desde }}</strong> al <strong>{{ hasta }}</strong> · <small>ajusta las fechas de arriba para ver semana o mes</small></p>
+
+      <!-- Detalle por día -->
+      <div class="hz-tabla-wrap hz-det-tabla">
+        <table class="hz-tabla">
+          <thead>
+            <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+          </thead>
+          <tbody>
+            @for (d of empleadoDetalle.dias; track d.fecha) {
+              <tr>
+                <td class="hz-cap">{{ d.diaLabel }}</td>
+                <td class="hz-mono">{{ d.entrada }}</td>
+                <td class="hz-mono">{{ d.comida }}</td>
+                <td class="hz-mono">{{ d.salida }}</td>
+                <td>
+                  @if (d.retardoMin > 0) {
+                    <span class="hz-badge hz-badge-bad">+{{ d.retardoMin }} min</span>
+                  } @else {
+                    <span class="hz-badge hz-badge-good">A tiempo</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hz-modal-actions">
+        <button class="hz-btn hz-btn-primary" (click)="cerrarDetalle()">Cerrar</button>
       </div>
     </div>
   }

@@ -253,6 +253,62 @@
   border-radius: 6px; padding: 3px 8px;
 }
 .hz-marca small { color: var(--text3); }
+
+/* Tarjeta de checada clicable (abre el detalle) */
+.hz-chk-click { cursor: pointer; transition: box-shadow 0.15s, transform 0.15s; }
+.hz-chk-click:hover { box-shadow: 0 6px 18px -8px rgba(26, 47, 78, 0.28); transform: translateY(-1px); }
+.hz-chk-chevron { flex-shrink: 0; color: var(--text3); font-size: 18px; font-weight: 700; }
+
+/* ===== MODAL DETALLE DE EMPLEADO ===== */
+.hz-modal-lg { max-width: 760px; }
+.hz-det-head {
+  display: flex; align-items: center; gap: 14px;
+  padding-bottom: 16px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.hz-det-head-info { flex: 1; min-width: 0; }
+.hz-det-head h3 { margin: 0; font-size: 18px; color: var(--ink); }
+.hz-det-sub { font-size: 12.5px; color: var(--gold); font-weight: 700; margin-top: 2px; }
+.hz-det-close {
+  border: none; background: var(--surface2); color: var(--text2);
+  width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  font-size: 15px; flex-shrink: 0;
+}
+.hz-det-close:hover { background: var(--border-med); color: var(--ink); }
+
+.hz-det-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.hz-det-tile {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.hz-det-tile.hz-tile-bad { background: var(--red-bg); border-color: var(--red); }
+.hz-det-tile-num { display: block; font-size: 19px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hz-det-tile.hz-tile-bad .hz-det-tile-num { color: var(--red-text); }
+.hz-det-tile-lbl { display: block; font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+.hz-det-alerta {
+  background: var(--red-bg); color: var(--red-text);
+  border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600;
+  margin-bottom: 12px;
+}
+.hz-det-rango { font-size: 12.5px; color: var(--text2); margin: 0 0 10px; }
+.hz-det-rango strong { color: var(--ink); }
+.hz-det-tabla { max-height: 46vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+.hz-cap { text-transform: capitalize; }
+
+@media (max-width: 640px) {
+  .hz-det-tiles { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Selector de días (modal horario) */
 .hz-chk-body { flex: 1; min-width: 0; }
 .hz-chk-nombre {
   font-size: 13.5px; font-weight: 700; color: var(--ink);

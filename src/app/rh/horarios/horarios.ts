@@ -264,12 +264,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
         let minutosRetardo = 0;
         const hor = this.horarioAplicable(primera.sucursalId, areaId, fecha);
         if (hor) {
+          // Retardo = minutos EXACTOS de tardanza (llegó 9:03 con entrada 9:00 = 3 min).
+          // El "presupuesto" de 15 min es acumulado del periodo (ver detalle del empleado).
           const base = this.minutos(hor.entrada);
-          const limite = base + (hor.toleranciaMin || 0);
           const primeraMin = this.minutos(primera.hora);
           if (base >= 0 && primeraMin >= 0) {
-            retardo = primeraMin > limite;
-            minutosRetardo = retardo ? primeraMin - base : 0;
+            minutosRetardo = Math.max(0, primeraMin - base);
+            retardo = minutosRetardo > 0;
           }
         }
 
@@ -438,16 +439,47 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.empleadoEdit = { ...e };
   }
 
-  /** Tarjetas de checada expandidas (clave = fecha__codigo). */
-  private expandidos = new Set<string>();
-  toggleDetalle(fecha: string, codigo: string) {
-    const k = `${fecha}__${codigo}`;
-    if (this.expandidos.has(k)) this.expandidos.delete(k);
-    else this.expandidos.add(k);
+  /** Detalle completo de un empleado (modal). Null = cerrado. */
+  empleadoDetalle: {
+    nombre: string; codigo: string; sucursalId: string; fotoUrl: string;
+    dias: { fecha: string; diaLabel: string; entrada: string; comida: string; salida: string; retardoMin: number }[];
+    acumulado: number; diasConRetardo: number; presupuesto: number;
+  } | null = null;
+
+  /** Separa las marcas de un día en entrada / comida / salida (heurística por orden). */
+  private desglosarDia(marcas: Checada[]): { entrada: string; comida: string; salida: string } {
+    const horas = marcas.map(m => m.hora).sort();
+    const entrada = horas[0] || '—';
+    const salida = horas.length > 1 ? horas[horas.length - 1] : '—';
+    let comida = '—';
+    const medio = horas.slice(1, -1);
+    if (medio.length >= 2) comida = `${medio[0]} – ${medio[medio.length - 1]}`;
+    else if (medio.length === 1) comida = medio[0];
+    return { entrada, comida, salida };
   }
-  estaExpandido(fecha: string, codigo: string): boolean {
-    return this.expandidos.has(`${fecha}__${codigo}`);
+
+  /** Abre el detalle de un empleado con TODO su periodo cargado (rango de fechas). */
+  abrirDetalle(emp: GrupoEmpleado) {
+    const codigo = emp.empleadoCodigo;
+    const dias: any[] = [];
+    let acumulado = 0, diasConRetardo = 0;
+    for (const dia of this.gruposChecadas) {
+      const e = dia.empleados.find(x => x.empleadoCodigo === codigo);
+      if (!e) continue;
+      const des = this.desglosarDia(e.marcas);
+      const rm = e.minutosRetardo || 0;
+      acumulado += rm;
+      if (rm > 0) diasConRetardo++;
+      dias.push({ fecha: dia.fecha, diaLabel: dia.diaLabel, entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
+    }
+    const hor = this.horarioAplicable(this.sucursalFiltro, emp.areaId, this.hasta || '');
+    this.empleadoDetalle = {
+      nombre: emp.empleadoNombre || '(sin registrar)',
+      codigo, sucursalId: this.sucursalFiltro, fotoUrl: this.fotoDe(codigo),
+      dias, acumulado, diasConRetardo, presupuesto: hor?.toleranciaMin ?? 15
+    };
   }
+  cerrarDetalle() { this.empleadoDetalle = null; }
 
   /** Foto de un empleado (por código, en la sucursal filtrada) para las tarjetas de checadas. */
   fotoDe(codigo: string): string {

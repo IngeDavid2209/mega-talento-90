@@ -94,6 +94,17 @@ candidatosRouter.get('/duplicado', async (req: Request, res: Response) => {
 candidatosRouter.post('/', async (req: Request, res: Response) => {
   try {
     const d = req.body || {};
+
+    // ── Filtro de CV (servidor): el formulario /unete ya exige CV del lado
+    // cliente, pero el endpoint es público. Rechazamos altas web sin CV para que
+    // no entren postulaciones vacías (spam). Las altas del bot de WhatsApp se
+    // excluyen: su CV no viaja en cvUrl (queda en la columna `documentos`).
+    const esBot = String(d.origen || '').toLowerCase() === 'whatsapp-bot' || /bot/i.test(String(d.fuente || ''));
+    const tieneCv = !!(d.cvUrl && String(d.cvUrl).trim()) || !!(d.cvUrlReverso && String(d.cvUrlReverso).trim());
+    if (!esBot && !tieneCv) {
+      return res.status(400).json({ error: 'Es obligatorio adjuntar tu CV para postularte.' });
+    }
+
     const esp = columnasEspejo(d);
     const { rows } = await pool.query(
       `INSERT INTO candidatos
