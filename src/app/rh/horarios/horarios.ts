@@ -438,6 +438,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.empleadoEdit = { ...e };
   }
 
+  /** Foto de un empleado (por código, en la sucursal filtrada) para las tarjetas de checadas. */
+  fotoDe(codigo: string): string {
+    const e = this.empleados.find(x =>
+      x.sucursalId === this.sucursalFiltro && String(x.codigoChecador).trim() === String(codigo).trim());
+    return e?.fotoUrl || '';
+  }
+
   /** Iniciales para el avatar cuando el empleado no tiene foto. */
   iniciales(nombre: string): string {
     if (!nombre) return '?';

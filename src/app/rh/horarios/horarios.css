@@ -1,6 +1,6 @@
 /* ============================================================
    HORARIOS Y CHECADAS · Panel RH
-   Acento rojo #b8232f, tablas limpias, modales centrados.
+   Paleta institucional navy + dorado (variables de styles.css).
    ============================================================ */
 
 .hz-page {
@@ -8,7 +8,7 @@
   max-width: 1200px;
   margin: 0 auto;
   box-sizing: border-box;
-  color: #1f2937;
+  color: var(--text);
 }
 
 /* ENCABEZADO */
@@ -17,10 +17,10 @@
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  color: #111827;
+  color: var(--ink);
   letter-spacing: -0.02em;
 }
-.hz-sub { margin: 4px 0 0; color: #6b7280; font-size: 13.5px; }
+.hz-sub { margin: 4px 0 0; color: var(--text2); font-size: 13.5px; }
 
 /* BARRA superior (sucursal) */
 .hz-toolbar {
@@ -33,24 +33,24 @@
 
 /* CAMPOS */
 .hz-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
-.hz-field label { font-size: 12px; font-weight: 600; color: #374151; }
-.hz-field label small { color: #9ca3af; font-weight: 500; }
+.hz-field label { font-size: 12px; font-weight: 600; color: var(--text); }
+.hz-field label small { color: var(--text3); font-weight: 500; }
 .hz-field input,
 .hz-field select {
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border-med);
   border-radius: 9px;
   padding: 9px 11px;
   font-size: 14px;
   font-family: inherit;
-  color: #111827;
-  background: #fff;
+  color: var(--text);
+  background: var(--surface);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .hz-field input:focus,
 .hz-field select:focus {
-  border-color: #b8232f;
-  box-shadow: 0 0 0 3px rgba(184, 35, 47, 0.1);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(26, 47, 78, 0.12);
 }
 .hz-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .hz-check {
@@ -58,17 +58,17 @@
   align-items: center;
   gap: 8px;
   font-size: 13.5px;
-  color: #374151;
+  color: var(--text);
   margin: 6px 0 4px;
   cursor: pointer;
 }
-.hz-check input { width: 16px; height: 16px; accent-color: #b8232f; }
+.hz-check input { width: 16px; height: 16px; accent-color: var(--brand); }
 
 /* PESTAÑAS */
 .hz-tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 2px solid #f0f0f2;
+  border-bottom: 2px solid var(--border);
   margin-bottom: 18px;
   overflow-x: auto;
 }
@@ -78,7 +78,7 @@
   padding: 11px 16px;
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text2);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
@@ -86,8 +86,8 @@
   font-family: inherit;
   transition: color 0.15s, border-color 0.15s;
 }
-.hz-tabs button:hover { color: #b8232f; }
-.hz-tabs button.active { color: #b8232f; border-bottom-color: #b8232f; }
+.hz-tabs button:hover { color: var(--ink); }
+.hz-tabs button.active { color: var(--ink); border-bottom-color: var(--gold); }
 
 /* PANEL */
 .hz-panel { animation: hz-fade 0.2s ease; }
@@ -101,7 +101,7 @@
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
-.hz-panel-head h2 { margin: 0; font-size: 16px; font-weight: 700; color: #111827; }
+.hz-panel-head h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
 
 /* BOTONES */
 .hz-btn {
@@ -119,10 +119,10 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.hz-btn-primary { background: #b8232f; color: #fff; }
-.hz-btn-primary:hover { background: #9a1c27; }
-.hz-btn-ghost { background: #fff; color: #374151; border-color: #d1d5db; }
-.hz-btn-ghost:hover { border-color: #b8232f; color: #b8232f; }
+.hz-btn-primary { background: var(--brand); color: #fff; }
+.hz-btn-primary:hover { background: var(--brand-deep); }
+.hz-btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+.hz-btn-ghost:hover { border-color: var(--brand); color: var(--brand); }
 .hz-disabled { opacity: 0.6; pointer-events: none; }
 
 /* Barra de checadas */
@@ -137,60 +137,91 @@
 
 .hz-hint {
   font-size: 12.5px;
-  color: #6b7280;
-  background: #f9fafb;
-  border: 1px solid #f0f0f2;
-  border-left: 3px solid #b8232f;
+  color: var(--text2);
+  background: var(--gold-bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 4px 0 16px;
   line-height: 1.5;
 }
+.hz-hint strong { color: var(--ink); }
 
 /* Resumen de importación */
 .hz-resumen { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .hz-chip {
   font-size: 12px; font-weight: 700;
   padding: 5px 11px; border-radius: 999px;
-  background: #f3f4f6; color: #374151;
+  background: var(--surface2); color: var(--text);
 }
-.hz-chip-ok { background: #ecfdf5; color: #047857; }
-.hz-chip-warn { background: #fffbeb; color: #b45309; }
-.hz-chip-mute { background: #f3f4f6; color: #9ca3af; }
+.hz-chip-ok { background: var(--green-bg); color: var(--green-text); }
+.hz-chip-warn { background: var(--amber-bg); color: var(--amber-text); }
+.hz-chip-mute { background: var(--surface2); color: var(--text3); }
 
 /* Estados vacíos */
 .hz-empty {
   text-align: center;
   padding: 40px 20px;
-  color: #9ca3af;
+  color: var(--text3);
   font-size: 14px;
-  background: #fafafa;
-  border: 1px dashed #e5e7eb;
+  background: var(--surface3);
+  border: 1px dashed var(--border-med);
   border-radius: 12px;
 }
 
 /* DÍA (checadas) */
 .hz-dia {
-  border: 1px solid #ececef;
+  border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 16px;
   overflow: hidden;
-  background: #fff;
+  background: var(--surface);
 }
 .hz-dia-head {
   display: flex;
   align-items: baseline;
   gap: 10px;
   padding: 11px 16px;
-  background: #fafafa;
-  border-bottom: 1px solid #ececef;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
   text-transform: capitalize;
 }
-.hz-dia-head strong { font-size: 14.5px; color: #111827; }
-.hz-dia-fecha { font-size: 12px; color: #9ca3af; font-variant-numeric: tabular-nums; }
-.hz-dia-count { font-size: 12px; color: #6b7280; margin-left: auto; }
+.hz-dia-head strong { font-size: 14.5px; color: var(--ink); }
+.hz-dia-fecha { font-size: 12px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.hz-dia-count { font-size: 12px; color: var(--text2); margin-left: auto; }
 
-/* TABLAS */
+/* TARJETAS DE CHECADAS */
+.hz-chk-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 14px 16px;
+}
+.hz-chk-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-med);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.hz-chk-card.hz-chk-ok { border-left-color: var(--green); }
+.hz-chk-card.hz-chk-retardo { border-left-color: var(--red); }
+.hz-chk-body { flex: 1; min-width: 0; }
+.hz-chk-nombre {
+  font-size: 13.5px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hz-chk-cod { font-size: 11px; font-weight: 500; color: var(--text3); margin-left: 4px; }
+.hz-chk-horas { display: flex; gap: 12px; margin-top: 3px; flex-wrap: wrap; }
+.hz-chk-h { font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+.hz-chk-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.03em; margin-right: 3px; }
+.hz-chk-estado { flex-shrink: 0; }
+
+/* TABLAS (usadas en Horarios y Áreas) */
 .hz-tabla-wrap { overflow-x: auto; }
 .hz-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .hz-tabla thead th {
@@ -200,51 +231,37 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #9ca3af;
-  border-bottom: 1px solid #ececef;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .hz-tabla tbody td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
 .hz-tabla tbody tr:last-child td { border-bottom: none; }
-.hz-tabla tbody tr:hover { background: #fcfcfd; }
+.hz-tabla tbody tr:hover { background: var(--surface3); }
 .hz-inactivo { opacity: 0.5; }
-.hz-mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; }
-
-.hz-emp-nombre { font-weight: 600; color: #111827; }
-.hz-emp-cod { font-size: 11.5px; color: #9ca3af; margin-top: 2px; }
-
-/* Marcas del día */
-.hz-marcas { display: flex; flex-wrap: wrap; gap: 4px; }
-.hz-marca {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  background: #f3f4f6;
-  color: #4b5563;
-  border-radius: 6px;
-  padding: 2px 6px;
-  cursor: default;
-}
+.hz-mono { font-variant-numeric: tabular-nums; font-family: 'DM Mono', ui-monospace, monospace; font-size: 12.5px; }
 
 /* Badges de estado */
 .hz-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
-.hz-badge-good { background: #ecfdf5; color: #047857; }
-.hz-badge-bad { background: #fef2f2; color: #b8232f; }
-.hz-badge-mute { background: #f3f4f6; color: #9ca3af; }
+.hz-badge-good { background: var(--green-bg); color: var(--green-text); }
+.hz-badge-bad { background: var(--red-bg); color: var(--red-text); }
+.hz-badge-mute { background: var(--surface2); color: var(--text3); }
 
-/* Acciones de fila */
+/* Acciones de fila / tarjeta */
 .hz-acciones { white-space: nowrap; text-align: right; }
 .hz-link {
   border: none; background: none;
-  color: #b8232f; font-weight: 600; font-size: 13px;
+  color: var(--brand); font-weight: 600; font-size: 13px;
   cursor: pointer; padding: 4px 6px; border-radius: 6px;
   font-family: inherit;
 }
-.hz-link:hover { background: #fef2f2; }
-.hz-danger { color: #dc2626; }
+.hz-link:hover { background: var(--brand-bg); }
+.hz-danger { color: var(--red-brand); }
+.hz-danger:hover { background: var(--red-brand-bg); }
 
 /* ===== EMPLEADOS EN TARJETAS ===== */
 .hz-emp-cat {
@@ -252,11 +269,11 @@
   align-items: baseline;
   gap: 10px;
   padding: 8px 2px 12px;
-  border-bottom: 2px solid #f0f0f2;
+  border-bottom: 2px solid var(--border);
   margin-bottom: 16px;
 }
-.hz-emp-cat-title { font-size: 15px; font-weight: 800; color: #111827; }
-.hz-emp-cat-count { font-size: 12.5px; color: #9ca3af; }
+.hz-emp-cat-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+.hz-emp-cat-count { font-size: 12.5px; color: var(--text3); }
 
 .hz-emp-cards {
   display: grid;
@@ -267,15 +284,15 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid #ececef;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 14px;
   transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
 }
 .hz-emp-card:hover {
-  border-color: #e5c9cc;
-  box-shadow: 0 6px 18px -8px rgba(184, 35, 47, 0.25);
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 18px -8px rgba(26, 47, 78, 0.25);
   transform: translateY(-1px);
 }
 .hz-emp-card.hz-inactivo { opacity: 0.55; }
@@ -286,21 +303,24 @@
   border-radius: 50%;
   overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #b8232f 0%, #7f1620 100%);
+  background: linear-gradient(135deg, var(--ink-soft) 0%, var(--ink-deep) 100%);
   color: #fff; font-weight: 800; font-size: 15px;
   letter-spacing: 0.02em;
+  border: 2px solid var(--gold);
+  box-sizing: border-box;
 }
 .hz-emp-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .hz-avatar-lg { width: 72px; height: 72px; font-size: 22px; }
+.hz-avatar-sm { width: 40px; height: 40px; font-size: 13px; border-width: 1.5px; }
 
 .hz-emp-info { min-width: 0; flex: 1; }
 .hz-emp-card-nombre {
-  font-size: 14.5px; font-weight: 700; color: #111827;
+  font-size: 14.5px; font-weight: 700; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.hz-emp-card-suc { font-size: 12.5px; color: #b8232f; font-weight: 600; margin-top: 1px; }
-.hz-emp-card-meta { font-size: 11.5px; color: #9ca3af; margin-top: 3px; }
-.hz-emp-inactivo-tag { color: #dc2626; font-weight: 600; }
+.hz-emp-card-suc { font-size: 12.5px; color: var(--gold); font-weight: 700; margin-top: 1px; }
+.hz-emp-card-meta { font-size: 11.5px; color: var(--text3); margin-top: 3px; }
+.hz-emp-inactivo-tag { color: var(--red); font-weight: 600; }
 .hz-emp-card-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 
 /* Editor de foto en el modal */
@@ -310,9 +330,9 @@
 /* Selector de días (modal horario) */
 .hz-dias { display: flex; gap: 6px; flex-wrap: wrap; }
 .hz-dia-btn {
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  color: #6b7280;
+  border: 1.5px solid var(--border-med);
+  background: var(--surface);
+  color: var(--text2);
   border-radius: 8px;
   padding: 7px 10px;
   font-size: 12.5px;
@@ -322,12 +342,12 @@
   min-width: 44px;
   transition: all 0.15s;
 }
-.hz-dia-btn.on { background: #b8232f; border-color: #b8232f; color: #fff; }
+.hz-dia-btn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
 
 /* MODALES */
 .hz-modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(17, 24, 39, 0.5);
+  background: rgba(15, 31, 61, 0.5);
   backdrop-filter: blur(3px);
   z-index: 1000;
   animation: hz-fade 0.18s ease;
@@ -336,7 +356,7 @@
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  background: #fff;
+  background: var(--surface);
   border-radius: 16px;
   padding: 24px 24px 20px;
   width: calc(100% - 32px);
@@ -344,14 +364,14 @@
   max-height: 90vh;
   overflow-y: auto;
   z-index: 1001;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(15, 31, 61, 0.35);
   animation: hz-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes hz-pop {
   from { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
-.hz-modal h3 { margin: 0 0 16px; font-size: 17px; font-weight: 700; color: #111827; }
+.hz-modal h3 { margin: 0 0 16px; font-size: 17px; font-weight: 700; color: var(--ink); }
 .hz-modal .hz-field { margin-bottom: 12px; }
 .hz-modal .hz-row .hz-field { margin-bottom: 12px; }
 .hz-modal-actions {
@@ -360,7 +380,7 @@
   gap: 10px;
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid #f0f0f2;
+  border-top: 1px solid var(--border);
 }
 
 /* RESPONSIVE */
@@ -371,4 +391,5 @@
   .hz-bar-actions .hz-btn { flex: 1; }
   .hz-row { flex-direction: column; gap: 0; }
   .hz-modal { padding: 20px 18px 16px; }
+  .hz-chk-cards, .hz-emp-cards { grid-template-columns: 1fr; }
 }

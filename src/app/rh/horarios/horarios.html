@@ -81,49 +81,40 @@
               <span class="hz-dia-count">{{ dia.empleados.length }} empleado(s)</span>
             </div>
 
-            <div class="hz-tabla-wrap">
-              <table class="hz-tabla">
-                <thead>
-                  <tr>
-                    <th>Empleado</th>
-                    <th>Entrada</th>
-                    <th>Salida</th>
-                    <th>Marcas</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (emp of dia.empleados; track emp.empleadoCodigo) {
-                    <tr>
-                      <td>
-                        <div class="hz-emp-nombre">{{ emp.empleadoNombre || '(sin registrar)' }}</div>
-                        <div class="hz-emp-cod">
-                          Cód. {{ emp.empleadoCodigo }}
-                          @if (emp.areaId) { · {{ nombreArea(emp.areaId) }} }
-                        </div>
-                      </td>
-                      <td class="hz-mono">{{ emp.primera }}</td>
-                      <td class="hz-mono">{{ emp.ultima }}</td>
-                      <td>
-                        <div class="hz-marcas">
-                          @for (m of emp.marcas; track m.id || m.fechaHora) {
-                            <span class="hz-marca" [title]="tipoLabel(m.tipo)">{{ m.hora }}</span>
-                          }
-                        </div>
-                      </td>
-                      <td>
-                        @if (emp.retardo === null) {
-                          <span class="hz-badge hz-badge-mute">Sin horario</span>
-                        } @else if (emp.retardo) {
-                          <span class="hz-badge hz-badge-bad">Retardo +{{ emp.minutosRetardo }} min</span>
-                        } @else {
-                          <span class="hz-badge hz-badge-good">A tiempo</span>
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+            <div class="hz-chk-cards">
+              @for (emp of dia.empleados; track emp.empleadoCodigo) {
+                <div class="hz-chk-card"
+                     [class.hz-chk-retardo]="emp.retardo === true"
+                     [class.hz-chk-ok]="emp.retardo === false">
+                  <div class="hz-emp-avatar hz-avatar-sm">
+                    @if (fotoDe(emp.empleadoCodigo)) {
+                      <img [src]="fotoDe(emp.empleadoCodigo)" [alt]="emp.empleadoNombre">
+                    } @else {
+                      <span>{{ iniciales(emp.empleadoNombre || emp.empleadoCodigo) }}</span>
+                    }
+                  </div>
+                  <div class="hz-chk-body">
+                    <div class="hz-chk-nombre">
+                      {{ emp.empleadoNombre || '(sin registrar)' }}
+                      <span class="hz-chk-cod">Cód. {{ emp.empleadoCodigo }}</span>
+                    </div>
+                    <div class="hz-chk-horas">
+                      <span class="hz-chk-h"><span class="hz-chk-lbl">Entrada</span> {{ emp.primera }}</span>
+                      <span class="hz-chk-h"><span class="hz-chk-lbl">Salida</span> {{ emp.ultima }}</span>
+                      <span class="hz-chk-h"><span class="hz-chk-lbl">Marcas</span> {{ emp.marcas.length }}</span>
+                    </div>
+                  </div>
+                  <div class="hz-chk-estado">
+                    @if (emp.retardo === null) {
+                      <span class="hz-badge hz-badge-mute">Sin horario</span>
+                    } @else if (emp.retardo) {
+                      <span class="hz-badge hz-badge-bad">Retardo +{{ emp.minutosRetardo }} min</span>
+                    } @else {
+                      <span class="hz-badge hz-badge-good">A tiempo</span>
+                    }
+                  </div>
+                </div>
+              }
             </div>
           </div>
         }
