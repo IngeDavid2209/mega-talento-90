@@ -46,10 +46,12 @@ CREATE TABLE IF NOT EXISTS empleados (
   codigo_checador TEXT NOT NULL,
   nombre          TEXT NOT NULL,
   puesto          TEXT,
+  foto_url        TEXT,
   activo          BOOLEAN NOT NULL DEFAULT TRUE,
   creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (sucursal_id, codigo_checador)
 );
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
 -- Una marca de asistencia ya importada del reloj.
 CREATE TABLE IF NOT EXISTS checadas (

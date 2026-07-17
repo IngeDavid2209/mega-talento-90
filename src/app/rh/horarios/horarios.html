@@ -224,26 +224,35 @@
       @if (!empleadosFiltrados.length) {
         <div class="hz-empty">Aún no hay empleados registrados para esta sucursal.</div>
       } @else {
-        <div class="hz-tabla-wrap">
-          <table class="hz-tabla">
-            <thead>
-              <tr><th>Código</th><th>Nombre</th><th>Puesto</th><th>Estado</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (e of empleadosFiltrados; track e.id) {
-                <tr [class.hz-inactivo]="!e.activo">
-                  <td class="hz-mono">{{ e.codigoChecador }}</td>
-                  <td><strong>{{ e.nombre }}</strong></td>
-                  <td>{{ e.puesto || '—' }}</td>
-                  <td>{{ e.activo ? 'Activo' : 'Inactivo' }}</td>
-                  <td class="hz-acciones">
-                    <button class="hz-link" (click)="editarEmpleado(e)">Editar</button>
-                    <button class="hz-link hz-danger" (click)="borrarEmpleado(e)">Borrar</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <!-- Categoría: sucursal, con sus trabajadores en tarjetas -->
+        <div class="hz-emp-cat">
+          <span class="hz-emp-cat-title">{{ nombreSucursal(sucursalFiltro) }}</span>
+          <span class="hz-emp-cat-count">{{ empleadosFiltrados.length }} empleado(s)</span>
+        </div>
+        <div class="hz-emp-cards">
+          @for (e of empleadosFiltrados; track e.id) {
+            <div class="hz-emp-card" [class.hz-inactivo]="!e.activo">
+              <div class="hz-emp-avatar">
+                @if (e.fotoUrl) {
+                  <img [src]="e.fotoUrl" [alt]="e.nombre">
+                } @else {
+                  <span>{{ iniciales(e.nombre) }}</span>
+                }
+              </div>
+              <div class="hz-emp-info">
+                <div class="hz-emp-card-nombre">{{ e.nombre }}</div>
+                <div class="hz-emp-card-suc">{{ nombreSucursal(e.sucursalId) }}</div>
+                <div class="hz-emp-card-meta">
+                  Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }
+                  @if (!e.activo) { · <span class="hz-emp-inactivo-tag">Inactivo</span> }
+                </div>
+              </div>
+              <div class="hz-emp-card-actions">
+                <button class="hz-link" (click)="editarEmpleado(e)">Editar</button>
+                <button class="hz-link hz-danger" (click)="borrarEmpleado(e)">Borrar</button>
+              </div>
+            </div>
+          }
         </div>
       }
     </section>
@@ -381,6 +390,29 @@
         <label>Nombre completo</label>
         <input type="text" [(ngModel)]="empleadoEdit.nombre" placeholder="Nombre del empleado">
       </div>
+
+      <div class="hz-field">
+        <label>Foto <small>(opcional)</small></label>
+        <div class="hz-foto-edit">
+          <div class="hz-emp-avatar hz-avatar-lg">
+            @if (empleadoEdit.fotoUrl) {
+              <img [src]="empleadoEdit.fotoUrl" [alt]="empleadoEdit.nombre">
+            } @else {
+              <span>{{ iniciales(empleadoEdit.nombre) }}</span>
+            }
+          </div>
+          <div class="hz-foto-edit-actions">
+            <label class="hz-btn hz-btn-ghost" [class.hz-disabled]="subiendoFoto">
+              {{ subiendoFoto ? 'Subiendo…' : (empleadoEdit.fotoUrl ? 'Cambiar foto' : 'Subir foto') }}
+              <input type="file" hidden accept="image/*" (change)="onFotoEmpleado($event)" [disabled]="subiendoFoto">
+            </label>
+            @if (empleadoEdit.fotoUrl) {
+              <button type="button" class="hz-link hz-danger" (click)="empleadoEdit.fotoUrl = ''">Quitar</button>
+            }
+          </div>
+        </div>
+      </div>
+
       <label class="hz-check">
         <input type="checkbox" [(ngModel)]="empleadoEdit.activo"> Empleado activo
       </label>

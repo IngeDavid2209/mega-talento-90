@@ -64,6 +64,7 @@ export interface Empleado {
   codigoChecador: string;
   nombre: string;
   puesto?: string;
+  fotoUrl?: string;
   activo: boolean;
 }
 

@@ -10,6 +10,7 @@ import {
 import { parsearTextoChecadas, parsearFilasExcel } from '../../core/models/parser-attlog';
 import { CENTROS_CHECADOR, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
+import { subirACloudinary } from '../../core/services/cloudinary';
 
 type Tab = 'checadas' | 'horarios' | 'areas' | 'empleados';
 
@@ -248,8 +249,8 @@ export class HorariosComponent implements OnInit, OnDestroy {
     }
 
     const dias: GrupoDia[] = [];
-    // Fechas de más reciente a más antigua.
-    const fechas = Array.from(porFecha.keys()).sort((a, b) => (a < b ? 1 : -1));
+    // Fechas de menor a mayor (más antigua arriba).
+    const fechas = Array.from(porFecha.keys()).sort((a, b) => (a < b ? -1 : 1));
     for (const fecha of fechas) {
       const empMap = porFecha.get(fecha)!;
       const empleados: GrupoEmpleado[] = [];
@@ -425,14 +426,45 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   // ===================== EMPLEADOS (CRUD) =====================
 
+  subiendoFoto = false;
+
   nuevoEmpleado() {
     this.empleadoEdit = {
       sucursalId: this.sucursalFiltro || CENTROS_CHECADOR[0].id,
-      codigoChecador: '', nombre: '', puesto: '', activo: true
+      codigoChecador: '', nombre: '', puesto: '', fotoUrl: '', activo: true
     };
   }
   editarEmpleado(e: Empleado) {
     this.empleadoEdit = { ...e };
+  }
+
+  /** Iniciales para el avatar cuando el empleado no tiene foto. */
+  iniciales(nombre: string): string {
+    if (!nombre) return '?';
+    return nombre.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+  }
+
+  /** Sube la foto del empleado a Cloudinary y la guarda en el registro en edición. */
+  async onFotoEmpleado(event: any) {
+    const file: File | undefined = event.target.files?.[0];
+    if (!file || !this.empleadoEdit) return;
+    if (file.size > 5_000_000) {
+      this.toast.alerta('La foto supera los 5 MB. Usa una más ligera.');
+      event.target.value = '';
+      return;
+    }
+    this.subiendoFoto = true;
+    try {
+      const url = await subirACloudinary(file, 'empleados');
+      this.empleadoEdit.fotoUrl = url;
+      this.toast.exito('Foto lista.');
+    } catch (e) {
+      console.error(e);
+      this.toast.error('No se pudo subir la foto.');
+    } finally {
+      this.subiendoFoto = false;
+      event.target.value = '';
+    }
   }
   async guardarEmpleadoModal() {
     if (!this.empleadoEdit) return;
