@@ -85,34 +85,60 @@
               @for (emp of dia.empleados; track emp.empleadoCodigo) {
                 <div class="hz-chk-card"
                      [class.hz-chk-retardo]="emp.retardo === true"
-                     [class.hz-chk-ok]="emp.retardo === false">
-                  <div class="hz-emp-avatar hz-avatar-sm">
-                    @if (fotoDe(emp.empleadoCodigo)) {
-                      <img [src]="fotoDe(emp.empleadoCodigo)" [alt]="emp.empleadoNombre">
-                    } @else {
-                      <span>{{ iniciales(emp.empleadoNombre || emp.empleadoCodigo) }}</span>
-                    }
-                  </div>
-                  <div class="hz-chk-body">
-                    <div class="hz-chk-nombre">
-                      {{ emp.empleadoNombre || '(sin registrar)' }}
-                      <span class="hz-chk-cod">Cód. {{ emp.empleadoCodigo }}</span>
+                     [class.hz-chk-ok]="emp.retardo === false"
+                     [class.hz-chk-abierta]="estaExpandido(dia.fecha, emp.empleadoCodigo)">
+                  <!-- Fila principal (clic = desplegar detalle) -->
+                  <div class="hz-chk-top" (click)="toggleDetalle(dia.fecha, emp.empleadoCodigo)">
+                    <div class="hz-emp-avatar hz-avatar-sm">
+                      @if (fotoDe(emp.empleadoCodigo)) {
+                        <img [src]="fotoDe(emp.empleadoCodigo)" [alt]="emp.empleadoNombre">
+                      } @else {
+                        <span>{{ iniciales(emp.empleadoNombre || emp.empleadoCodigo) }}</span>
+                      }
                     </div>
-                    <div class="hz-chk-horas">
-                      <span class="hz-chk-h"><span class="hz-chk-lbl">Entrada</span> {{ emp.primera }}</span>
-                      <span class="hz-chk-h"><span class="hz-chk-lbl">Salida</span> {{ emp.ultima }}</span>
-                      <span class="hz-chk-h"><span class="hz-chk-lbl">Marcas</span> {{ emp.marcas.length }}</span>
+                    <div class="hz-chk-body">
+                      <div class="hz-chk-nombre">
+                        {{ emp.empleadoNombre || '(sin registrar)' }}
+                        <span class="hz-chk-cod">Cód. {{ emp.empleadoCodigo }}</span>
+                      </div>
+                      <div class="hz-chk-horas">
+                        <span class="hz-chk-h"><span class="hz-chk-lbl">Entrada</span> {{ emp.primera }}</span>
+                        <span class="hz-chk-h"><span class="hz-chk-lbl">Salida</span> {{ emp.ultima }}</span>
+                        <span class="hz-chk-h"><span class="hz-chk-lbl">Marcas</span> {{ emp.marcas.length }}</span>
+                      </div>
                     </div>
+                    <div class="hz-chk-estado">
+                      @if (emp.retardo === null) {
+                        <span class="hz-badge hz-badge-mute">Sin horario</span>
+                      } @else if (emp.retardo) {
+                        <span class="hz-badge hz-badge-bad">Retardo +{{ emp.minutosRetardo }} min</span>
+                      } @else {
+                        <span class="hz-badge hz-badge-good">A tiempo</span>
+                      }
+                    </div>
+                    <span class="hz-chk-chevron">▾</span>
                   </div>
-                  <div class="hz-chk-estado">
-                    @if (emp.retardo === null) {
-                      <span class="hz-badge hz-badge-mute">Sin horario</span>
-                    } @else if (emp.retardo) {
-                      <span class="hz-badge hz-badge-bad">Retardo +{{ emp.minutosRetardo }} min</span>
-                    } @else {
-                      <span class="hz-badge hz-badge-good">A tiempo</span>
-                    }
-                  </div>
+
+                  <!-- Detalle desplegable -->
+                  @if (estaExpandido(dia.fecha, emp.empleadoCodigo)) {
+                    <div class="hz-chk-detalle">
+                      <div class="hz-chk-det-title">Todas las marcas del día</div>
+                      <div class="hz-marcas">
+                        @for (m of emp.marcas; track m.id || m.fechaHora) {
+                          <span class="hz-marca">
+                            {{ m.hora }}@if (tipoLabel(m.tipo)) { <small>· {{ tipoLabel(m.tipo) }}</small> }
+                          </span>
+                        }
+                      </div>
+                      <div class="hz-chk-det-info">
+                        <span><strong>Entrada:</strong> {{ emp.primera }}</span>
+                        <span><strong>Salida:</strong> {{ emp.ultima }}</span>
+                        <span><strong>Total marcas:</strong> {{ emp.marcas.length }}</span>
+                        @if (emp.areaId) { <span><strong>Área:</strong> {{ nombreArea(emp.areaId) }}</span> }
+                        @if (emp.retardo) { <span class="hz-emp-inactivo-tag"><strong>Retardo:</strong> {{ emp.minutosRetardo }} min</span> }
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </div>

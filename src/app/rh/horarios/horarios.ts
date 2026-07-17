@@ -438,6 +438,17 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.empleadoEdit = { ...e };
   }
 
+  /** Tarjetas de checada expandidas (clave = fecha__codigo). */
+  private expandidos = new Set<string>();
+  toggleDetalle(fecha: string, codigo: string) {
+    const k = `${fecha}__${codigo}`;
+    if (this.expandidos.has(k)) this.expandidos.delete(k);
+    else this.expandidos.add(k);
+  }
+  estaExpandido(fecha: string, codigo: string): boolean {
+    return this.expandidos.has(`${fecha}__${codigo}`);
+  }
+
   /** Foto de un empleado (por código, en la sucursal filtrada) para las tarjetas de checadas. */
   fotoDe(codigo: string): string {
     const e = this.empleados.find(x =>
