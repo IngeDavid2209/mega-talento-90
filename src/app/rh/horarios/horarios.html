@@ -58,63 +58,35 @@
         </div>
       }
 
-      @if (cargandoChecadas) {
-        <div class="hz-empty">Cargando checadas…</div>
-      } @else if (!gruposChecadas.length) {
+      @if (!empleadosFiltrados.length) {
         <div class="hz-empty">
-          No hay checadas en este rango para esta sucursal. Importa el archivo del reloj o ajusta las fechas.
+          No hay empleados en esta sucursal. Importa el archivo del reloj o regístralos en la pestaña Empleados.
         </div>
       } @else {
-        @for (dia of gruposChecadas; track dia.fecha) {
-          <div class="hz-dia">
-            <div class="hz-dia-head">
-              <strong>{{ dia.diaLabel }}</strong>
-              <span class="hz-dia-fecha">{{ dia.fecha }}</span>
-              <span class="hz-dia-count">{{ dia.empleados.length }} empleado(s)</span>
+        <!-- Trabajadores agrupados por sucursal; clic = detalle con fechas propias -->
+        <div class="hz-emp-cat">
+          <span class="hz-emp-cat-title">{{ nombreSucursal(sucursalFiltro) }}</span>
+          <span class="hz-emp-cat-count">{{ empleadosFiltrados.length }} empleado(s)</span>
+        </div>
+        <div class="hz-emp-cards">
+          @for (e of empleadosFiltrados; track e.id) {
+            <div class="hz-emp-card hz-chk-click" (click)="abrirDetalleEmp(e)" title="Ver asistencia">
+              <div class="hz-emp-avatar">
+                @if (e.fotoUrl) {
+                  <img [src]="e.fotoUrl" [alt]="e.nombre">
+                } @else {
+                  <span>{{ iniciales(e.nombre) }}</span>
+                }
+              </div>
+              <div class="hz-emp-info">
+                <div class="hz-emp-card-nombre">{{ e.nombre }}</div>
+                <div class="hz-emp-card-suc">{{ nombreSucursal(e.sucursalId) }}</div>
+                <div class="hz-emp-card-meta">Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }</div>
+              </div>
+              <span class="hz-chk-chevron">›</span>
             </div>
-
-            <div class="hz-chk-cards">
-              @for (emp of dia.empleados; track emp.empleadoCodigo) {
-                <div class="hz-chk-card hz-chk-click"
-                     [class.hz-chk-retardo]="emp.retardo === true"
-                     [class.hz-chk-ok]="emp.retardo === false"
-                     (click)="abrirDetalle(emp)"
-                     title="Ver detalle del empleado">
-                  <div class="hz-chk-top">
-                    <div class="hz-emp-avatar hz-avatar-sm">
-                      @if (fotoDe(emp.empleadoCodigo)) {
-                        <img [src]="fotoDe(emp.empleadoCodigo)" [alt]="emp.empleadoNombre">
-                      } @else {
-                        <span>{{ iniciales(emp.empleadoNombre || emp.empleadoCodigo) }}</span>
-                      }
-                    </div>
-                    <div class="hz-chk-body">
-                      <div class="hz-chk-nombre">
-                        {{ emp.empleadoNombre || '(sin registrar)' }}
-                        <span class="hz-chk-cod">Cód. {{ emp.empleadoCodigo }}</span>
-                      </div>
-                      <div class="hz-chk-horas">
-                        <span class="hz-chk-h"><span class="hz-chk-lbl">Entrada</span> {{ emp.primera }}</span>
-                        <span class="hz-chk-h"><span class="hz-chk-lbl">Salida</span> {{ emp.ultima }}</span>
-                        <span class="hz-chk-h"><span class="hz-chk-lbl">Marcas</span> {{ emp.marcas.length }}</span>
-                      </div>
-                    </div>
-                    <div class="hz-chk-estado">
-                      @if (emp.retardo === null) {
-                        <span class="hz-badge hz-badge-mute">Sin horario</span>
-                      } @else if (emp.retardo) {
-                        <span class="hz-badge hz-badge-bad">Retardo +{{ emp.minutosRetardo }} min</span>
-                      } @else {
-                        <span class="hz-badge hz-badge-good">A tiempo</span>
-                      }
-                    </div>
-                    <span class="hz-chk-chevron">›</span>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-        }
+          }
+        </div>
       }
     </section>
   }

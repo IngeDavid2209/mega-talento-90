@@ -506,6 +506,20 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.cargarDetalle();
   }
 
+  /** Abre el detalle directamente desde un empleado del listado (pestaña Checadas). */
+  abrirDetalleEmp(e: Empleado) {
+    this.empleadoDetalle = {
+      nombre: e.nombre || '(sin registrar)',
+      codigo: e.codigoChecador,
+      sucursalId: e.sucursalId,
+      fotoUrl: e.fotoUrl || '',
+      areaId: undefined,
+      desde: this.desde, hasta: this.hasta, cargando: true,
+      dias: [], acumulado: 0, diasConRetardo: 0, presupuesto: 15
+    };
+    this.cargarDetalle();
+  }
+
   /** Carga (o recarga al cambiar fechas) las checadas del empleado en su rango. */
   async cargarDetalle() {
     const d = this.empleadoDetalle;
