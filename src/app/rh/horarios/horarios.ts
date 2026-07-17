@@ -280,12 +280,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
         let minutosRetardo = 0;
         const hor = this.horarioAplicable(primera.sucursalId, areaId, fecha);
         if (hor) {
-          // Retardo = minutos EXACTOS de tardanza (llegó 9:03 con entrada 9:00 = 3 min).
-          // El "presupuesto" de 15 min es acumulado del periodo (ver detalle del empleado).
+          // Tolerancia diaria de 15 min: a tiempo si llega dentro del límite
+          // (entrada + tolerancia). Pasando el límite, cuenta los minutos extra.
           const base = this.minutos(hor.entrada);
+          const tol = hor.toleranciaMin || 0;
           const primeraMin = this.minutos(primera.hora);
           if (base >= 0 && primeraMin >= 0) {
-            minutosRetardo = Math.max(0, primeraMin - base);
+            minutosRetardo = Math.max(0, primeraMin - base - tol);
             retardo = minutosRetardo > 0;
           }
         }
@@ -519,6 +520,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       }
       const hor = this.horarioAplicable(d.sucursalId, d.areaId, d.hasta);
       const base = hor ? this.minutos(hor.entrada) : -1;
+      const tol = hor?.toleranciaMin || 0;
       const dias: any[] = [];
       let acum = 0, conRet = 0;
       for (const f of Array.from(porFecha.keys()).sort()) {
@@ -526,7 +528,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
         const des = this.desglosarDia(marcas);
         let rm = 0;
         const pMin = this.minutos(des.entrada);
-        if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
+        if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base - tol);
         acum += rm;
         if (rm > 0) conRet++;
         dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });

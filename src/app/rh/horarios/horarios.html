@@ -447,27 +447,23 @@
       } @else {
         <!-- Resumen -->
         <div class="hz-det-tiles">
-          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumulado > empleadoDetalle.presupuesto">
+          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumulado > 0">
             <span class="hz-det-tile-num">{{ empleadoDetalle.acumulado }} min</span>
             <span class="hz-det-tile-lbl">Retardo acumulado</span>
           </div>
-          <div class="hz-det-tile">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
-            <span class="hz-det-tile-lbl">Presupuesto</span>
-          </div>
-          <div class="hz-det-tile" [class.hz-tile-bad]="(empleadoDetalle.presupuesto - empleadoDetalle.acumulado) < 0">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto - empleadoDetalle.acumulado }} min</span>
-            <span class="hz-det-tile-lbl">Restante</span>
-          </div>
-          <div class="hz-det-tile">
+          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.diasConRetardo > 0">
             <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.dias.length }}</span>
             <span class="hz-det-tile-lbl">Días con retardo</span>
           </div>
+          <div class="hz-det-tile">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
+            <span class="hz-det-tile-lbl">Tolerancia diaria</span>
+          </div>
+          <div class="hz-det-tile">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.dias.length }}</span>
+            <span class="hz-det-tile-lbl">Días registrados</span>
+          </div>
         </div>
-
-        @if (empleadoDetalle.acumulado > empleadoDetalle.presupuesto) {
-          <div class="hz-det-alerta">⚠️ Superó el presupuesto de {{ empleadoDetalle.presupuesto }} min de retardo en este periodo.</div>
-        }
 
         @if (!empleadoDetalle.dias.length) {
           <div class="hz-empty">Sin checadas en este periodo. Ajusta las fechas.</div>
