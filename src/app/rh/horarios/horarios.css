@@ -278,7 +278,7 @@
 
 .hz-det-tiles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -332,7 +332,7 @@
 }
 .hz-det-fechas .hz-field { min-width: 130px; }
 
-@media (max-width: 640px) {
+@media (max-width: 400px) {
   .hz-det-tiles { grid-template-columns: repeat(2, 1fr); }
 }
 

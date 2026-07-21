@@ -59,7 +59,7 @@
 /* RESUMEN */
 .con-resumen {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
   margin-bottom: 16px;
 }
@@ -298,5 +298,4 @@
 
 @media (max-width: 768px) {
   .con-wrapper { padding: 20px 18px 40px; }
-  .con-resumen { grid-template-columns: repeat(2, 1fr); }
 }

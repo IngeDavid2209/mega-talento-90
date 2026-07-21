@@ -1,0 +1,106 @@
+<div class="dest-wrap">
+  <header class="dest-head">
+    <div>
+      <h1><span class="star">★</span> Candidatos destacados</h1>
+      <p class="sub">Los más <strong>interesados</strong> según su comportamiento: qué tan rápido responden, qué tan completos están, si hicieron las evaluaciones y su iniciativa en el chat. El puntaje lo calcula solo el asistente.</p>
+    </div>
+    <div class="search">
+      <input type="search" [(ngModel)]="termino" (ngModelChange)="clasificar()"
+             placeholder="Buscar nombre, puesto o ciudad…" aria-label="Buscar">
+    </div>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Cargando candidatos…</div>
+  } @else {
+
+    @if (destacados.length === 0) {
+      <div class="estado">Aún no hay candidatos destacados. Aparecerán aquí conforme respondan rápido, completen sus datos y las evaluaciones.</div>
+    } @else {
+      <div class="barra-top">
+        <div class="conteo">{{ destacados.length }} destacado{{ destacados.length === 1 ? '' : 's' }} · por zona</div>
+      </div>
+
+      @for (g of grupos; track g.titulo) {
+        <section class="grupo">
+          @if (g.titulo) {
+            <div class="grupo-head">
+              <span class="grupo-titulo">{{ g.titulo }}</span>
+              <span class="grupo-count">{{ g.total }}</span>
+            </div>
+          }
+          <div class="lista">
+            @for (c of g.items; track c.id; let i = $index) {
+              <ng-container *ngTemplateOutlet="fila; context: { $implicit: c, rank: i + 1, top: true }"></ng-container>
+            }
+          </div>
+        </section>
+      }
+    }
+
+    <!-- Interesados: cerca del umbral (próximos a destacar) -->
+    @if (interesados.length > 0) {
+      <button class="toggle" (click)="verInteresados = !verInteresados">
+        {{ verInteresados ? '▾' : '▸' }} Próximos a destacar ({{ interesados.length }})
+      </button>
+      @if (verInteresados) {
+        <div class="lista atenuada">
+          @for (c of interesados; track c.id; let i = $index) {
+            <ng-container *ngTemplateOutlet="fila; context: { $implicit: c, rank: i + 1, top: false }"></ng-container>
+          }
+        </div>
+      }
+    }
+  }
+</div>
+
+<!-- Plantilla de fila reutilizable -->
+<ng-template #fila let-c let-rank="rank" let-top="top">
+  <article class="row" [class.is-top]="top">
+    <div class="rank" [class.destacado]="top">{{ rank }}</div>
+
+    <div class="avatar" [style.background-color]="colorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
+
+    <div class="info">
+      <div class="nombre">{{ c.nombre || 'Sin nombre' }}</div>
+      <div class="meta">
+        <span>{{ c.puesto || 'Sin puesto' }}</span>
+        <span class="dot">·</span>
+        <span>{{ c.ciudad || c.sucursal || 'Sin ciudad' }}</span>
+        <span class="etapa" [style.color]="colorEtapa(c.status)">{{ nombreEtapa(c.status) }}</span>
+      </div>
+
+      <!-- Desglose de señales -->
+      <div class="senales">
+        <div class="senal" title="Rapidez de respuesta">
+          <span class="lbl">Rapidez</span>
+          <span class="track"><span class="fill r" [style.width.%]="pct(senales(c).rapidez, MAX.rapidez)"></span></span>
+        </div>
+        <div class="senal" title="Datos y documentos completos">
+          <span class="lbl">Datos</span>
+          <span class="track"><span class="fill d" [style.width.%]="pct(senales(c).datos, MAX.datos)"></span></span>
+        </div>
+        <div class="senal" title="Evaluaciones completadas">
+          <span class="lbl">Evals</span>
+          <span class="track"><span class="fill e" [style.width.%]="pct(senales(c).evaluaciones, MAX.evaluaciones)"></span></span>
+        </div>
+        <div class="senal" title="Iniciativa en el chat">
+          <span class="lbl">Chat</span>
+          <span class="track"><span class="fill i" [style.width.%]="pct(senales(c).iniciativa, MAX.iniciativa)"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="score" [class.destacado]="top">
+      <div class="num">{{ puntaje(c) }}</div>
+      <div class="de">/ 100</div>
+    </div>
+
+    <div class="acciones">
+      <button class="btn" (click)="abrirExpediente(c)">Expediente</button>
+      <button class="btn ghost" [disabled]="enviandoInvitacion.has(c.id)" (click)="contactar(c)">
+        {{ enviandoInvitacion.has(c.id) ? 'Enviando…' : 'WhatsApp' }}
+      </button>
+    </div>
+  </article>
+</ng-template>

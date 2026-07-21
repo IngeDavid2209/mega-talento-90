@@ -23,8 +23,6 @@
   <!-- PESTAÑAS -->
   <nav class="hz-tabs">
     <button [class.active]="tabActiva === 'checadas'" (click)="cambiarTab('checadas')">Checadas</button>
-    <button [class.active]="tabActiva === 'horarios'" (click)="cambiarTab('horarios')">Horarios</button>
-    <button [class.active]="tabActiva === 'areas'" (click)="cambiarTab('areas')">Áreas / checadores</button>
     <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
   </nav>
 
@@ -86,83 +84,6 @@
               <span class="hz-chk-chevron">›</span>
             </div>
           }
-        </div>
-      }
-    </section>
-  }
-
-  <!-- ============================ HORARIOS ============================ -->
-  @if (tabActiva === 'horarios') {
-    <section class="hz-panel">
-      <div class="hz-panel-head">
-        <h2>Horarios de {{ nombreSucursal(sucursalFiltro) }}</h2>
-        <button class="hz-btn hz-btn-primary" (click)="nuevoHorario()">+ Nuevo horario</button>
-      </div>
-
-      @if (!horariosFiltrados.length) {
-        <div class="hz-empty">Aún no hay horarios para esta sucursal.</div>
-      } @else {
-        <div class="hz-tabla-wrap">
-          <table class="hz-tabla">
-            <thead>
-              <tr>
-                <th>Horario</th><th>Aplica a</th><th>Días</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Tol.</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (h of horariosFiltrados; track h.id) {
-                <tr [class.hz-inactivo]="!h.activo">
-                  <td><strong>{{ h.nombre }}</strong></td>
-                  <td>{{ h.areaId ? nombreArea(h.areaId) : 'Toda la sucursal' }}</td>
-                  <td>{{ diasLabel(h.dias) }}</td>
-                  <td class="hz-mono">{{ h.entrada }}</td>
-                  <td class="hz-mono">{{ h.inicioComida && h.finComida ? (h.inicioComida + '–' + h.finComida) : '—' }}</td>
-                  <td class="hz-mono">{{ h.salida }}</td>
-                  <td class="hz-mono">{{ h.toleranciaMin }}m</td>
-                  <td class="hz-acciones">
-                    <button class="hz-link" (click)="editarHorario(h)">Editar</button>
-                    <button class="hz-link hz-danger" (click)="borrarHorario(h)">Borrar</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </section>
-  }
-
-  <!-- ============================ ÁREAS ============================ -->
-  @if (tabActiva === 'areas') {
-    <section class="hz-panel">
-      <div class="hz-panel-head">
-        <h2>Áreas / checadores de {{ nombreSucursal(sucursalFiltro) }}</h2>
-        <button class="hz-btn hz-btn-primary" (click)="nuevaArea()">+ Nueva área</button>
-      </div>
-
-      @if (!areasFiltradas.length) {
-        <div class="hz-empty">Aún no hay áreas con checador para esta sucursal.</div>
-      } @else {
-        <div class="hz-tabla-wrap">
-          <table class="hz-tabla">
-            <thead>
-              <tr><th>Área</th><th>IP checador</th><th>ID reloj</th><th>Estado</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (a of areasFiltradas; track a.id) {
-                <tr [class.hz-inactivo]="!a.activo">
-                  <td><strong>{{ a.nombre }}</strong></td>
-                  <td class="hz-mono">{{ a.ipChecador || '—' }}</td>
-                  <td class="hz-mono">{{ a.deviceId || '—' }}</td>
-                  <td>{{ a.activo ? 'Activa' : 'Inactiva' }}</td>
-                  <td class="hz-acciones">
-                    <button class="hz-link" (click)="editarArea(a)">Editar</button>
-                    <button class="hz-link hz-danger" (click)="borrarArea(a)">Borrar</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
         </div>
       }
     </section>

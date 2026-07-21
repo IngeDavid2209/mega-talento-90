@@ -20,6 +20,27 @@ import { requireAuth } from './auth';
  */
 export const candidatosRouter = Router();
 
+// Deriva de la columna `documentos` (jsonb que llena el bot de WhatsApp) los
+// archivos que el candidato mandó por WhatsApp, en la forma `documentosBot` que
+// ya consume el front (busca por campo `tipo` = casillero del expediente). OJO:
+// el bot etiqueta el casillero en `slot` (con `tipo` como alias), así que aquí
+// lo normalizamos a `tipo`. Sin esto, los CV/INE/etc. que llegan por WhatsApp
+// (viven en `documentos`, con `cv_url` vacío) se veían como "Sin CV" / casillero
+// vacío, aunque el candidato sí los mandó.
+function documentosBotDesde(documentos: any) {
+  if (!Array.isArray(documentos)) return [];
+  return documentos
+    .filter((d) => d && typeof d === 'object' && d.url)
+    .map((d) => ({
+      tipo: d.slot || d.tipo || null,
+      nombre: d.filename || d.nombre || null,
+      url: d.url,
+      mimeType: d.mime_type || d.mimeType || null,
+      origen: d.origen || 'whatsapp-bot',
+      recibidoEn: d.recibido_en || d.recibidoEn || null,
+    }));
+}
+
 // ---- mapeo fila DB → objeto del portal (camelCase, forma del front) ----
 function mapCandidato(r: any) {
   const base = (r.portal_data && typeof r.portal_data === 'object') ? r.portal_data : {};
@@ -31,10 +52,21 @@ function mapCandidato(r: any) {
   if (r.puesto_interes != null) out.puesto = r.puesto_interes;
   if (r.portal_status != null) out.status = r.portal_status;
   if (r.fuente != null) out.fuente = r.fuente;
+  // Archivos recibidos por WhatsApp (bot) → los expone para el expediente.
+  const docsBot = documentosBotDesde(r.documentos);
+  if (docsBot.length) out.documentosBot = docsBot;
+  // CV: la columna cv_url (formulario web) manda; si está vacía, usa el CV que
+  // el candidato mandó por WhatsApp (documentos[].slot='cv').
   if (r.cv_url != null) out.cvUrl = r.cv_url;
+  else {
+    const cv = docsBot.find((d) => d.tipo === 'cv');
+    if (cv) out.cvUrl = cv.url;
+  }
   if (r.cv_url_reverso != null) out.cvUrlReverso = r.cv_url_reverso;
   if (r.cv_formato != null) out.cvFormato = r.cv_formato;
   if (r.licencia_url != null) out.licenciaUrl = r.licencia_url;
+  if (r.familiar_en_empresa != null) out.familiarEnEmpresa = r.familiar_en_empresa;
+  if (r.estado != null) out.estadoBot = r.estado;  // estado del bot (p.ej. 'esperando_cv') para el chip de CV
   if (r.solicitud_electronica != null) out.solicitudElectronica = r.solicitud_electronica;
   if (r.rubrica_aptitudes != null) out.rubricaAptitudes = r.rubrica_aptitudes;
   if (r.aptitudes_eval != null) out.aptitudesEval = r.aptitudes_eval;
@@ -97,9 +129,14 @@ candidatosRouter.post('/', async (req: Request, res: Response) => {
 
     // ── Filtro de CV (servidor): el formulario /unete ya exige CV del lado
     // cliente, pero el endpoint es público. Rechazamos altas web sin CV para que
-    // no entren postulaciones vacías (spam). Las altas del bot de WhatsApp se
-    // excluyen: su CV no viaja en cvUrl (queda en la columna `documentos`).
-    const esBot = String(d.origen || '').toLowerCase() === 'whatsapp-bot' || /bot/i.test(String(d.fuente || ''));
+    // no entren postulaciones vacías (spam).
+    //
+    // El único que puede saltarse el CV es el bot de WhatsApp (su CV no viaja en
+    // cvUrl, queda en la columna `documentos`), y SOLO si prueba su identidad con
+    // el secreto compartido `BOT_SHARED_SECRET` (header x-bot-secret). Antes se
+    // confiaba en el campo `origen`/`fuente`, que cualquiera podía falsificar.
+    const secreto = process.env.BOT_SHARED_SECRET || '';
+    const esBot = !!secreto && req.get('x-bot-secret') === secreto;
     const tieneCv = !!(d.cvUrl && String(d.cvUrl).trim()) || !!(d.cvUrlReverso && String(d.cvUrlReverso).trim());
     if (!esBot && !tieneCv) {
       return res.status(400).json({ error: 'Es obligatorio adjuntar tu CV para postularte.' });

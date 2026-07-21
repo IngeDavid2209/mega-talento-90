@@ -35,6 +35,10 @@ interface TarjetaVM {
   permEtiqueta: string;
   permClase: string;
   cvTipo: 'pdf' | 'foto' | null;
+  cvEstado: 'con' | 'pend' | 'sin';   // con CV / pendiente (se le pidió) / sin CV
+  cvPedidoFecha: string;              // fecha en que se le solicitó el CV (si aplica)
+  esDestacado: boolean;               // puntaje de interés alto (candidato destacado)
+  puntajeInteres: number;             // 0-100
   cvUrl: string;
   fecha: string;
 }
@@ -127,6 +131,12 @@ export class EtapaComponent implements OnInit, OnDestroy {
 
   aplicarFiltro() {
     let lista = this.todos.filter(c => c.status === this.etapaId);
+    // No se considera "postulado" a quien no tiene CV: se oculta de Filtro Inicial
+    // (la bandeja de entrada) hasta que lo adjunte (web) o lo mande por WhatsApp
+    // (bot). Las etapas posteriores conservan a quien RH ya avanzó a mano.
+    if (this.etapaId === ID_ETAPAS.FILTRO) {
+      lista = lista.filter(c => this.estadoCV(c) === 'con');
+    }
     const t = this.busqueda.toLowerCase().trim();
     if (t) {
       lista = lista.filter(c =>
@@ -176,6 +186,10 @@ export class EtapaComponent implements OnInit, OnDestroy {
       permEtiqueta: contratado ? this.getEtiquetaPermanencia(diasPerm) : '',
       permClase: contratado ? this.getClasePermanencia(diasPerm) : '',
       cvTipo: this.tipoCV(c),
+      cvEstado: this.estadoCV(c),
+      cvPedidoFecha: c.cvSolicitadoEn ? this.formatearFecha(c.cvSolicitadoEn) : '',
+      esDestacado: !!c.destacado?.destacado,
+      puntajeInteres: c.destacado?.puntaje || 0,
       cvUrl: c.cvUrl || '',
       fecha: this.formatearFecha(c.createdAt)
     };
@@ -247,6 +261,18 @@ export class EtapaComponent implements OnInit, OnDestroy {
   /** Conecta al candidato con el bot (le escribe por WhatsApp desde el número oficial). */
   contactarWhatsApp(c: any) {
     return this.botService.conectarConBot(c, this.enviandoInvitacion);
+  }
+
+  /**
+   * Estatus del CV en 3 estados:
+   *   'con'  -> ya tiene CV (formulario web o enviado por WhatsApp)
+   *   'pend' -> no tiene, pero ya se le pidió por WhatsApp (aún no responde)
+   *   'sin'  -> no tiene y no se le ha pedido
+   */
+  estadoCV(c: any): 'con' | 'pend' | 'sin' {
+    if (this.tipoCV(c)) return 'con';
+    if (c?.cvSolicitadoEn || c?.estadoBot === 'esperando_cv') return 'pend';
+    return 'sin';
   }
 
   /** Detecta si el candidato envió CV y de qué tipo (pdf / foto) */

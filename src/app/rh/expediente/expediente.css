@@ -92,6 +92,22 @@
 }
 .dot-sep { color: var(--text3); }
 
+/* Nota de parentesco / conflicto de interés (dato que captura el bot). */
+.familiar-nota {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text2);
+  background: var(--surface2, rgba(148, 163, 184, .12));
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: inline-block;
+}
+.familiar-nota.alerta {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
 .profile-actions { display: flex; gap: 10px; }
 .btn-secondary, .btn-outline {
   padding: 9px 18px;
@@ -829,7 +845,7 @@
 /* Mini-escala visual de la respuesta */
 .monitor-escala {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
   gap: 4px;
   margin-bottom: 6px;
 }
@@ -904,7 +920,7 @@
 }
 
 @media (max-width: 540px) {
-  .monitor-escala { grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .monitor-escala { gap: 3px; }
   .esc-label { font-size: 8px; }
 }
 
@@ -2317,7 +2333,7 @@
 
 .rubrica-niveles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 8px;
 }
 

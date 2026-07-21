@@ -31,6 +31,12 @@
                 <span>{{ candidato.fuente }}</span>
               }
             </p>
+            @if (candidato.familiarEnEmpresa) {
+              <p class="familiar-nota"
+                 [class.alerta]="candidato.familiarEnEmpresa.toLowerCase().trim() !== 'ninguno'">
+                👥 <strong>Familiar/pareja en la empresa:</strong> {{ candidato.familiarEnEmpresa }}
+              </p>
+            }
           </div>
         </div>
 
