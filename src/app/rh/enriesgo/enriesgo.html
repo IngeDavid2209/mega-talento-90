@@ -1,0 +1,61 @@
+<div class="riesgo-wrap">
+  <header class="riesgo-head">
+    <div>
+      <h1><span class="ico">⚠️</span> Candidatos en riesgo</h1>
+      <p class="sub">Candidatos que <strong>ya habían mostrado interés</strong> (empezaron su registro) y se <strong>enfriaron</strong>: llevan días sin responder. Reengánchalos antes de perderlos. El asistente los detecta solo.</p>
+    </div>
+    <div class="search">
+      <input type="search" [(ngModel)]="termino" (ngModelChange)="clasificar()"
+             placeholder="Buscar nombre, puesto o ciudad…" aria-label="Buscar">
+    </div>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Cargando…</div>
+  } @else if (enRiesgo.length === 0) {
+    <div class="estado">Ningún candidato en riesgo por ahora. 🎉 Los que dejen su registro a medias y se enfríen aparecerán aquí.</div>
+  } @else {
+    <div class="barra-top">
+      <div class="conteo">{{ enRiesgo.length }} en riesgo · por zona</div>
+    </div>
+
+    @for (g of grupos; track g.titulo) {
+      <section class="grupo">
+        <div class="grupo-head">
+          <span class="grupo-titulo">{{ g.titulo }}</span>
+          <span class="grupo-count">{{ g.total }}</span>
+        </div>
+        <div class="lista">
+          @for (c of g.items; track c.id) {
+            <article class="row" [attr.data-nivel]="nivel(c)">
+              <div class="avatar" [style.background-color]="colorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
+
+              <div class="info">
+                <div class="nombre">{{ c.nombre || 'Sin nombre' }}</div>
+                <div class="meta">
+                  <span>{{ c.puesto || 'Sin puesto' }}</span>
+                  <span class="dot">·</span>
+                  <span>{{ c.ciudad || c.sucursal || 'Sin ciudad' }}</span>
+                  <span class="etapa" [style.color]="colorEtapa(c.status)">{{ nombreEtapa(c.status) }}</span>
+                </div>
+                <div class="falta">{{ pendiente(c) }}</div>
+              </div>
+
+              <div class="riesgo-tag" [attr.data-nivel]="nivel(c)">
+                <span class="lvl">{{ etiquetaNivel(nivel(c)) }}</span>
+                <span class="dias">{{ dias(c) }} d sin responder</span>
+              </div>
+
+              <div class="acciones">
+                <button class="btn" (click)="abrirExpediente(c)">Expediente</button>
+                <button class="btn ghost" [disabled]="enviandoInvitacion.has(c.id)" (click)="contactar(c)">
+                  {{ enviandoInvitacion.has(c.id) ? 'Enviando…' : 'Reenganchar' }}
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

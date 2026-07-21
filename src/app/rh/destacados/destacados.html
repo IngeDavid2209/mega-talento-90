@@ -54,46 +54,45 @@
   }
 </div>
 
-<!-- Plantilla de fila reutilizable -->
+<!-- Plantilla de tarjeta reutilizable -->
 <ng-template #fila let-c let-rank="rank" let-top="top">
-  <article class="row" [class.is-top]="top">
-    <div class="rank" [class.destacado]="top">{{ rank }}</div>
-
-    <div class="avatar" [style.background-color]="colorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
-
-    <div class="info">
-      <div class="nombre">{{ c.nombre || 'Sin nombre' }}</div>
-      <div class="meta">
-        <span>{{ c.puesto || 'Sin puesto' }}</span>
-        <span class="dot">·</span>
-        <span>{{ c.ciudad || c.sucursal || 'Sin ciudad' }}</span>
-        <span class="etapa" [style.color]="colorEtapa(c.status)">{{ nombreEtapa(c.status) }}</span>
+  <article class="card" [class.is-top]="top">
+    <div class="card-top">
+      <div class="rank" [class.destacado]="top">{{ rank }}</div>
+      <div class="avatar" [style.background-color]="colorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
+      <div class="who">
+        <div class="nombre">{{ c.nombre || 'Sin nombre' }}</div>
+        <div class="meta">
+          <span>{{ c.puesto || 'Sin puesto' }}</span>
+          <span class="dot">·</span>
+          <span>{{ c.ciudad || c.sucursal || 'Sin ciudad' }}</span>
+        </div>
+        <div class="etapa" [style.color]="colorEtapa(c.status)">{{ nombreEtapa(c.status) }}</div>
       </div>
-
-      <!-- Desglose de señales -->
-      <div class="senales">
-        <div class="senal" title="Rapidez de respuesta">
-          <span class="lbl">Rapidez</span>
-          <span class="track"><span class="fill r" [style.width.%]="pct(senales(c).rapidez, MAX.rapidez)"></span></span>
-        </div>
-        <div class="senal" title="Datos y documentos completos">
-          <span class="lbl">Datos</span>
-          <span class="track"><span class="fill d" [style.width.%]="pct(senales(c).datos, MAX.datos)"></span></span>
-        </div>
-        <div class="senal" title="Evaluaciones completadas">
-          <span class="lbl">Evals</span>
-          <span class="track"><span class="fill e" [style.width.%]="pct(senales(c).evaluaciones, MAX.evaluaciones)"></span></span>
-        </div>
-        <div class="senal" title="Iniciativa en el chat">
-          <span class="lbl">Chat</span>
-          <span class="track"><span class="fill i" [style.width.%]="pct(senales(c).iniciativa, MAX.iniciativa)"></span></span>
-        </div>
+      <div class="score" [class.destacado]="top">
+        <div class="num">{{ puntaje(c) }}</div>
+        <div class="de">/ 100</div>
       </div>
     </div>
 
-    <div class="score" [class.destacado]="top">
-      <div class="num">{{ puntaje(c) }}</div>
-      <div class="de">/ 100</div>
+    <!-- Desglose de señales (2×2) -->
+    <div class="senales">
+      <div class="senal" title="Rapidez de respuesta">
+        <span class="lbl">Rapidez</span>
+        <span class="track"><span class="fill r" [style.width.%]="pct(senales(c).rapidez, MAX.rapidez)"></span></span>
+      </div>
+      <div class="senal" title="Datos y documentos completos">
+        <span class="lbl">Datos</span>
+        <span class="track"><span class="fill d" [style.width.%]="pct(senales(c).datos, MAX.datos)"></span></span>
+      </div>
+      <div class="senal" title="Evaluaciones completadas">
+        <span class="lbl">Evals</span>
+        <span class="track"><span class="fill e" [style.width.%]="pct(senales(c).evaluaciones, MAX.evaluaciones)"></span></span>
+      </div>
+      <div class="senal" title="Iniciativa en el chat">
+        <span class="lbl">Chat</span>
+        <span class="track"><span class="fill i" [style.width.%]="pct(senales(c).iniciativa, MAX.iniciativa)"></span></span>
+      </div>
     </div>
 
     <div class="acciones">

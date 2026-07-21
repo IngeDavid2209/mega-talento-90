@@ -20,6 +20,7 @@ import { DuplicadosComponent } from './rh/duplicados/duplicados';
 import { PapeleraComponent } from './rh/papelera/papelera';
 import { ContactadosComponent } from './rh/contactados/contactados';
 import { DestacadosComponent } from './rh/destacados/destacados';
+import { EnRiesgoComponent } from './rh/enriesgo/enriesgo';
 import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
 import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/resultados-evaluacion';
 import { HorariosComponent } from './rh/horarios/horarios';
@@ -33,6 +34,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'concentrado', component: ConcentradoComponent },
       { path: 'destacados', component: DestacadosComponent },
+      { path: 'en-riesgo', component: EnRiesgoComponent },
       { path: 'etapa/:etapaId', component: EtapaComponent },
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'historial', component: HistorialComponent },
