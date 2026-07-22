@@ -80,11 +80,13 @@ export class CandidateService {
   }
 
   /** Anti-duplicado por teléfono (flujo público /unete). */
-  async buscarDuplicado(telefono: string, _nombre?: string): Promise<any | null> {
+  async buscarDuplicado(telefono: string, nombre?: string): Promise<any | null> {
     const tel = (telefono || '').replace(/\D/g, '');
     if (tel.length < 10) return null;
     try {
-      return await this.api.get('/candidatos/duplicado', { telefono: tel });
+      // Se manda el nombre: el duplicado solo bloquea si teléfono Y nombre
+      // coinciden (evita falsos "ya estás postulado" por teléfonos compartidos).
+      return await this.api.get('/candidatos/duplicado', { telefono: tel, nombre: nombre || '' });
     } catch (e) {
       console.warn('buscarDuplicado:', e);
       return null;

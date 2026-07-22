@@ -105,20 +105,50 @@ function fallo(res: Response, e: any, msg: string) {
 
 // ===================== PÚBLICAS =====================
 
-// Anti-duplicado por teléfono (lo usa /unete sin sesión).
+// Normaliza un nombre para comparar: minúsculas, sin acentos ni signos.
+const normNombre = (s: any) =>
+  String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// ¿El que se postula (a) es la misma persona que el registro existente (b)?
+// Sirve para NO bloquear cuando un teléfono es compartido (familia) o el registro
+// viejo está incompleto. Es duplicado si los nombres son iguales, uno contiene al
+// otro, o comparten ≥2 palabras (>2 letras).
+//  - Sin nombre del que se postula (cliente viejo): conservador → sí bloquea (como antes).
+//  - Registro existente sin nombre: no se puede confirmar → NO bloquea.
+function mismoNombre(a: any, b: any): boolean {
+  const na = normNombre(a), nb = normNombre(b);
+  if (!na) return true;
+  if (!nb) return false;
+  if (na === nb || na.includes(nb) || nb.includes(na)) return true;
+  const setA = new Set(na.split(' ').filter((w) => w.length > 2));
+  const comunes = nb.split(' ').filter((w) => w.length > 2 && setA.has(w)).length;
+  return comunes >= 2;
+}
+
+// Anti-duplicado (lo usa /unete sin sesión). Bloquea SOLO si el teléfono coincide
+// con un candidato ACTIVO (no en papelera) Y el nombre coincide. Así los números
+// compartidos/familiares y los registros borrados dejan de bloquear postulaciones
+// legítimas (antes bastaba el teléfono → falsos "ya estás postulado").
 candidatosRouter.get('/duplicado', async (req: Request, res: Response) => {
   try {
     const tel = soloDigitos(String(req.query.telefono || ''));
     if (tel.length < 10) return res.json(null);
+    const nombre = String(req.query.nombre || '');
     const { rows } = await pool.query(
       `SELECT * FROM candidatos
-       WHERE regexp_replace(coalesce(telefono,''), '[^0-9]', '', 'g') = $1
-       ORDER BY creado_en DESC LIMIT 1`,
+       WHERE deleted_at IS NULL
+         AND regexp_replace(coalesce(telefono,''), '[^0-9]', '', 'g') = $1
+       ORDER BY creado_en DESC`,
       [tel]
     );
-    if (!rows.length) return res.json(null);
-    const c = mapCandidato(rows[0]);
-    return res.json({ ...c, estaEnPapelera: !!rows[0].deleted_at });
+    const match = rows.find((r) => mismoNombre(nombre, r.nombre_completo));
+    if (!match) return res.json(null);
+    return res.json({ ...mapCandidato(match), estaEnPapelera: false });
   } catch (e) { return fallo(res, e, 'Error al verificar duplicado.'); }
 });
 
