@@ -43,83 +43,97 @@
       <strong>{{ totalConRetardo }}</strong> con retardo en el periodo
     </p>
 
-    <!-- Un bloque por empleado, con su desglose semana a semana -->
-    @for (e of lista; track e.codigo) {
-      <div class="ar-emp" [class.ar-emp-bad]="e.acumuladoTotal > 0">
-        <button class="ar-emp-head" type="button" (click)="toggle(e)">
-          <svg class="ar-chevron" [class.abierto]="e.abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-          <div class="ar-avatar">
-            @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
-            @else { <span>{{ iniciales(e.nombre) }}</span> }
-          </div>
-          <div class="ar-emp-info">
-            <div class="ar-emp-nombre">
-              {{ e.nombre }}
-              @if (!e.registrado) { <span class="ar-tag">sin registrar</span> }
-            </div>
-            <div class="ar-emp-meta">Cód. {{ e.codigo }}@if (e.puesto) { · {{ e.puesto }} }</div>
-          </div>
-          <div class="ar-emp-tiles">
-            <div class="ar-tile" [class.ar-tile-bad]="e.acumuladoTotal > 0">
-              <span class="ar-tile-num">{{ e.acumuladoTotal }} min</span>
-              <span class="ar-tile-lbl">Retardo total</span>
-            </div>
-            <div class="ar-tile" [class.ar-tile-bad]="e.semanasExcedidas > 0">
-              <span class="ar-tile-num">{{ e.semanasExcedidas }}</span>
-              <span class="ar-tile-lbl">Sem. excedidas</span>
-            </div>
-            <div class="ar-tile">
-              <span class="ar-tile-num">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}</span>
-              <span class="ar-tile-lbl">Días retardo</span>
-            </div>
-          </div>
-        </button>
-
-        @if (e.abierto) {
-          <div class="ar-emp-body">
-            @if (!e.semanas.length) {
-              <div class="ar-sin">Sin checadas en este periodo.</div>
-            } @else {
-              @for (sem of e.semanas; track sem.inicio) {
-                <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
-                  <div class="ar-sem-head">
-                    <span class="ar-sem-rango ar-cap">Semana: {{ sem.label }}</span>
-                    <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
-                      {{ sem.acumulado }} / {{ e.presupuesto }} min
-                    </span>
+    <!-- Tabla compacta: una fila por empleado, clic = despliega semanas -->
+    <div class="ar-tabla-wrap">
+      <table class="ar-grid">
+        <thead>
+          <tr>
+            <th class="ar-c-chev"></th>
+            <th class="ar-c-emp">Empleado</th>
+            <th class="ar-c-cod">Cód.</th>
+            <th class="ar-c-num">Retardo total</th>
+            <th class="ar-c-num">Sem. excedidas</th>
+            <th class="ar-c-num">Días retardo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of lista; track e.codigo) {
+            <tr class="ar-fila" [class.ar-fila-bad]="e.acumuladoTotal > 0" [class.abierta]="e.abierto" (click)="toggle(e)">
+              <td class="ar-c-chev">
+                <svg class="ar-chevron" [class.abierto]="e.abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </td>
+              <td class="ar-c-emp">
+                <div class="ar-emp-cell">
+                  <div class="ar-avatar">
+                    @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
+                    @else { <span>{{ iniciales(e.nombre) }}</span> }
                   </div>
-                  <div class="ar-tabla-wrap">
-                    <table class="ar-tabla">
-                      <thead>
-                        <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
-                      </thead>
-                      <tbody>
-                        @for (d of sem.dias; track d.fecha) {
-                          <tr>
-                            <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
-                            <td class="ar-mono">{{ d.entrada }}</td>
-                            <td class="ar-mono">{{ d.comida }}</td>
-                            <td class="ar-mono">{{ d.salida }}</td>
-                            <td>
-                              @if (d.retardoMin > 0) {
-                                <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
-                              } @else {
-                                <span class="ar-badge ar-badge-good">A tiempo</span>
-                              }
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
+                  <span class="ar-emp-nombre">
+                    {{ e.nombre }}
+                    @if (!e.registrado) { <span class="ar-tag">sin registrar</span> }
+                  </span>
                 </div>
-              }
+              </td>
+              <td class="ar-c-cod ar-mono">{{ e.codigo }}</td>
+              <td class="ar-c-num">
+                <span class="ar-num" [class.ar-num-bad]="e.acumuladoTotal > 0">{{ e.acumuladoTotal }}<small> min</small></span>
+              </td>
+              <td class="ar-c-num">
+                <span [class.ar-num-bad]="e.semanasExcedidas > 0">{{ e.semanasExcedidas }}</span>
+              </td>
+              <td class="ar-c-num ar-mono">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}</td>
+            </tr>
+            @if (e.abierto) {
+              <tr class="ar-detalle-row">
+                <td colspan="6">
+                  <div class="ar-detalle">
+                    @if (!e.semanas.length) {
+                      <div class="ar-sin">Sin checadas en este periodo.</div>
+                    } @else {
+                      @for (sem of e.semanas; track sem.inicio) {
+                        <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
+                          <div class="ar-sem-head">
+                            <span class="ar-sem-rango ar-cap">Semana: {{ sem.label }}</span>
+                            <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
+                              {{ sem.acumulado }} / {{ e.presupuesto }} min
+                            </span>
+                          </div>
+                          <div class="ar-tabla-wrap">
+                            <table class="ar-tabla">
+                              <thead>
+                                <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+                              </thead>
+                              <tbody>
+                                @for (d of sem.dias; track d.fecha) {
+                                  <tr>
+                                    <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
+                                    <td class="ar-mono">{{ d.entrada }}</td>
+                                    <td class="ar-mono">{{ d.comida }}</td>
+                                    <td class="ar-mono">{{ d.salida }}</td>
+                                    <td>
+                                      @if (d.retardoMin > 0) {
+                                        <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
+                                      } @else {
+                                        <span class="ar-badge ar-badge-good">A tiempo</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
             }
-          </div>
-        }
-      </div>
-    }
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </section>

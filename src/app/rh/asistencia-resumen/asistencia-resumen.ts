@@ -228,7 +228,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return {
       codigo, nombre: nombre || '(sin registrar)', fotoUrl, puesto, registrado,
       acumuladoTotal: acumTotal, semanasExcedidas: semExc, diasConRetardo: conRet,
-      diasRegistrados: diasReg, presupuesto, semanas, abierto: true
+      diasRegistrados: diasReg, presupuesto, semanas, abierto: false
     };
   }
 
