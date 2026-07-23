@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
@@ -13,7 +14,7 @@ import {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AsistenciaResumenComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })

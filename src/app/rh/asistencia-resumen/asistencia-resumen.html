@@ -1,0 +1,123 @@
+<section class="ar-panel">
+  <header class="ar-head">
+    <div>
+      <h2>Asistencia y retardos</h2>
+      <p class="ar-desc">Elige sucursal y periodo para ver el desglose de todos los empleados.</p>
+    </div>
+  </header>
+
+  <!-- Controles: sucursal + rango de fechas -->
+  <div class="ar-controls">
+    <div class="ar-field ar-field-suc">
+      <label>Sucursal</label>
+      <select [(ngModel)]="sucursalFiltro" (change)="onSucursalChange()">
+        @for (s of SUCURSALES; track s.id) {
+          <option [value]="s.id">{{ nombreSucursal(s.id) }}</option>
+        }
+      </select>
+    </div>
+    <div class="ar-field">
+      <label>Desde</label>
+      <input type="date" [(ngModel)]="desde" (change)="cargar()">
+    </div>
+    <div class="ar-field">
+      <label>Hasta</label>
+      <input type="date" [(ngModel)]="hasta" (change)="cargar()">
+    </div>
+    <div class="ar-actions">
+      <button class="ar-btn ar-btn-ghost" (click)="expandirTodo(true)">Expandir</button>
+      <button class="ar-btn ar-btn-ghost" (click)="expandirTodo(false)">Contraer</button>
+      <button class="ar-btn ar-btn-ghost" (click)="exportarExcel()">Exportar a Excel</button>
+    </div>
+  </div>
+
+  @if (cargando) {
+    <div class="ar-empty">Cargando asistencia…</div>
+  } @else if (!lista.length) {
+    <div class="ar-empty">Sin checadas en este periodo. Ajusta las fechas o importa el archivo del reloj.</div>
+  } @else {
+    <p class="ar-resumen">
+      <strong>{{ lista.length }}</strong> empleado(s) ·
+      <strong>{{ totalConRetardo }}</strong> con retardo en el periodo
+    </p>
+
+    <!-- Un bloque por empleado, con su desglose semana a semana -->
+    @for (e of lista; track e.codigo) {
+      <div class="ar-emp" [class.ar-emp-bad]="e.acumuladoTotal > 0">
+        <button class="ar-emp-head" type="button" (click)="toggle(e)">
+          <svg class="ar-chevron" [class.abierto]="e.abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+          <div class="ar-avatar">
+            @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
+            @else { <span>{{ iniciales(e.nombre) }}</span> }
+          </div>
+          <div class="ar-emp-info">
+            <div class="ar-emp-nombre">
+              {{ e.nombre }}
+              @if (!e.registrado) { <span class="ar-tag">sin registrar</span> }
+            </div>
+            <div class="ar-emp-meta">Cód. {{ e.codigo }}@if (e.puesto) { · {{ e.puesto }} }</div>
+          </div>
+          <div class="ar-emp-tiles">
+            <div class="ar-tile" [class.ar-tile-bad]="e.acumuladoTotal > 0">
+              <span class="ar-tile-num">{{ e.acumuladoTotal }} min</span>
+              <span class="ar-tile-lbl">Retardo total</span>
+            </div>
+            <div class="ar-tile" [class.ar-tile-bad]="e.semanasExcedidas > 0">
+              <span class="ar-tile-num">{{ e.semanasExcedidas }}</span>
+              <span class="ar-tile-lbl">Sem. excedidas</span>
+            </div>
+            <div class="ar-tile">
+              <span class="ar-tile-num">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}</span>
+              <span class="ar-tile-lbl">Días retardo</span>
+            </div>
+          </div>
+        </button>
+
+        @if (e.abierto) {
+          <div class="ar-emp-body">
+            @if (!e.semanas.length) {
+              <div class="ar-sin">Sin checadas en este periodo.</div>
+            } @else {
+              @for (sem of e.semanas; track sem.inicio) {
+                <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
+                  <div class="ar-sem-head">
+                    <span class="ar-sem-rango ar-cap">Semana: {{ sem.label }}</span>
+                    <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
+                      {{ sem.acumulado }} / {{ e.presupuesto }} min
+                    </span>
+                  </div>
+                  <div class="ar-tabla-wrap">
+                    <table class="ar-tabla">
+                      <thead>
+                        <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (d of sem.dias; track d.fecha) {
+                          <tr>
+                            <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
+                            <td class="ar-mono">{{ d.entrada }}</td>
+                            <td class="ar-mono">{{ d.comida }}</td>
+                            <td class="ar-mono">{{ d.salida }}</td>
+                            <td>
+                              @if (d.retardoMin > 0) {
+                                <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
+                              } @else {
+                                <span class="ar-badge ar-badge-good">A tiempo</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+</section>
