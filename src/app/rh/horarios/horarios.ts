@@ -12,6 +12,7 @@ import { CENTROS_CHECADOR, centroChecadorPorId } from '../../core/models/sucursa
 import { ToastService } from '../../core/services/toast.service';
 import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
+import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
 type Tab = 'checadas' | 'horarios' | 'areas' | 'empleados';
 
@@ -37,7 +38,7 @@ interface GrupoDia {
 @Component({
   selector: 'app-horarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, AsistenciaResumenComponent],
+  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent],
   templateUrl: './horarios.html',
   styleUrl: './horarios.css'
 })

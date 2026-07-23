@@ -6,6 +6,7 @@ import { ChecadorService } from '../../core/services/checador.service';
 import { Checada, Empleado, HorarioArea, aFechaLocal } from '../../core/models/checador.model';
 import { CENTROS_CHECADOR, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
+import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
 /** Un día del empleado, ya desglosado en entrada / comida / salida y su retardo. */
 interface DiaAsistencia {
@@ -33,7 +34,7 @@ interface EmpleadoAsistencia {
 @Component({
   selector: 'app-asistencia-resumen',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SucursalSelectComponent],
   templateUrl: './asistencia-resumen.html',
   styleUrl: './asistencia-resumen.css'
 })

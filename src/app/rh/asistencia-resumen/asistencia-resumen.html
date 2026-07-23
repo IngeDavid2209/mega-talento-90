@@ -11,11 +11,9 @@
     @if (!ocultarSucursal) {
       <div class="ar-field ar-field-suc">
         <label>Sucursal</label>
-        <select [(ngModel)]="sucursalFiltro" (change)="onSucursalChange()">
-          @for (s of SUCURSALES; track s.id) {
-            <option [value]="s.id">{{ nombreSucursal(s.id) }}</option>
-          }
-        </select>
+        <app-sucursal-select [value]="sucursalFiltro"
+                             (valueChange)="sucursalFiltro = $event; onSucursalChange()">
+        </app-sucursal-select>
       </div>
     }
     <div class="ar-field">
