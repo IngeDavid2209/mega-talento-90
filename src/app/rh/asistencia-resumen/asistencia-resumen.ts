@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
@@ -36,10 +36,15 @@ interface EmpleadoAsistencia {
   templateUrl: './asistencia-resumen.html',
   styleUrl: './asistencia-resumen.css'
 })
-export class AsistenciaResumenComponent implements OnInit, OnDestroy {
+export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges {
   private checador = inject(ChecadorService);
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
+
+  /** Si se pasa desde fuera, manda la sucursal (y se oculta el selector propio). */
+  @Input() sucursalIdExterna?: string;
+  /** Oculta el selector de sucursal propio (cuando lo controla la página padre). */
+  @Input() ocultarSucursal = false;
 
   SUCURSALES = CENTROS_CHECADOR;
 
@@ -63,6 +68,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy {
     this.hasta = aFechaLocal(hoy);
     this.desde = aFechaLocal(hace30);
 
+    if (this.sucursalIdExterna) this.sucursalFiltro = this.sucursalIdExterna;
+
     this.unsubEmpleados = this.checador.escucharEmpleados(lista => {
       this.ngZone.run(() => { this.empleados = lista; if (!this.cargando) this.reconstruirDesdeCache(); });
     });
@@ -71,6 +78,17 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy {
     });
 
     this.ajustarRangoYCargar();
+  }
+
+  ngOnChanges(cambios: SimpleChanges) {
+    // La página padre cambió la sucursal: sincroniza y recarga.
+    if (cambios['sucursalIdExterna'] && !cambios['sucursalIdExterna'].firstChange) {
+      const nueva = this.sucursalIdExterna || '';
+      if (nueva && nueva !== this.sucursalFiltro) {
+        this.sucursalFiltro = nueva;
+        this.ajustarRangoYCargar();
+      }
+    }
   }
 
   ngOnDestroy() {

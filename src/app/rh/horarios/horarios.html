@@ -37,14 +37,13 @@
             <input type="file" hidden accept=".dat,.txt,.csv,.xlsx,.xls"
                    (change)="onArchivoSeleccionado($event)" [disabled]="importando">
           </label>
-          <button class="hz-btn hz-btn-ghost" (click)="exportarExcel()">Exportar a Excel</button>
         </div>
       </div>
 
       <p class="hz-hint">
-        Muestra los últimos días con actividad. Da clic en cualquier empleado para ver su
-        <strong>detalle con fechas propias</strong> (semana, mes, retardos acumulados).
-        Para importar acepta el <strong>attlog.dat</strong> del reloj, CSV o Excel.
+        Elige el <strong>periodo (Desde/Hasta)</strong> para ver el desglose de todos los empleados
+        (entrada, comida, salida y retardos por semana). Para importar acepta el
+        <strong>attlog.dat</strong> del reloj, CSV o Excel.
       </p>
 
       @if (importResumen) {
@@ -56,36 +55,8 @@
         </div>
       }
 
-      @if (!empleadosFiltrados.length) {
-        <div class="hz-empty">
-          No hay empleados en esta sucursal. Importa el archivo del reloj o regístralos en la pestaña Empleados.
-        </div>
-      } @else {
-        <!-- Trabajadores agrupados por sucursal; clic = detalle con fechas propias -->
-        <div class="hz-emp-cat">
-          <span class="hz-emp-cat-title">{{ nombreSucursal(sucursalFiltro) }}</span>
-          <span class="hz-emp-cat-count">{{ empleadosFiltrados.length }} empleado(s)</span>
-        </div>
-        <div class="hz-emp-cards">
-          @for (e of empleadosFiltrados; track e.id) {
-            <div class="hz-emp-card hz-chk-click" (click)="abrirDetalleEmp(e)" title="Ver asistencia">
-              <div class="hz-emp-avatar">
-                @if (e.fotoUrl) {
-                  <img [src]="e.fotoUrl" [alt]="e.nombre">
-                } @else {
-                  <span>{{ iniciales(e.nombre) }}</span>
-                }
-              </div>
-              <div class="hz-emp-info">
-                <div class="hz-emp-card-nombre">{{ e.nombre }}</div>
-                <div class="hz-emp-card-suc">{{ nombreSucursal(e.sucursalId) }}</div>
-                <div class="hz-emp-card-meta">Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }</div>
-              </div>
-              <span class="hz-chk-chevron">›</span>
-            </div>
-          }
-        </div>
-      }
+      <!-- Vista consolidada: todos los empleados desglosados por semana (usa la sucursal de arriba) -->
+      <app-asistencia-resumen [sucursalIdExterna]="sucursalFiltro" [ocultarSucursal]="true"></app-asistencia-resumen>
     </section>
   }
 

@@ -8,14 +8,16 @@
 
   <!-- Controles: sucursal + rango de fechas -->
   <div class="ar-controls">
-    <div class="ar-field ar-field-suc">
-      <label>Sucursal</label>
-      <select [(ngModel)]="sucursalFiltro" (change)="onSucursalChange()">
-        @for (s of SUCURSALES; track s.id) {
-          <option [value]="s.id">{{ nombreSucursal(s.id) }}</option>
-        }
-      </select>
-    </div>
+    @if (!ocultarSucursal) {
+      <div class="ar-field ar-field-suc">
+        <label>Sucursal</label>
+        <select [(ngModel)]="sucursalFiltro" (change)="onSucursalChange()">
+          @for (s of SUCURSALES; track s.id) {
+            <option [value]="s.id">{{ nombreSucursal(s.id) }}</option>
+          }
+        </select>
+      </div>
+    }
     <div class="ar-field">
       <label>Desde</label>
       <input type="date" [(ngModel)]="desde" (change)="cargar()">
