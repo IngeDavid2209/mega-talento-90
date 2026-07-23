@@ -1,11 +1,21 @@
 // Jala empleados + checadas de VARIOS checadores ZKTeco (SOLO LECTURA) y los
-// carga a Postgres. Recibe la lista por env TARGETS (JSON): [{"ip","suc"}]
+// carga a Postgres.
+// Uso:  npm run jalar         (lee tools/targets.json y DATABASE_URL del .env)
+// La lista de relojes se toma de:
+//   1) env TARGETS (JSON): [{"ip","suc"}]   — si se define, tiene prioridad
+//   2) tools/targets.json                    — lista fija por sucursal (default)
+try { require('dotenv').config(); } catch { /* dotenv opcional */ }
 const ZKLib = require('node-zklib');
 const { Pool } = require('pg');
 
 const PORT = parseInt(process.env.ZK_PORT || '4370', 10);
-const TARGETS = JSON.parse(process.env.TARGETS || '[]');
+const TARGETS = process.env.TARGETS ? JSON.parse(process.env.TARGETS) : require('./targets.json');
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+
+if (!Array.isArray(TARGETS) || !TARGETS.length) {
+  console.error('No hay relojes que jalar: define TARGETS o edita tools/targets.json.');
+  process.exit(1);
+}
 
 const pad = n => String(n).padStart(2, '0');
 function fmt(d) {

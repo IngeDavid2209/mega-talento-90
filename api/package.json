@@ -12,7 +12,8 @@
     "migrate:dev": "tsx src/scripts/migrate.ts",
     "seed:admin": "node dist/scripts/seed-admin.js",
     "seed:admin:dev": "tsx src/scripts/seed-admin.ts",
-    "limpiar:dup-rfc": "tsx src/scripts/limpiar-dup-rfc.ts"
+    "limpiar:dup-rfc": "tsx src/scripts/limpiar-dup-rfc.ts",
+    "jalar": "node tools/jalar-todo-zk.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
