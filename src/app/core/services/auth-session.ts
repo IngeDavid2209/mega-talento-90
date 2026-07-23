@@ -34,7 +34,27 @@ export class AuthSession {
   }
 
   estaLogueado(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+    // Si el JWT ya expiró, la sesión no sirve: se limpia y se trata como deslogueado.
+    if (this.tokenExpirado(token)) {
+      this.limpiar();
+      return false;
+    }
+    return true;
+  }
+
+  /** Lee el `exp` del JWT (sin verificar firma) y decide si ya venció. */
+  private tokenExpirado(token: string): boolean {
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return true;
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      if (!json.exp) return false; // sin exp: lo deja pasar (lo atrapará el 401)
+      return Date.now() >= json.exp * 1000;
+    } catch {
+      return true; // token ilegible = inservible
+    }
   }
 
   limpiar(): void {
