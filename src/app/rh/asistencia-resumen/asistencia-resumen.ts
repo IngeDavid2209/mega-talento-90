@@ -294,7 +294,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   nombreSucursal(id: string): string {
     const s = centroChecadorPorId(id);
-    return s ? `${s.ciudad} · ${s.direccion.split(',')[0]}` : (id || '—');
+    if (!s) return id || '—';
+    return s.direccion ? `${s.ciudad} · ${s.direccion.split(',')[0]}` : s.ciudad;
   }
   iniciales(nombre: string): string {
     if (!nombre) return '?';

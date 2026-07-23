@@ -1,5 +1,5 @@
 [
-  { "ip": "192.168.40.11",  "suc": "8-esquinas",              "nota": "Morelia · 8 Esquinas" },
+  { "ip": "192.168.40.11",  "suc": "8-esquinas",              "nota": "8 Esquinas" },
   { "ip": "192.168.32.215", "suc": "morelia-vicente-guerrero", "nota": "Morelia · Av. Madero 3600" },
   { "ip": "192.168.30.253", "suc": "morelia-abastos",          "nota": "Morelia · Central de Abastos" },
   { "ip": "192.168.10.2",   "suc": "la-piedad-abastos",        "nota": "La Piedad · Abastos" }

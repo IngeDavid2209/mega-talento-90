@@ -667,7 +667,8 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   nombreSucursal(id: string): string {
     const s = centroChecadorPorId(id);
-    return s ? `${s.ciudad} · ${s.direccion.split(',')[0]}` : (id || '—');
+    if (!s) return id || '—';
+    return s.direccion ? `${s.ciudad} · ${s.direccion.split(',')[0]}` : s.ciudad;
   }
   nombreArea(id: string): string {
     return this.areas.find(a => a.id === id)?.nombre || '—';
