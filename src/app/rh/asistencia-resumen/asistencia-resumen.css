@@ -154,6 +154,10 @@
 .ar-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
 .ar-badge-good { background: var(--green-bg); color: var(--green-text); }
 .ar-badge-bad { background: var(--red-bg); color: var(--red-text); }
+.ar-badge-falta { background: #FBEED9; color: #8A5A00; }
+
+/* Día laboral sin checada (falta) */
+.ar-fila-falta td { color: var(--text3); background: var(--surface3); }
 
 @media (max-width: 720px) {
   .ar-actions { margin-left: 0; }

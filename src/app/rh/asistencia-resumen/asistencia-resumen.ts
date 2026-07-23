@@ -11,6 +11,7 @@ import { ToastService } from '../../core/services/toast.service';
 interface DiaAsistencia {
   fecha: string; diaLabel: string;
   entrada: string; comida: string; salida: string; retardoMin: number;
+  falta: boolean;   // día laboral sin ninguna checada
 }
 /** Una semana (miércoles → martes) con su acumulado vs la tolerancia. */
 interface SemanaAsistencia {
@@ -198,27 +199,43 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       porFecha.get(c.fecha)!.push(c);
     }
 
+    // Semanas (mié→mar) que tienen al menos una checada. Dentro de cada una se
+    // muestran los 6 días LABORALES (se salta el domingo); un día laboral sin
+    // ninguna marca se marca como "Falta".
+    const semanasConDatos = new Set<string>();
+    for (const f of porFecha.keys()) semanasConDatos.add(aFechaLocal(this.inicioSemana(f)));
+
+    const desdeD = new Date(this.desde + 'T00:00:00');
+    const hastaD = new Date(this.hasta + 'T00:00:00');
+
     const porSemana = new Map<string, SemanaAsistencia>();
     let acumTotal = 0, conRet = 0, diasReg = 0;
-    for (const f of Array.from(porFecha.keys()).sort()) {
-      const dia = porFecha.get(f)!.sort((a, b) => (a.fechaHora < b.fechaHora ? -1 : 1));
-      const des = this.desglosarDia(dia);
-      let rm = 0;
-      const pMin = this.minutos(des.entrada);
-      if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
-      acumTotal += rm; diasReg++;
-      if (rm > 0) conRet++;
-
-      const claveIni = aFechaLocal(this.inicioSemana(f));
-      if (!porSemana.has(claveIni)) {
-        porSemana.set(claveIni, {
-          inicio: claveIni, label: this.etiquetaSemana(this.inicioSemana(f)),
-          acumulado: 0, excedido: false, dias: []
-        });
+    for (const claveIni of Array.from(semanasConDatos).sort()) {
+      const inicio = new Date(claveIni + 'T00:00:00');
+      const dias: DiaAsistencia[] = [];
+      let acumSem = 0;
+      for (let i = 0; i < 7; i++) {
+        const dd = new Date(inicio); dd.setDate(inicio.getDate() + i);
+        if (dd.getDay() === 0) continue;                 // domingo = descanso, no se muestra
+        if (dd < desdeD || dd > hastaD) continue;        // fuera del rango consultado
+        const f = aFechaLocal(dd);
+        const marcasDia = porFecha.get(f);
+        if (marcasDia && marcasDia.length) {
+          marcasDia.sort((a, b) => (a.fechaHora < b.fechaHora ? -1 : 1));
+          const des = this.desglosarDia(marcasDia);
+          let rm = 0;
+          const pMin = this.minutos(des.entrada);
+          if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
+          acumTotal += rm; diasReg++; acumSem += rm;
+          if (rm > 0) conRet++;
+          dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm, falta: false });
+        } else {
+          // Día laboral sin checada = Falta (no suma minutos de retardo).
+          dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: '—', comida: '—', salida: '—', retardoMin: 0, falta: true });
+        }
       }
-      const sem = porSemana.get(claveIni)!;
-      sem.acumulado += rm;
-      sem.dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
+      if (!dias.length) continue;
+      porSemana.set(claveIni, { inicio: claveIni, label: this.etiquetaSemana(inicio), acumulado: acumSem, excedido: false, dias });
     }
 
     const semanas = Array.from(porSemana.values()).sort((a, b) => (a.inicio < b.inicio ? -1 : 1));
@@ -316,7 +333,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Empleado': e.nombre, 'Código': e.codigo, 'Puesto': e.puesto,
             'Semana': s.label, 'Fecha': d.fecha, 'Día': d.diaLabel,
             'Entrada': d.entrada, 'Comida': d.comida, 'Salida': d.salida,
-            'Retardo (min)': d.retardoMin
+            'Retardo (min)': d.falta ? 0 : d.retardoMin,
+            'Estado': d.falta ? 'Falta' : (d.retardoMin > 0 ? 'Retardo' : 'A tiempo')
           });
         }
       }

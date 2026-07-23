@@ -107,13 +107,15 @@
                               </thead>
                               <tbody>
                                 @for (d of sem.dias; track d.fecha) {
-                                  <tr>
+                                  <tr [class.ar-fila-falta]="d.falta">
                                     <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
                                     <td class="ar-mono">{{ d.entrada }}</td>
                                     <td class="ar-mono">{{ d.comida }}</td>
                                     <td class="ar-mono">{{ d.salida }}</td>
                                     <td>
-                                      @if (d.retardoMin > 0) {
+                                      @if (d.falta) {
+                                        <span class="ar-badge ar-badge-falta">Falta</span>
+                                      } @else if (d.retardoMin > 0) {
                                         <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
                                       } @else {
                                         <span class="ar-badge ar-badge-good">A tiempo</span>
