@@ -214,14 +214,14 @@
 .nav-list a {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 9px 12px;
+  gap: 12px;
+  padding: 10px 12px;
   text-decoration: none;
   color: var(--text2);
   font-size: 13px;
   font-weight: 500;
-  border-radius: 6px;
-  transition: all 0.16s ease;
+  border-radius: 10px;
+  transition: background 0.16s ease, color 0.16s ease;
   position: relative;
 }
 .nav-list a:hover {
@@ -236,19 +236,26 @@
 .nav-list a.active::before {
   content: '';
   position: absolute;
-  left: -12px; top: 9px; bottom: 9px;
+  left: 0; top: 8px; bottom: 8px;
   width: 3px;
   background: var(--gold-bright);
-  border-radius: 2px;
+  border-radius: 0 3px 3px 0;
 }
 
 .nav-icon {
-  font-size: 14px;
-  width: 18px;
-  display: inline-block;
-  text-align: center;
-  opacity: 0.7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text3);
+  transition: color 0.16s ease;
 }
+.nav-icon svg { width: 18px; height: 18px; }
+.nav-list a:hover .nav-icon { color: var(--ink); }
+.nav-list a.active .nav-icon { color: var(--gold); }
+.logout-link .nav-icon { color: var(--red-brand); }
 
 /* Número de etapa con color */
 .nav-num {

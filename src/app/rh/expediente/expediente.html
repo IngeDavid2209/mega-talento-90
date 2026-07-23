@@ -496,6 +496,7 @@
                  [class.row-no]="candidato.jefeChecklist?.[item.key] === 'rojo'">
               <span class="check-label">{{ item.label }}</span>
               <div class="yn-group">
+                
                 <button type="button" class="btn-yn btn-si"
                         [class.active]="candidato.jefeChecklist?.[item.key] === 'verde'"
                         (click)="setEstadoCheck('jefeChecklist', item.key, 'verde')">Sí</button>
