@@ -66,6 +66,7 @@ INSERT INTO asistencia_config (sucursal_id, config) VALUES (
     "toleranciaRetardoMin": null,
     "marcarFaltas": true,
     "soloDiasCerrados": true,
+    "faltaSoloConActividadEnRango": true,
     "reglasActivas": {
       "retardo": true,
       "falta": true,
@@ -77,3 +78,25 @@ INSERT INTO asistencia_config (sucursal_id, config) VALUES (
   }'::jsonb
 )
 ON CONFLICT (sucursal_id) DO NOTHING;
+
+-- Si el default global ya existía sin la llave nueva, la agrega (idempotente).
+UPDATE asistencia_config
+   SET config = jsonb_set(config, '{faltaSoloConActividadEnRango}', 'true'::jsonb, true)
+ WHERE sucursal_id = '__global__' AND NOT (config ? 'faltaSoloConActividadEnRango');
+
+-- Liga (opcional) de un empleado a su TURNO asignado. Si está puesta, el agente
+-- usa ESE horario para retardo/falta/fuera-de-turno; si es NULL, cae al horario
+-- general de la sucursal por día de la semana. Aditiva: no rompe checadas ni el
+-- CRUD de empleados existente.
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS horario_id UUID;
+
+-- JEFE responsable por SUCURSAL (a quién se le avisa por WhatsApp cuando RH
+-- aprueba una alerta). Modelo simple 1 jefe por sucursal (los empleados ya
+-- tienen sucursal_id). El teléfono lo captura RH; sin él no se puede notificar.
+CREATE TABLE IF NOT EXISTS jefes_sucursal (
+  sucursal_id     TEXT PRIMARY KEY,
+  nombre          TEXT,
+  telefono        TEXT,
+  activo          BOOLEAN NOT NULL DEFAULT TRUE,
+  actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+);

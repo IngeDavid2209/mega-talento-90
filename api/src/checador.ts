@@ -24,7 +24,8 @@ const mapHorario = (r: any) => ({
 });
 const mapEmpleado = (r: any) => ({
   id: r.id, sucursalId: r.sucursal_id, codigoChecador: r.codigo_checador,
-  nombre: r.nombre, puesto: r.puesto || '', fotoUrl: r.foto_url || '', activo: r.activo
+  nombre: r.nombre, puesto: r.puesto || '', fotoUrl: r.foto_url || '',
+  horarioId: r.horario_id || '', activo: r.activo
 });
 const mapChecada = (r: any) => ({
   id: r.id, sucursalId: r.sucursal_id, areaId: r.area_id || undefined,
@@ -148,12 +149,13 @@ checadorRouter.post('/empleados', async (req: Request, res: Response) => {
   try {
     const e = req.body || {};
     const { rows } = await pool.query(
-      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, puesto, foto_url, activo)
-       VALUES ($1,$2,$3,$4,$5,$6)
+      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, puesto, foto_url, horario_id, activo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        ON CONFLICT (sucursal_id, codigo_checador)
-         DO UPDATE SET nombre=EXCLUDED.nombre, puesto=EXCLUDED.puesto, foto_url=EXCLUDED.foto_url, activo=EXCLUDED.activo
+         DO UPDATE SET nombre=EXCLUDED.nombre, puesto=EXCLUDED.puesto, foto_url=EXCLUDED.foto_url,
+                       horario_id=EXCLUDED.horario_id, activo=EXCLUDED.activo
        RETURNING *`,
-      [e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.activo !== false]
+      [e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.horarioId || null, e.activo !== false]
     );
     res.json(mapEmpleado(rows[0]));
   } catch (err) { fallo(res, err, 'No se pudo guardar el empleado.'); }
@@ -163,9 +165,9 @@ checadorRouter.put('/empleados/:id', async (req: Request, res: Response) => {
   try {
     const e = req.body || {};
     const { rows } = await pool.query(
-      `UPDATE empleados SET sucursal_id=$2, codigo_checador=$3, nombre=$4, puesto=$5, foto_url=$6, activo=$7
+      `UPDATE empleados SET sucursal_id=$2, codigo_checador=$3, nombre=$4, puesto=$5, foto_url=$6, horario_id=$7, activo=$8
        WHERE id=$1 RETURNING *`,
-      [req.params.id, e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.activo !== false]
+      [req.params.id, e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.horarioId || null, e.activo !== false]
     );
     if (!rows.length) return res.status(404).json({ error: 'Empleado no encontrado.' });
     res.json(mapEmpleado(rows[0]));

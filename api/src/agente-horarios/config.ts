@@ -1,0 +1,70 @@
+import { pool } from '../db';
+import { ReglaConfig, Regla } from './tipos';
+
+/**
+ * Configuración de reglas del agente. Los umbrales viven en la tabla
+ * `asistencia_config` (NO hardcodeados). Aquí solo está el RESPALDO por si la
+ * tabla estuviera vacía, y el merge: defaults → global ('__global__') → sucursal.
+ */
+
+const REGLAS: Regla[] = [
+  'retardo', 'falta', 'checada_duplicada',
+  'multiples_entradas', 'entrada_sin_salida', 'fuera_de_turno',
+];
+
+/** Respaldo en código (espejo de la semilla en db/agente-horarios.sql). */
+export const CONFIG_DEFAULT: ReglaConfig = {
+  duplicadaMinutos: 5,
+  saltoEntradasHoras: 4,
+  ventanaFueraTurnoMin: 120,
+  usarToleranciaHorario: true,
+  toleranciaRetardoMin: null,
+  marcarFaltas: true,
+  soloDiasCerrados: true,
+  faltaSoloConActividadEnRango: true,
+  reglasActivas: {
+    retardo: true,
+    falta: true,
+    checada_duplicada: true,
+    multiples_entradas: true,
+    entrada_sin_salida: true,
+    salida_sin_entrada: true,
+    fuera_de_turno: true,
+  },
+};
+
+/** Merge superficial + merge de reglasActivas. `parcial` puede venir de la BD. */
+function fusionar(base: ReglaConfig, parcial: any): ReglaConfig {
+  if (!parcial || typeof parcial !== 'object') return base;
+  const salida: ReglaConfig = { ...base, ...parcial };
+  salida.reglasActivas = { ...base.reglasActivas, ...(parcial.reglasActivas || {}) };
+  // Normaliza: asegura una entrada por regla (salida_sin_entrada sigue a entrada_sin_salida).
+  for (const r of REGLAS) {
+    if (typeof salida.reglasActivas[r] !== 'boolean') salida.reglasActivas[r] = base.reglasActivas[r];
+  }
+  if (typeof salida.reglasActivas.salida_sin_entrada !== 'boolean') {
+    salida.reglasActivas.salida_sin_entrada = salida.reglasActivas.entrada_sin_salida;
+  }
+  return salida;
+}
+
+/**
+ * Carga la config efectiva para una sucursal: default de código → fila global
+ * de la tabla → fila de la sucursal. Nunca lanza (si la tabla no existe aún,
+ * regresa el default de código).
+ */
+export async function cargarConfig(sucursalId: string): Promise<ReglaConfig> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT sucursal_id, config FROM asistencia_config
+       WHERE sucursal_id = '__global__' OR sucursal_id = $1`,
+      [sucursalId]
+    );
+    const global = rows.find((r) => r.sucursal_id === '__global__')?.config;
+    const propia = rows.find((r) => r.sucursal_id === sucursalId)?.config;
+    return fusionar(fusionar(CONFIG_DEFAULT, global), propia);
+  } catch (e) {
+    console.warn('[agente-horarios] No se pudo leer asistencia_config; uso defaults.', (e as any)?.message);
+    return CONFIG_DEFAULT;
+  }
+}

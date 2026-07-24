@@ -11,6 +11,34 @@ export interface ResultadoImportacion {
   sinEmpleado: number;
 }
 
+/** Alerta del AGENTE de horarios (borrador de inconsistencia detectada por IA). */
+export type EstadoAlerta = 'sugerida_ia' | 'aprobada' | 'rechazada' | 'descartada';
+export interface AlertaAgente {
+  id: string;
+  sucursalId: string;
+  empleadoCodigo: string;
+  empleadoNombre: string;
+  fecha: string;
+  regla: string;
+  severidad: 'baja' | 'media' | 'alta';
+  detalle: string;
+  evidencia: any;
+  justificacionSugerida: string;
+  estado: EstadoAlerta;
+  decididoPor?: string | null;
+  decididoEn?: string | null;
+  analizadoEn?: string;
+}
+export interface ResumenAgente {
+  sucursalId: string; desde: string; hasta: string;
+  empleadosAnalizados: number; diasAnalizados: number; checadasLeidas: number;
+  totalInconsistencias: number; porRegla: Record<string, number>; empleadosSinTurno: number;
+}
+export interface RespuestaAnalisis {
+  resumen: ResumenAgente;
+  borradores: { creadas: number; actualizadas: number; sinCambio: number; eliminadas: number };
+}
+
 /** Revisión de RH sobre un día: justificación y estado de verificación. */
 export type EstadoRevision = 'pendiente' | 'verificada' | 'aprobada' | 'rechazada';
 export interface RevisionDia {
@@ -106,6 +134,24 @@ export class ChecadorService {
   /** Guarda (upsert) la revisión de un día. */
   async guardarRevision(r: RevisionDia): Promise<RevisionDia> {
     return this.api.put<RevisionDia>('/checador/revision', r);
+  }
+
+  // ===================== AGENTE DE HORARIOS (IA) =====================
+  /** Corre la detección de inconsistencias y crea borradores. */
+  async analizarAgente(sucursalId: string, desde: string, hasta: string): Promise<RespuestaAnalisis> {
+    return this.api.post<RespuestaAnalisis>('/checador/agente/analizar', { sucursalId, desde, hasta });
+  }
+  /** Lista las alertas/borradores del agente (para revisar). */
+  async getAlertasAgente(sucursalId: string, desde?: string, hasta?: string, estado?: string): Promise<AlertaAgente[]> {
+    const params: any = { sucursalId };
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    if (estado) params.estado = estado;
+    return this.api.get<AlertaAgente[]>('/checador/agente/alertas', params);
+  }
+  /** RH resuelve una alerta: aprobada | rechazada | descartada (+ justificación opcional). */
+  async decidirAlerta(id: string, estado: EstadoAlerta, justificacion?: string): Promise<AlertaAgente> {
+    return this.api.put<AlertaAgente>(`/checador/agente/alertas/${id}`, { estado, justificacion });
   }
 
   /**

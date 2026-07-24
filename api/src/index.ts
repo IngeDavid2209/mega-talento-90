@@ -4,6 +4,7 @@ import { env } from './env';
 import { pool } from './db';
 import { authRouter } from './auth';
 import { checadorRouter } from './checador';
+import { agenteHorariosRouter } from './agente-horarios';
 import { candidatosRouter } from './candidatos';
 import { puestosRouter } from './puestos';
 import { usuariosRouter } from './usuarios';
@@ -33,6 +34,7 @@ app.get('/health/db', async (_req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/checador', checadorRouter);
+app.use('/checador/agente', agenteHorariosRouter); // Agente de Horarios (Fase 1)
 app.use('/candidatos', candidatosRouter);
 app.use('/puestos', puestosRouter);
 app.use('/usuarios', usuariosRouter);

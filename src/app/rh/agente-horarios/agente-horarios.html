@@ -1,0 +1,86 @@
+<div class="agente">
+  <header class="ag-head">
+    <h1>🤖 Agente de Horarios</h1>
+    <p>Detecta inconsistencias de asistencia y deja borradores para que tú los revises.
+       <strong>El agente nunca aprueba solo</strong> — tú tienes la última palabra.</p>
+  </header>
+
+  <section class="ag-controls">
+    <label>Sucursal
+      <select [(ngModel)]="sucursalId">
+        <option value="">— elige —</option>
+        @for (s of sucursales; track s.id) {
+          <option [value]="s.id">{{ s.ciudad }} · {{ s.id }}</option>
+        }
+      </select>
+    </label>
+    <label>Desde <input type="date" [(ngModel)]="desde"></label>
+    <label>Hasta <input type="date" [(ngModel)]="hasta"></label>
+    <button class="btn-analizar" (click)="analizar()" [disabled]="cargando">
+      {{ cargando ? 'Analizando…' : 'Analizar con IA' }}
+    </button>
+  </section>
+
+  @if (error) { <div class="ag-msg ag-error">{{ error }}</div> }
+  @if (mensaje) { <div class="ag-msg ag-ok">{{ mensaje }}</div> }
+
+  @if (resumen) {
+    <section class="ag-resumen">
+      <div class="kpi"><span class="n">{{ resumen.totalInconsistencias }}</span><span class="l">inconsistencias</span></div>
+      <div class="kpi"><span class="n">{{ resumen.empleadosAnalizados }}</span><span class="l">empleados</span></div>
+      <div class="kpi"><span class="n">{{ resumen.diasAnalizados }}</span><span class="l">días</span></div>
+      <div class="kpi"><span class="n">{{ resumen.checadasLeidas }}</span><span class="l">checadas</span></div>
+      <div class="chips">
+        @for (r of reglasResumen; track r[0]) {
+          <span class="chip">{{ etiquetaRegla(r[0]) }}: <b>{{ r[1] }}</b></span>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="ag-filtros">
+    <label>Ver
+      <select [(ngModel)]="filtroEstado" (change)="cargarAlertas()">
+        <option value="sugerida_ia">Pendientes (sugeridas por IA)</option>
+        <option value="aprobada">Aprobadas</option>
+        <option value="rechazada">Rechazadas</option>
+        <option value="descartada">Descartadas</option>
+        <option value="">Todas</option>
+      </select>
+    </label>
+    <button class="btn-refrescar" (click)="cargarAlertas()">↻ Refrescar</button>
+    <span class="conteo">{{ alertas.length }} alerta(s)</span>
+  </section>
+
+  @if (alertas.length === 0) {
+    <p class="ag-vacio">Sin alertas para este filtro. Corre un análisis o cambia el filtro.</p>
+  } @else {
+    <div class="ag-lista">
+      @for (a of alertas; track a.id) {
+        <article class="alerta" [style.border-left-color]="colorSeveridad(a.severidad)">
+          <div class="alerta-top">
+            <span class="regla" [style.background-color]="colorSeveridad(a.severidad)">{{ etiquetaRegla(a.regla) }}</span>
+            <strong class="emp">{{ a.empleadoNombre || a.empleadoCodigo }}</strong>
+            <span class="fecha">{{ a.fecha }}</span>
+            <span class="estado estado-{{ a.estado }}">{{ a.estado }}</span>
+          </div>
+          <p class="detalle">{{ a.detalle }}</p>
+          @if (a.estado === 'sugerida_ia') {
+            <textarea class="justif" [(ngModel)]="a.justificacionSugerida" rows="2"
+                      placeholder="Justificación (puedes editarla antes de aprobar)"></textarea>
+            <div class="acciones">
+              <button class="ok" (click)="decidir(a, 'aprobada')">✓ Aprobar</button>
+              <button class="no" (click)="decidir(a, 'rechazada')">✕ Rechazar</button>
+              <button class="descartar" (click)="decidir(a, 'descartada')">Descartar</button>
+            </div>
+          } @else {
+            <div class="resuelta">
+              @if (a.justificacionSugerida) { <p class="just-final">"{{ a.justificacionSugerida }}"</p> }
+              <span>Resuelta{{ a.decididoPor ? ' por ' + a.decididoPor : '' }}.</span>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+</div>

@@ -24,6 +24,7 @@ import { EnRiesgoComponent } from './rh/enriesgo/enriesgo';
 import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
 import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/resultados-evaluacion';
 import { HorariosComponent } from './rh/horarios/horarios';
+import { AgenteHorariosComponent } from './rh/agente-horarios/agente-horarios';
 
 export const routes: Routes = [
   {
@@ -44,6 +45,7 @@ export const routes: Routes = [
       { path: 'guia-evaluacion', component: GuiaEvaluacionComponent },
       { path: 'resultados-evaluacion', component: ResultadosEvaluacionComponent },
       { path: 'horarios', component: HorariosComponent },
+      { path: 'agente-horarios', component: AgenteHorariosComponent },
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },
