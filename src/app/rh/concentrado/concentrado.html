@@ -51,12 +51,14 @@
           <span class="kpi-box-title">Embudo de Selección</span>
           <div class="funnel-h">
             @for (f of funnel; track f.label; let i = $index) {
-              <div class="fseg" [class.first]="i === 0" [class.last]="i === funnel.length - 1">
+              <button type="button" class="fseg" [class.first]="i === 0" [class.last]="i === funnel.length - 1"
+                      (click)="abrirEtapa(i)" [title]="'Ver los ' + f.n + ' candidatos'">
                 <span class="fseg-lbl">{{ f.label }}</span>
                 <span class="fseg-n">{{ f.n }}</span>
-              </div>
+              </button>
             }
           </div>
+          <span class="funnel-hint">Toca una etapa para ver sus candidatos</span>
         </div>
 
         <!-- Tiempo promedio -->
@@ -268,5 +270,44 @@
       Documento generado automáticamente por Mega Talento. La Evaluación refleja lo capturado por RH en el proceso;
       la Trayectoria se deriva de la solicitud electrónica del candidato.
     </footer>
+  }
+
+  <!-- ===== Modal: candidatos de una etapa del embudo ===== -->
+  @if (etapaAbierta !== null) {
+    <div class="et-modal-ov no-print" (click)="cerrarEtapa()"></div>
+    <div class="et-modal no-print" role="dialog" aria-modal="true">
+      <header class="et-modal-head">
+        <div>
+          <span class="et-modal-eyebrow">Embudo de selección</span>
+          <h3>{{ etapaNombre }} · {{ candidatosEtapa.length }} candidato{{ candidatosEtapa.length === 1 ? '' : 's' }}</h3>
+        </div>
+        <button class="et-modal-x" (click)="cerrarEtapa()" aria-label="Cerrar">✕</button>
+      </header>
+      <div class="et-modal-body">
+        @if (!candidatosEtapa.length) {
+          <div class="et-vacio">No hay candidatos en esta etapa.</div>
+        } @else {
+          @for (c of candidatosEtapa; track c.id) {
+            <button type="button" class="et-row" (click)="abrirExpedienteId(c)">
+              <span class="avatar">{{ getInitials(c.nombre) }}</span>
+              <div class="et-row-id">
+                <span class="et-row-nombre">{{ c.nombre || 'Sin nombre' }}</span>
+                <span class="et-row-sub">{{ c.puesto || 'Sin puesto' }} · {{ c.ciudad || c.sucursal || '—' }}</span>
+              </div>
+              <span class="estatus-badge" [style.color]="colorEtapa(c.status)" [style.border-color]="colorEtapa(c.status)">
+                {{ nombreEtapa(c.status) }}
+              </span>
+              @if (seguimiento(c) === 'critico') {
+                <span class="seg critico">{{ dias(c) }}d</span>
+              } @else if (seguimiento(c) === 'aviso') {
+                <span class="seg aviso">{{ dias(c) }}d</span>
+              } @else {
+                <span class="seg ok">✓</span>
+              }
+            </button>
+          }
+        }
+      </div>
+    </div>
   }
 </div>

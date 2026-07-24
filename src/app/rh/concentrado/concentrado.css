@@ -452,3 +452,34 @@ table.ranking td { padding: 10px 12px; vertical-align: middle; }
 
 /* Espaciado general un poco más aireado */
 .puesto-card { margin-bottom: 18px; }
+
+/* Flechas del embudo clicables */
+.fseg { border: none; cursor: pointer; font: inherit; transition: filter 0.15s, transform 0.1s; }
+.fseg:hover { filter: brightness(1.12); }
+.fseg:active { transform: translateY(1px); }
+.funnel-hint { display: block; margin-top: 8px; font-size: 11px; color: var(--text3); text-align: center; }
+
+/* ===== Modal: candidatos de una etapa ===== */
+.et-modal-ov { position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 1200; }
+.et-modal {
+  position: fixed; z-index: 1201; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(560px, 94vw); max-height: 84vh; display: flex; flex-direction: column;
+  background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(15,23,42,0.35); overflow: hidden;
+}
+.et-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; background: var(--ink); color: #fff; }
+.et-modal-eyebrow { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold); }
+.et-modal-head h3 { margin: 2px 0 0; font-size: 16px; font-weight: 800; color: #fff; }
+.et-modal-x { border: none; background: rgba(255,255,255,0.12); color: #fff; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 14px; flex-shrink: 0; }
+.et-modal-x:hover { background: rgba(255,255,255,0.22); }
+.et-modal-body { padding: 8px; overflow-y: auto; }
+.et-vacio { padding: 24px; text-align: center; color: var(--text3); font-size: 13px; }
+.et-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; border: none; background: none; cursor: pointer; text-align: left;
+  border-radius: 10px; border-bottom: 1px solid var(--border);
+}
+.et-row:last-child { border-bottom: none; }
+.et-row:hover { background: var(--surface2); }
+.et-row-id { flex: 1; min-width: 0; }
+.et-row-nombre { display: block; font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.et-row-sub { display: block; font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

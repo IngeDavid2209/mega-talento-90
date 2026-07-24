@@ -50,6 +50,12 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
   // ---- KPIs (panel superior) ----
   funnel: { label: string; n: number }[] = [];
   funnelMax = 1;
+
+  // Detalle de una etapa del embudo (candidatos en esa etapa)
+  etapaAbierta: number | null = null;
+  etapaNombre = '';
+  candidatosEtapa: any[] = [];
+  private consideradosCache: any[] = [];
   tiempoPromedio = 0;                        // días promedio en proceso
   calidadPorPuesto: { nombre: string; score: number }[] = [];
   calidadMax = 1;
@@ -144,6 +150,7 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
 
   /** Calcula el panel de KPIs (embudo, tiempo, calidad por puesto, estado). */
   private calcularKpis(considerados: any[], hoy: Date, dias: (c: any) => number) {
+    this.consideradosCache = considerados;
     // Embudo: cuántos han ALCANZADO cada etapa (usando el status actual como
     // proxy del avance máximo). Recibidos = todos; Contratados = solo contratados.
     const idx = (status: string) =>
@@ -212,6 +219,24 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
     if (this.ciudadesExpandidas.has(ciudad)) this.ciudadesExpandidas.delete(ciudad);
     else this.ciudadesExpandidas.add(ciudad);
   }
+
+  /** Abre la lista de candidatos que están en (o han alcanzado) la etapa del embudo. */
+  abrirEtapa(i: number) {
+    const idx = (status: string) =>
+      status === ID_ETAPAS.CONTRATADO ? ETAPAS.length : ETAPAS.findIndex(e => e.id === status);
+    let filtro: (c: any) => boolean;
+    if (i === 0) filtro = () => true;                                   // Recibidos
+    else if (i === this.funnel.length - 1) filtro = c => c.status === ID_ETAPAS.CONTRATADO; // Contratados
+    else filtro = c => idx(c.status) >= i;                              // alcanzaron esta etapa
+    this.candidatosEtapa = this.consideradosCache
+      .filter(filtro)
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    this.etapaAbierta = i;
+    this.etapaNombre = this.funnel[i]?.label || '';
+  }
+  cerrarEtapa() { this.etapaAbierta = null; this.candidatosEtapa = []; }
+
+  abrirExpedienteId(c: any) { this.router.navigate(['/app/expediente', c.id]); }
 
   // Ancho de barra del embudo (%).
   funnelPct(n: number): number { return Math.max(6, Math.round((n / this.funnelMax) * 100)); }
