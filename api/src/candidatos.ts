@@ -192,6 +192,35 @@ candidatosRouter.post('/', async (req: Request, res: Response) => {
   } catch (e) { return fallo(res, e, 'Error al crear candidato.'); }
 });
 
+// KPI de fases: tiempo promedio (horas) que los candidatos pasan en cada etapa,
+// a partir del historial de transiciones. (Antes de '/:id' para no ser capturada.)
+candidatosRouter.get('/kpi-fases', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT etapa_origen AS etapa,
+              count(*)::int AS n,
+              round(avg(horas_en_origen)::numeric, 1) AS avg_horas,
+              round(min(horas_en_origen)::numeric, 1) AS min_horas,
+              round(max(horas_en_origen)::numeric, 1) AS max_horas
+       FROM candidatos_transiciones
+       WHERE etapa_origen IS NOT NULL AND horas_en_origen IS NOT NULL
+       GROUP BY etapa_origen`
+    );
+    const fases = rows.map(r => ({
+      etapa: r.etapa,
+      n: r.n,
+      avgHoras: Number(r.avg_horas) || 0,
+      minHoras: Number(r.min_horas) || 0,
+      maxHoras: Number(r.max_horas) || 0
+    }));
+    const total = fases.reduce((s, f) => s + f.n, 0);
+    return res.json({ fases, total });
+  } catch (e) {
+    console.warn('[candidatos] kpi-fases (¿falta la tabla candidatos_transiciones?):', e);
+    return res.json({ fases: [], total: 0 });
+  }
+});
+
 // Leer un candidato (lo usan /solicitud/:id y /evaluar-*).
 candidatosRouter.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -209,6 +238,9 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
     const marcar = req.query.marcarActividad !== 'false' && d.__marcarActividad !== false;
     delete d.__marcarActividad;
     const esp = columnasEspejo(d);
+    // Estado actual ANTES de actualizar, para detectar un cambio de fase.
+    const prev = await pool.query('SELECT portal_status FROM candidatos WHERE id=$1', [req.params.id]);
+    const estadoPrevio: string | null = prev.rows[0]?.portal_status ?? null;
     const { rows } = await pool.query(
       `UPDATE candidatos SET
          portal_data = coalesce(portal_data,'{}'::jsonb) || $2::jsonb,
@@ -235,6 +267,26 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
       ]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado.' });
+
+    // Registrar la transición de fase si el estado cambió. horas_en_origen = tiempo
+    // que estuvo en la etapa que deja (desde la última transición o el alta).
+    if (esp.portal_status && esp.portal_status !== estadoPrevio) {
+      try {
+        await pool.query(
+          `INSERT INTO candidatos_transiciones (candidato_id, etapa_origen, etapa_destino, horas_en_origen)
+           SELECT $1, $2, $3,
+             EXTRACT(EPOCH FROM (now() - coalesce(
+               (SELECT max(t.cambiado_en) FROM candidatos_transiciones t WHERE t.candidato_id = $1),
+               (SELECT c.creado_en FROM candidatos c WHERE c.id = $1),
+               now()
+             ))) / 3600`,
+          [req.params.id, estadoPrevio, esp.portal_status]
+        );
+      } catch (err) {
+        console.warn('[candidatos] no se pudo registrar la transición de fase:', err);
+      }
+    }
+
     return res.json(mapCandidato(rows[0]));
   } catch (e) { return fallo(res, e, 'Error al actualizar candidato.'); }
 });

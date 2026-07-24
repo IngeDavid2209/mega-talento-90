@@ -36,6 +36,11 @@ export class CandidateService {
     return this.api.get<any[]>('/candidatos');
   }
 
+  /** KPI de fases: tiempo promedio (horas) por etapa a partir del historial de transiciones. */
+  async getKpiFases(): Promise<{ fases: { etapa: string; n: number; avgHoras: number; minHoras: number; maxHoras: number }[]; total: number }> {
+    return this.api.get('/candidatos/kpi-fases');
+  }
+
   async getCandidatesIncluyendoBorrados(): Promise<any[]> {
     const [vivos, borrados] = await Promise.all([
       this.api.get<any[]>('/candidatos'),

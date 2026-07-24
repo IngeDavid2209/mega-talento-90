@@ -867,3 +867,29 @@
 @media (max-width: 480px) {
   .kpi-section { grid-template-columns: 1fr; }
 }
+
+/* ===== KPI: tiempo por fase del proceso ===== */
+.fases-panel { margin-top: 22px; }
+.fases-total {
+  font-size: 12px; font-weight: 700; color: var(--text2);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 12px; white-space: nowrap;
+}
+.fases-list { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.fase-row { display: grid; grid-template-columns: 220px 1fr 130px; align-items: center; gap: 14px; }
+.fase-label { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.fase-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.fase-name { font-size: 13.5px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fase-bar { height: 9px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
+.fase-fill { height: 100%; background: var(--green); border-radius: 999px; min-width: 3px; transition: width 0.3s; }
+.fase-fill.over { background: var(--red); }
+.fase-nums { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.fase-avg { font-size: 14px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+.fase-avg.over { color: var(--red); }
+.fase-avg.fase-sin { color: var(--text3); font-weight: 600; }
+.fase-meta { font-size: 11px; color: var(--text3); }
+
+@media (max-width: 560px) {
+  .fase-row { grid-template-columns: 1fr 90px; }
+  .fase-bar { grid-column: 1 / -1; order: 3; }
+}

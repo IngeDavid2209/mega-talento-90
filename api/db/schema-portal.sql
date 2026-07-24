@@ -34,6 +34,20 @@ CREATE INDEX IF NOT EXISTS idx_candidatos_portal_id  ON candidatos (portal_candi
 CREATE INDEX IF NOT EXISTS idx_candidatos_deleted_at ON candidatos (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_candidatos_portal_status ON candidatos (portal_status);
 
+-- Historial de cambios de fase/etapa de cada candidato (para KPI de tiempo por
+-- fase). Se inserta una fila cada vez que cambia portal_status. horas_en_origen =
+-- tiempo que estuvo en la etapa que deja (desde la transición anterior o el alta).
+CREATE TABLE IF NOT EXISTS candidatos_transiciones (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id    TEXT NOT NULL,
+  etapa_origen    TEXT,
+  etapa_destino   TEXT NOT NULL,
+  horas_en_origen NUMERIC,
+  cambiado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_transiciones_candidato ON candidatos_transiciones (candidato_id);
+CREATE INDEX IF NOT EXISTS idx_transiciones_origen    ON candidatos_transiciones (etapa_origen);
+
 -- Vacantes del portal (no existía; el bot solo tiene `productos`, que es otra cosa).
 CREATE TABLE IF NOT EXISTS puestos (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),

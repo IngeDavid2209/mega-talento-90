@@ -50,6 +50,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Distribución por etapa
   distribucionEtapas: { id: string; title: string; count: number; icon: string; color: string; pct: number }[] = [];
 
+  // KPI de tiempo por fase (a partir del historial de transiciones)
+  fasesProceso: {
+    id: string; title: string; color: string; n: number; avgHoras: number; slaHoras: number;
+    label: string; metaLabel: string; dentro: boolean; pct: number; conDatos: boolean;
+  }[] = [];
+  kpiFasesTotal = 0;
+
   // Fuentes
   fuentes: { nombre: string; total: number; contratados: number; efectividad: number }[] = [];
 
@@ -87,6 +94,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // los candidatos que ya existían antes de crear el índice. Se corre una
     // sola vez por navegador de RH (guarda en localStorage).
     this.backfillIndiceTelefonos();
+
+    // KPI de tiempo por fase (historial de transiciones).
+    this.cargarKpiFases();
+  }
+
+  /** Carga el KPI de tiempo por fase y lo cruza con las etapas y su SLA. */
+  async cargarKpiFases() {
+    try {
+      const r = await this.candidateService.getKpiFases();
+      const porEtapa = new Map(r.fases.map(f => [f.etapa, f]));
+      this.fasesProceso = ETAPAS.map(e => {
+        const f = porEtapa.get(e.id);
+        const avg = f?.avgHoras || 0;
+        const sla = (e as any).slaHoras || 0;
+        return {
+          id: e.id, title: e.title, color: e.color,
+          n: f?.n || 0, avgHoras: avg, slaHoras: sla,
+          label: this.formatHoras(avg), metaLabel: this.formatHoras(sla),
+          dentro: !f || avg <= sla, conDatos: !!f,
+          pct: sla > 0 ? Math.min(100, Math.round((avg / sla) * 100)) : 0
+        };
+      });
+      this.kpiFasesTotal = r.total;
+    } catch (e) {
+      console.warn('No se pudo cargar el KPI de fases:', e);
+    }
+  }
+
+  /** Horas → etiqueta legible (min / h / días). */
+  formatHoras(h: number): string {
+    if (!h || h <= 0) return '—';
+    if (h < 1) return `${Math.round(h * 60)} min`;
+    if (h < 48) return `${Math.round(h)} h`;
+    return `${(h / 24).toFixed(1)} d`;
   }
 
   ngOnDestroy() {

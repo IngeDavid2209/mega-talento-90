@@ -222,6 +222,49 @@
       </div>
     </div>
 
+    <!-- TIEMPO POR FASE DEL PROCESO (KPI de transiciones) -->
+    <div class="panel-card fases-panel">
+      <header class="panel-header">
+        <div>
+          <h2>Tiempo por fase del proceso</h2>
+          <p class="panel-desc">Promedio que un candidato pasa en cada etapa, contra su meta (SLA)</p>
+        </div>
+        <span class="fases-total">{{ kpiFasesTotal }} transición(es)</span>
+      </header>
+
+      @if (!kpiFasesTotal) {
+        <p class="empty-row">
+          Aún no hay transiciones registradas. El KPI se irá llenando conforme muevas candidatos de etapa
+          (se registra desde ahora en adelante).
+        </p>
+      } @else {
+        <div class="fases-list">
+          @for (f of fasesProceso; track f.id) {
+            <div class="fase-row">
+              <div class="fase-label">
+                <span class="fase-dot" [style.background-color]="f.color"></span>
+                <span class="fase-name">{{ f.title }}</span>
+              </div>
+              <div class="fase-bar">
+                <div class="fase-fill" [class.over]="!f.dentro"
+                     [style.width.%]="f.conDatos ? (f.pct || 3) : 0"
+                     [style.background-color]="f.dentro ? null : null"></div>
+              </div>
+              <div class="fase-nums">
+                @if (f.conDatos) {
+                  <span class="fase-avg" [class.over]="!f.dentro">{{ f.label }}</span>
+                  <span class="fase-meta">meta {{ f.metaLabel }} · {{ f.n }}</span>
+                } @else {
+                  <span class="fase-avg fase-sin">Sin datos</span>
+                  <span class="fase-meta">meta {{ f.metaLabel }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
     <!-- ASISTENCIA Y RETARDOS (checador) -->
     <app-asistencia-resumen></app-asistencia-resumen>
 
