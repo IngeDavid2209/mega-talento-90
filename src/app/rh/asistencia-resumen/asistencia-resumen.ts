@@ -88,6 +88,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   private unsubEmpleados: any;
   private unsubHorarios: any;
+  private pollAsist: any;
+  private readonly POLL_ASIST_MS = 60000;   // refresco automático de la asistencia
 
   ngOnInit() {
     const hoy = new Date();
@@ -106,6 +108,16 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     });
 
     this.ajustarRangoYCargar();
+
+    // Refresco automático (en vivo): recarga la asistencia sin interrumpir si
+    // estás cargando o con el detalle abierto.
+    this.pollAsist = setInterval(() => this.ngZone.run(() => this.refrescar()), this.POLL_ASIST_MS);
+  }
+
+  /** Recarga silenciosa periódica (no muestra "Cargando…" ni molesta si hay modal). */
+  private refrescar() {
+    if (this.cargando || this.detalle) return;
+    this.cargar(true);
   }
 
   ngOnChanges(cambios: SimpleChanges) {
@@ -130,6 +142,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   ngOnDestroy() {
     if (this.unsubEmpleados) this.unsubEmpleados();
     if (this.unsubHorarios) this.unsubHorarios();
+    if (this.pollAsist) clearInterval(this.pollAsist);
   }
 
   get empleadosFiltrados(): Empleado[] {
@@ -156,19 +169,18 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   private ultimasChecadas: Checada[] = [];
 
-  async cargar() {
+  async cargar(silencioso = false) {
     if (!this.sucursalFiltro || !this.desde || !this.hasta) { this.lista = []; return; }
-    this.cargando = true;
+    if (!silencioso) this.cargando = true;
     try {
       this.ultimasChecadas = await this.checador.getChecadas(this.sucursalFiltro, this.desde, this.hasta);
       this.lista = this.construir(this.ultimasChecadas);
       this.computarGraficas();
     } catch (e) {
       console.error('Error al cargar asistencia:', e);
-      this.toast.error('No se pudieron cargar las checadas.');
-      this.lista = [];
+      if (!silencioso) { this.toast.error('No se pudieron cargar las checadas.'); this.lista = []; }
     } finally {
-      this.cargando = false;
+      if (!silencioso) this.cargando = false;
     }
   }
 

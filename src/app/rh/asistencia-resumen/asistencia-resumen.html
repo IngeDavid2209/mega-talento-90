@@ -29,6 +29,7 @@
       </div>
     </div>
     <div class="ar-bar-actions">
+      <span class="ar-live" title="La asistencia se actualiza sola cada minuto"><span class="ar-live-dot"></span>En vivo</span>
       @if (permitirImportar) {
         <label class="ar-btn ar-btn-primary" [class.ar-btn-disabled]="importando">
           {{ importando ? 'Importando…' : 'Importar reloj' }}

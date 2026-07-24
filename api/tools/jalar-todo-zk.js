@@ -78,7 +78,9 @@ async function jalarUno({ ip, suc }) {
   return { ne, nc, totalChecadas: filas.length };
 }
 
-(async () => {
+async function correr() {
+  const marca = new Date().toLocaleString('es-MX');
+  console.log(`\n──── Jalado ${marca} ────`);
   for (const t of TARGETS) {
     try {
       const r = await jalarUno(t);
@@ -87,5 +89,18 @@ async function jalarUno({ ip, suc }) {
       console.log(`❌ ${t.suc.padEnd(20)} (${t.ip}) → ERROR: ${e.message || e}`);
     }
   }
-  await pool.end();
+}
+
+// Modo watch: --loop (o LOOP_MIN=n) repite cada n minutos (default 5) para
+// mantener la base "al día". Debe correr en una máquina en la red de los relojes.
+const LOOP_MIN = parseInt(process.env.LOOP_MIN || '', 10) || (process.argv.includes('--loop') ? 5 : 0);
+
+(async () => {
+  await correr();
+  if (LOOP_MIN > 0) {
+    console.log(`\n⏱  Modo en vivo: repitiendo cada ${LOOP_MIN} min. Ctrl+C para detener.`);
+    setInterval(() => { correr().catch(e => console.error(e)); }, LOOP_MIN * 60 * 1000);
+  } else {
+    await pool.end();
+  }
 })().catch(e => { console.error(e); process.exit(1); });
