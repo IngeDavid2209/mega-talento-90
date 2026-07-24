@@ -69,6 +69,8 @@ export class HorariosComponent implements OnInit, OnDestroy {
   cargandoChecadas = false;
   importando = false;
   importResumen: ResultadoImportacion | null = null;
+  // Se incrementa tras importar para que la vista de asistencia recargue.
+  recargaAsistencia = 0;
 
   // Modales de edición (null = cerrado)
   areaEdit: AreaChecador | null = null;
@@ -204,7 +206,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
           const res = await this.checador.importarChecadas(this.sucursalFiltro, parseo.filas, empleados);
           this.importResumen = res;
           this.toast.exito(`Importación lista: ${res.nuevas} nuevas, ${res.duplicadas} duplicadas, ${res.sinEmpleado} sin empleado.`);
-          await this.cargarChecadas();
+          this.recargaAsistencia++;   // dispara la recarga del dashboard de asistencia
         } catch (e: any) {
           console.error('Error al importar checadas:', e);
           this.toast.error('No se pudo importar el archivo. Revisa que sea el export del reloj (attlog.dat, CSV o Excel).');

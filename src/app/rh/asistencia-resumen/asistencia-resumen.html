@@ -8,28 +8,38 @@
     </header>
   }
 
-  <!-- Controles: sucursal + rango de fechas -->
-  <div class="ar-controls">
-    @if (!ocultarSucursal) {
-      <div class="ar-field ar-field-suc">
-        <label>Sucursal</label>
-        <app-sucursal-select [value]="sucursalFiltro"
-                             (valueChange)="sucursalFiltro = $event; onSucursalChange()">
-        </app-sucursal-select>
+  <!-- Barra unificada: filtros a la izquierda, acciones a la derecha -->
+  <div class="ar-bar">
+    <div class="ar-bar-filters">
+      @if (!ocultarSucursal) {
+        <div class="ar-field ar-field-suc">
+          <label>Sucursal</label>
+          <app-sucursal-select [value]="sucursalFiltro"
+                               (valueChange)="sucursalFiltro = $event; onSucursalChange()">
+          </app-sucursal-select>
+        </div>
+      }
+      <div class="ar-field">
+        <label>Desde</label>
+        <input type="date" [(ngModel)]="desde" (change)="cargar()">
       </div>
-    }
-    <div class="ar-field">
-      <label>Desde</label>
-      <input type="date" [(ngModel)]="desde" (change)="cargar()">
+      <div class="ar-field">
+        <label>Hasta</label>
+        <input type="date" [(ngModel)]="hasta" (change)="cargar()">
+      </div>
     </div>
-    <div class="ar-field">
-      <label>Hasta</label>
-      <input type="date" [(ngModel)]="hasta" (change)="cargar()">
-    </div>
-    <div class="ar-actions">
+
+    <div class="ar-bar-actions">
+      @if (permitirImportar) {
+        <label class="ar-btn ar-btn-primary" [class.ar-btn-disabled]="importando">
+          {{ importando ? 'Importando…' : 'Importar reloj' }}
+          <input type="file" hidden accept=".dat,.txt,.csv,.xlsx,.xls"
+                 (change)="archivo.emit($event)" [disabled]="importando">
+        </label>
+      }
+      <button class="ar-btn ar-btn-ghost" (click)="exportarExcel()">Exportar</button>
       <button class="ar-btn ar-btn-ghost" (click)="expandirTodo(true)">Expandir</button>
       <button class="ar-btn ar-btn-ghost" (click)="expandirTodo(false)">Contraer</button>
-      <button class="ar-btn ar-btn-ghost" (click)="exportarExcel()">Exportar a Excel</button>
     </div>
   </div>
 
@@ -38,10 +48,25 @@
   } @else if (!lista.length) {
     <div class="ar-empty">Sin checadas en este periodo. Ajusta las fechas o importa el archivo del reloj.</div>
   } @else {
-    <p class="ar-resumen">
-      <strong>{{ lista.length }}</strong> empleado(s) ·
-      <strong>{{ totalConRetardo }}</strong> con retardo en el periodo
-    </p>
+    <!-- KPIs del periodo -->
+    <div class="ar-kpis">
+      <div class="ar-kpi">
+        <span class="ar-kpi-num">{{ lista.length }}</span>
+        <span class="ar-kpi-lbl">Empleados</span>
+      </div>
+      <div class="ar-kpi" [class.bad]="totalConRetardo > 0">
+        <span class="ar-kpi-num">{{ totalConRetardo }}</span>
+        <span class="ar-kpi-lbl">Con retardo</span>
+      </div>
+      <div class="ar-kpi" [class.bad]="retardoAcumulado > 0">
+        <span class="ar-kpi-num">{{ retardoAcumulado }}<small> min</small></span>
+        <span class="ar-kpi-lbl">Retardo acumulado</span>
+      </div>
+      <div class="ar-kpi" [class.warn]="faltasTotales > 0">
+        <span class="ar-kpi-num">{{ faltasTotales }}</span>
+        <span class="ar-kpi-lbl">Faltas</span>
+      </div>
+    </div>
 
     <!-- Lista: nombre con las métricas en chips a su derecha; clic despliega semanas -->
     <div class="ar-lista">

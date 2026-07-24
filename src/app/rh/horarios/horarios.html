@@ -27,34 +27,15 @@
   <!-- ============================ CHECADAS ============================ -->
   @if (tabActiva === 'checadas') {
     <section class="hz-panel">
-
-      <div class="hz-checadas-bar">
-        <div class="hz-bar-actions">
-          <label class="hz-btn hz-btn-primary" [class.hz-disabled]="importando">
-            {{ importando ? 'Importando…' : 'Importar archivo del reloj' }}
-            <input type="file" hidden accept=".dat,.txt,.csv,.xlsx,.xls"
-                   (change)="onArchivoSeleccionado($event)" [disabled]="importando">
-          </label>
-        </div>
-      </div>
-
-      <p class="hz-hint">
-        Elige el <strong>periodo (Desde/Hasta)</strong> para ver el desglose de todos los empleados
-        (entrada, comida, salida y retardos por semana). Para importar acepta el
-        <strong>attlog.dat</strong> del reloj, CSV o Excel.
-      </p>
-
-      @if (importResumen) {
-        <div class="hz-resumen">
-          <span class="hz-chip hz-chip-ok">{{ importResumen.nuevas }} nuevas</span>
-          <span class="hz-chip">{{ importResumen.duplicadas }} duplicadas</span>
-          <span class="hz-chip hz-chip-warn">{{ importResumen.sinEmpleado }} sin empleado</span>
-          <span class="hz-chip hz-chip-mute">{{ importResumen.leidas }} leídas</span>
-        </div>
-      }
-
-      <!-- Vista consolidada: todos los empleados desglosados por semana (usa la sucursal de arriba) -->
-      <app-asistencia-resumen [sucursalIdExterna]="sucursalFiltro" [ocultarSucursal]="true"></app-asistencia-resumen>
+      <!-- Dashboard de asistencia: barra unificada (fechas + importar/exportar) + KPIs + lista -->
+      <app-asistencia-resumen
+        [sucursalIdExterna]="sucursalFiltro"
+        [ocultarSucursal]="true"
+        [permitirImportar]="true"
+        [importando]="importando"
+        [recargarToken]="recargaAsistencia"
+        (archivo)="onArchivoSeleccionado($event)">
+      </app-asistencia-resumen>
     </section>
   }
 

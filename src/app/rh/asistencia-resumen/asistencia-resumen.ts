@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
@@ -22,7 +22,7 @@ interface SemanaAsistencia {
 interface EmpleadoAsistencia {
   codigo: string; nombre: string; fotoUrl: string; puesto: string; registrado: boolean;
   acumuladoTotal: number; semanasExcedidas: number; diasConRetardo: number; diasRegistrados: number;
-  presupuesto: number; semanas: SemanaAsistencia[]; abierto: boolean;
+  faltas: number; presupuesto: number; semanas: SemanaAsistencia[]; abierto: boolean;
 }
 
 /**
@@ -47,6 +47,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   @Input() sucursalIdExterna?: string;
   /** Oculta el selector de sucursal propio (cuando lo controla la página padre). */
   @Input() ocultarSucursal = false;
+  /** Muestra el botón "Importar archivo del reloj" en la barra (lo maneja el padre). */
+  @Input() permitirImportar = false;
+  /** Estado de importación (para el texto del botón). */
+  @Input() importando = false;
+  /** Cambiar este número fuerza una recarga (p. ej. tras una importación). */
+  @Input() recargarToken = 0;
+  /** Emite el evento del <input file> para que el padre procese el archivo. */
+  @Output() archivo = new EventEmitter<Event>();
 
   SUCURSALES = CENTROS_CHECADOR;
 
@@ -91,7 +99,15 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         this.ajustarRangoYCargar();
       }
     }
+    // El padre pidió recargar (p. ej. tras importar un archivo).
+    if (cambios['recargarToken'] && !cambios['recargarToken'].firstChange) {
+      this.ajustarRangoYCargar();
+    }
   }
+
+  // ---- KPIs del periodo ----
+  get retardoAcumulado(): number { return this.lista.reduce((s, e) => s + e.acumuladoTotal, 0); }
+  get faltasTotales(): number { return this.lista.reduce((s, e) => s + e.faltas, 0); }
 
   ngOnDestroy() {
     if (this.unsubEmpleados) this.unsubEmpleados();
@@ -210,7 +226,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const hastaD = new Date(this.hasta + 'T00:00:00');
 
     const porSemana = new Map<string, SemanaAsistencia>();
-    let acumTotal = 0, conRet = 0, diasReg = 0;
+    let acumTotal = 0, conRet = 0, diasReg = 0, faltas = 0;
     for (const claveIni of Array.from(semanasConDatos).sort()) {
       const inicio = new Date(claveIni + 'T00:00:00');
       const dias: DiaAsistencia[] = [];
@@ -232,6 +248,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm, falta: false });
         } else {
           // Día laboral sin checada = Falta (no suma minutos de retardo).
+          faltas++;
           dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: '—', comida: '—', salida: '—', retardoMin: 0, falta: true });
         }
       }
@@ -246,7 +263,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return {
       codigo, nombre: nombre || '(sin registrar)', fotoUrl, puesto, registrado,
       acumuladoTotal: acumTotal, semanasExcedidas: semExc, diasConRetardo: conRet,
-      diasRegistrados: diasReg, presupuesto, semanas, abierto: false
+      diasRegistrados: diasReg, faltas, presupuesto, semanas, abierto: false
     };
   }
 
