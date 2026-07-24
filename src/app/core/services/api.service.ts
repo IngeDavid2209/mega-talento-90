@@ -39,6 +39,10 @@ export class ApiService {
     return firstValueFrom(this.http.patch<T>(this.url(path), body, { headers: this.headers() }));
   }
 
+  put<T = any>(path: string, body: any = {}): Promise<T> {
+    return firstValueFrom(this.http.put<T>(this.url(path), body, { headers: this.headers() }));
+  }
+
   delete<T = any>(path: string): Promise<T> {
     return firstValueFrom(this.http.delete<T>(this.url(path), { headers: this.headers() }));
   }

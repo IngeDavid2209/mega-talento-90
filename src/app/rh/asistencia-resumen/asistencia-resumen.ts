@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
-import { ChecadorService } from '../../core/services/checador.service';
+import { ChecadorService, RevisionDia, EstadoRevision } from '../../core/services/checador.service';
 import { Checada, Empleado, HorarioArea, aFechaLocal } from '../../core/models/checador.model';
 import { CENTROS_CHECADOR, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
@@ -11,8 +11,10 @@ import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 /** Un día del empleado, ya desglosado en entrada / comida / salida y su retardo. */
 interface DiaAsistencia {
   fecha: string; diaLabel: string;
-  entrada: string; comida: string; salida: string; retardoMin: number;
-  falta: boolean;   // día laboral sin ninguna checada
+  entrada: string; comida: string; salida: string; horasNetas: string; retardoMin: number;
+  falta: boolean;              // día laboral sin ninguna checada
+  justificacion: string;       // capturada por RH (se guarda en la base)
+  estado: EstadoRevision;      // verificación: pendiente/verificada/aprobada/rechazada
 }
 /** Una semana (miércoles → martes) con su acumulado vs la tolerancia. */
 interface SemanaAsistencia {
@@ -57,6 +59,15 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   @Output() archivo = new EventEmitter<Event>();
 
   SUCURSALES = CENTROS_CHECADOR;
+
+  // Catálogos para el detalle
+  ESTADOS: { v: EstadoRevision; l: string }[] = [
+    { v: 'pendiente', l: 'Pendiente' },
+    { v: 'verificada', l: 'Verificada' },
+    { v: 'aprobada', l: 'Aprobada' },
+    { v: 'rechazada', l: 'Rechazada' }
+  ];
+  JUSTIFICACIONES = ['Cita Médica', 'Tráfico', 'Personal', 'Permiso', 'Incapacidad', 'No Registrada'];
 
   sucursalFiltro = CENTROS_CHECADOR[0]?.id || '';
   desde = '';
@@ -275,14 +286,22 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
           acumTotal += rm; diasReg++; acumSem += rm;
           if (rm > 0) conRet++;
-          // Horas trabajadas estimadas del día (salida − entrada), si hay ambas marcas.
+          // Horas del día: brutas (salida − entrada) y netas (menos la comida).
           const eSeg = this.minSeg(des.entrada), sSeg = this.minSeg(des.salida);
-          if (eSeg >= 0 && sSeg > eSeg) segTrab += (sSeg - eSeg);
-          dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm, falta: false });
+          let netasStr = '—';
+          if (eSeg >= 0 && sSeg > eSeg) {
+            const bruto = sSeg - eSeg;
+            segTrab += bruto;
+            let neto = bruto;
+            const cm = /(\d{1,2}:\d{2}:?\d{0,2})\s*[–-]\s*(\d{1,2}:\d{2}:?\d{0,2})/.exec(des.comida || '');
+            if (cm) { const a = this.minSeg(cm[1]), b = this.minSeg(cm[2]); if (b > a) neto -= (b - a); }
+            netasStr = this.formatHoras(neto);
+          }
+          dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, horasNetas: netasStr, retardoMin: rm, falta: false, justificacion: '', estado: 'pendiente' });
         } else {
           // Día laboral sin checada = Falta (no suma minutos de retardo).
           faltas++;
-          dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: '—', comida: '—', salida: '—', retardoMin: 0, falta: true });
+          dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: '—', comida: '—', salida: '—', horasNetas: '—', retardoMin: 0, falta: true, justificacion: '', estado: 'pendiente' });
         }
       }
       if (!dias.length) continue;
@@ -374,9 +393,43 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get totalConRetardo(): number { return this.lista.filter(e => e.acumuladoTotal > 0).length; }
   get horasTotales(): number { return Math.round(this.lista.reduce((s, e) => s + e.horasTrabajadas, 0)); }
 
-  // Detalle en modal
-  abrir(e: EmpleadoAsistencia) { this.detalle = e; }
+  // Detalle en modal: al abrir, carga las revisiones (justificación/estado) del empleado.
+  async abrir(e: EmpleadoAsistencia) {
+    this.detalle = e;
+    try {
+      const revs = await this.checador.getRevisiones(this.sucursalFiltro, e.codigo, this.desde, this.hasta);
+      const map = new Map(revs.map(r => [r.fecha, r]));
+      for (const s of e.semanas) for (const d of s.dias) {
+        const r = map.get(d.fecha);
+        d.justificacion = r?.justificacion || '';
+        d.estado = (r?.estado as EstadoRevision) || 'pendiente';
+      }
+    } catch (err) { console.warn('No se pudieron cargar las revisiones:', err); }
+  }
   cerrar() { this.detalle = null; }
+
+  /** Guarda (upsert) la justificación/estado de un día. */
+  async guardarRevisionDia(d: DiaAsistencia) {
+    if (!this.detalle) return;
+    try {
+      await this.checador.guardarRevision({
+        sucursalId: this.sucursalFiltro, empleadoCodigo: this.detalle.codigo,
+        fecha: d.fecha, justificacion: d.justificacion || '', estado: d.estado
+      });
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo guardar la revisión.');
+    }
+  }
+
+  estadoLabel(e: EstadoRevision): string { return this.ESTADOS.find(x => x.v === e)?.l || e; }
+
+  /** Segundos → 'Hh Mm'. */
+  private formatHoras(seg: number): string {
+    if (seg <= 0) return '—';
+    const h = Math.floor(seg / 3600), m = Math.floor((seg % 3600) / 60);
+    return `${h}h ${String(m).padStart(2, '0')}m`;
+  }
 
   // % de días a tiempo (para la barra de la tarjeta)
   pctATiempo(e: EmpleadoAsistencia): number {
@@ -404,7 +457,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           filas.push({
             'Empleado': e.nombre, 'Código': e.codigo, 'Puesto': e.puesto,
             'Semana': s.label, 'Fecha': d.fecha, 'Día': d.diaLabel,
-            'Entrada': d.entrada, 'Comida': d.comida, 'Salida': d.salida,
+            'Entrada': d.entrada, 'Comida': d.comida, 'Salida': d.salida, 'Horas netas': d.horasNetas,
             'Retardo (min)': d.falta ? 0 : d.retardoMin,
             'Estado': d.falta ? 'Falta' : (d.retardoMin > 0 ? 'Retardo' : 'A tiempo')
           });

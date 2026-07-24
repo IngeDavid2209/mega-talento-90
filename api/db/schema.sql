@@ -69,3 +69,18 @@ CREATE TABLE IF NOT EXISTS checadas (
   importado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_checadas_sucursal_fecha ON checadas (sucursal_id, fecha);
+
+-- Revisión de RH sobre un día de asistencia: justificación del retardo/falta y
+-- estado de verificación (pendiente/verificada/aprobada/rechazada). Una fila por
+-- (sucursal, empleado, día); se hace upsert al capturar/cambiar.
+CREATE TABLE IF NOT EXISTS asistencia_revision (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sucursal_id      TEXT NOT NULL,
+  empleado_codigo  TEXT NOT NULL,
+  fecha            TEXT NOT NULL,     -- 'yyyy-MM-dd'
+  justificacion    TEXT,
+  estado           TEXT NOT NULL DEFAULT 'pendiente',
+  actualizado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (sucursal_id, empleado_codigo, fecha)
+);
+CREATE INDEX IF NOT EXISTS idx_revision_suc_emp ON asistencia_revision (sucursal_id, empleado_codigo);

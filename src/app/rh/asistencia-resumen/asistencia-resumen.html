@@ -164,18 +164,30 @@
         @if (!detalle.semanas.length) {
           <div class="ar-sin">Sin checadas en este periodo.</div>
         } @else {
-          @for (sem of detalle.semanas; track sem.inicio) {
+          @for (sem of detalle.semanas; track sem.inicio; let i = $index) {
             <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
               <div class="ar-sem-head">
-                <span class="ar-sem-rango ar-cap">Semana: {{ sem.label }}</span>
-                <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
-                  {{ sem.acumulado }} / {{ detalle.presupuesto }} min
-                </span>
+                <div class="ar-sem-title">
+                  <span class="ar-sem-n">Semana {{ i + 1 }}</span>
+                  <span class="ar-sem-rango ar-cap">{{ sem.label }}</span>
+                </div>
+                <div class="ar-sem-meta">
+                  <div class="ar-sem-bar" [title]="sem.acumulado + ' de ' + detalle.presupuesto + ' min de tolerancia'">
+                    <div class="ar-sem-bar-fill" [class.over]="sem.excedido"
+                         [style.width.%]="sem.acumulado > detalle.presupuesto ? 100 : (detalle.presupuesto ? (sem.acumulado / detalle.presupuesto * 100) : 0)"></div>
+                  </div>
+                  <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
+                    {{ sem.acumulado }} / {{ detalle.presupuesto }} min
+                  </span>
+                </div>
               </div>
               <div class="ar-tabla-wrap">
-                <table class="ar-tabla">
+                <table class="ar-tabla ar-tabla-det">
                   <thead>
-                    <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+                    <tr>
+                      <th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th>
+                      <th>Horas netas</th><th>Retardo</th><th>Justificación</th><th>Verificación</th>
+                    </tr>
                   </thead>
                   <tbody>
                     @for (d of sem.dias; track d.fecha) {
@@ -184,6 +196,7 @@
                         <td class="ar-mono">{{ d.entrada }}</td>
                         <td class="ar-mono">{{ d.comida }}</td>
                         <td class="ar-mono">{{ d.salida }}</td>
+                        <td class="ar-mono">{{ d.horasNetas }}</td>
                         <td>
                           @if (d.falta) {
                             <span class="ar-badge ar-badge-falta">Falta</span>
@@ -193,6 +206,18 @@
                             <span class="ar-badge ar-badge-good">A tiempo</span>
                           }
                         </td>
+                        <td>
+                          <input class="ar-just" type="text" list="ar-just-list" placeholder="—"
+                                 [(ngModel)]="d.justificacion" (change)="guardarRevisionDia(d)">
+                        </td>
+                        <td>
+                          <select class="ar-verif" [class]="'ar-verif ar-verif-' + d.estado"
+                                  [(ngModel)]="d.estado" (change)="guardarRevisionDia(d)">
+                            @for (e of ESTADOS; track e.v) {
+                              <option [value]="e.v">{{ e.l }}</option>
+                            }
+                          </select>
+                        </td>
                       </tr>
                     }
                   </tbody>
@@ -200,6 +225,9 @@
               </div>
             </div>
           }
+          <datalist id="ar-just-list">
+            @for (j of JUSTIFICACIONES; track j) { <option [value]="j"></option> }
+          </datalist>
         }
       </div>
     </div>

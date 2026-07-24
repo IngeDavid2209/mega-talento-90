@@ -32,6 +32,10 @@ const mapChecada = (r: any) => ({
   empleadoNombre: r.empleado_nombre || undefined, fechaHora: r.fecha_hora,
   fecha: r.fecha, hora: r.hora, tipo: r.tipo ?? undefined, dedupKey: r.dedup_key
 });
+const mapRevision = (r: any) => ({
+  id: r.id, sucursalId: r.sucursal_id, empleadoCodigo: r.empleado_codigo,
+  fecha: r.fecha, justificacion: r.justificacion || '', estado: r.estado || 'pendiente'
+});
 
 function fallo(res: Response, e: any, msg: string) {
   console.error('[checador]', msg, e);
@@ -206,6 +210,44 @@ checadorRouter.get('/checadas', async (req: Request, res: Response) => {
     );
     res.json(rows.map(mapChecada));
   } catch (e) { fallo(res, e, 'No se pudieron leer las checadas.'); }
+});
+
+// ===================== REVISIÓN (justificación + verificación) =====================
+// Revisiones de un empleado en un rango (para pintar el detalle).
+checadorRouter.get('/revision', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId, codigo, desde, hasta } = req.query as any;
+    if (!sucursalId || !codigo) return res.status(400).json({ error: 'Faltan sucursalId y codigo.' });
+    const params: any[] = [sucursalId, codigo];
+    let filtroFechas = '';
+    if (desde && hasta) { params.push(desde, hasta); filtroFechas = ` AND fecha>=$3 AND fecha<=$4`; }
+    const { rows } = await pool.query(
+      `SELECT * FROM asistencia_revision
+       WHERE sucursal_id=$1 AND empleado_codigo=$2${filtroFechas} ORDER BY fecha`,
+      params
+    );
+    res.json(rows.map(mapRevision));
+  } catch (e) { fallo(res, e, 'No se pudo leer la revisión.'); }
+});
+
+// Upsert de la revisión de un día (justificación y/o estado).
+checadorRouter.put('/revision', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId, empleadoCodigo, fecha, justificacion, estado } = req.body || {};
+    if (!sucursalId || !empleadoCodigo || !fecha) {
+      return res.status(400).json({ error: 'Faltan sucursalId, empleadoCodigo o fecha.' });
+    }
+    const est = estado || 'pendiente';
+    const { rows } = await pool.query(
+      `INSERT INTO asistencia_revision (sucursal_id, empleado_codigo, fecha, justificacion, estado, actualizado_en)
+       VALUES ($1,$2,$3,$4,$5, now())
+       ON CONFLICT (sucursal_id, empleado_codigo, fecha)
+         DO UPDATE SET justificacion=EXCLUDED.justificacion, estado=EXCLUDED.estado, actualizado_en=now()
+       RETURNING *`,
+      [sucursalId, empleadoCodigo, fecha, justificacion ?? null, est]
+    );
+    res.json(mapRevision(rows[0]));
+  } catch (e) { fallo(res, e, 'No se pudo guardar la revisión.'); }
 });
 
 /**

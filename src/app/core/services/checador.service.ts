@@ -11,6 +11,16 @@ export interface ResultadoImportacion {
   sinEmpleado: number;
 }
 
+/** Revisión de RH sobre un día: justificación y estado de verificación. */
+export type EstadoRevision = 'pendiente' | 'verificada' | 'aprobada' | 'rechazada';
+export interface RevisionDia {
+  sucursalId: string;
+  empleadoCodigo: string;
+  fecha: string;
+  justificacion: string;
+  estado: EstadoRevision;
+}
+
 /**
  * Módulo Horarios y checadas contra la API (Postgres). Se conservan las firmas
  * del servicio anterior (Firestore); los `escuchar*` hacen polling.
@@ -86,6 +96,16 @@ export class ChecadorService {
   /** Rango de fechas con datos de una sucursal: { min, max } (o null). */
   async getRangoChecadas(sucursalId: string): Promise<{ min: string | null; max: string | null }> {
     return this.api.get('/checador/checadas/rango', { sucursalId });
+  }
+
+  // ===================== REVISIÓN (justificación + verificación) =====================
+  /** Revisiones (justificación/estado) de un empleado en un rango. */
+  async getRevisiones(sucursalId: string, codigo: string, desde: string, hasta: string): Promise<RevisionDia[]> {
+    return this.api.get<RevisionDia[]>('/checador/revision', { sucursalId, codigo, desde, hasta });
+  }
+  /** Guarda (upsert) la revisión de un día. */
+  async guardarRevision(r: RevisionDia): Promise<RevisionDia> {
+    return this.api.put<RevisionDia>('/checador/revision', r);
   }
 
   /**
