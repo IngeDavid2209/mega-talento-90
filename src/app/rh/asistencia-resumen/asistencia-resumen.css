@@ -130,44 +130,51 @@
 .ar-chip.bad .ar-chip-val small { color: var(--red-text); opacity: 0.8; }
 
 /* ===== Detalle expandido (semanas) ===== */
-.ar-emp-det { padding: 4px 14px 14px 46px; background: var(--surface3); }
+.ar-emp-det { padding: 10px 16px 20px 46px; background: var(--surface3); }
 .ar-sin { font-size: 13px; color: var(--text3); padding: 8px 0; }
 
 .ar-sem {
   border: 1px solid var(--border);
   border-left: 3px solid var(--green);
-  border-radius: 10px;
-  margin-top: 12px;
+  border-radius: 12px;
+  margin-top: 18px;
   overflow: hidden;
   background: #fff;
+  box-shadow: 0 1px 3px rgba(26, 47, 78, 0.04);
 }
-.ar-sem:first-child { margin-top: 8px; }
+.ar-sem:first-child { margin-top: 10px; }
 .ar-sem-bad { border-left-color: var(--red); }
 .ar-sem-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 8px 12px; background: var(--surface2); border-bottom: 1px solid var(--border);
+  padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
 }
-.ar-sem-rango { font-size: 13px; font-weight: 700; color: var(--ink); }
+.ar-sem-rango { font-size: 13.5px; font-weight: 700; color: var(--ink); }
 
 .ar-tabla-wrap { overflow-x: auto; }
 .ar-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .ar-tabla thead th {
-  text-align: left; padding: 9px 14px;
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  text-align: left; padding: 12px 18px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap;
 }
-.ar-tabla tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.ar-tabla tbody td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
 .ar-tabla tbody tr:last-child td { border-bottom: none; }
+.ar-tabla tbody tr:nth-child(even) td { background: rgba(26, 47, 78, 0.018); }
+.ar-tabla tbody tr:hover td { background: var(--surface2); }
 
-.ar-mono { font-variant-numeric: tabular-nums; font-family: 'DM Mono', ui-monospace, monospace; font-size: 12.5px; }
-.ar-cap { text-transform: capitalize; }
+.ar-mono { font-variant-numeric: tabular-nums; font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.02em; }
+.ar-cap { text-transform: capitalize; font-weight: 600; }
 .ar-nowrap { white-space: nowrap; }
 
-.ar-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.ar-badge { font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
 .ar-badge-good { background: var(--green-bg); color: var(--green-text); }
 .ar-badge-bad { background: var(--red-bg); color: var(--red-text); }
 .ar-badge-falta { background: #FBEED9; color: #8A5A00; }
-.ar-fila-falta td { color: var(--text3); background: var(--surface3); }
+.ar-fila-falta td, .ar-tabla tbody tr.ar-fila-falta:nth-child(even) td { color: var(--text3); background: #FCF6EC; }
 
 @media (max-width: 720px) {
   .ar-actions { margin-left: 0; }
