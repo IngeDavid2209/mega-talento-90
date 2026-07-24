@@ -39,6 +39,20 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
   grupos: GrupoPuesto[] = [];
   // Candidatos que quedaron fuera porque su puesto no tiene vacante activa
   excluidosSinVacante = 0;
+  totalConsiderados = 0;
+
+  // ---- KPIs (panel superior) ----
+  funnel: { label: string; n: number }[] = [];
+  funnelMax = 1;
+  tiempoPromedio = 0;                        // días promedio en proceso
+  calidadPorPuesto: { nombre: string; score: number }[] = [];
+  calidadMax = 1;
+  estado = { enProceso: 0, contratados: 0, descartados: 0 };
+  estadoTotal = 0;
+
+  // Top candidatos (tarjetas) y resto
+  topCandidatos: FilaConcentrado[] = [];
+  topRestantes = 0;
 
   // Cuántos mostrar por puesto (Top N). El resto queda plegado.
   topPorPuesto = 5;
@@ -111,6 +125,84 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
       })
       // Puestos con candidatos primero, luego los que no tienen ninguno.
       .sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre));
+
+    this.totalConsiderados = considerados.length;
+    this.calcularKpis(considerados, hoy, dias);
+  }
+
+  /** Calcula el panel de KPIs (embudo, tiempo, calidad por puesto, estado). */
+  private calcularKpis(considerados: any[], hoy: Date, dias: (c: any) => number) {
+    // Embudo: cuántos han ALCANZADO cada etapa (usando el status actual como
+    // proxy del avance máximo). Recibidos = todos; Contratados = solo contratados.
+    const idx = (status: string) =>
+      status === ID_ETAPAS.CONTRATADO ? ETAPAS.length : ETAPAS.findIndex(e => e.id === status);
+    const reached = (k: number) => considerados.filter(c => idx(c.status) >= k).length;
+    const contratados = considerados.filter(c => c.status === ID_ETAPAS.CONTRATADO).length;
+    this.funnel = [
+      { label: 'Recibidos', n: considerados.length },
+      { label: ETAPAS[1]?.shortLabel || 'Conductual', n: reached(1) },
+      { label: ETAPAS[2]?.shortLabel || 'Aptitudes', n: reached(2) },
+      { label: ETAPAS[3]?.shortLabel || 'Psicom.', n: reached(3) },
+      { label: 'Contratados', n: contratados }
+    ];
+    this.funnelMax = Math.max(1, this.funnel[0].n);
+
+    // Tiempo promedio en proceso (días desde el alta).
+    let suma = 0, cuenta = 0;
+    for (const c of considerados) {
+      if (!c.createdAt) continue;
+      const f = typeof c.createdAt.toDate === 'function' ? c.createdAt.toDate() : new Date(c.createdAt);
+      const d = Math.floor((hoy.getTime() - f.getTime()) / 86400000);
+      if (d >= 0) { suma += d; cuenta++; }
+    }
+    this.tiempoPromedio = cuenta ? Math.round(suma / cuenta) : 0;
+
+    // Calidad por puesto: promedio de evaluación (solo evaluados) de los 4 puestos con más candidatos.
+    this.calidadPorPuesto = this.grupos.filter(g => g.total > 0).slice(0, 4).map(g => {
+      const evs = g.filas.filter(f => !f.evaluacion.sinEvaluar);
+      const score = evs.length ? Math.round(evs.reduce((a, f) => a + f.evaluacion.score, 0) / evs.length) : 0;
+      return { nombre: g.nombre, score };
+    });
+    this.calidadMax = Math.max(1, ...this.calidadPorPuesto.map(c => c.score));
+
+    // Estado de candidatos (todos, no solo considerados).
+    const enProceso = this.candidatos.filter(c => c.status !== ID_ETAPAS.CONTRATADO && c.status !== ID_ETAPAS.RECHAZADO).length;
+    const descartados = this.candidatos.filter(c => c.status === ID_ETAPAS.RECHAZADO).length;
+    const contratadosAll = this.candidatos.filter(c => c.status === ID_ETAPAS.CONTRATADO).length;
+    this.estado = { enProceso, contratados: contratadosAll, descartados };
+    this.estadoTotal = enProceso + contratadosAll + descartados;
+
+    // Top candidatos (tarjetas): los mejores de todos los puestos.
+    const todas = this.grupos.flatMap(g => g.filas);
+    this.topCandidatos = todas.slice().sort((a, b) => compararFilas(a, b, dias)).slice(0, 5);
+    this.topRestantes = Math.max(0, todas.length - this.topCandidatos.length);
+  }
+
+  // Ancho de barra del embudo (%).
+  funnelPct(n: number): number { return Math.max(6, Math.round((n / this.funnelMax) * 100)); }
+  // Altura de barra de calidad (%).
+  calidadPct(score: number): number { return Math.max(4, Math.round((score / this.calidadMax) * 100)); }
+
+  /** Dona de estado (conic-gradient). */
+  get estadoDonut(): string {
+    const t = this.estadoTotal || 1;
+    const a = (this.estado.enProceso / t) * 100;
+    const b = (this.estado.contratados / t) * 100;
+    return `conic-gradient(var(--ink) 0 ${a}%, var(--green) ${a}% ${a + b}%, var(--red) ${a + b}% 100%)`;
+  }
+
+  /** Color del gauge por puntaje. */
+  scoreColorVar(score: number, sinEvaluar = false): string {
+    if (sinEvaluar) return 'var(--border-med)';
+    if (score >= 80) return 'var(--green)';
+    if (score >= 60) return 'var(--gold)';
+    return 'var(--red)';
+  }
+  /** Anillo del gauge (conic-gradient) para la tarjeta. */
+  gaugeStyle(score: number, sinEvaluar = false): string {
+    const col = this.scoreColorVar(score, sinEvaluar);
+    const pct = sinEvaluar ? 0 : score;
+    return `conic-gradient(${col} ${pct}%, var(--surface2) 0)`;
   }
 
   // ====== UI helpers ======

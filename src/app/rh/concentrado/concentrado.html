@@ -41,6 +41,116 @@
       }
     </div>
 
+    <!-- ============ PANEL DE KPIs ============ -->
+    <section class="kpis-panel no-print">
+      <h2 class="kpis-title">Indicadores Clave de Desempeño (KPIs)</h2>
+      <div class="kpis-grid">
+
+        <!-- Embudo de selección -->
+        <div class="kpi-box kpi-embudo">
+          <span class="kpi-box-title">Embudo de Selección</span>
+          <div class="funnel">
+            @for (f of funnel; track f.label; let i = $index) {
+              <div class="funnel-row">
+                <span class="funnel-lbl">{{ f.label }}</span>
+                <div class="funnel-bar">
+                  <div class="funnel-fill" [class.end]="i === funnel.length - 1" [style.width.%]="funnelPct(f.n)">{{ f.n }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Tiempo promedio -->
+        <div class="kpi-box kpi-tiempo">
+          <span class="kpi-box-title">Tiempo Promedio en Proceso</span>
+          <div class="tiempo-num">{{ tiempoPromedio }}<small> días</small></div>
+          <span class="kpi-box-foot">Promedio desde el alta del candidato</span>
+        </div>
+
+        <!-- Calidad por puesto -->
+        <div class="kpi-box kpi-calidad">
+          <span class="kpi-box-title">Calidad por Puesto</span>
+          <div class="calidad-bars">
+            @for (c of calidadPorPuesto; track c.nombre) {
+              <div class="cbar">
+                <span class="cbar-val">{{ c.score }}</span>
+                <div class="cbar-track"><div class="cbar-fill" [style.height.%]="calidadPct(c.score)"></div></div>
+                <span class="cbar-lbl" [title]="c.nombre">{{ c.nombre }}</span>
+              </div>
+            } @empty {
+              <span class="kpi-empty">Sin evaluaciones aún.</span>
+            }
+          </div>
+        </div>
+
+        <!-- Estado (dona) -->
+        <div class="kpi-box kpi-estado">
+          <span class="kpi-box-title">Estado de Candidatos</span>
+          <div class="estado-wrap">
+            <div class="estado-donut" [style.background]="estadoDonut">
+              <div class="estado-hole">{{ estadoTotal }}</div>
+            </div>
+            <ul class="estado-leg">
+              <li><span class="d ink"></span> En proceso <b>{{ estado.enProceso }}</b></li>
+              <li><span class="d green"></span> Contratados <b>{{ estado.contratados }}</b></li>
+              <li><span class="d red"></span> Descartados <b>{{ estado.descartados }}</b></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TARJETAS DE MEJORES CANDIDATOS ============ -->
+    @if (topCandidatos.length) {
+      <section class="top-cards no-print">
+        <div class="tc-grid">
+          @for (f of topCandidatos; track f.candidato.id; let i = $index) {
+            <div class="tc-card" (click)="abrirExpediente(f)">
+              <div class="tc-top">
+                <span class="tc-rank" [class.oro]="i === 0">{{ i + 1 }}</span>
+                <span class="tc-avatar">{{ getInitials(f.candidato.nombre) }}</span>
+                <div class="tc-id">
+                  <span class="tc-nombre">{{ f.candidato.nombre || 'Sin nombre' }}</span>
+                  <span class="tc-ciudad">{{ f.candidato.ciudad || f.candidato.sucursal || '—' }}</span>
+                </div>
+              </div>
+              <div class="tc-body">
+                <div class="tc-gaugewrap">
+                  <div class="tc-gauge" [style.background]="gaugeStyle(f.evaluacion.score, f.evaluacion.sinEvaluar)">
+                    <div class="tc-gauge-hole">
+                      @if (f.evaluacion.sinEvaluar) { <span class="tc-sin">S/E</span> }
+                      @else { <span class="tc-score">{{ f.evaluacion.score }}</span> }
+                    </div>
+                  </div>
+                  <span class="tc-gauge-cap">{{ f.evaluacion.etapasEvaluadas }}/{{ f.evaluacion.totalEtapas }} etapas</span>
+                </div>
+                <div class="tc-cols">
+                  <div class="tc-col">
+                    <span class="tc-col-lbl">Trayectoria</span>
+                    <div class="tc-dots">
+                      @for (s of f.evaluacion.subetapas; track s.key) { <span class="tc-dot" [class.on]="s.evaluada"></span> }
+                    </div>
+                    <span class="tc-badge" [style.color]="colorEtapa(f.candidato.status)" [style.border-color]="colorEtapa(f.candidato.status)">{{ nombreEtapa(f.candidato.status) }}</span>
+                  </div>
+                  <div class="tc-col tc-col-r">
+                    <span class="tc-col-lbl">Seguim.</span>
+                    <span class="tc-dias" [class.alerta]="seguimiento(f.candidato) !== 'ok'">{{ dias(f.candidato) }}d</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+          @if (topRestantes > 0) {
+            <div class="tc-card tc-mas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>Ver los {{ topRestantes }} restantes abajo</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     <!-- Leyenda de las dos señales -->
     <div class="cc-leyenda">
       <div><span class="dot eval"></span><strong>Evaluación</strong>: desempeño en el proceso (conductual, aptitudes, técnica, psicométricas).</div>
