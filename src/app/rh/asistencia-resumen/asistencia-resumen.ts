@@ -22,7 +22,7 @@ interface SemanaAsistencia {
 interface EmpleadoAsistencia {
   codigo: string; nombre: string; fotoUrl: string; puesto: string; registrado: boolean;
   acumuladoTotal: number; semanasExcedidas: number; diasConRetardo: number; diasRegistrados: number;
-  faltas: number; presupuesto: number; semanas: SemanaAsistencia[]; abierto: boolean;
+  faltas: number; horasTrabajadas: number; presupuesto: number; semanas: SemanaAsistencia[];
 }
 
 /**
@@ -67,6 +67,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   lista: EmpleadoAsistencia[] = [];
   cargando = false;
+
+  // Detalle (modal) del empleado seleccionado
+  detalle: EmpleadoAsistencia | null = null;
+
+  // Datos para las gráficas laterales
+  dist = { aTiempo: 0, retardo: 0, falta: 0 };
+  semanasChart: { label: string; corto: string; min: number }[] = [];
 
   private unsubEmpleados: any;
   private unsubHorarios: any;
@@ -144,6 +151,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     try {
       this.ultimasChecadas = await this.checador.getChecadas(this.sucursalFiltro, this.desde, this.hasta);
       this.lista = this.construir(this.ultimasChecadas);
+      this.computarGraficas();
     } catch (e) {
       console.error('Error al cargar asistencia:', e);
       this.toast.error('No se pudieron cargar las checadas.');
@@ -156,11 +164,33 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** Recalcula la vista con las checadas ya en memoria (al llegar empleados/horarios frescos). */
   private reconstruirDesdeCache() {
     if (this.ultimasChecadas.length || this.empleadosFiltrados.length) {
-      const abiertos = new Set(this.lista.filter(e => e.abierto).map(e => e.codigo));
       this.lista = this.construir(this.ultimasChecadas);
-      // conserva qué tarjetas estaban expandidas
-      for (const e of this.lista) e.abierto = abiertos.size ? abiertos.has(e.codigo) : e.abierto;
+      this.computarGraficas();
     }
+  }
+
+  /** Agrega los datos de las gráficas laterales a partir de la lista ya calculada. */
+  private computarGraficas() {
+    const dist = { aTiempo: 0, retardo: 0, falta: 0 };
+    const semMap = new Map<string, { label: string; corto: string; min: number; ini: string }>();
+    for (const e of this.lista) {
+      for (const s of e.semanas) {
+        if (!semMap.has(s.inicio)) {
+          const corto = s.label.split('→')[0].trim().replace('Semana:', '').trim();
+          semMap.set(s.inicio, { label: s.label, corto, min: 0, ini: s.inicio });
+        }
+        semMap.get(s.inicio)!.min += s.acumulado;
+        for (const d of s.dias) {
+          if (d.falta) dist.falta++;
+          else if (d.retardoMin > 0) dist.retardo++;
+          else dist.aTiempo++;
+        }
+      }
+    }
+    this.dist = dist;
+    this.semanasChart = Array.from(semMap.values())
+      .sort((a, b) => (a.ini < b.ini ? -1 : 1))
+      .map(s => ({ label: s.label, corto: s.corto, min: s.min }));
   }
 
   // ------- Construcción del desglose -------
@@ -226,7 +256,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const hastaD = new Date(this.hasta + 'T00:00:00');
 
     const porSemana = new Map<string, SemanaAsistencia>();
-    let acumTotal = 0, conRet = 0, diasReg = 0, faltas = 0;
+    let acumTotal = 0, conRet = 0, diasReg = 0, faltas = 0, segTrab = 0;
     for (const claveIni of Array.from(semanasConDatos).sort()) {
       const inicio = new Date(claveIni + 'T00:00:00');
       const dias: DiaAsistencia[] = [];
@@ -245,6 +275,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
           acumTotal += rm; diasReg++; acumSem += rm;
           if (rm > 0) conRet++;
+          // Horas trabajadas estimadas del día (salida − entrada), si hay ambas marcas.
+          const eSeg = this.minSeg(des.entrada), sSeg = this.minSeg(des.salida);
+          if (eSeg >= 0 && sSeg > eSeg) segTrab += (sSeg - eSeg);
           dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm, falta: false });
         } else {
           // Día laboral sin checada = Falta (no suma minutos de retardo).
@@ -263,7 +296,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return {
       codigo, nombre: nombre || '(sin registrar)', fotoUrl, puesto, registrado,
       acumuladoTotal: acumTotal, semanasExcedidas: semExc, diasConRetardo: conRet,
-      diasRegistrados: diasReg, faltas, presupuesto, semanas, abierto: false
+      diasRegistrados: diasReg, faltas, horasTrabajadas: Math.round(segTrab / 360) / 10,
+      presupuesto, semanas
     };
   }
 
@@ -338,9 +372,29 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   get totalConRetardo(): number { return this.lista.filter(e => e.acumuladoTotal > 0).length; }
+  get horasTotales(): number { return Math.round(this.lista.reduce((s, e) => s + e.horasTrabajadas, 0)); }
 
-  toggle(e: EmpleadoAsistencia) { e.abierto = !e.abierto; }
-  expandirTodo(abrir: boolean) { for (const e of this.lista) e.abierto = abrir; }
+  // Detalle en modal
+  abrir(e: EmpleadoAsistencia) { this.detalle = e; }
+  cerrar() { this.detalle = null; }
+
+  // % de días a tiempo (para la barra de la tarjeta)
+  pctATiempo(e: EmpleadoAsistencia): number {
+    if (!e.diasRegistrados) return 0;
+    return Math.round(((e.diasRegistrados - e.diasConRetardo) / e.diasRegistrados) * 100);
+  }
+
+  // ---- Gráficas: dona de distribución (conic-gradient) y barras por semana ----
+  get distTotal(): number { return this.dist.aTiempo + this.dist.retardo + this.dist.falta; }
+  distPct(n: number): number { return this.distTotal ? Math.round((n / this.distTotal) * 100) : 0; }
+  get donutStyle(): string {
+    const t = this.distTotal || 1;
+    const a = (this.dist.aTiempo / t) * 100;
+    const r = (this.dist.retardo / t) * 100;
+    return `conic-gradient(var(--green) 0 ${a}%, var(--red) ${a}% ${a + r}%, var(--gold) ${a + r}% 100%)`;
+  }
+  get barMax(): number { return Math.max(1, ...this.semanasChart.map(s => s.min)); }
+  barPct(min: number): number { return Math.round((min / this.barMax) * 100); }
 
   exportarExcel() {
     const filas: any[] = [];

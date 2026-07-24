@@ -8,7 +8,7 @@
     </header>
   }
 
-  <!-- Barra unificada: filtros a la izquierda, acciones a la derecha -->
+  <!-- Barra unificada: filtros + acciones -->
   <div class="ar-bar">
     <div class="ar-bar-filters">
       @if (!ocultarSucursal) {
@@ -28,7 +28,6 @@
         <input type="date" [(ngModel)]="hasta" (change)="cargar()">
       </div>
     </div>
-
     <div class="ar-bar-actions">
       @if (permitirImportar) {
         <label class="ar-btn ar-btn-primary" [class.ar-btn-disabled]="importando">
@@ -38,8 +37,6 @@
         </label>
       }
       <button class="ar-btn ar-btn-ghost" (click)="exportarExcel()">Exportar</button>
-      <button class="ar-btn ar-btn-ghost" (click)="expandirTodo(true)">Expandir</button>
-      <button class="ar-btn ar-btn-ghost" (click)="expandirTodo(false)">Contraer</button>
     </div>
   </div>
 
@@ -48,7 +45,7 @@
   } @else if (!lista.length) {
     <div class="ar-empty">Sin checadas en este periodo. Ajusta las fechas o importa el archivo del reloj.</div>
   } @else {
-    <!-- KPIs del periodo -->
+    <!-- KPIs -->
     <div class="ar-kpis">
       <div class="ar-kpi">
         <span class="ar-kpi-num">{{ lista.length }}</span>
@@ -66,87 +63,145 @@
         <span class="ar-kpi-num">{{ faltasTotales }}</span>
         <span class="ar-kpi-lbl">Faltas</span>
       </div>
+      <div class="ar-kpi">
+        <span class="ar-kpi-num">{{ horasTotales }}<small> h</small></span>
+        <span class="ar-kpi-lbl">Horas trabajadas</span>
+      </div>
     </div>
 
-    <!-- Lista: nombre con las métricas en chips a su derecha; clic despliega semanas -->
-    <div class="ar-lista">
-      @for (e of lista; track e.codigo) {
-        <div class="ar-emp" [class.ar-emp-bad]="e.acumuladoTotal > 0">
-          <button type="button" class="ar-emp-row" (click)="toggle(e)">
-            <svg class="ar-chevron" [class.abierto]="e.abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-            <div class="ar-avatar">
-              @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
-              @else { <span>{{ iniciales(e.nombre) }}</span> }
-            </div>
-            <div class="ar-emp-id">
-              <span class="ar-emp-nombre">
-                {{ e.nombre }}
-                @if (!e.registrado) { <span class="ar-tag">sin registrar</span> }
-              </span>
-              <span class="ar-emp-cod">Cód. {{ e.codigo }}@if (e.puesto) { · {{ e.puesto }} }</span>
-            </div>
-            <div class="ar-chips">
-              <span class="ar-chip" [class.bad]="e.acumuladoTotal > 0" title="Retardo total del periodo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span class="ar-chip-val">{{ e.acumuladoTotal }}<small> min</small></span>
-              </span>
-              <span class="ar-chip" [class.bad]="e.semanasExcedidas > 0" title="Semanas que excedieron la tolerancia">
-                <span class="ar-chip-val">{{ e.semanasExcedidas }}<small> sem. exc.</small></span>
-              </span>
-              <span class="ar-chip" title="Días con retardo / días registrados">
-                <span class="ar-chip-val">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}<small> días</small></span>
-              </span>
-            </div>
-          </button>
-
-          @if (e.abierto) {
-            <div class="ar-emp-det">
-              @if (!e.semanas.length) {
-                <div class="ar-sin">Sin checadas en este periodo.</div>
+    <!-- Cuerpo: tarjetas (izq) + gráficas (der) -->
+    <div class="ar-dash">
+      <div class="ar-cards">
+        @for (e of lista; track e.codigo) {
+          <button type="button" class="ar-card" [class.ar-card-bad]="e.acumuladoTotal > 0" (click)="abrir(e)">
+            <div class="ar-card-top">
+              <div class="ar-avatar">
+                @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
+                @else { <span>{{ iniciales(e.nombre) }}</span> }
+              </div>
+              <div class="ar-card-id">
+                <span class="ar-card-nombre">{{ e.nombre }}</span>
+                <span class="ar-card-sub">#{{ e.codigo }}@if (e.puesto) { · {{ e.puesto }} }</span>
+              </div>
+              @if (e.faltas > 0) {
+                <span class="ar-estado warn">{{ e.faltas }} falta{{ e.faltas === 1 ? '' : 's' }}</span>
+              } @else if (e.acumuladoTotal > 0) {
+                <span class="ar-estado bad">Con retardo</span>
               } @else {
-                @for (sem of e.semanas; track sem.inicio) {
-                  <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
-                    <div class="ar-sem-head">
-                      <span class="ar-sem-rango ar-cap">Semana: {{ sem.label }}</span>
-                      <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
-                        {{ sem.acumulado }} / {{ e.presupuesto }} min
-                      </span>
-                    </div>
-                    <div class="ar-tabla-wrap">
-                      <table class="ar-tabla">
-                        <thead>
-                          <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
-                        </thead>
-                        <tbody>
-                          @for (d of sem.dias; track d.fecha) {
-                            <tr [class.ar-fila-falta]="d.falta">
-                              <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
-                              <td class="ar-mono">{{ d.entrada }}</td>
-                              <td class="ar-mono">{{ d.comida }}</td>
-                              <td class="ar-mono">{{ d.salida }}</td>
-                              <td>
-                                @if (d.falta) {
-                                  <span class="ar-badge ar-badge-falta">Falta</span>
-                                } @else if (d.retardoMin > 0) {
-                                  <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
-                                } @else {
-                                  <span class="ar-badge ar-badge-good">A tiempo</span>
-                                }
-                              </td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                }
+                <span class="ar-estado ok">A tiempo</span>
+              }
+            </div>
+
+            <div class="ar-card-mets">
+              <div class="ar-met"><span class="ar-met-v" [class.bad]="e.acumuladoTotal > 0">{{ e.acumuladoTotal }}</span><span class="ar-met-l">min retardo</span></div>
+              <div class="ar-met"><span class="ar-met-v">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}</span><span class="ar-met-l">días retardo</span></div>
+              <div class="ar-met"><span class="ar-met-v" [class.warn]="e.faltas > 0">{{ e.faltas }}</span><span class="ar-met-l">faltas</span></div>
+              <div class="ar-met"><span class="ar-met-v">{{ e.horasTrabajadas }}<small> h</small></span><span class="ar-met-l">trabajadas</span></div>
+            </div>
+
+            <div class="ar-card-bar" [title]="pctATiempo(e) + '% de días a tiempo'">
+              <div class="ar-card-bar-fill" [style.width.%]="pctATiempo(e)"></div>
+            </div>
+            <span class="ar-card-barlbl">{{ pctATiempo(e) }}% a tiempo · toca para ver semanas</span>
+          </button>
+        }
+      </div>
+
+      <aside class="ar-side">
+        <!-- Barras: retardo por semana -->
+        <div class="ar-chart">
+          <h4>Retardo por semana</h4>
+          @if (!semanasChart.length) {
+            <p class="ar-chart-empty">Sin datos.</p>
+          } @else {
+            <div class="ar-bars">
+              @for (s of semanasChart; track s.label) {
+                <div class="ar-bar-col" [title]="s.label + ' · ' + s.min + ' min'">
+                  <span class="ar-bar-val">{{ s.min }}</span>
+                  <div class="ar-bar-track"><div class="ar-bar-fill" [style.height.%]="barPct(s.min)"></div></div>
+                  <span class="ar-bar-lbl">{{ s.corto }}</span>
+                </div>
               }
             </div>
           }
         </div>
-      }
+
+        <!-- Dona: distribución de días -->
+        <div class="ar-chart">
+          <h4>Distribución de días</h4>
+          <div class="ar-donut-wrap">
+            <div class="ar-donut" [style.background]="donutStyle">
+              <div class="ar-donut-hole">{{ distTotal }}<small>días</small></div>
+            </div>
+            <ul class="ar-legend">
+              <li><span class="ar-dot ok"></span> A tiempo <b>{{ dist.aTiempo }}</b> <span class="ar-legend-pct">{{ distPct(dist.aTiempo) }}%</span></li>
+              <li><span class="ar-dot bad"></span> Retardo <b>{{ dist.retardo }}</b> <span class="ar-legend-pct">{{ distPct(dist.retardo) }}%</span></li>
+              <li><span class="ar-dot warn"></span> Falta <b>{{ dist.falta }}</b> <span class="ar-legend-pct">{{ distPct(dist.falta) }}%</span></li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+
+  <!-- ===== Modal: detalle por semana del empleado ===== -->
+  @if (detalle) {
+    <div class="ar-modal-ov" (click)="cerrar()"></div>
+    <div class="ar-modal" role="dialog" aria-modal="true">
+      <header class="ar-modal-head">
+        <div class="ar-avatar ar-avatar-lg">
+          @if (detalle.fotoUrl) { <img [src]="detalle.fotoUrl" [alt]="detalle.nombre"> }
+          @else { <span>{{ iniciales(detalle.nombre) }}</span> }
+        </div>
+        <div class="ar-modal-id">
+          <h3>{{ detalle.nombre }}</h3>
+          <span class="ar-card-sub">#{{ detalle.codigo }}@if (detalle.puesto) { · {{ detalle.puesto }} } · {{ nombreSucursal(sucursalFiltro) }}</span>
+        </div>
+        <button class="ar-modal-x" (click)="cerrar()" aria-label="Cerrar">✕</button>
+      </header>
+
+      <div class="ar-modal-body">
+        @if (!detalle.semanas.length) {
+          <div class="ar-sin">Sin checadas en este periodo.</div>
+        } @else {
+          @for (sem of detalle.semanas; track sem.inicio) {
+            <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
+              <div class="ar-sem-head">
+                <span class="ar-sem-rango ar-cap">Semana: {{ sem.label }}</span>
+                <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
+                  {{ sem.acumulado }} / {{ detalle.presupuesto }} min
+                </span>
+              </div>
+              <div class="ar-tabla-wrap">
+                <table class="ar-tabla">
+                  <thead>
+                    <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (d of sem.dias; track d.fecha) {
+                      <tr [class.ar-fila-falta]="d.falta">
+                        <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
+                        <td class="ar-mono">{{ d.entrada }}</td>
+                        <td class="ar-mono">{{ d.comida }}</td>
+                        <td class="ar-mono">{{ d.salida }}</td>
+                        <td>
+                          @if (d.falta) {
+                            <span class="ar-badge ar-badge-falta">Falta</span>
+                          } @else if (d.retardoMin > 0) {
+                            <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
+                          } @else {
+                            <span class="ar-badge ar-badge-good">A tiempo</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+        }
+      </div>
     </div>
   }
 </section>
