@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { CandidateService } from '../../core/services/candidate';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
 import { ID_ETAPAS, ETAPAS } from '../../core/models/proceso.model';
-import { normalizarPuesto } from '../../core/models/normalizacion.model';
+import { normalizarPuesto, normalizarCiudad } from '../../core/models/normalizacion.model';
 import {
   FilaConcentrado, puntuarCandidato, compararFilas
 } from '../../core/models/concentrado.model';
@@ -14,6 +14,12 @@ interface GrupoPuesto {
   nombre: string;             // nombre canónico del puesto (vacante activa)
   vacante: Puesto;
   filas: FilaConcentrado[];   // candidatos ya rankeados
+  total: number;
+}
+
+interface GrupoCiudad {
+  ciudad: string;
+  filas: FilaConcentrado[];
   total: number;
 }
 
@@ -53,6 +59,12 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
   // Top candidatos (tarjetas) y resto
   topCandidatos: FilaConcentrado[] = [];
   topRestantes = 0;
+  private readonly TOP_TARJETAS = 8;
+
+  // Listado de abajo agrupado por ciudad
+  gruposCiudad: GrupoCiudad[] = [];
+  ciudadesExpandidas = new Set<string>();
+  topPorCiudad = 8;
 
   // Cuántos mostrar por puesto (Top N). El resto queda plegado.
   topPorPuesto = 5;
@@ -174,8 +186,31 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
 
     // Top candidatos (tarjetas): los mejores de todos los puestos.
     const todas = this.grupos.flatMap(g => g.filas);
-    this.topCandidatos = todas.slice().sort((a, b) => compararFilas(a, b, dias)).slice(0, 5);
+    const rankeadas = todas.slice().sort((a, b) => compararFilas(a, b, dias));
+    this.topCandidatos = rankeadas.slice(0, this.TOP_TARJETAS);
     this.topRestantes = Math.max(0, todas.length - this.topCandidatos.length);
+
+    // Listado de abajo agrupado por ciudad/sucursal.
+    const porCiudad = new Map<string, FilaConcentrado[]>();
+    for (const f of rankeadas) {
+      const ciudad = normalizarCiudad(f.candidato.ciudad || f.candidato.sucursal) || 'Sin ciudad';
+      if (!porCiudad.has(ciudad)) porCiudad.set(ciudad, []);
+      porCiudad.get(ciudad)!.push(f);
+    }
+    this.gruposCiudad = Array.from(porCiudad.entries())
+      .map(([ciudad, filas]) => ({ ciudad, filas, total: filas.length }))
+      .sort((a, b) => b.total - a.total || a.ciudad.localeCompare(b.ciudad));
+  }
+
+  filasVisiblesCiudad(g: GrupoCiudad): FilaConcentrado[] {
+    return this.ciudadesExpandidas.has(g.ciudad) ? g.filas : g.filas.slice(0, this.topPorCiudad);
+  }
+  hayMasCiudad(g: GrupoCiudad): boolean {
+    return g.filas.length > this.topPorCiudad && !this.ciudadesExpandidas.has(g.ciudad);
+  }
+  toggleCiudad(ciudad: string) {
+    if (this.ciudadesExpandidas.has(ciudad)) this.ciudadesExpandidas.delete(ciudad);
+    else this.ciudadesExpandidas.add(ciudad);
   }
 
   // Ancho de barra del embudo (%).

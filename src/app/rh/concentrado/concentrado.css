@@ -418,3 +418,37 @@ table.ranking td { padding: 10px 12px; vertical-align: middle; }
 
 @media (max-width: 1000px) { .kpis-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 620px) { .kpis-grid { grid-template-columns: 1fr; } }
+
+/* ===== Embudo full-width y flechas escalonadas ===== */
+.kpis-grid { grid-template-columns: repeat(3, 1fr); }
+.kpi-embudo { grid-column: 1 / -1; }
+
+.funnel-h { display: flex; }
+.fseg {
+  flex: 1; min-width: 0; position: relative; height: 60px; margin-left: -14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; padding: 0 10px 0 20px; text-align: center;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);
+}
+.fseg.first { margin-left: 0; padding-left: 12px; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%); border-radius: 8px 0 0 8px; }
+.fseg.last { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 16px 50%); border-radius: 0 8px 8px 0; }
+.fseg-lbl { font-size: 10px; font-weight: 700; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.fseg-n { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fseg:nth-child(1) { background: #12243d; }
+.fseg:nth-child(2) { background: #1c3a5e; }
+.fseg:nth-child(3) { background: #275685; }
+.fseg:nth-child(4) { background: #3272a4; }
+.fseg.last { background: linear-gradient(90deg, #1a6b45, var(--green)); }
+
+/* ===== Encabezado de ciudad (listado de abajo) ===== */
+.ciudad-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--ink); color: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
+}
+.ciudad-nombre { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ciudad-nombre svg { width: 18px; height: 18px; color: var(--gold); flex-shrink: 0; }
+.ciudad-nombre h2 { margin: 0; font-size: 16px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ciudad-count { font-size: 12px; font-weight: 800; color: var(--ink); background: var(--gold); padding: 4px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+
+/* Espaciado general un poco más aireado */
+.puesto-card { margin-bottom: 18px; }
