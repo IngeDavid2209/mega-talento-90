@@ -12,10 +12,19 @@ import { pool } from '../db';
  *   npm run migrate         (en Railway, tras `npm run build`)
  */
 async function main() {
-  const rutaSql = join(__dirname, '..', '..', 'db', 'schema.sql');
-  const sql = readFileSync(rutaSql, 'utf8');
-  console.log('[migrate] Aplicando esquema desde', rutaSql);
-  await pool.query(sql);
+  // Se aplican en orden. Todos son idempotentes (CREATE ... IF NOT EXISTS).
+  const archivos = [
+    'schema.sql',            // checadas + asistencia_revision (justificación/verificación)
+    'schema-portal.sql',     // portal: candidatos + puestos + candidatos_transiciones (KPI de fases)
+    'agente-horarios.sql',   // Fase 1: asistencia_alertas + asistencia_config
+  ];
+  const dirDb = join(__dirname, '..', '..', 'db');
+  for (const archivo of archivos) {
+    const ruta = join(dirDb, archivo);
+    const sql = readFileSync(ruta, 'utf8');
+    console.log('[migrate] Aplicando', archivo);
+    await pool.query(sql);
+  }
   console.log('[migrate] Esquema aplicado correctamente ✔');
   await pool.end();
 }
