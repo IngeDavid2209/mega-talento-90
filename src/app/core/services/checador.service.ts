@@ -28,6 +28,10 @@ export interface AlertaAgente {
   decididoPor?: string | null;
   decididoEn?: string | null;
   analizadoEn?: string;
+  codigo?: string;
+  justificacionJefe?: string;
+  respondidoPor?: string | null;
+  respondidoEn?: string | null;
 }
 export interface ResumenAgente {
   sucursalId: string; desde: string; hasta: string;
@@ -37,6 +41,17 @@ export interface ResumenAgente {
 export interface RespuestaAnalisis {
   resumen: ResumenAgente;
   borradores: { creadas: number; actualizadas: number; sinCambio: number; eliminadas: number };
+}
+
+/**
+ * Jefe responsable de una sucursal: a quién le avisa el agente por WhatsApp
+ * cuando RH aprueba una alerta. Uno por sucursal (upsert por `sucursalId`).
+ */
+export interface JefeSucursal {
+  sucursalId: string;
+  nombre: string;
+  telefono: string;
+  activo: boolean;
 }
 
 /** Revisión de RH sobre un día: justificación y estado de verificación. */
@@ -152,6 +167,16 @@ export class ChecadorService {
   /** RH resuelve una alerta: aprobada | rechazada | descartada (+ justificación opcional). */
   async decidirAlerta(id: string, estado: EstadoAlerta, justificacion?: string): Promise<AlertaAgente> {
     return this.api.put<AlertaAgente>(`/checador/agente/alertas/${id}`, { estado, justificacion });
+  }
+
+  // ===================== JEFES POR SUCURSAL (a quién se avisa) =====================
+  /** Lista los jefes registrados (uno por sucursal, las que ya tienen). */
+  async getJefes(): Promise<JefeSucursal[]> {
+    return this.api.get<JefeSucursal[]>('/checador/agente/jefes');
+  }
+  /** Crea o actualiza el jefe de una sucursal (upsert por sucursalId). */
+  async guardarJefe(j: JefeSucursal): Promise<JefeSucursal> {
+    return this.api.put<JefeSucursal>('/checador/agente/jefes', j);
   }
 
   /**

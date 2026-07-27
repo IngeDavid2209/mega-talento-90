@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, AuthedRequest } from '../auth';
 import { detectar } from './detector';
-import { guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta } from './persistencia';
+import { guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta, asegurarCodigo, justificarPorCodigo } from './persistencia';
 import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
 
@@ -37,6 +37,10 @@ const mapAlerta = (r: any) => ({
   decididoPor: r.decidido_por || null,
   decididoEn: r.decidido_en || null,
   analizadoEn: r.analizado_en,
+  codigo: r.codigo || '',
+  justificacionJefe: r.justificacion_jefe || '',
+  respondidoPor: r.respondido_por || null,
+  respondidoEn: r.respondido_en || null,
 });
 
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -116,10 +120,11 @@ agenteHorariosRouter.put('/alertas/:id', async (req: AuthedRequest, res: Respons
         if (!jefe || jefe.activo === false) {
           aviso = { enviado: false, motivo: 'la sucursal no tiene jefe registrado' };
         } else {
+          const codigo = await asegurarCodigo(row.id);
           aviso = await notificarJefe({
             empleadoNombre: row.empleado_nombre || row.empleado_codigo,
             sucursalId: row.sucursal_id, fecha: row.fecha,
-            regla: row.regla, detalle: row.detalle || '',
+            regla: row.regla, detalle: row.detalle || '', codigo,
           }, jefe);
         }
       } catch (e: any) {
@@ -148,4 +153,34 @@ agenteHorariosRouter.put('/jefes', async (req: Request, res: Response) => {
     if (!sucursalId) return res.status(400).json({ error: 'Falta sucursalId.' });
     res.json(await upsertJefe({ sucursalId, nombre, telefono, activo }));
   } catch (e) { fallo(res, e, 'No se pudo guardar el jefe.'); }
+});
+
+/**
+ * Router de CALLBACK (Fase 2b): lo llama el BOT-RH cuando un jefe responde su
+ * justificación por WhatsApp. NO usa JWT (el bot no tiene sesión); se protege
+ * con el secreto compartido `AVISO_ASISTENCIA_SECRET` (header x-aviso-secret).
+ * Se monta en /checador/agente/callback.
+ */
+export const agenteCallbackRouter = Router();
+
+agenteCallbackRouter.post('/justificar', async (req: Request, res: Response) => {
+  const secret = process.env.AVISO_ASISTENCIA_SECRET || '';
+  if (secret && String(req.headers['x-aviso-secret'] || '') !== secret) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+  try {
+    const { codigo, justificacion, quien } = req.body || {};
+    if (!codigo || !String(justificacion || '').trim()) {
+      return res.status(400).json({ error: 'Faltan codigo y justificacion.' });
+    }
+    const row = await justificarPorCodigo(String(codigo), String(justificacion).trim(), String(quien || 'jefe'));
+    if (!row) return res.status(404).json({ ok: false, error: 'Código no encontrado.' });
+    res.json({
+      ok: true,
+      alerta: {
+        empleado: row.empleado_nombre || row.empleado_codigo,
+        sucursal: row.sucursal_id, fecha: row.fecha, regla: row.regla,
+      },
+    });
+  } catch (e) { fallo(res, e, 'No se pudo guardar la justificación.'); }
 });

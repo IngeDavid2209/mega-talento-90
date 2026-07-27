@@ -115,6 +115,51 @@ export async function decidirAlerta(
   return rows[0] || null;
 }
 
+// ── Fase 2b: código para que el jefe justifique por WhatsApp ──
+const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin O/0/I/1
+function generarCodigo(): string {
+  let s = '';
+  for (let i = 0; i < 4; i++) s += ALFABETO_CODIGO[Math.floor(Math.random() * ALFABETO_CODIGO.length)];
+  return s;
+}
+
+/** Devuelve el código de la alerta; si no tiene, le asigna uno y lo guarda. */
+export async function asegurarCodigo(id: string): Promise<string> {
+  const cur = await pool.query('SELECT codigo FROM asistencia_alertas WHERE id=$1', [id]);
+  if (cur.rows[0]?.codigo) return cur.rows[0].codigo;
+  for (let i = 0; i < 5; i++) {
+    const codigo = generarCodigo();
+    const r = await pool.query(
+      'UPDATE asistencia_alertas SET codigo=$2 WHERE id=$1 AND codigo IS NULL RETURNING codigo', [id, codigo]
+    );
+    if (r.rows[0]) return r.rows[0].codigo;
+    const again = await pool.query('SELECT codigo FROM asistencia_alertas WHERE id=$1', [id]);
+    if (again.rows[0]?.codigo) return again.rows[0].codigo;
+  }
+  throw new Error('No se pudo asignar código a la alerta.');
+}
+
+/**
+ * Guarda la justificación que el JEFE mandó por WhatsApp (identificada por el
+ * código del aviso). Elige la alerta con ese código que aún no tiene respuesta
+ * (o la más reciente). Devuelve la alerta actualizada o null si el código no existe.
+ */
+export async function justificarPorCodigo(codigo: string, justificacion: string, quien: string) {
+  const { rows } = await pool.query(
+    `UPDATE asistencia_alertas
+        SET justificacion_jefe=$2, respondido_por=$3, respondido_en=now()
+      WHERE id = (
+        SELECT id FROM asistencia_alertas
+         WHERE upper(codigo)=upper($1)
+         ORDER BY (justificacion_jefe IS NULL) DESC, analizado_en DESC
+         LIMIT 1
+      )
+      RETURNING *`,
+    [codigo, justificacion, quien]
+  );
+  return rows[0] || null;
+}
+
 /** Lista alertas (para que RH las VEA). Solo lectura. */
 export async function listarAlertas(filtros: {
   sucursalId: string; desde?: string; hasta?: string; estado?: string; empleadoCodigo?: string;

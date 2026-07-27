@@ -100,3 +100,12 @@ CREATE TABLE IF NOT EXISTS jefes_sucursal (
   activo          BOOLEAN NOT NULL DEFAULT TRUE,
   actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Fase 2b: respuesta/justificación del jefe capturada por WhatsApp. Al avisar
+-- (RH aprueba) se genera un `codigo` corto; el jefe responde "JUSTIFICAR <codigo>
+-- <texto>" al bot y esa justificación queda pegada a la alerta.
+ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS codigo             TEXT;
+ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS justificacion_jefe TEXT;
+ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS respondido_por     TEXT;
+ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS respondido_en      TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_alertas_codigo ON asistencia_alertas (codigo);

@@ -19,10 +19,52 @@
     <button class="btn-analizar" (click)="analizar()" [disabled]="cargando">
       {{ cargando ? 'Analizando…' : 'Analizar con IA' }}
     </button>
+    <button class="btn-refrescar" (click)="togglePanelJefes()">
+      {{ panelJefes ? 'Ocultar jefes' : 'Jefes por sucursal' }}
+    </button>
   </section>
 
   @if (error) { <div class="ag-msg ag-error">{{ error }}</div> }
   @if (mensaje) { <div class="ag-msg ag-ok">{{ mensaje }}</div> }
+
+  <!-- Sin jefe registrado no hay a quién avisar al aprobar: se avisa aquí. -->
+  @if (sucursalSinJefe) {
+    <div class="ag-msg ag-aviso">
+      Esta sucursal no tiene un jefe activo con teléfono. Al aprobar una alerta
+      <b>no se enviará el aviso por WhatsApp</b>.
+      <button class="link" (click)="togglePanelJefes()">Registrar jefe</button>
+    </div>
+  }
+
+  @if (panelJefes) {
+    <section class="ag-jefes">
+      <div class="jefes-head">
+        <h2>Jefes por sucursal</h2>
+        <p>A quién se le avisa por WhatsApp cuando apruebas una alerta. El jefe
+           responde su justificación al bot y aparece aquí mismo, en la alerta.</p>
+      </div>
+      @if (cargandoJefes) {
+        <p class="ag-vacio">Cargando jefes…</p>
+      } @else {
+        <div class="jefes-tabla">
+          @for (f of filasJefes; track f.sucursalId) {
+            <div class="jefe-fila" [class.jefe-nuevo]="!f.registrado">
+              <span class="jefe-suc">{{ f.etiqueta }}</span>
+              <input class="jefe-in" [(ngModel)]="f.nombre" placeholder="Nombre del jefe">
+              <input class="jefe-in jefe-tel" [(ngModel)]="f.telefono" placeholder="10 dígitos (3511234567)">
+              <label class="jefe-activo">
+                <input type="checkbox" [(ngModel)]="f.activo"> Activo
+              </label>
+              <button class="jefe-guardar" (click)="guardarJefe(f)" [disabled]="f.guardando">
+                {{ f.guardando ? '…' : f.guardado ? '✓ Guardado' : 'Guardar' }}
+              </button>
+              @if (f.error) { <span class="jefe-err">{{ f.error }}</span> }
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
 
   @if (resumen) {
     <section class="ag-resumen">
@@ -65,6 +107,14 @@
             <span class="estado estado-{{ a.estado }}">{{ a.estado }}</span>
           </div>
           <p class="detalle">{{ a.detalle }}</p>
+          @if (a.justificacionJefe) {
+            <div class="just-jefe">
+              <b>Justificación del jefe:</b> "{{ a.justificacionJefe }}"
+              @if (a.estado === 'sugerida_ia') {
+                <button class="usar-just" (click)="usarJustificacionJefe(a)">Usar esta</button>
+              }
+            </div>
+          }
           @if (a.estado === 'sugerida_ia') {
             <textarea class="justif" [(ngModel)]="a.justificacionSugerida" rows="2"
                       placeholder="Justificación (puedes editarla antes de aprobar)"></textarea>

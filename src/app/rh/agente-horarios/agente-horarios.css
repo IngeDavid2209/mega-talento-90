@@ -24,6 +24,39 @@
 .ag-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 .ag-ok { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 
+.ag-aviso { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.ag-aviso .link {
+  background: none; border: 0; color: #92400e; text-decoration: underline;
+  cursor: pointer; font: inherit; padding: 0 0 0 .35rem;
+}
+
+/* ── Jefes por sucursal ── */
+.ag-jefes {
+  border: 1px solid #eef0f3; border-radius: .75rem; background: #fff;
+  padding: .9rem 1rem; margin-bottom: 1rem;
+}
+.jefes-head h2 { font-size: 1rem; margin: 0 0 .2rem; color: #111827; }
+.jefes-head p { color: #6b7280; font-size: .82rem; margin: 0 0 .8rem; }
+.jefes-tabla { display: flex; flex-direction: column; gap: .4rem; }
+.jefe-fila {
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+  padding: .45rem .55rem; border: 1px solid #f3f4f6; border-radius: .5rem; background: #f9fafb;
+}
+.jefe-nuevo { border-style: dashed; border-color: #d1d5db; background: #fff; }
+.jefe-suc { flex: 0 0 15rem; font-size: .82rem; color: #374151; font-weight: 600; }
+.jefe-in {
+  flex: 1 1 10rem; min-width: 8rem; padding: .4rem .5rem; font-size: .85rem;
+  border: 1px solid #d1d5db; border-radius: .4rem; background: #fff;
+}
+.jefe-tel { flex: 0 1 12rem; }
+.jefe-activo { display: flex; align-items: center; gap: .3rem; font-size: .78rem; color: #374151; }
+.jefe-guardar {
+  border: 0; border-radius: .4rem; padding: .4rem .8rem; font-size: .8rem; font-weight: 600;
+  background: #4f46e5; color: #fff; cursor: pointer; min-width: 6rem;
+}
+.jefe-guardar:disabled { opacity: .6; cursor: default; }
+.jefe-err { flex: 1 1 100%; color: #b91c1c; font-size: .76rem; }
+
 .ag-resumen {
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
   background: #f9fafb; border: 1px solid #eef0f3; border-radius: .75rem; padding: .9rem 1rem; margin-bottom: 1rem;
@@ -60,5 +93,10 @@
 .acciones .ok { background: #059669; color: #fff; }
 .acciones .no { background: #dc2626; color: #fff; }
 .acciones .descartar { background: #e5e7eb; color: #374151; }
+.just-jefe { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: .5rem; padding: .45rem .6rem; margin: .4rem 0; font-size: .85rem; }
+.usar-just {
+  border: 1px solid #bfdbfe; background: #fff; color: #1e40af; border-radius: .35rem;
+  padding: .15rem .5rem; font-size: .74rem; font-weight: 600; cursor: pointer; margin-left: .4rem;
+}
 .resuelta { font-size: .82rem; color: #6b7280; margin-top: .4rem; }
 .just-final { font-style: italic; color: #374151; margin: 0 0 .2rem; }

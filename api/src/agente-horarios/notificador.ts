@@ -20,6 +20,7 @@ export interface DatosAviso {
   fecha: string;
   regla: string;
   detalle: string;
+  codigo: string; // para que el jefe responda "JUSTIFICAR <codigo> ..."
 }
 
 export async function notificarJefe(
@@ -44,6 +45,7 @@ export async function notificarJefe(
         fecha: aviso.fecha,
         motivo: aviso.regla,
         detalle: aviso.detalle,
+        codigo: aviso.codigo,
       }),
     });
     const data: any = await r.json().catch(() => ({}));

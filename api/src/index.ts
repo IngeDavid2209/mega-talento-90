@@ -4,7 +4,7 @@ import { env } from './env';
 import { pool } from './db';
 import { authRouter } from './auth';
 import { checadorRouter } from './checador';
-import { agenteHorariosRouter } from './agente-horarios';
+import { agenteHorariosRouter, agenteCallbackRouter } from './agente-horarios';
 import { candidatosRouter } from './candidatos';
 import { puestosRouter } from './puestos';
 import { usuariosRouter } from './usuarios';
@@ -33,6 +33,10 @@ app.get('/health/db', async (_req, res) => {
 });
 
 app.use('/auth', authRouter);
+// El callback va ANTES de /checador: ese router tiene requireAuth global y, como
+// /checador es prefijo de /checador/agente/callback, lo bloquearía con JWT. El
+// callback se autentica con secreto compartido, no con JWT.
+app.use('/checador/agente/callback', agenteCallbackRouter); // Fase 2b: justificación del jefe (secreto compartido)
 app.use('/checador', checadorRouter);
 app.use('/checador/agente', agenteHorariosRouter); // Agente de Horarios (Fase 1)
 app.use('/candidatos', candidatosRouter);
