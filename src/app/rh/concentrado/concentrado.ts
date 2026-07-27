@@ -17,10 +17,20 @@ interface GrupoPuesto {
   total: number;
 }
 
+/** Bloque de candidatos que comparten estatus (etapa) dentro de una ciudad. */
+interface SubgrupoEstatus {
+  status: string;
+  label: string;
+  color: string;
+  filas: FilaConcentrado[];
+  total: number;
+}
+
 interface GrupoCiudad {
   ciudad: string;
   filas: FilaConcentrado[];
   total: number;
+  subgrupos: SubgrupoEstatus[];   // el mismo listado, clasificado por estatus
 }
 
 @Component({
@@ -71,6 +81,8 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
   gruposCiudad: GrupoCiudad[] = [];
   ciudadesExpandidas = new Set<string>();
   topPorCiudad = 8;
+  // Plegado, cuántos mostrar por bloque de estatus dentro de cada ciudad.
+  topPorEstatus = 3;
 
   // Cuántos mostrar por puesto (Top N). El resto queda plegado.
   topPorPuesto = 5;
@@ -205,15 +217,59 @@ export class ConcentradoComponent implements OnInit, OnDestroy {
       porCiudad.get(ciudad)!.push(f);
     }
     this.gruposCiudad = Array.from(porCiudad.entries())
-      .map(([ciudad, filas]) => ({ ciudad, filas, total: filas.length }))
+      .map(([ciudad, filas]) => ({
+        ciudad, filas, total: filas.length, subgrupos: this.clasificarPorEstatus(filas),
+      }))
       .sort((a, b) => b.total - a.total || a.ciudad.localeCompare(b.ciudad));
   }
 
-  filasVisiblesCiudad(g: GrupoCiudad): FilaConcentrado[] {
-    return this.ciudadesExpandidas.has(g.ciudad) ? g.filas : g.filas.slice(0, this.topPorCiudad);
+  /**
+   * Parte un listado ya rankeado en bloques por estatus, en el orden del proceso
+   * (Filtro → Conductual → Aptitudes → Psicométricas → Contratado). Dentro de
+   * cada bloque se conserva el orden por calificación que ya traían las filas.
+   */
+  private clasificarPorEstatus(filas: FilaConcentrado[]): SubgrupoEstatus[] {
+    const porStatus = new Map<string, FilaConcentrado[]>();
+    for (const f of filas) {
+      const st = f.candidato.status || 'sin_estatus';
+      if (!porStatus.has(st)) porStatus.set(st, []);
+      porStatus.get(st)!.push(f);
+    }
+    // Orden del proceso; cualquier estatus desconocido cae al final.
+    const orden = (st: string) => {
+      if (st === ID_ETAPAS.CONTRATADO) return ETAPAS.length;
+      const i = ETAPAS.findIndex(e => e.id === st);
+      return i >= 0 ? i : ETAPAS.length + 1;
+    };
+    return Array.from(porStatus.entries())
+      .map(([status, fs]) => ({
+        status,
+        label: this.nombreEtapa(status),
+        color: this.colorEtapa(status),
+        filas: fs,
+        total: fs.length,
+      }))
+      .sort((a, b) => orden(a.status) - orden(b.status) || a.label.localeCompare(b.label));
+  }
+
+  /**
+   * Filas visibles de un bloque de estatus: plegada la ciudad se muestran solo
+   * los primeros `topPorEstatus` de CADA estatus (así ninguna etapa desaparece
+   * de la vista); expandida, todas.
+   */
+  filasVisiblesEstatus(g: GrupoCiudad, s: SubgrupoEstatus): FilaConcentrado[] {
+    return this.ciudadesExpandidas.has(g.ciudad) ? s.filas : s.filas.slice(0, this.topPorEstatus);
+  }
+  /** Cuántas filas se están mostrando en total en la ciudad. */
+  mostradosCiudad(g: GrupoCiudad): number {
+    if (this.ciudadesExpandidas.has(g.ciudad)) return g.total;
+    return g.subgrupos.reduce((a, s) => a + Math.min(s.total, this.topPorEstatus), 0);
+  }
+  restantesCiudad(g: GrupoCiudad): number {
+    return Math.max(0, g.total - this.mostradosCiudad(g));
   }
   hayMasCiudad(g: GrupoCiudad): boolean {
-    return g.filas.length > this.topPorCiudad && !this.ciudadesExpandidas.has(g.ciudad);
+    return this.restantesCiudad(g) > 0 && !this.ciudadesExpandidas.has(g.ciudad);
   }
   toggleCiudad(ciudad: string) {
     if (this.ciudadesExpandidas.has(ciudad)) this.ciudadesExpandidas.delete(ciudad);

@@ -182,7 +182,15 @@
               </tr>
             </thead>
             <tbody>
-              @for (f of filasVisiblesCiudad(g); track f.candidato.id; let i = $index) {
+              @for (s of g.subgrupos; track s.status) {
+              <tr class="sub-estatus">
+                <td colspan="7">
+                  <span class="sub-barra" [style.background]="s.color"></span>
+                  <span class="sub-label" [style.color]="s.color">{{ s.label }}</span>
+                  <span class="sub-count">{{ s.total }}</span>
+                </td>
+              </tr>
+              @for (f of filasVisiblesEstatus(g, s); track f.candidato.id; let i = $index) {
                 <tr (click)="abrirExpediente(f)">
                   <td class="c-rank"><span class="rank-num" [class.top]="i === 0">{{ i + 1 }}</span></td>
 
@@ -250,17 +258,18 @@
                   </td>
                 </tr>
               }
+              }
             </tbody>
           </table>
         </div>
 
         @if (hayMasCiudad(g)) {
           <button class="ver-mas no-print" (click)="toggleCiudad(g.ciudad)">
-            Ver los {{ g.total - topPorCiudad }} restantes ▾
+            Ver los {{ restantesCiudad(g) }} restantes ▾
           </button>
-        } @else if (ciudadesExpandidas.has(g.ciudad) && g.total > topPorCiudad) {
+        } @else if (ciudadesExpandidas.has(g.ciudad)) {
           <button class="ver-mas no-print" (click)="toggleCiudad(g.ciudad)">
-            Mostrar solo los primeros {{ topPorCiudad }} ▴
+            Mostrar solo los primeros {{ topPorEstatus }} de cada estatus ▴
           </button>
         }
       </section>

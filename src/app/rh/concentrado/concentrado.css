@@ -245,6 +245,41 @@ table.ranking td { padding: 10px 12px; vertical-align: middle; }
 }
 .mini-dot.on { background: var(--ink-soft); border-color: var(--ink-soft); }
 
+/* Fila-encabezado que clasifica el listado de la ciudad por estatus */
+table.ranking tbody tr.sub-estatus,
+table.ranking tbody tr.sub-estatus:hover {
+  background: var(--surface3);
+  cursor: default;
+}
+tr.sub-estatus td {
+  padding: 7px 12px;
+  border-top: 1px solid var(--border-med);
+  border-bottom: 1px solid var(--border);
+}
+tr.sub-estatus:first-child td { border-top: none; }
+.sub-barra {
+  display: inline-block;
+  width: 3px; height: 12px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  margin-right: 8px;
+}
+.sub-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.sub-count {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--surface2);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
 /* Estatus */
 .estatus-badge {
   display: inline-block;
