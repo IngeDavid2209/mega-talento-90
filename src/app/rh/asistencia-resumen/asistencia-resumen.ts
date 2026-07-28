@@ -382,12 +382,18 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
   private etiquetaSemana(inicio: Date): string {
     const fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
-    const f = (x: Date) => x.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' });
-    return `${f(inicio)} → ${f(fin)}`;
+    return `${this.fechaCorta(inicio)} → ${this.fechaCorta(fin)}`;
   }
   private etiquetaDia(fecha: string): string {
-    const d = new Date(fecha + 'T00:00:00');
-    return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' });
+    return this.fechaCorta(new Date(fecha + 'T00:00:00'));
+  }
+  /** "Mié 28 jul" — compacto, sin puntos ni "de", para que quepa en la columna. */
+  private fechaCorta(d: Date): string {
+    const limpia = (s: string) => s.replace(/\.$/, '');
+    const dow = limpia(d.toLocaleDateString('es-MX', { weekday: 'short' }));
+    const mes = limpia(d.toLocaleDateString('es-MX', { month: 'short' }));
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${dow.charAt(0).toUpperCase()}${dow.slice(1)} ${dia} ${mes}`;
   }
 
   // ------- Presentación / acciones -------

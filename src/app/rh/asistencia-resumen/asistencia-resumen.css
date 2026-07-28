@@ -143,47 +143,48 @@
   width: min(1080px, 97vw); max-height: 90vh; display: flex; flex-direction: column;
   background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35); overflow: hidden;
 }
-.ar-modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); background: var(--surface3); }
-.ar-modal-id { flex: 1; min-width: 0; }
+.ar-modal-head { display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid var(--border); background: var(--surface3); }
+.ar-modal-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ar-modal-id h3 { margin: 0; font-size: 17px; font-weight: 800; color: var(--ink); }
+.ar-modal-id .ar-card-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ar-modal-x { border: none; background: var(--surface2); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 14px; flex-shrink: 0; }
 .ar-modal-x:hover { background: var(--border-med); color: var(--ink); }
-.ar-modal-body { padding: 16px 18px 20px; overflow-y: auto; }
+.ar-modal-body { padding: 18px 22px 22px; overflow-y: auto; }
 .ar-sin { font-size: 13px; color: var(--text3); padding: 8px 0; }
 
 /* Semanas (dentro del modal) */
 .ar-sem { border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; margin-top: 16px; overflow: hidden; background: #fff; }
 .ar-sem:first-child { margin-top: 0; }
 .ar-sem-bad { border-left-color: var(--red); }
-.ar-sem-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-.ar-sem-title { display: flex; flex-direction: column; gap: 1px; }
+.ar-sem-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.ar-sem-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ar-sem-n { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold); }
 .ar-sem-rango { font-size: 13.5px; font-weight: 700; color: var(--ink); }
-.ar-sem-meta { display: flex; align-items: center; gap: 10px; }
-.ar-sem-bar { width: 90px; height: 7px; background: var(--surface3); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.ar-sem-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ar-sem-bar { width: 120px; height: 7px; background: var(--surface3); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
 .ar-sem-bar-fill { height: 100%; background: var(--green); border-radius: 999px; }
 .ar-sem-bar-fill.over { background: var(--red); }
 
 /* Anchos fijos de las 8 columnas del detalle (table-layout: fixed) */
-.ar-tabla-det th:nth-child(1), .ar-tabla-det td:nth-child(1) { width: 8%; }
+.ar-tabla-det th:nth-child(1), .ar-tabla-det td:nth-child(1) { width: 13%; }
 .ar-tabla-det th:nth-child(2), .ar-tabla-det td:nth-child(2) { width: 10%; }
-.ar-tabla-det th:nth-child(3), .ar-tabla-det td:nth-child(3) { width: 13%; }
+.ar-tabla-det th:nth-child(3), .ar-tabla-det td:nth-child(3) { width: 11%; }
 .ar-tabla-det th:nth-child(4), .ar-tabla-det td:nth-child(4) { width: 10%; }
-.ar-tabla-det th:nth-child(5), .ar-tabla-det td:nth-child(5) { width: 9%; }
-.ar-tabla-det th:nth-child(6), .ar-tabla-det td:nth-child(6) { width: 11%; }
-.ar-tabla-det th:nth-child(7), .ar-tabla-det td:nth-child(7) { width: 21%; }
-.ar-tabla-det th:nth-child(8), .ar-tabla-det td:nth-child(8) { width: 18%; }
+.ar-tabla-det th:nth-child(5), .ar-tabla-det td:nth-child(5) { width: 10%; }
+.ar-tabla-det th:nth-child(6), .ar-tabla-det td:nth-child(6) { width: 12%; }
+.ar-tabla-det th:nth-child(7), .ar-tabla-det td:nth-child(7) { width: 20%; }
+.ar-tabla-det th:nth-child(8), .ar-tabla-det td:nth-child(8) { width: 14%; }
 
 /* Columnas interactivas del detalle */
 .ar-just {
-  width: 100%; box-sizing: border-box;
-  border: 1px solid var(--border-med); border-radius: 8px; padding: 5px 7px;
+  width: 100%; box-sizing: border-box; min-width: 0; height: 30px;
+  border: 1px solid var(--border-med); border-radius: 8px; padding: 0 9px;
   font-size: 12px; color: var(--ink); background: #fff;
 }
 .ar-just:focus { outline: none; border-color: var(--ink); }
 .ar-verif {
-  width: 100%; box-sizing: border-box;
-  border: 1px solid var(--border-med); border-radius: 999px; padding: 5px 8px;
+  width: 100%; box-sizing: border-box; min-width: 0; height: 30px;
+  border: 1px solid var(--border-med); border-radius: 999px; padding: 0 8px;
   font-size: 11px; font-weight: 700; cursor: pointer; background: #fff;
 }
 .ar-verif-pendiente { background: #FBEED9; color: #8A5A00; border-color: rgba(229,163,0,0.35); }
@@ -201,11 +202,14 @@
 .ar-tabla tbody tr:last-child td { border-bottom: none; }
 .ar-tabla tbody tr:nth-child(even) td { background: rgba(26, 47, 78, 0.018); }
 
-/* Tabla del detalle (8 columnas): compacta para que quepa sin scroll */
-.ar-tabla-det { table-layout: fixed; }
-.ar-tabla-det th, .ar-tabla-det td { padding: 8px 8px; }
-.ar-tabla-det .ar-mono { font-size: 11.5px; letter-spacing: 0; }
-.ar-tabla-det .ar-badge { padding: 4px 8px; font-size: 11px; }
+/* Tabla del detalle (8 columnas): ancho mínimo + scroll horizontal antes de amontonarse */
+.ar-tabla-det { table-layout: fixed; min-width: 900px; }
+.ar-tabla-det th, .ar-tabla-det td { padding: 10px 12px; }
+/* con table-layout:fixed el contenido se sale de la celda; recortarlo en su lugar */
+.ar-tabla-det th, .ar-tabla-det td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-tabla-det .ar-mono { font-size: 12px; letter-spacing: 0; }
+.ar-tabla-det .ar-badge { padding: 4px 9px; font-size: 11px; }
+.ar-dia { font-size: 12.5px; font-weight: 700; color: var(--ink); }
 
 .ar-mono { font-variant-numeric: tabular-nums; font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.02em; }
 .ar-cap { text-transform: capitalize; font-weight: 600; }

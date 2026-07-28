@@ -170,7 +170,7 @@
               <div class="ar-sem-head">
                 <div class="ar-sem-title">
                   <span class="ar-sem-n">Semana {{ i + 1 }}</span>
-                  <span class="ar-sem-rango ar-cap">{{ sem.label }}</span>
+                  <span class="ar-sem-rango">{{ sem.label }}</span>
                 </div>
                 <div class="ar-sem-meta">
                   <div class="ar-sem-bar" [title]="sem.acumulado + ' de ' + detalle.presupuesto + ' min de tolerancia'">
@@ -193,7 +193,7 @@
                   <tbody>
                     @for (d of sem.dias; track d.fecha) {
                       <tr [class.ar-fila-falta]="d.falta">
-                        <td class="ar-cap ar-nowrap">{{ d.diaLabel }}</td>
+                        <td class="ar-dia">{{ d.diaLabel }}</td>
                         <td class="ar-mono">{{ d.entrada }}</td>
                         <td class="ar-mono">{{ d.comida }}</td>
                         <td class="ar-mono">{{ d.salida }}</td>
