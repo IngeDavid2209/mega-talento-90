@@ -529,3 +529,16 @@
   .hz-modal { padding: 20px 18px 16px; }
   .hz-chk-cards, .hz-emp-cards { grid-template-columns: 1fr; }
 }
+
+/* ── Detalle de asistencia de una persona (modal) ──────────────────
+   Los numeros los calcula la API con el horario deducido de cada quien; aqui
+   solo se pintan. Lo que se marca visualmente es lo que NO se puede medir: un
+   dia de una sola marca no es un dia bueno ni uno malo. */
+.hz-det-marcas { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
+.hz-det-marcas li {
+  font-size: 12.5px; line-height: 1.5; padding: 8px 12px; border-radius: 10px;
+  background: #FBEED9; color: #8A5A00; border-left: 3px solid var(--gold, #D99B00);
+}
+.hz-det-marcas li.alta { background: #FDECEC; color: #A62121; border-left-color: #DC2626; }
+.hz-sem-bolsa { font-size: 11px; color: #64748B; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hz-fila-mudo { background: #F8FAFC; color: #64748B; }

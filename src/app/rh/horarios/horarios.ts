@@ -2,9 +2,12 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
-import { ChecadorService, ResultadoImportacion } from '../../core/services/checador.service';
 import {
-  AreaChecador, HorarioArea, Checada, Empleado,
+  ChecadorService, ResultadoImportacion,
+  PersonaAsistencia, SemanaApi, DiaApi
+} from '../../core/services/checador.service';
+import {
+  AreaChecador, HorarioArea, Empleado,
   TIPOS_CHECADA, DIAS_SEMANA, aFechaLocal
 } from '../../core/models/checador.model';
 import { parsearTextoChecadas, parsearFilasExcel } from '../../core/models/parser-attlog';
@@ -16,23 +19,18 @@ import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
 type Tab = 'checadas' | 'horarios' | 'areas' | 'empleados';
 
-/** Un empleado agrupado dentro de un día, con sus marcas y estado de retardo. */
-interface GrupoEmpleado {
-  empleadoCodigo: string;
-  empleadoNombre: string;
-  areaId?: string;
-  marcas: Checada[];
-  primera: string;
-  ultima: string;
-  retardo: boolean | null;   // null = sin horario aplicable para comparar
-  minutosRetardo: number;
-}
-
-/** Las checadas de un día, agrupadas por empleado. */
-interface GrupoDia {
-  fecha: string;
-  diaLabel: string;
-  empleados: GrupoEmpleado[];
+/**
+ * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
+ * recalcula nada aquí: la regla (horario deducido + bolsa semanal) vive en
+ * `api/src/agente-horarios/horario-deducido.ts` y este componente solo pinta.
+ */
+interface DetalleEmpleado {
+  nombre: string; codigo: string; sucursalId: string; fotoUrl: string;
+  desde: string; hasta: string; cargando: boolean; error: string;
+  /** Su horario, deducido de SUS checadas (o confirmado por RH). */
+  persona: PersonaAsistencia | null;
+  semanas: SemanaApi[];
+  bolsaMin: number;
 }
 
 @Component({
@@ -64,9 +62,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
   horarios: HorarioArea[] = [];
   empleados: Empleado[] = [];
 
-  // Checadas cargadas bajo demanda
-  gruposChecadas: GrupoDia[] = [];
-  cargandoChecadas = false;
   importando = false;
   importResumen: ResultadoImportacion | null = null;
   // Se incrementa tras importar para que la vista de asistencia recargue.
@@ -131,36 +126,18 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   // ===================== CHECADAS =====================
 
-  async cargarChecadas() {
-    if (!this.sucursalFiltro || !this.desde || !this.hasta) {
-      this.gruposChecadas = [];
-      return;
-    }
-    this.cargandoChecadas = true;
-    try {
-      const lista = await this.checador.getChecadas(this.sucursalFiltro, this.desde, this.hasta);
-      this.gruposChecadas = this.agrupar(lista);
-    } catch (e: any) {
-      console.error('Error al cargar checadas:', e);
-      if (e?.code === 'failed-precondition') {
-        this.toast.error('Falta crear el índice de Firestore (sucursalId + fecha). Abre la consola del navegador (F12): Firebase incluye ahí el enlace para crearlo con un clic.', 'Índice pendiente');
-      } else {
-        this.toast.error('No se pudieron cargar las checadas.');
-      }
-      this.gruposChecadas = [];
-    } finally {
-      this.cargandoChecadas = false;
-    }
-  }
-
   onSucursalChange() {
     this.importResumen = null;
     this.ajustarRangoYCargar();
   }
 
-  /** Ajusta el rango de la lista principal a los últimos 30 días CON DATOS de la sucursal. */
+  /**
+   * Ajusta el rango a los últimos 30 días CON DATOS de la sucursal. Ya no carga
+   * checadas: la lista la pinta `<app-asistencia-resumen>`, que pide los números
+   * ya calculados a la API. Este rango es el que hereda el detalle por empleado.
+   */
   async ajustarRangoYCargar() {
-    if (!this.sucursalFiltro) { this.gruposChecadas = []; return; }
+    if (!this.sucursalFiltro) return;
     try {
       const r = await this.checador.getRangoChecadas(this.sucursalFiltro);
       if (r.max) {
@@ -171,7 +148,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
         this.desde = aFechaLocal(desde < min ? min : desde);
       }
     } catch { /* si falla, se queda el rango por defecto */ }
-    this.cargarChecadas();
   }
 
   /** Selección del archivo del reloj (.dat/.txt/.csv o Excel). */
@@ -230,109 +206,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return parsearFilasExcel(matriz);
   }
 
-  exportarExcel() {
-    const filas: any[] = [];
-    for (const dia of this.gruposChecadas) {
-      for (const emp of dia.empleados) {
-        filas.push({
-          'Fecha': dia.fecha,
-          'Día': dia.diaLabel,
-          'Código': emp.empleadoCodigo,
-          'Empleado': emp.empleadoNombre || '(sin registrar)',
-          'Área': emp.areaId ? this.nombreArea(emp.areaId) : '',
-          'Primera marca': emp.primera,
-          'Última marca': emp.ultima,
-          'Marcas': emp.marcas.length,
-          'Estado': emp.retardo === null ? 'Sin horario' : (emp.retardo ? `Retardo (+${emp.minutosRetardo} min)` : 'A tiempo')
-        });
-      }
-    }
-    if (!filas.length) {
-      this.toast.alerta('No hay checadas para exportar en este rango.');
-      return;
-    }
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(filas), 'Checadas');
-    const suc = this.nombreSucursal(this.sucursalFiltro).replace(/\s+/g, '_');
-    XLSX.writeFile(libro, `Checadas_${suc}_${this.desde}_a_${this.hasta}.xlsx`);
-  }
-
-  // ------- Agrupado y retardos -------
-
-  private agrupar(lista: Checada[]): GrupoDia[] {
-    const porFecha = new Map<string, Map<string, Checada[]>>();
-    for (const c of lista) {
-      if (!porFecha.has(c.fecha)) porFecha.set(c.fecha, new Map());
-      const m = porFecha.get(c.fecha)!;
-      if (!m.has(c.empleadoCodigo)) m.set(c.empleadoCodigo, []);
-      m.get(c.empleadoCodigo)!.push(c);
-    }
-
-    const dias: GrupoDia[] = [];
-    // Fechas de menor a mayor (más antigua arriba).
-    const fechas = Array.from(porFecha.keys()).sort((a, b) => (a < b ? -1 : 1));
-    for (const fecha of fechas) {
-      const empMap = porFecha.get(fecha)!;
-      const empleados: GrupoEmpleado[] = [];
-      for (const [codigo, marcas] of empMap) {
-        marcas.sort((a, b) => (a.fechaHora < b.fechaHora ? -1 : 1));
-        const primera = marcas[0];
-        const ultima = marcas[marcas.length - 1];
-        const areaId = marcas.find(m => m.areaId)?.areaId;
-
-        let retardo: boolean | null = null;
-        let minutosRetardo = 0;
-        const hor = this.horarioAplicable(primera.sucursalId, areaId, fecha);
-        if (hor) {
-          // Retardo diario = minutos EXACTOS de tardanza desde la hora de entrada
-          // (9:03 con entrada 9:00 = 3 min). La tolerancia de 15 min es TOTAL por
-          // semana (mié→mar); se acumula en el detalle del empleado.
-          const base = this.minutos(hor.entrada);
-          const primeraMin = this.minutos(primera.hora);
-          if (base >= 0 && primeraMin >= 0) {
-            minutosRetardo = Math.max(0, primeraMin - base);
-            retardo = minutosRetardo > 0;
-          }
-        }
-
-        empleados.push({
-          empleadoCodigo: codigo,
-          empleadoNombre: primera.empleadoNombre || '',
-          areaId,
-          marcas,
-          primera: primera.hora,
-          ultima: ultima.hora,
-          retardo,
-          minutosRetardo
-        });
-      }
-      empleados.sort((a, b) =>
-        (a.empleadoNombre || a.empleadoCodigo).localeCompare(b.empleadoNombre || b.empleadoCodigo));
-      dias.push({ fecha, diaLabel: this.etiquetaDia(fecha), empleados });
-    }
-    return dias;
-  }
-
-  /** Horario que aplica: primero el del área, luego el general de la sucursal. */
-  private horarioAplicable(sucursalId: string, areaId: string | undefined, fecha: string): HorarioArea | null {
-    const dow = new Date(fecha + 'T00:00:00').getDay();
-    const activos = this.horarios.filter(h =>
-      h.activo && h.sucursalId === sucursalId && Array.isArray(h.dias) && h.dias.includes(dow));
-    if (!activos.length) return null;
-    if (areaId) {
-      const delArea = activos.find(h => h.areaId === areaId);
-      if (delArea) return delArea;
-    }
-    const general = activos.find(h => !h.areaId);
-    return general || activos[0];
-  }
-
-  /** Minutos desde medianoche de una hora 'HH:mm[:ss]'. -1 si no parsea. */
-  private minutos(hhmm: string): number {
-    const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || '');
-    if (!m) return -1;
-    return (+m[1]) * 60 + (+m[2]);
-  }
+  // El export de asistencia lo hace <app-asistencia-resumen>, con los numeros ya
+  // calculados por la API (incluida la columna "Numero utilizable"). Aqui vivia
+  // un segundo export que armaba el estado del dia comparando la primera marca
+  // contra el horario de la sucursal: se borro junto con `agrupar()` y
+  // `horarioAplicable()`, que eran la ULTIMA copia local de la regla del retardo.
+  // Nada del template los usaba desde que la pestana Checadas se volvio el
+  // componente de asistencia.
 
   private etiquetaDia(fecha: string): string {
     const d = new Date(fecha + 'T00:00:00');
@@ -460,143 +340,97 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.empleadoEdit = { ...e };
   }
 
-  /** Detalle de un empleado (modal), con SU PROPIO rango, agrupado por SEMANA (mié→mar). */
-  empleadoDetalle: {
-    nombre: string; codigo: string; sucursalId: string; fotoUrl: string; areaId?: string;
-    desde: string; hasta: string; cargando: boolean;
-    presupuesto: number; acumuladoTotal: number; diasConRetardo: number; diasRegistrados: number; semanasExcedidas: number;
-    semanas: {
-      inicio: string; label: string; acumulado: number; excedido: boolean;
-      dias: { fecha: string; diaLabel: string; entrada: string; comida: string; salida: string; retardoMin: number }[];
-    }[];
-  } | null = null;
+  // ══════════════════════════════════════════════════════════════════
+  // DETALLE DE ASISTENCIA DE UNA PERSONA
+  //
+  // El modal existia pero habia quedado huerfano: ningun boton lo abria desde que
+  // la pestana Checadas se volvio el componente de asistencia. Y calculaba el
+  // retardo aqui mismo, comparando la primera marca contra el horario de la
+  // SUCURSAL —el mismo error que inflaba las tarjetas—.
+  //
+  // Ahora se pide a `GET /checador/agente/asistencia` y se pinta lo que responde:
+  // su horario sale de SUS checadas, el retardo se acumula contra la bolsa de 15
+  // min por semana y solo cuenta el excedente, y un dia de una sola marca no
+  // genera retardo. Este componente ya no sabe calcular retardos, y eso es lo que
+  // se buscaba: la regla vive en un solo lugar.
+  // ══════════════════════════════════════════════════════════════════
+  empleadoDetalle: DetalleEmpleado | null = null;
 
-  /** Inicio de la semana (miércoles) que contiene a la fecha dada. */
-  private inicioSemana(fecha: string): Date {
-    const d = new Date(fecha + 'T00:00:00');
-    const off = (d.getDay() - 3 + 7) % 7; // días transcurridos desde el miércoles
-    d.setDate(d.getDate() - off);
-    return d;
-  }
-  private etiquetaSemana(inicio: Date): string {
-    const fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
-    const f = (x: Date) => x.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' });
-    return `${f(inicio)} → ${f(fin)}`;
-  }
-
-  /** Segundos desde medianoche de 'HH:mm:ss'. */
-  private minSeg(hhmmss: string): number {
-    const m = /^(\d{1,2}):(\d{2}):?(\d{2})?/.exec(hhmmss || '');
-    if (!m) return -1;
-    return (+m[1]) * 3600 + (+m[2]) * 60 + (+(m[3] || 0));
-  }
-
-  /**
-   * Separa las marcas de un día en entrada / comida / salida. Primero COLAPSA
-   * las marcas a menos de 2 min entre sí (doble-checada del mismo evento), que
-   * es lo que ensuciaba la "comida".
-   */
-  private desglosarDia(marcas: Checada[]): { entrada: string; comida: string; salida: string } {
-    const horas = marcas.map(m => m.hora).filter(Boolean).sort();
-    const limpio: string[] = [];
-    for (const h of horas) {
-      const prev = limpio[limpio.length - 1];
-      if (!prev || (this.minSeg(h) - this.minSeg(prev)) >= 120) limpio.push(h);
-    }
-    const entrada = limpio[0] || '—';
-    const salida = limpio.length > 1 ? limpio[limpio.length - 1] : '—';
-    let comida = '—';
-    const medio = limpio.slice(1, -1);
-    if (medio.length >= 2) comida = `${medio[0]} – ${medio[medio.length - 1]}`;
-    else if (medio.length === 1) comida = medio[0];
-    return { entrada, comida, salida };
-  }
-
-  /** Abre el detalle de un empleado. Su rango arranca igual al de la lista pero es independiente. */
-  abrirDetalle(emp: GrupoEmpleado) {
-    this.empleadoDetalle = {
-      nombre: emp.empleadoNombre || '(sin registrar)',
-      codigo: emp.empleadoCodigo,
-      sucursalId: this.sucursalFiltro,
-      fotoUrl: this.fotoDe(emp.empleadoCodigo),
-      areaId: emp.areaId,
-      desde: this.desde, hasta: this.hasta, cargando: true,
-      presupuesto: 15, acumuladoTotal: 0, diasConRetardo: 0, diasRegistrados: 0, semanasExcedidas: 0, semanas: []
-    };
-    this.cargarDetalle();
-  }
-
-  /** Abre el detalle directamente desde un empleado del listado (pestaña Checadas). */
+  /** Abre el detalle de un empleado; hereda el rango de la pantalla y lo puede cambiar. */
   abrirDetalleEmp(e: Empleado) {
     this.empleadoDetalle = {
       nombre: e.nombre || '(sin registrar)',
-      codigo: e.codigoChecador,
+      codigo: String(e.codigoChecador).trim(),
       sucursalId: e.sucursalId,
       fotoUrl: e.fotoUrl || '',
-      areaId: undefined,
-      desde: this.desde, hasta: this.hasta, cargando: true,
-      presupuesto: 15, acumuladoTotal: 0, diasConRetardo: 0, diasRegistrados: 0, semanasExcedidas: 0, semanas: []
+      desde: this.desde, hasta: this.hasta,
+      cargando: true, error: '',
+      persona: null, semanas: [], bolsaMin: 15
     };
     this.cargarDetalle();
   }
 
-  /** Carga (o recarga al cambiar fechas) las checadas del empleado en su rango. */
+  /** Carga (o recarga al cambiar fechas) la asistencia del empleado en su rango. */
   async cargarDetalle() {
     const d = this.empleadoDetalle;
     if (!d) return;
     d.cargando = true;
+    d.error = '';
     try {
-      const checadas = await this.checador.getChecadas(d.sucursalId, d.desde, d.hasta, d.codigo);
-      const porFecha = new Map<string, Checada[]>();
-      for (const c of checadas) {
-        if (!porFecha.has(c.fecha)) porFecha.set(c.fecha, []);
-        porFecha.get(c.fecha)!.push(c);
-      }
-      const hor = this.horarioAplicable(d.sucursalId, d.areaId, d.hasta);
-      const base = hor ? this.minutos(hor.entrada) : -1;
-      const presupuesto = hor?.toleranciaMin ?? 15;
-
-      // Día por día (retardo = minutos exactos desde la entrada) agrupado por semana (mié→mar).
-      const porSemana = new Map<string, any>();
-      let acumTotal = 0, conRet = 0, diasReg = 0;
-      for (const f of Array.from(porFecha.keys()).sort()) {
-        const marcas = porFecha.get(f)!.sort((a, b) => (a.fechaHora < b.fechaHora ? -1 : 1));
-        const des = this.desglosarDia(marcas);
-        let rm = 0;
-        const pMin = this.minutos(des.entrada);
-        if (base >= 0 && pMin >= 0) rm = Math.max(0, pMin - base);
-        acumTotal += rm; diasReg++;
-        if (rm > 0) conRet++;
-
-        const claveIni = aFechaLocal(this.inicioSemana(f));
-        if (!porSemana.has(claveIni)) {
-          porSemana.set(claveIni, {
-            inicio: claveIni, label: this.etiquetaSemana(this.inicioSemana(f)),
-            acumulado: 0, excedido: false, dias: []
-          });
-        }
-        const sem = porSemana.get(claveIni);
-        sem.acumulado += rm;
-        sem.dias.push({ fecha: f, diaLabel: this.etiquetaDia(f), entrada: des.entrada, comida: des.comida, salida: des.salida, retardoMin: rm });
-      }
-
-      const semanas = Array.from(porSemana.values()).sort((a, b) => (a.inicio < b.inicio ? -1 : 1));
-      let semExc = 0;
-      for (const s of semanas) { s.excedido = s.acumulado > presupuesto; if (s.excedido) semExc++; }
-
-      d.semanas = semanas;
-      d.acumuladoTotal = acumTotal;
-      d.diasConRetardo = conRet;
-      d.diasRegistrados = diasReg;
-      d.semanasExcedidas = semExc;
-      d.presupuesto = presupuesto;
-    } catch (e) {
+      const r = await this.checador.getAsistencia(d.sucursalId, d.desde, d.hasta);
+      d.bolsaMin = r.bolsaSemanalMin;
+      const p = r.personas.find(x => String(x.codigo).trim() === d.codigo) || null;
+      d.persona = p;
+      d.semanas = p?.semanas || [];
+      // Se dice cuando la persona no aparece, en vez de mostrar un modal vacio que
+      // parece "no tuvo retardos".
+      if (!p) d.error = 'Esta persona no tiene checadas en el periodo elegido.';
+    } catch (e: any) {
       console.error(e);
-      this.toast.error('No se pudo cargar el detalle del empleado.');
+      d.error = 'No se pudo cargar la asistencia de esta persona.';
+      d.semanas = [];
+      d.persona = null;
     } finally {
       d.cargando = false;
     }
   }
+
+  // ── Presentacion del detalle (nada de calculo) ──
+
+  /** Etiqueta de la semana a partir de su miercoles: "Mié 01 jul → Mar 07 jul". */
+  etiquetaSemanaDe(inicioIso: string): string {
+    const inicio = new Date(inicioIso + 'T00:00:00');
+    const fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
+    return `${this.etiquetaDia(inicioIso)} → ${this.etiquetaDia(aFechaLocal(fin))}`;
+  }
+  etiquetaDiaDe(fecha: string): string { return this.etiquetaDia(fecha); }
+
+  /** Su horario, en una linea: fijo, rotativo o sin deducir. */
+  horarioDe(p: PersonaAsistencia | null): string {
+    if (!p) return '—';
+    if (p.tipo === 'rotativo') return `Rota ${p.turnos.filter(Boolean).join(' · ')}`;
+    if (!p.horario) return 'Sin horario deducible';
+    return `${p.horario}${p.horarioConfirmado ? ' (confirmado por RH)' : ' (deducido)'}`;
+  }
+
+  /** Lo que hay que resolver antes de usar su numero. */
+  marcasDe(p: PersonaAsistencia | null) {
+    if (!p) return [];
+    return p.marcas.filter(m => m.gravedad === 'alta' || m.gravedad === 'media');
+  }
+
+  /** Texto del estado de un dia, con el motivo cuando no es medible. */
+  estadoDia(dia: DiaApi): string {
+    switch (dia.estado) {
+      case 'falta': return 'Falta';
+      case 'descanso': return 'Descanso';
+      case 'marca_faltante': return 'Una sola marca';
+      case 'retardo': return `+${dia.retardoRealMin} min`;
+      case 'absorbido': return 'Dentro de tolerancia';
+      default: return 'A tiempo';
+    }
+  }
+
   cerrarDetalle() { this.empleadoDetalle = null; }
 
   /** Foto de un empleado (por código, en la sucursal filtrada) para las tarjetas de checadas. */

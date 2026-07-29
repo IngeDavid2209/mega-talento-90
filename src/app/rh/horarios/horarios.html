@@ -79,6 +79,8 @@
                 </div>
               </div>
               <div class="hz-emp-card-actions">
+                <button class="hz-link" (click)="abrirDetalleEmp(e)"
+                        title="Su horario, su retardo real y el detalle día por día">Asistencia</button>
                 <button class="hz-link" (click)="editarEmpleado(e)">Editar</button>
                 <button class="hz-link hz-danger" (click)="borrarEmpleado(e)">Borrar</button>
               </div>
@@ -269,6 +271,10 @@
         <div class="hz-det-head-info">
           <h3>{{ empleadoDetalle.nombre }}</h3>
           <div class="hz-det-sub">Cód. {{ empleadoDetalle.codigo }} · {{ nombreSucursal(empleadoDetalle.sucursalId) }}</div>
+          <!-- Su horario, que es contra lo que se mide. Sale de SUS checadas. -->
+          <div class="hz-det-sub">{{ horarioDe(empleadoDetalle.persona) }}
+            @if (empleadoDetalle.persona?.costumbre) { · acostumbra llegar {{ empleadoDetalle.persona!.costumbre }} }
+          </div>
         </div>
         <button class="hz-det-close" (click)="cerrarDetalle()">✕</button>
       </div>
@@ -287,53 +293,88 @@
 
       @if (empleadoDetalle.cargando) {
         <div class="hz-empty">Cargando asistencia…</div>
+      } @else if (empleadoDetalle.error) {
+        <div class="hz-empty">{{ empleadoDetalle.error }}</div>
       } @else if (!empleadoDetalle.semanas.length) {
-        <div class="hz-empty">Sin checadas en este periodo. Ajusta las fechas.</div>
+        <div class="hz-empty">Sin días medibles en este periodo. Ajusta las fechas.</div>
       } @else {
+        <!-- Lo que hay que resolver ANTES de usar estos números. -->
+        @if (marcasDe(empleadoDetalle.persona).length) {
+          <ul class="hz-det-marcas">
+            @for (m of marcasDe(empleadoDetalle.persona); track m.codigo) {
+              <li [class.alta]="m.gravedad === 'alta'">{{ m.detalle }}</li>
+            }
+          </ul>
+        }
+
         <!-- Resumen del periodo -->
         <div class="hz-det-tiles">
-          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.acumuladoTotal > 0">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.acumuladoTotal }} min</span>
-            <span class="hz-det-tile-lbl">Retardo total</span>
+          <div class="hz-det-tile" [class.hz-tile-bad]="(empleadoDetalle.persona?.retardoRealMin || 0) > 0">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.persona?.retardoRealMin }} min</span>
+            <span class="hz-det-tile-lbl">Retardo real</span>
           </div>
-          <div class="hz-det-tile" [class.hz-tile-bad]="empleadoDetalle.semanasExcedidas > 0">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.semanasExcedidas }}</span>
-            <span class="hz-det-tile-lbl">Semanas excedidas</span>
+          <div class="hz-det-tile" title="Minutos crudos de atraso antes de la bolsa semanal">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.persona?.absorbidoMin }} min</span>
+            <span class="hz-det-tile-lbl">Absorbidos por la bolsa</span>
           </div>
           <div class="hz-det-tile">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.diasConRetardo }}/{{ empleadoDetalle.diasRegistrados }}</span>
+            <span class="hz-det-tile-num">{{ empleadoDetalle.persona?.diasConRetardo }}/{{ empleadoDetalle.persona?.diasEvaluados }}</span>
             <span class="hz-det-tile-lbl">Días con retardo</span>
           </div>
-          <div class="hz-det-tile">
-            <span class="hz-det-tile-num">{{ empleadoDetalle.presupuesto }} min</span>
-            <span class="hz-det-tile-lbl">Tolerancia semanal</span>
+          <div class="hz-det-tile" [class.hz-tile-bad]="(empleadoDetalle.persona?.faltas || 0) > 0">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.persona?.faltas }}</span>
+            <span class="hz-det-tile-lbl">Faltas</span>
+          </div>
+          <div class="hz-det-tile" title="Días con una sola marca: no se sabe si es la entrada o la salida.">
+            <span class="hz-det-tile-num">{{ empleadoDetalle.persona?.diasNoMedibles }}</span>
+            <span class="hz-det-tile-lbl">Días sin medir</span>
           </div>
         </div>
 
-        <!-- Cada semana (miércoles → martes) con su acumulado vs la tolerancia -->
+        <!-- Cada semana (miércoles → martes) con su bolsa de tolerancia -->
         @for (sem of empleadoDetalle.semanas; track sem.inicio) {
-          <div class="hz-sem" [class.hz-sem-bad]="sem.excedido">
+          <div class="hz-sem" [class.hz-sem-bad]="sem.retardoRealMin > 0">
             <div class="hz-sem-head">
-              <span class="hz-sem-rango hz-cap">Semana: {{ sem.label }}</span>
-              <span class="hz-badge" [class.hz-badge-bad]="sem.excedido" [class.hz-badge-good]="!sem.excedido">
-                {{ sem.acumulado }} / {{ empleadoDetalle.presupuesto }} min
+              <span class="hz-sem-rango hz-cap">Semana: {{ etiquetaSemanaDe(sem.inicio) }}</span>
+              <span class="hz-badge" [class.hz-badge-bad]="sem.retardoRealMin > 0" [class.hz-badge-good]="sem.retardoRealMin === 0">
+                @if (sem.retardoRealMin > 0) { +{{ sem.retardoRealMin }} min de retardo }
+                @else if (sem.atrasoMin > 0) { {{ sem.atrasoMin }} min absorbidos }
+                @else { sin atraso }
+              </span>
+              <span class="hz-sem-bolsa" [title]="'Bolsa de ' + sem.bolsaInicial + ' min por semana; solo cuenta lo que la excede.'">
+                bolsa {{ sem.bolsaRestante }}/{{ sem.bolsaInicial }}
               </span>
             </div>
             <div class="hz-tabla-wrap">
               <table class="hz-tabla">
                 <thead>
-                  <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Retardo</th></tr>
+                  <tr><th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th><th>Horas</th>
+                    <th title="La hora contra la que se midió ese día. En un rotativo cambia día con día.">Medido vs</th>
+                    <th>Estado</th></tr>
                 </thead>
                 <tbody>
                   @for (d of sem.dias; track d.fecha) {
-                    <tr>
-                      <td class="hz-cap hz-nowrap">{{ d.diaLabel }}</td>
-                      <td class="hz-mono">{{ d.entrada }}</td>
+                    <tr [class.hz-fila-mudo]="d.estado === 'marca_faltante' || d.estado === 'descanso'">
+                      <td class="hz-cap hz-nowrap">{{ etiquetaDiaDe(d.fecha) }}@if (d.atipico) { ⚠ }</td>
+                      <td class="hz-mono">{{ d.entrada || d.hora || '—' }}</td>
                       <td class="hz-mono">{{ d.comida }}</td>
-                      <td class="hz-mono">{{ d.salida }}</td>
+                      <td class="hz-mono">{{ d.salida || '—' }}</td>
+                      <td class="hz-mono">{{ d.horasNetas }}</td>
+                      <td class="hz-mono">{{ d.referencia || '—' }}</td>
                       <td>
-                        @if (d.retardoMin > 0) {
-                          <span class="hz-badge hz-badge-bad">+{{ d.retardoMin }} min</span>
+                        @if (d.estado === 'retardo') {
+                          <span class="hz-badge hz-badge-bad"
+                                [title]="'Llegó ' + d.atrasoMin + ' min tarde; la bolsa absorbió ' + d.absorbidoMin + '.'">+{{ d.retardoRealMin }} min</span>
+                        } @else if (d.estado === 'falta') {
+                          <span class="hz-badge hz-badge-bad">Falta</span>
+                        } @else if (d.estado === 'marca_faltante') {
+                          <span class="hz-badge"
+                                title="Solo una marca ese día: no se sabe si es la entrada o la salida, así que no genera retardo.">Una sola marca</span>
+                        } @else if (d.estado === 'descanso') {
+                          <span class="hz-badge">Descanso</span>
+                        } @else if (d.estado === 'absorbido') {
+                          <span class="hz-badge hz-badge-good"
+                                [title]="'Llegó ' + d.atrasoMin + ' min tarde, dentro de la bolsa de la semana.'">Dentro de tolerancia</span>
                         } @else {
                           <span class="hz-badge hz-badge-good">A tiempo</span>
                         }

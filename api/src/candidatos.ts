@@ -20,6 +20,33 @@ import { requireAuth } from './auth';
  */
 export const candidatosRouter = Router();
 
+/**
+ * `candidatos.id` es UUID. Si llega cualquier otra cosa, Postgres lanza
+ * "invalid input syntax for type uuid" y el endpoint respondía **500**.
+ *
+ * Eso importaba mucho más de lo que parece: las páginas PÚBLICAS
+ * (/evaluacion/:id, /evaluar-aptitudes/:id, /solicitud/:id) traducen un 404 a
+ * "Solicita un nuevo enlace a Capital Humano" —accionable— pero cualquier otro
+ * error a "No se pudo cargar tu evaluación. Revisa tu conexión" — que manda al
+ * candidato a buscar el problema en su internet cuando el problema es la liga.
+ *
+ * Casos reales de id inválido: una liga copiada con un espacio al final, una liga
+ * cortada, y —el más común— un id VIEJO de Firestore (20 caracteres): al
+ * 29/07/2026 los 225 candidatos que el bot ligó al portal guardan ese formato en
+ * `portal_candidate_id`.
+ *
+ * Un id que no puede existir es un "no encontrado", no un error del servidor.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function idValido(req: Request, res: Response): string | null {
+  const id = String(req.params.id || '').trim();
+  if (UUID_RE.test(id)) return id;
+  console.warn(`[candidatos] id con formato inválido: "${req.params.id}" (${req.method} ${req.originalUrl})`);
+  res.status(404).json({ error: 'No encontrado.' });
+  return null;
+}
+
 // Deriva de la columna `documentos` (jsonb que llena el bot de WhatsApp) los
 // archivos que el candidato mandó por WhatsApp, en la forma `documentosBot` que
 // ya consume el front (busca por campo `tipo` = casillero del expediente). OJO:
@@ -223,8 +250,10 @@ candidatosRouter.get('/kpi-fases', requireAuth, async (_req: Request, res: Respo
 
 // Leer un candidato (lo usan /solicitud/:id y /evaluar-*).
 candidatosRouter.get('/:id', async (req: Request, res: Response) => {
+  const id = idValido(req, res);
+  if (!id) return;
   try {
-    const { rows } = await pool.query('SELECT * FROM candidatos WHERE id=$1 LIMIT 1', [req.params.id]);
+    const { rows } = await pool.query('SELECT * FROM candidatos WHERE id=$1 LIMIT 1', [id]);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado.' });
     return res.json(mapCandidato(rows[0]));
   } catch (e) { return fallo(res, e, 'Error al leer candidato.'); }
@@ -233,13 +262,15 @@ candidatosRouter.get('/:id', async (req: Request, res: Response) => {
 // Actualizar (parcial). Público: lo usan /solicitud y /evaluar-* para escribir.
 // marcarActividad=false para acciones del candidato (no cuenta como seguimiento de RH).
 candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
+  const idPatch = idValido(req, res);
+  if (!idPatch) return;
   try {
     const d = req.body || {};
     const marcar = req.query.marcarActividad !== 'false' && d.__marcarActividad !== false;
     delete d.__marcarActividad;
     const esp = columnasEspejo(d);
     // Estado actual ANTES de actualizar, para detectar un cambio de fase.
-    const prev = await pool.query('SELECT portal_status FROM candidatos WHERE id=$1', [req.params.id]);
+    const prev = await pool.query('SELECT portal_status FROM candidatos WHERE id=$1', [idPatch]);
     const estadoPrevio: string | null = prev.rows[0]?.portal_status ?? null;
     const { rows } = await pool.query(
       `UPDATE candidatos SET
@@ -260,7 +291,7 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
          ultima_actividad = CASE WHEN $16 THEN now() ELSE ultima_actividad END
        WHERE id=$1 RETURNING *`,
       [
-        req.params.id, JSON.stringify(d), esp.nombre_completo, esp.telefono, esp.ciudad_sucursal,
+        idPatch, JSON.stringify(d), esp.nombre_completo, esp.telefono, esp.ciudad_sucursal,
         esp.puesto_interes, esp.portal_status, esp.fuente, esp.cv_url, esp.cv_url_reverso,
         esp.cv_formato, esp.licencia_url, esp.solicitud_electronica, esp.rubrica_aptitudes,
         esp.aptitudes_eval, marcar
@@ -280,7 +311,7 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
                (SELECT c.creado_en FROM candidatos c WHERE c.id = $1),
                now()
              ))) / 3600`,
-          [req.params.id, estadoPrevio, esp.portal_status]
+          [idPatch, estadoPrevio, esp.portal_status]
         );
       } catch (err) {
         console.warn('[candidatos] no se pudo registrar la transición de fase:', err);
@@ -311,20 +342,24 @@ candidatosRouter.get('/papelera/borrados', requireAuth, async (_req: Request, re
 
 // Soft-delete.
 candidatosRouter.delete('/:id', requireAuth, async (req: Request, res: Response) => {
+  const id = idValido(req, res);
+  if (!id) return;
   try {
-    await pool.query('UPDATE candidatos SET deleted_at=now() WHERE id=$1', [req.params.id]);
+    await pool.query('UPDATE candidatos SET deleted_at=now() WHERE id=$1', [id]);
     return res.json({ ok: true });
   } catch (e) { return fallo(res, e, 'Error al eliminar candidato.'); }
 });
 
 // Cierre de seguimiento (soft-delete con motivo).
 candidatosRouter.post('/:id/cierre-seguimiento', requireAuth, async (req: Request, res: Response) => {
+  const id = idValido(req, res);
+  if (!id) return;
   try {
     await pool.query(
       `UPDATE candidatos SET deleted_at=now(),
          portal_data = coalesce(portal_data,'{}'::jsonb) || '{"motivoBorrado":"cierre_seguimiento"}'::jsonb
        WHERE id=$1`,
-      [req.params.id]
+      [id]
     );
     return res.json({ ok: true });
   } catch (e) { return fallo(res, e, 'Error al cerrar seguimiento.'); }
@@ -332,16 +367,20 @@ candidatosRouter.post('/:id/cierre-seguimiento', requireAuth, async (req: Reques
 
 // Restaurar de papelera.
 candidatosRouter.post('/:id/restaurar', requireAuth, async (req: Request, res: Response) => {
+  const id = idValido(req, res);
+  if (!id) return;
   try {
-    await pool.query('UPDATE candidatos SET deleted_at=NULL WHERE id=$1', [req.params.id]);
+    await pool.query('UPDATE candidatos SET deleted_at=NULL WHERE id=$1', [id]);
     return res.json({ ok: true });
   } catch (e) { return fallo(res, e, 'Error al restaurar candidato.'); }
 });
 
 // Borrado físico (definitivo, desde la papelera).
 candidatosRouter.delete('/:id/definitivo', requireAuth, async (req: Request, res: Response) => {
+  const id = idValido(req, res);
+  if (!id) return;
   try {
-    await pool.query('DELETE FROM candidatos WHERE id=$1', [req.params.id]);
+    await pool.query('DELETE FROM candidatos WHERE id=$1', [id]);
     return res.json({ ok: true });
   } catch (e) { return fallo(res, e, 'Error al eliminar definitivamente.'); }
 });
