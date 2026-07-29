@@ -37,10 +37,45 @@ export interface ResumenAgente {
   sucursalId: string; desde: string; hasta: string;
   empleadosAnalizados: number; diasAnalizados: number; checadasLeidas: number;
   totalInconsistencias: number; porRegla: Record<string, number>; empleadosSinTurno: number;
+  exTrabajadoresOmitidos?: number;
 }
 export interface RespuestaAnalisis {
   resumen: ResumenAgente;
   borradores: { creadas: number; actualizadas: number; sinCambio: number; eliminadas: number };
+}
+
+/**
+ * Lo que el agente revisó POR SU CUENTA en una sucursal. El corredor de la API
+ * analiza las ocho sucursales cada media hora sin que nadie se lo pida; esto es
+ * la bitácora, y es lo que permite que la pantalla muestre resultados en vez de
+ * un botón que hay que apretar.
+ */
+export interface CorridaSucursal {
+  sucursalId: string;
+  desde: string; hasta: string;
+  ultimoDato: string; primerDato: string;
+  /** La ventana rodante no cubre todo el historial de esta sucursal. */
+  historiaSinCubrir: boolean;
+  empleados: number | null;
+  omitidosEx: number | null;
+  pendientes: number;
+  creadas: number | null; actualizadas: number | null; eliminadas: number | null;
+  duracionMs: number | null;
+  saltada: boolean;
+  /** Mensaje REAL del fallo. Si viene, esa sucursal NO está revisada. */
+  error: string | null;
+  corridaEn: string;
+}
+export interface EstadoAgente {
+  auto: boolean;
+  cadaMin: number;
+  ventanaDias: number;
+  diasEx: number;
+  corriendo?: boolean;
+  ultimaCorrida?: string | null;
+  pendientesTotal?: number;
+  error?: string;
+  sucursales: CorridaSucursal[];
 }
 
 /**

@@ -109,3 +109,82 @@ ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS justificacion_jefe TEXT;
 ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS respondido_por     TEXT;
 ALTER TABLE asistencia_alertas ADD COLUMN IF NOT EXISTS respondido_en      TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_alertas_codigo ON asistencia_alertas (codigo);
+
+-- =====================================================================
+-- FASE 3 · EL AGENTE CORRE SOLO (corredor interno)
+-- =====================================================================
+-- Antes, la deteccion solo ocurria si alguien entraba a la pantalla y apretaba
+-- un boton. Si nadie entraba, no pasaba nada: un agente que hay que despertar a
+-- mano no es un agente. Ahora un corredor dentro del propio proceso de la API
+-- revisa todas las sucursales cada N minutos.
+--
+-- Esta tabla es la BITACORA del corredor: una fila por sucursal con el resultado
+-- de su ultima revision. Sirve para tres cosas concretas:
+--   (a) que la pantalla pueda decir "revisado solo, hace 12 min" en vez de
+--       mostrar un boton que el usuario cree obligatorio;
+--   (b) que el corredor SALTE una sucursal cuyos datos no cambiaron (la huella),
+--       en vez de re-analizar ocho sucursales cada media hora sin motivo;
+--   (c) que un fallo quede registrado con su mensaje REAL y visible, en vez de
+--       morir en silencio en los logs.
+CREATE TABLE IF NOT EXISTS agente_corridas (
+  sucursal_id        TEXT PRIMARY KEY,
+  desde              TEXT,           -- ventana analizada, 'yyyy-MM-dd'
+  hasta              TEXT,
+  ultimo_dato        TEXT,           -- max(checadas.fecha) de ESTA sucursal
+  primer_dato        TEXT,           -- min(checadas.fecha): revela historia no cubierta
+  huella             TEXT,           -- 'ultimo_dato|numero de checadas en la ventana'
+  empleados          INTEGER,
+  omitidos_ex        INTEGER,        -- ex-trabajadores excluidos de la ventana
+  creadas            INTEGER,
+  actualizadas       INTEGER,
+  eliminadas         INTEGER,
+  pendientes         INTEGER,        -- alertas en 'sugerida_ia' que esperan a RH
+  duracion_ms        INTEGER,
+  error              TEXT,           -- mensaje REAL del fallo; NULL si salio bien
+  saltada            BOOLEAN NOT NULL DEFAULT FALSE,  -- no cambio nada desde la corrida anterior
+  corrida_en         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Arranque prudente del corredor: retardo/falta/fuera_de_turno APAGADAS ──
+--
+-- No es timidez, es aritmetica. Con la ventana de 45 dias al 28/07/2026 el agente
+-- detecta 8,724 inconsistencias, y 6,257 de ellas (72%) salen de comparar las
+-- checadas contra un horario que NO es el que la gente trabaja:
+--
+--   · 8-Esquinas esta configurada a las 07:30. Su entrada real va de 07:56 (p25)
+--     a 12:32 (p75) -> 81% de "retardo". No llegan tarde: tienen varios turnos y
+--     la sucursal tiene UNO configurado.
+--   · Zamora Canindo esta configurada a las 09:00 y su p25 de entrada es 06:13
+--     -> 1,018 "faltas" y 508 "fuera de turno" de gente que llego TRES HORAS
+--     ANTES de su horario.
+--
+-- Si RH abre la pantalla y encuentra 8,724 tarjetas de las que 7 de cada 10 son
+-- falsas, deja de creerle al agente y ya no lo vuelve a abrir. Una alerta falsa
+-- cuesta mas que una alerta que no existe.
+--
+-- Quedan activas las tres reglas que son aritmetica pura sobre las marcas y no
+-- necesitan que el horario este bien: checada duplicada, multiples entradas y
+-- entrada sin salida. Son 2,467 y todas son hallazgos reales de integridad
+-- (el 20% de los dias-persona tiene una marca faltante).
+--
+-- COMO SE REACTIVAN: cuando Capital Humano confirme los turnos reales de una
+-- sucursal, se cargan en horarios_sucursal y se prende regla por regla, por
+-- sucursal (una fila propia en asistencia_config pisa a la global). El marcador
+-- `ajusteInicialAplicado` hace que este UPDATE no vuelva a correr, asi que una
+-- migracion posterior NO reapaga lo que ya hayan encendido.
+UPDATE asistencia_config
+   SET config = config || '{
+         "ajusteInicialAplicado": true,
+         "reglasActivas": {
+           "retardo": false,
+           "falta": false,
+           "fuera_de_turno": false,
+           "checada_duplicada": true,
+           "multiples_entradas": true,
+           "entrada_sin_salida": true,
+           "salida_sin_entrada": true
+         }
+       }'::jsonb,
+       actualizado_en = now()
+ WHERE sucursal_id = '__global__'
+   AND NOT (config ? 'ajusteInicialAplicado');

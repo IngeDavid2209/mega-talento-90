@@ -7,3 +7,5 @@ export { agenteHorariosRouter, agenteCallbackRouter } from './router';
 export { detectar } from './detector';
 export { analizarDia } from './reglas';
 export { cargarConfig, CONFIG_DEFAULT } from './config';
+// Fase 3: el agente revisa solo, sin que nadie apriete nada.
+export { arrancarCorredor, correrUnaVez, estadoCorredor, ventanas } from './corredor';

@@ -69,6 +69,22 @@ export interface ParametrosAnalisis {
   sucursalId: string;
   desde: string;   // 'yyyy-MM-dd'
   hasta: string;   // 'yyyy-MM-dd'
+  /**
+   * Días de silencio a partir de los cuales se considera que alguien YA NO
+   * TRABAJA aquí, para no seguirle marcando faltas después de que se fue.
+   * `null`/omitido = apagado (comportamiento histórico).
+   *
+   * Hace falta porque hay 35 personas marcadas `activo=TRUE` que dejaron de
+   * aparecer hace semanas o meses: sin este corte, cada día que pasa les genera
+   * una falta nueva, para siempre. En una sola corrida de un mes eso son cientos
+   * de alertas de gente que ya no está, y sepultan a las de quien sí viene.
+   *
+   * El corte es POR PERSONA y solo hacia adelante: se le sigue analizando todo
+   * lo que trabajó (sus retardos reales cuentan) y se deja de evaluar después de
+   * su última checada. No se le borra ni se le da de baja: eso es de Capital
+   * Humano, no del agente.
+   */
+  excluirSilenciososDias?: number | null;
 }
 
 export interface ResultadoAnalisis {
@@ -83,16 +99,47 @@ export interface ResultadoAnalisis {
     totalInconsistencias: number;
     porRegla: Record<string, number>;
     empleadosSinTurno: number; // empleados-día sin horario aplicable (no se pudo evaluar retardo/turno/falta)
+    exTrabajadoresOmitidos: number; // personas cuyo análisis se cortó en su última checada
   };
+}
+
+/**
+ * Personas de la sucursal que llevan `dias` o más sin aparecer, con la fecha de
+ * su última checada. El silencio se mide contra el ÚLTIMO DÍA CON DATO DE ESA
+ * SUCURSAL, nunca contra hoy: los relojes se descargan a ritmos distintos y
+ * medir contra hoy convierte "el reloj no se ha bajado" en "toda la sucursal
+ * renunció". Ese error ya se cometió aquí una vez: marcó 77 de 162 personas.
+ */
+async function ultimaChecadaDeSilenciosos(sucursalId: string, dias: number): Promise<Map<string, string>> {
+  const { rows } = await pool.query(
+    `WITH suc AS (
+       SELECT max(fecha::date) AS fin FROM checadas
+        WHERE sucursal_id = $1 AND fecha::date > '2023-01-01'
+     )
+     SELECT empleado_codigo, max(fecha) AS ultima
+       FROM checadas, suc
+      WHERE sucursal_id = $1 AND fecha::date > '2023-01-01'
+      GROUP BY empleado_codigo, suc.fin
+     HAVING (suc.fin - max(fecha::date)) >= $2`,
+    [sucursalId, dias]
+  );
+  return new Map(rows.map((r) => [String(r.empleado_codigo).trim(), r.ultima as string]));
 }
 
 /**
  * Corre la detección para una sucursal y un rango. Devuelve los borradores y un
  * resumen. NO escribe en la base (lo hace el llamador con persistencia.ts).
  */
-export async function detectar({ sucursalId, desde, hasta }: ParametrosAnalisis): Promise<ResultadoAnalisis> {
+export async function detectar(
+  { sucursalId, desde, hasta, excluirSilenciososDias }: ParametrosAnalisis
+): Promise<ResultadoAnalisis> {
   const config: ReglaConfig = await cargarConfig(sucursalId);
   const hoy = hoyMexico();
+
+  // Corte por persona para quien ya no viene (ver ParametrosAnalisis).
+  const cortePorCodigo = excluirSilenciososDias && excluirSilenciososDias > 0
+    ? await ultimaChecadaDeSilenciosos(sucursalId, excluirSilenciososDias)
+    : new Map<string, string>();
 
   // 1) Empleados activos de la sucursal (para faltas, nombre y turno asignado).
   const empRes = await pool.query(
@@ -149,9 +196,15 @@ export async function detectar({ sucursalId, desde, hasta }: ParametrosAnalisis)
   const porRegla: Record<string, number> = {};
   let empleadosSinTurno = 0;
 
+  let exTrabajadoresOmitidos = 0;
+
   for (const codigo of codigos) {
     const nombre = nombrePorCodigo.get(codigo) || codigo;
     const porDia = porEmpleadoDia.get(codigo) || new Map<string, ChecadaMin[]>();
+    // Si dejó de venir, se analiza hasta su última checada y ya. Ni un día más:
+    // los siguientes serían faltas de alguien que no está.
+    const corte = cortePorCodigo.get(codigo) || null;
+    if (corte) exTrabajadoresOmitidos++;
     // ¿Tuvo alguna checada en TODO el rango? (anti-ruido de faltas).
     const conActividad = porDia.size > 0;
     // Turno ASIGNADO al empleado (si lo tiene): manda sobre el general.
@@ -159,6 +212,7 @@ export async function detectar({ sucursalId, desde, hasta }: ParametrosAnalisis)
     const asignadoRow = asignadoId ? horariosPorId.get(asignadoId) : null;
 
     for (const fecha of fechas) {
+      if (corte && fecha > corte) break; // ya no trabaja aquí desde esa fecha
       const ds = diaSemanaDe(fecha);
       // Turno del día: el asignado (si aplica ese día) o el general de la sucursal.
       let horario: HorarioMin | null;
@@ -199,6 +253,7 @@ export async function detectar({ sucursalId, desde, hasta }: ParametrosAnalisis)
       totalInconsistencias: borradores.length,
       porRegla,
       empleadosSinTurno,
+      exTrabajadoresOmitidos,
     },
   };
 }

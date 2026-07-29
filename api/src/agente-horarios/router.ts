@@ -4,6 +4,10 @@ import { detectar } from './detector';
 import { guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta, asegurarCodigo, justificarPorCodigo } from './persistencia';
 import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
+import { estadoCorredor, correrUnaVez } from './corredor';
+
+/** Umbral de ex-trabajador, el mismo que usa el corredor (ver corredor.ts). */
+const DIAS_EX = Math.max(0, parseInt(process.env.AGENTE_DIAS_EX || '21', 10) || 21);
 
 /**
  * Router del AGENTE DE HORARIOS. Se monta en /checador/agente.
@@ -46,14 +50,52 @@ const mapAlerta = (r: any) => ({
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
+ * GET /checador/agente/estado
+ * Qué revisó el agente por su cuenta y cuándo. Es lo que permite que la pantalla
+ * MUESTRE resultados en vez de pedir que alguien apriete un botón: el corredor
+ * (corredor.ts) ya analizó todas las sucursales sin que nadie se lo pidiera.
+ */
+agenteHorariosRouter.get('/estado', async (_req: Request, res: Response) => {
+  try {
+    res.json(await estadoCorredor());
+  } catch (e) {
+    fallo(res, e, 'No se pudo leer el estado del agente.');
+  }
+});
+
+/**
+ * POST /checador/agente/revisar-ahora
+ * body: { sucursalId? }  — adelanta la revisión automática sin esperar el ciclo.
+ * No es el modo normal de operar: el agente revisa solo. Esto sirve para cuando
+ * alguien acaba de descargar un reloj y no quiere esperar los 30 minutos.
+ * `forzar` ignora la huella, así que re-analiza aunque los datos no hayan cambiado.
+ */
+agenteHorariosRouter.post('/revisar-ahora', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId } = req.body || {};
+    const r = await correrUnaVez({ forzar: true, sucursalId: sucursalId || undefined });
+    if (!r.ok) return res.status(409).json({ error: `No se pudo revisar: ${r.motivo}.` });
+    res.json(r);
+  } catch (e) {
+    fallo(res, e, 'No se pudo correr la revisión.');
+  }
+});
+
+/**
  * POST /checador/agente/analizar
- * body: { sucursalId, desde, hasta }  (fechas 'yyyy-MM-dd')
- * Corre la detección sobre las checadas de esa sucursal/rango, guarda borradores
- * y devuelve el resumen + cuántos borradores creó/actualizó.
+ * body: { sucursalId, desde, hasta, incluirExTrabajadores? }  (fechas 'yyyy-MM-dd')
+ *
+ * Análisis MANUAL de un rango arbitrario. El automático usa una ventana rodante
+ * de los últimos días; esto es para revisar historia profunda a propósito
+ * (después de recuperar meses de un reloj, por ejemplo).
+ *
+ * Por omisión NO le sigue marcando faltas a quien ya dejó de venir; con
+ * `incluirExTrabajadores: true` se analiza a todos (útil para una auditoría
+ * retroactiva, ruidoso para la operación diaria).
  */
 agenteHorariosRouter.post('/analizar', async (req: Request, res: Response) => {
   try {
-    const { sucursalId, desde, hasta } = req.body || {};
+    const { sucursalId, desde, hasta, incluirExTrabajadores } = req.body || {};
     if (!sucursalId || !desde || !hasta) {
       return res.status(400).json({ error: 'Faltan sucursalId, desde y hasta.' });
     }
@@ -64,7 +106,10 @@ agenteHorariosRouter.post('/analizar', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'hasta no puede ser anterior a desde.' });
     }
 
-    const { borradores, resumen } = await detectar({ sucursalId, desde, hasta });
+    const { borradores, resumen } = await detectar({
+      sucursalId, desde, hasta,
+      excluirSilenciososDias: incluirExTrabajadores ? null : DIAS_EX,
+    });
     const persistencia = await guardarBorradores(borradores);
     // Limpia borradores 'sugerida_ia' del rango que ya no se detectan (sin tocar
     // los que RH ya decidió).

@@ -4,7 +4,7 @@ import { env } from './env';
 import { pool } from './db';
 import { authRouter } from './auth';
 import { checadorRouter } from './checador';
-import { agenteHorariosRouter, agenteCallbackRouter } from './agente-horarios';
+import { agenteHorariosRouter, agenteCallbackRouter, arrancarCorredor } from './agente-horarios';
 import { candidatosRouter } from './candidatos';
 import { puestosRouter } from './puestos';
 import { usuariosRouter } from './usuarios';
@@ -45,4 +45,9 @@ app.use('/usuarios', usuariosRouter);
 
 app.listen(env.PORT, () => {
   console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);
+  // El Agente de Horarios revisa las sucursales por su cuenta, DENTRO de este
+  // proceso. Antes solo analizaba si alguien entraba a la pantalla y apretaba un
+  // botón; si nadie entraba, la asistencia se quedaba sin revisar. Se apaga con
+  // AGENTE_AUTO=off. Ver src/agente-horarios/corredor.ts.
+  arrancarCorredor();
 });
