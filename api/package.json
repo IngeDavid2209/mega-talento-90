@@ -15,7 +15,8 @@
     "limpiar:dup-rfc": "tsx src/scripts/limpiar-dup-rfc.ts",
     "jalar": "node tools/jalar-todo-zk.js",
     "jalar:watch": "node tools/jalar-todo-zk.js --loop",
-    "estado": "node tools/estado-datos.js"
+    "estado": "node tools/estado-datos.js",
+    "probar:horario": "tsx tools/probar-horario.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

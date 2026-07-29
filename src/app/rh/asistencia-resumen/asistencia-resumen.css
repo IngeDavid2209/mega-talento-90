@@ -285,3 +285,70 @@
   .ar-bar-actions { width: 100%; }
   .ar-bar-actions .ar-btn { flex: 1 1 0; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   EL HORARIO DE CADA PERSONA Y SUS MARCAS
+   Los números de esta pantalla se calculan contra el horario deducido de las
+   propias checadas de cada quien, no contra el de la sucursal. Dos cosas tienen
+   que verse sin abrir nada: contra QUÉ se midió, y si el número se puede usar.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Cómo se calcula, dicho una vez arriba de las tarjetas. */
+.ar-nota {
+  margin: 0 0 14px; font-size: 12.5px; line-height: 1.55; color: var(--text2);
+  max-width: 110ch;
+}
+.ar-nota-alerta { color: #8A5A00; }
+.ar-nota-mini { color: var(--text3); }
+
+/* Una tarjeta cuyo número NO es utilizable no se pinta de rojo: se pinta de
+   gris. Rojo diría "esta persona llega tarde", y lo que pasa es que no se sabe. */
+.ar-card.ar-card-dudosa { border-left-color: #94a3b8; }
+.ar-estado.dudoso { background: #eef2f6; color: #475569; }
+.ar-met-v.mudo { color: #94a3b8; }
+
+/* El horario contra el que se midió. */
+.ar-card-horario {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  padding: 6px 0 2px; border-top: 1px dashed var(--border); margin-top: 8px;
+}
+.ar-hor-h { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ar-hor-turnos { font-size: 12.5px; font-weight: 700; color: #8A5A00; }
+.ar-hor-sub { font-size: 11px; color: var(--text3); }
+
+/* Las marcas: chips con el motivo en el title. */
+.ar-card-marcas { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0 2px; }
+.ar-marca {
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.ar-marca.g-alta { background: var(--red-bg); color: var(--red-text); }
+.ar-marca.g-media { background: #FBEED9; color: #8A5A00; }
+.ar-marca.g-ok { background: var(--green-bg); color: var(--green-text); }
+.ar-marca.g-info { background: #eef2f6; color: #475569; }
+
+.ar-dot.mudo { background: #94a3b8; }
+
+/* En el modal las marcas van completas: la etiqueta no alcanza para decidir. */
+.ar-modal-marcas { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 6px; }
+.ar-modal-marcas li {
+  font-size: 12.5px; line-height: 1.5; padding: 8px 12px; border-radius: 10px;
+  border-left: 3px solid var(--border); background: #f8fafc; color: var(--text2);
+}
+.ar-modal-marcas li.g-alta { border-left-color: var(--red); }
+.ar-modal-marcas li.g-media { border-left-color: var(--gold); }
+.ar-modal-marcas li.g-ok { border-left-color: var(--green); }
+/* Lo que cambia con cada lectura posible del horario: convierte la duda en una
+   pregunta que un humano puede contestar. */
+.ar-impacto { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.ar-impacto-op {
+  font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 8px;
+  background: #fff; border: 1px solid var(--border); font-variant-numeric: tabular-nums;
+}
+
+.ar-sem-bolsa { font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Un día que no se puede medir (una sola marca) no se muestra como día bueno ni
+   como día malo. */
+.ar-fila-nomedible { background: #f8fafc; color: var(--text3); }
+.ar-badge-nomedible { background: #eef2f6; color: #475569; }

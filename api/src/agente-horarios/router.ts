@@ -5,6 +5,7 @@ import { guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta,
 import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
 import { estadoCorredor, correrUnaVez } from './corredor';
+import { asistenciaPersonas } from './asistencia-personas';
 
 /** Umbral de ex-trabajador, el mismo que usa el corredor (ver corredor.ts). */
 const DIAS_EX = Math.max(0, parseInt(process.env.AGENTE_DIAS_EX || '21', 10) || 21);
@@ -48,6 +49,41 @@ const mapAlerta = (r: any) => ({
 });
 
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * GET /checador/agente/asistencia?sucursalId&desde&hasta
+ *
+ * La asistencia de cada persona con las reglas del horario deducido: su horario
+ * sale de SUS propias checadas, el retardo se acumula contra la bolsa semanal de
+ * 15 min y solo cuenta el excedente, un día de UNA sola marca no genera retardo,
+ * y una falta es un día laboral DE ESA PERSONA sin marcas.
+ *
+ * Existe porque la pantalla de Asistencia calculaba esto EN EL NAVEGADOR contra
+ * el horario configurado de la sucursal, que está mal en casi todas las plazas:
+ * Ana #105 salía con 251 minutos de retardo en un solo día y Antonio #50 con 207
+ * minutos y cero horas trabajadas (había checado una vez, así que no se sabía ni
+ * si esa marca era su entrada). Cada persona viene con `usable` y `marcas`: el
+ * número existe, pero no siempre se puede usar.
+ */
+agenteHorariosRouter.get('/asistencia', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId, desde, hasta } = req.query as any;
+    if (!sucursalId || !desde || !hasta) {
+      return res.status(400).json({ error: 'Faltan sucursalId, desde y hasta.' });
+    }
+    if (!RE_FECHA.test(String(desde)) || !RE_FECHA.test(String(hasta))) {
+      return res.status(400).json({ error: 'Las fechas deben venir como yyyy-MM-dd.' });
+    }
+    if (String(hasta) < String(desde)) {
+      return res.status(400).json({ error: 'hasta no puede ser anterior a desde.' });
+    }
+    res.json(await asistenciaPersonas({
+      sucursalId: String(sucursalId), desde: String(desde), hasta: String(hasta),
+    }));
+  } catch (e) {
+    fallo(res, e, 'No se pudo calcular la asistencia.');
+  }
+});
 
 /**
  * GET /checador/agente/estado

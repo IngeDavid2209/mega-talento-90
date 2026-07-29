@@ -74,13 +74,19 @@
         <span class="ar-kpi-num">{{ totalConRetardo }}</span>
         <span class="ar-kpi-lbl">Con retardo</span>
       </div>
-      <div class="ar-kpi" [class.bad]="retardoAcumulado > 0">
-        <span class="ar-kpi-num">{{ retardoAcumulado }}<small> min</small></span>
-        <span class="ar-kpi-lbl">Retardo acumulado</span>
+      <div class="ar-kpi" [class.bad]="retardoUsable > 0"
+           title="Retardo real: solo los minutos que EXCEDEN la bolsa semanal, y solo de las personas cuyo número no está bloqueado por una marca.">
+        <span class="ar-kpi-num">{{ retardoUsable }}<small> min</small></span>
+        <span class="ar-kpi-lbl">Retardo real utilizable</span>
       </div>
       <div class="ar-kpi" [class.warn]="faltasTotales > 0">
         <span class="ar-kpi-num">{{ faltasTotales }}</span>
         <span class="ar-kpi-lbl">Faltas</span>
+      </div>
+      <div class="ar-kpi" [class.warn]="noMediblesTotales > 0"
+           title="Días con UNA sola marca: no se sabe si es la entrada o la salida, así que no generan retardo. Hay que revisar el lector o pedir que marquen al salir.">
+        <span class="ar-kpi-num">{{ noMediblesTotales }}</span>
+        <span class="ar-kpi-lbl">Días no medibles</span>
       </div>
       <div class="ar-kpi">
         <span class="ar-kpi-num">{{ horasTotales }}<small> h</small></span>
@@ -88,11 +94,30 @@
       </div>
     </div>
 
+    <!-- Cómo se calcula, dicho una vez y a la vista. Sin esto, el número parece
+         venir del horario de la sucursal, que es lo que hacía antes. -->
+    <p class="ar-nota">
+      El horario de cada persona sale de <b>sus propias checadas</b>, no del configurado de la sucursal:
+      se deduce de sus últimos <b>{{ datos?.ventanaHorarioDias }} días</b> (su costumbre) y el retardo se
+      mide <b>solo en el periodo que elegiste</b> — por eso "Hoy" también tiene horario.
+      Se acumula contra una bolsa de <b>{{ bolsaSemanal }} min por semana</b> ({{ datos?.corteSemana }})
+      y <b>solo cuenta el excedente</b>.
+      <b>{{ totalUsables }} de {{ lista.length }}</b> números se pueden usar tal cual.
+      @if (porConfirmar > 0) {
+        <b class="ar-nota-alerta">{{ porConfirmar }} esperan a que RH confirme su horario.</b>
+      }
+      @if (retardoAcumulado !== retardoUsable) {
+        <span class="ar-nota-mini">(el total sin filtrar sería {{ retardoAcumulado }} min, pero incluye personas con datos que no permiten medir)</span>
+      }
+    </p>
+
     <!-- Cuerpo: tarjetas (izq) + gráficas (der) -->
     <div class="ar-dash">
       <div class="ar-cards">
         @for (e of lista; track e.codigo) {
-          <button type="button" class="ar-card" [class.ar-card-bad]="e.acumuladoTotal > 0" (click)="abrir(e)">
+          <button type="button" class="ar-card"
+                  [class.ar-card-bad]="e.acumuladoTotal > 0 && e.usable"
+                  [class.ar-card-dudosa]="!e.usable" (click)="abrir(e)">
             <div class="ar-card-top">
               <div class="ar-avatar">
                 @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
@@ -102,7 +127,9 @@
                 <span class="ar-card-nombre">{{ e.nombre }}</span>
                 <span class="ar-card-sub">#{{ e.codigo }}@if (e.puesto) { · {{ e.puesto }} }</span>
               </div>
-              @if (e.faltas > 0) {
+              @if (!e.usable) {
+                <span class="ar-estado dudoso" [title]="motivoNoUsable(e)">Sin medir</span>
+              } @else if (e.faltas > 0) {
                 <span class="ar-estado warn">{{ e.faltas }} falta{{ e.faltas === 1 ? '' : 's' }}</span>
               } @else if (e.acumuladoTotal > 0) {
                 <span class="ar-estado bad">Con retardo</span>
@@ -111,17 +138,55 @@
               }
             </div>
 
+            <!-- SU horario: es contra esto que se midió, y por eso va en la tarjeta. -->
+            <div class="ar-card-horario">
+              @if (e.tipo === 'rotativo') {
+                <span class="ar-hor-turnos">Rota {{ e.turnos }}</span>
+              } @else if (e.horario !== '—') {
+                <span class="ar-hor-h">{{ e.horario }}</span>
+                <span class="ar-hor-sub">su horario@if (e.horarioConfirmado) { , confirmado por RH } @else { , deducido }</span>
+              } @else {
+                <span class="ar-hor-sub">sin horario deducible</span>
+              }
+              @if (e.costumbre !== '—' && e.horario !== '—') {
+                <span class="ar-hor-sub">· acostumbra {{ e.costumbre }}</span>
+              }
+            </div>
+
             <div class="ar-card-mets">
-              <div class="ar-met"><span class="ar-met-v" [class.bad]="e.acumuladoTotal > 0">{{ e.acumuladoTotal }}</span><span class="ar-met-l">min retardo</span></div>
-              <div class="ar-met"><span class="ar-met-v">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}</span><span class="ar-met-l">días retardo</span></div>
+              <div class="ar-met">
+                <span class="ar-met-v" [class.bad]="e.acumuladoTotal > 0 && e.usable" [class.mudo]="!e.usable">{{ e.acumuladoTotal }}</span>
+                <span class="ar-met-l">min retardo</span>
+              </div>
+              <div class="ar-met"><span class="ar-met-v" [class.mudo]="!e.usable">{{ e.diasConRetardo }}/{{ e.diasRegistrados }}</span><span class="ar-met-l">días medidos</span></div>
               <div class="ar-met"><span class="ar-met-v" [class.warn]="e.faltas > 0">{{ e.faltas }}</span><span class="ar-met-l">faltas</span></div>
               <div class="ar-met"><span class="ar-met-v">{{ e.horasTrabajadas }}<small> h</small></span><span class="ar-met-l">trabajadas</span></div>
             </div>
 
-            <div class="ar-card-bar" [title]="pctATiempo(e) + '% de días a tiempo'">
-              <div class="ar-card-bar-fill" [style.width.%]="pctATiempo(e)"></div>
-            </div>
-            <span class="ar-card-barlbl">{{ pctATiempo(e) }}% a tiempo · toca para ver semanas</span>
+            <!-- Las marcas: por qué este número puede no servir. -->
+            @if (marcasVisibles(e).length) {
+              <div class="ar-card-marcas">
+                @for (m of marcasVisibles(e); track m.codigo) {
+                  <span class="ar-marca" [class]="'ar-marca g-' + m.gravedad" [title]="m.detalle">
+                    {{ etiquetaMarca(m) }}@if (m.opciones?.length) { : {{ m.opciones![0] }} o {{ m.opciones![1] }} }
+                  </span>
+                }
+              </div>
+            }
+
+            @if (e.pctATiempo !== null) {
+              <div class="ar-card-bar" [title]="e.pctATiempo + '% de los días medidos, a tiempo'">
+                <div class="ar-card-bar-fill" [style.width.%]="e.pctATiempo"></div>
+              </div>
+              <span class="ar-card-barlbl">
+                {{ e.pctATiempo }}% a tiempo
+                @if (e.absorbidoMin > 0) { · {{ e.absorbidoMin }} min absorbidos por la bolsa }
+                @if (e.noMedibles > 0) { · {{ e.noMedibles }} día(s) sin medir }
+                · toca para ver semanas
+              </span>
+            } @else {
+              <span class="ar-card-barlbl">Ningún día medible en el periodo · toca para ver el detalle</span>
+            }
           </button>
         }
       </div>
@@ -156,6 +221,9 @@
               <li><span class="ar-dot ok"></span> A tiempo <b>{{ dist.aTiempo }}</b> <span class="ar-legend-pct">{{ distPct(dist.aTiempo) }}%</span></li>
               <li><span class="ar-dot bad"></span> Retardo <b>{{ dist.retardo }}</b> <span class="ar-legend-pct">{{ distPct(dist.retardo) }}%</span></li>
               <li><span class="ar-dot warn"></span> Falta <b>{{ dist.falta }}</b> <span class="ar-legend-pct">{{ distPct(dist.falta) }}%</span></li>
+              <li title="Días con una sola marca: no se sabe si es la entrada o la salida. Ocupan lugar en la dona porque existieron.">
+                <span class="ar-dot mudo"></span> Sin medir <b>{{ dist.noMedible }}</b> <span class="ar-legend-pct">{{ distPct(dist.noMedible) }}%</span>
+              </li>
             </ul>
           </div>
         </div>
@@ -175,11 +243,37 @@
         <div class="ar-modal-id">
           <h3>{{ detalle.nombre }}</h3>
           <span class="ar-card-sub">#{{ detalle.codigo }}@if (detalle.puesto) { · {{ detalle.puesto }} } · {{ nombreSucursal(sucursalFiltro) }}</span>
+          <span class="ar-card-sub">
+            @if (detalle.tipo === 'rotativo') { Rota los turnos {{ detalle.turnos }} }
+            @else if (detalle.horario !== '—') {
+              Horario {{ detalle.horario }}
+              @if (detalle.horarioConfirmado) { (confirmado por RH) } @else { (deducido de sus checadas) }
+            } @else { Sin horario deducible }
+            @if (detalle.costumbre !== '—') { · acostumbra llegar {{ detalle.costumbre }} }
+          </span>
         </div>
         <button class="ar-modal-x" (click)="cerrar()" aria-label="Cerrar">✕</button>
       </header>
 
       <div class="ar-modal-body">
+        <!-- Las marcas completas, con su explicación: en la tarjeta solo cabe la
+             etiqueta, y el motivo es lo que permite decidir qué hacer. -->
+        @if (marcasVisibles(detalle).length) {
+          <ul class="ar-modal-marcas">
+            @for (m of marcasVisibles(detalle); track m.codigo) {
+              <li [class]="'g-' + m.gravedad">
+                <b>{{ etiquetaMarca(m) }}</b> — {{ m.detalle }}
+                @if (m.impacto?.length) {
+                  <span class="ar-impacto">
+                    @for (i of m.impacto!; track i.turno) {
+                      <span class="ar-impacto-op">{{ i.turno }} → {{ i.retardoRealMin }} min de retardo</span>
+                    }
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        }
         @if (!detalle.semanas.length) {
           <div class="ar-sin">Sin checadas en este periodo.</div>
         } @else {
@@ -191,13 +285,19 @@
                   <span class="ar-sem-rango">{{ sem.label }}</span>
                 </div>
                 <div class="ar-sem-meta">
-                  <div class="ar-sem-bar" [title]="sem.acumulado + ' de ' + detalle.presupuesto + ' min de tolerancia'">
+                  <!-- La barra es la BOLSA gastada, no el retardo: mientras quede
+                       bolsa el atraso se absorbe y el retardo real es cero. -->
+                  <div class="ar-sem-bar"
+                       [title]="'Bolsa de ' + detalle.presupuesto + ' min: gastó ' + (detalle.presupuesto - sem.bolsaRestante) + ', quedan ' + sem.bolsaRestante + '. Atraso crudo de la semana: ' + sem.atrasoMin + ' min.'">
                     <div class="ar-sem-bar-fill" [class.over]="sem.excedido"
-                         [style.width.%]="sem.acumulado > detalle.presupuesto ? 100 : (detalle.presupuesto ? (sem.acumulado / detalle.presupuesto * 100) : 0)"></div>
+                         [style.width.%]="detalle.presupuesto ? ((detalle.presupuesto - sem.bolsaRestante) / detalle.presupuesto * 100) : 0"></div>
                   </div>
-                  <span class="ar-badge" [class.ar-badge-bad]="sem.excedido" [class.ar-badge-good]="!sem.excedido">
-                    {{ sem.acumulado }} / {{ detalle.presupuesto }} min
+                  <span class="ar-badge" [class.ar-badge-bad]="sem.acumulado > 0" [class.ar-badge-good]="sem.acumulado === 0">
+                    @if (sem.acumulado > 0) { +{{ sem.acumulado }} min de retardo }
+                    @else if (sem.atrasoMin > 0) { {{ sem.atrasoMin }} min absorbidos }
+                    @else { sin atraso }
                   </span>
+                  <span class="ar-sem-bolsa">bolsa {{ sem.bolsaRestante }}/{{ detalle.presupuesto }}</span>
                 </div>
               </div>
               <div class="ar-tabla-wrap">
@@ -205,22 +305,34 @@
                   <thead>
                     <tr>
                       <th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th>
-                      <th>Horas netas</th><th>Retardo</th><th>Justificación</th><th>Verificación</th>
+                      <th>Horas netas</th>
+                      <th title="La hora contra la que se midió ese día. En un rotativo cambia día con día.">Medido vs</th>
+                      <th>Retardo</th><th>Justificación</th><th>Verificación</th>
                     </tr>
                   </thead>
                   <tbody>
                     @for (d of sem.dias; track d.fecha) {
-                      <tr [class.ar-fila-falta]="d.falta">
-                        <td class="ar-dia">{{ d.diaLabel }}</td>
+                      <tr [class.ar-fila-falta]="d.falta" [class.ar-fila-nomedible]="d.noMedible">
+                        <td class="ar-dia">{{ d.diaLabel }}@if (d.atipico) { <span title="Día muy lejos de su horario: marca errónea o turno especial. Cuenta, pero revísalo.">⚠</span> }</td>
                         <td class="ar-mono">{{ d.entrada }}</td>
                         <td class="ar-mono">{{ d.comida }}</td>
                         <td class="ar-mono">{{ d.salida }}</td>
                         <td class="ar-mono">{{ d.horasNetas }}</td>
+                        <td class="ar-mono">{{ d.referencia }}</td>
                         <td>
                           @if (d.falta) {
                             <span class="ar-badge ar-badge-falta">Falta</span>
+                          } @else if (d.estadoDia === 'descanso') {
+                            <span class="ar-badge ar-badge-nomedible">Descanso</span>
+                          } @else if (d.noMedible) {
+                            <span class="ar-badge ar-badge-nomedible"
+                                  title="Solo una marca ese día: no se sabe si es la entrada o la salida, así que no se le calcula retardo.">Una sola marca</span>
                           } @else if (d.retardoMin > 0) {
-                            <span class="ar-badge ar-badge-bad">+{{ d.retardoMin }} min</span>
+                            <span class="ar-badge ar-badge-bad"
+                                  [title]="'Llegó ' + d.atrasoMin + ' min después de su horario; la bolsa absorbió ' + d.absorbidoMin + '.'">+{{ d.retardoMin }} min</span>
+                          } @else if (d.atrasoMin > 0) {
+                            <span class="ar-badge ar-badge-good"
+                                  [title]="'Llegó ' + d.atrasoMin + ' min tarde, dentro de la bolsa de la semana: no cuenta como retardo.'">Dentro de tolerancia</span>
                           } @else {
                             <span class="ar-badge ar-badge-good">A tiempo</span>
                           }
