@@ -1,6 +1,14 @@
 [
-  { "ip": "192.168.40.11",  "suc": "8-esquinas",              "nota": "8 Esquinas" },
-  { "ip": "192.168.32.215", "suc": "morelia-vicente-guerrero", "nota": "Morelia · Av. Madero 3600" },
-  { "ip": "192.168.30.253", "suc": "morelia-abastos",          "nota": "Morelia · Central de Abastos" },
-  { "ip": "192.168.10.2",   "suc": "la-piedad-abastos",        "nota": "La Piedad · Abastos" }
+  { "ip": "192.168.32.215", "suc": "morelia-vicente-guerrero", "nota": "Morelia · Av. Madero 3600 — OJO: tiene DHCP en ON, su IP puede cambiar al reiniciarse" },
+  { "ip": "192.168.42.37",  "suc": "la-piedad-abastos",        "nota": "La Piedad · Abastos — la lista decia 192.168.10.2, ahi no hay nada" },
+  { "ip": "192.168.40.12",  "suc": "8-esquinas",               "nota": "8 Esquinas — la lista decia .40.11; tiene ~50 mil checadas acumuladas" },
+  { "ip": "192.168.50.12",  "suc": "zamora-canindo",           "nota": "Zamora · Canindo — no estaba en la lista" },
+  { "ip": "192.168.54.10",  "suc": "zamora-catedral",          "nota": "Zamora · Catedral — no estaba en la lista" },
+  { "ip": "192.168.44.12",  "suc": "yurecuaro-centro",         "nota": "Yurecuaro · Centro — no estaba en la lista" },
+
+  { "ip": "192.168.30.253", "suc": "morelia-abastos", "pendiente": true,
+    "nota": "PENDIENTE, NO RESPONDE. Su subred SI es alcanzable (192.168.30.1 contesta) y no hay ningun ZK en 192.168.30.x: el equipo esta apagado o sin cable. Ademas su puerta de enlace (192.168.0.254) esta FUERA de su propia subred, deberia ser 192.168.30.1. Esta sucursal NUNCA se ha importado." },
+
+  { "ip": "192.168.80.79", "suc": "SIN-IDENTIFICAR", "pendiente": true,
+    "nota": "PENDIENTE, SIN IDENTIFICAR. Responde y tiene datos hasta hoy, pero sus 7 usuarios (Sistemas, Rubio, LicOmar, Lizbeth, Alejandro, Cristobal, Dionisio) no coinciden con NINGUN padron. Hay que averiguar de que sucursal es antes de jalarlo, o las checadas entrarian con la sucursal equivocada." }
 ]
