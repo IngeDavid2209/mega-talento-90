@@ -69,6 +69,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   ];
   JUSTIFICACIONES = ['Cita Médica', 'Tráfico', 'Personal', 'Permiso', 'Incapacidad', 'No Registrada'];
 
+  /** Atajos de periodo de la barra de filtros. */
+  RANGOS: { d: number; l: string }[] = [
+    { d: 1, l: 'Hoy' },
+    { d: 7, l: '7 días' },
+    { d: 15, l: '15 días' },
+    { d: 30, l: '30 días' }
+  ];
+
   sucursalFiltro = CENTROS_CHECADOR[0]?.id || '';
   desde = '';
   hasta = '';
@@ -150,6 +158,24 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   onSucursalChange() { this.ajustarRangoYCargar(); }
+
+  /** Atajo de periodo: últimos N días naturales hasta hoy. */
+  aplicarRango(dias: number) {
+    const r = this.limitesRango(dias);
+    this.desde = r.desde;
+    this.hasta = r.hasta;
+    this.cargar();
+  }
+  rangoActivo(dias: number): boolean {
+    const r = this.limitesRango(dias);
+    return this.desde === r.desde && this.hasta === r.hasta;
+  }
+  private limitesRango(dias: number): { desde: string; hasta: string } {
+    const hoy = new Date();
+    const ini = new Date(hoy);
+    ini.setDate(hoy.getDate() - (dias - 1));
+    return { desde: aFechaLocal(ini), hasta: aFechaLocal(hoy) };
+  }
 
   /** Ajusta el rango a los últimos 30 días CON datos de la sucursal, luego carga. */
   async ajustarRangoYCargar() {

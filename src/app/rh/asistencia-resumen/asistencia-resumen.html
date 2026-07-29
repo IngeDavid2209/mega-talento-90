@@ -10,34 +10,52 @@
 
   <!-- Barra unificada: filtros + acciones -->
   <div class="ar-bar">
-    <div class="ar-bar-filters">
-      @if (!ocultarSucursal) {
-        <div class="ar-field ar-field-suc">
-          <label>Sucursal</label>
-          <app-sucursal-select [value]="sucursalFiltro"
-                               (valueChange)="sucursalFiltro = $event; onSucursalChange()">
-          </app-sucursal-select>
-        </div>
-      }
-      <div class="ar-field">
-        <label>Desde</label>
-        <input type="date" [(ngModel)]="desde" (change)="cargar()">
+    @if (!ocultarSucursal) {
+      <div class="ar-field ar-field-suc">
+        <label>Sucursal</label>
+        <app-sucursal-select [value]="sucursalFiltro"
+                             (valueChange)="sucursalFiltro = $event; onSucursalChange()">
+        </app-sucursal-select>
       </div>
-      <div class="ar-field">
-        <label>Hasta</label>
-        <input type="date" [(ngModel)]="hasta" (change)="cargar()">
+    }
+
+    <!-- Periodo: los dos campos leídos como un solo control -->
+    <div class="ar-field ar-field-periodo">
+      <label>Periodo</label>
+      <div class="ar-periodo">
+        <input type="date" [(ngModel)]="desde" (change)="cargar()" aria-label="Desde">
+        <span class="ar-periodo-sep" aria-hidden="true">→</span>
+        <input type="date" [(ngModel)]="hasta" (change)="cargar()" aria-label="Hasta">
       </div>
     </div>
+
+    <!-- Atajos de periodo -->
+    <div class="ar-field ar-field-chips">
+      <label>Atajos</label>
+      <div class="ar-chips" role="group" aria-label="Atajos de periodo">
+        @for (r of RANGOS; track r.d) {
+          <button type="button" class="ar-chip" [class.on]="rangoActivo(r.d)"
+                  (click)="aplicarRango(r.d)">{{ r.l }}</button>
+        }
+        <button type="button" class="ar-chip" (click)="ajustarRangoYCargar()"
+                title="Todo el historial con checadas de esta sucursal">Todo</button>
+      </div>
+    </div>
+
     <div class="ar-bar-actions">
       <span class="ar-live" title="La asistencia se actualiza sola cada minuto"><span class="ar-live-dot"></span>En vivo</span>
       @if (permitirImportar) {
         <label class="ar-btn ar-btn-primary" [class.ar-btn-disabled]="importando">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5m0 0L5.2 5.3M8 2.5l2.8 2.8M2.5 10v2A1.5 1.5 0 0 0 4 13.5h8a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
           {{ importando ? 'Importando…' : 'Importar reloj' }}
           <input type="file" hidden accept=".dat,.txt,.csv,.xlsx,.xls"
                  (change)="archivo.emit($event)" [disabled]="importando">
         </label>
       }
-      <button class="ar-btn ar-btn-ghost" (click)="exportarExcel()">Exportar</button>
+      <button class="ar-btn ar-btn-ghost" (click)="exportarExcel()">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8m0 0L5.2 7.7M8 10.5l2.8-2.8M2.5 10v2A1.5 1.5 0 0 0 4 13.5h8a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
+        Exportar
+      </button>
     </div>
   </div>
 

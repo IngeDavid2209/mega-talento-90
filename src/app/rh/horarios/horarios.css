@@ -30,6 +30,8 @@
   align-items: flex-end;
   margin-bottom: 14px;
 }
+/* el selector de sucursal no necesita todo el ancho de la página */
+.hz-toolbar > .hz-field { flex: 0 1 340px; }
 
 /* CAMPOS */
 .hz-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
@@ -64,30 +66,37 @@
 }
 .hz-check input { width: 16px; height: 16px; accent-color: var(--brand); }
 
-/* PESTAÑAS */
+/* PESTAÑAS · control segmentado */
 .hz-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 18px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  max-width: 100%;
   overflow-x: auto;
 }
 .hz-tabs button {
   border: none;
   background: none;
-  padding: 11px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text2);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
+  border-radius: 9px;
   white-space: nowrap;
   font-family: inherit;
-  transition: color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 .hz-tabs button:hover { color: var(--ink); }
-.hz-tabs button.active { color: var(--ink); border-bottom-color: var(--gold); }
+.hz-tabs button.active {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(26, 47, 78, 0.10), inset 0 -2px 0 var(--gold);
+}
 
 /* PANEL */
 .hz-panel { animation: hz-fade 0.2s ease; }

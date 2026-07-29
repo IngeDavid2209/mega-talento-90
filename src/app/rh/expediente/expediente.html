@@ -493,7 +493,8 @@
           @for (item of CHECKLIST_JEFE; track item.key) {
             <div class="check-row"
                  [class.row-si]="candidato.jefeChecklist?.[item.key] === 'verde'"
-                 [class.row-no]="candidato.jefeChecklist?.[item.key] === 'rojo'">
+                 [class.row-no]=
+                 "candidato.jefeChecklist?.[item.key] === 'rojo'">
               <span class="check-label">{{ item.label }}</span>
               <div class="yn-group">
                 
@@ -505,6 +506,7 @@
                         (click)="setEstadoCheck('jefeChecklist', item.key, 'rojo')">No</button>
               </div>
             </div>
+            
           }
         </div>
 
