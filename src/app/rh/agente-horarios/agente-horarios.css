@@ -1,32 +1,34 @@
 /* ============================================================
-   AGENTE DE HORARIOS (IA) · consola oscura
-   Navy institucional llevado a superficie oscura + acento dorado.
-   El cian se reserva para lo que produce la IA (glifo, chip, foco).
+   AGENTE DE HORARIOS (IA) · claro institucional
+   Era la única pantalla del back-office en consola oscura, y ya se
+   contradecía sola: el bloque de la cola agrupada se escribió en claro
+   sobre el fondo oscuro. Ahora usa la misma superficie que el resto.
+   Los tokens --ia-* se conservan como nombres: son el mapa local a la
+   paleta (--surface, --ink, --brand…), así que un cambio de identidad se
+   hace en un solo lugar. El acento de "esto lo produjo la IA" pasa de
+   cian a azul institucional, que sí se lee sobre blanco.
    ============================================================ */
 
 .ia {
-  --ia-bg:      #0B1220;
-  --ia-panel:   #101A2E;
-  --ia-card:    #14203A;
-  --ia-card2:   #1B2B4A;
-  --ia-line:    rgba(148, 178, 224, 0.14);
-  --ia-line2:   rgba(148, 178, 224, 0.28);
-  --ia-ink:     #E9F0FA;
-  --ia-ink2:    #A2B4D2;
-  --ia-ink3:    #6D82A4;
-  --ia-gold:    #E5A300;
-  --ia-cyan:    #4FC3F7;
-  --ia-green:   #34D399;
-  --ia-amber:   #FBBF24;
-  --ia-red:     #F87171;
+  --ia-bg:      var(--bg);
+  --ia-panel:   var(--surface);
+  --ia-card:    var(--surface3);
+  --ia-card2:   var(--surface2);
+  --ia-line:    var(--border);
+  --ia-line2:   var(--border-med);
+  --ia-ink:     var(--ink);
+  --ia-ink2:    var(--text2);
+  --ia-ink3:    var(--text3);
+  --ia-gold:    var(--gold);
+  --ia-cyan:    var(--blue);
+  --ia-green:   var(--green);
+  --ia-amber:   var(--amber);
+  --ia-red:     var(--red);
 
   min-height: 100%;
   box-sizing: border-box;
   padding: 24px 26px 60px;
-  background:
-    radial-gradient(1100px 420px at 82% -8%, rgba(79, 195, 247, 0.10), transparent 62%),
-    radial-gradient(760px 340px at 6% 0%, rgba(229, 163, 0, 0.07), transparent 60%),
-    var(--ia-bg);
+  background: var(--ia-bg);
   color: var(--ia-ink);
 }
 .ia *, .ia *::before, .ia *::after { box-sizing: border-box; }
@@ -43,9 +45,9 @@
 .ia-hero h1 {
   margin: 0;
   font-size: 25px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--ia-ink);
 }
 .ia-hero p { margin: 7px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--ia-ink2); }
 .ia-hero p strong { color: var(--ia-ink); font-weight: 700; }
@@ -54,11 +56,11 @@
 .ia-chip {
   position: absolute; right: 6px; top: -6px;
   width: 214px; height: 146px;
-  opacity: 0.5; pointer-events: none;
+  opacity: 0.22; pointer-events: none;
 }
 .ia-chip-lineas { fill: none; stroke: var(--ia-cyan); stroke-width: 1; opacity: 0.5; }
 .ia-chip-lineas circle { fill: var(--ia-cyan); stroke: none; }
-.ia-chip-cuerpo { fill: rgba(79, 195, 247, 0.10); stroke: var(--ia-cyan); stroke-width: 1.4; }
+.ia-chip-cuerpo { fill: var(--blue-bg); stroke: var(--ia-cyan); stroke-width: 1.4; }
 .ia-chip-txt {
   fill: var(--ia-cyan); font-size: 22px; font-weight: 800;
   text-anchor: middle; letter-spacing: 0.06em;
@@ -89,7 +91,7 @@
   border-radius: 10px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.ia-control:focus-within { border-color: var(--ia-cyan); box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.16); }
+.ia-control:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-bg); }
 .ia-control .ia-ico { flex-shrink: 0; color: var(--ia-ink3); }
 .ia-control select, .ia-control input {
   border: 0; background: none; outline: none; min-width: 0;
@@ -100,7 +102,7 @@
 .ia-control select option { background: var(--ia-card); color: var(--ia-ink); }
 .ia-control input[type="date"] { width: 122px; font-variant-numeric: tabular-nums; }
 .ia-control input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1); opacity: 0.45; cursor: pointer;
+  opacity: 0.5; cursor: pointer;
 }
 .ia-control input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 0.9; }
 
@@ -122,19 +124,19 @@
 .ia-btn:disabled { opacity: 0.55; cursor: default; }
 .ia-btn-sm { height: 30px; padding: 0 11px; font-size: 12px; border-radius: 8px; }
 
-/* Acción de IA: el único botón con glow */
+/* Acción de IA: el único botón sólido de la pantalla */
 .ia-btn-ia {
-  background: linear-gradient(180deg, #1D6FA5, #17547E);
-  border-color: rgba(79, 195, 247, 0.55);
+  background: var(--brand);
+  border-color: var(--brand);
   color: #fff;
-  box-shadow: 0 0 0 1px rgba(79, 195, 247, 0.12), 0 6px 18px rgba(23, 84, 126, 0.45);
+  box-shadow: var(--shadow-md);
 }
-.ia-btn-ia:hover:not(:disabled) { background: linear-gradient(180deg, #2280BC, #1A6294); }
+.ia-btn-ia:hover:not(:disabled) { background: var(--ink-soft); }
 .ia-btn-ghost:hover { background: var(--ia-card2); border-color: var(--ia-line2); }
-.ia-btn-ok { background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.42); color: #6EE7B7; }
-.ia-btn-ok:hover { background: rgba(52, 211, 153, 0.24); }
-.ia-btn-no { background: rgba(248, 113, 113, 0.13); border-color: rgba(248, 113, 113, 0.40); color: #FCA5A5; }
-.ia-btn-no:hover { background: rgba(248, 113, 113, 0.22); }
+.ia-btn-ok { background: var(--green-bg); border-color: var(--green); color: var(--green-text); }
+.ia-btn-ok:hover { background: var(--green); color: #fff; }
+.ia-btn-no { background: var(--red-bg); border-color: var(--red); color: var(--red-text); }
+.ia-btn-no:hover { background: var(--red); color: #fff; }
 
 .ia-icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -172,16 +174,16 @@
   border: 1px solid var(--ia-line); background: var(--ia-panel); color: var(--ia-ink2);
 }
 .ia-strip-cell .ia-ico { flex-shrink: 0; }
-.ia-ok    { background: rgba(52, 211, 153, 0.10); border-color: rgba(52, 211, 153, 0.30); color: #86EFC5; }
-.ia-warn  { background: rgba(251, 191, 36, 0.10); border-color: rgba(251, 191, 36, 0.32); color: #FCD34D; }
-.ia-bad   { background: rgba(248, 113, 113, 0.10); border-color: rgba(248, 113, 113, 0.32); color: #FCA5A5; }
+.ia-ok    { background: var(--green-bg); border-color: var(--green); color: var(--green-text); }
+.ia-warn  { background: var(--amber-bg); border-color: var(--amber); color: var(--amber-text); }
+.ia-bad   { background: var(--red-bg); border-color: var(--red); color: var(--red-text); }
 
 /* ===================== PANEL (jefes) ===================== */
 .ia-panel {
   background: var(--ia-panel); border: 1px solid var(--ia-line);
   border-radius: 14px; padding: 16px; margin-bottom: 14px;
 }
-.ia-panel-head h2 { margin: 0; font-size: 15px; font-weight: 800; color: #fff; }
+.ia-panel-head h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--ia-ink); }
 .ia-panel-head p { margin: 5px 0 14px; font-size: 12.5px; line-height: 1.5; color: var(--ia-ink3); max-width: 640px; }
 .ia-jefes { display: flex; flex-direction: column; gap: 7px; }
 .ia-jefe {
@@ -226,7 +228,7 @@
 .ia-kpi-lbl { font-size: 12px; font-weight: 600; color: var(--ia-ink2); }
 .ia-kpi-n {
   display: flex; align-items: baseline; gap: 7px;
-  font-size: 34px; font-weight: 800; line-height: 1; color: #fff;
+  font-size: 34px; font-weight: 600; line-height: 1; color: var(--ia-ink);
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .ia-kpi-alerta .ia-kpi-n { color: var(--ia-gold); }
@@ -253,7 +255,7 @@
 }
 .ia-tabs button:hover { color: var(--ia-ink); }
 .ia-tabs button.on {
-  background: var(--ia-card2); color: #fff;
+  background: var(--surface); color: var(--ink);
   box-shadow: inset 0 -2px 0 var(--ia-gold);
 }
 .ia-conteo { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ia-ink3); }
@@ -267,32 +269,32 @@
 .ia-tabla thead th {
   text-align: left; padding: 11px 14px;
   font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--ia-ink3); background: rgba(148, 178, 224, 0.05);
+  color: var(--ia-ink3); background: var(--surface2);
   border-bottom: 1px solid var(--ia-line); white-space: nowrap;
 }
 .ia-th-acc { text-align: right; }
 
 .ia-grupo { border-bottom: 1px solid var(--ia-line); }
 .ia-grupo:last-child { border-bottom: 0; }
-.ia-grupo-abierto { background: rgba(79, 195, 247, 0.045); }
+.ia-grupo-abierto { background: var(--blue-bg); }
 .ia-fila td { padding: 12px 14px; vertical-align: middle; font-size: 13px; color: var(--ia-ink2); }
-.ia-grupo:hover .ia-fila td { background: rgba(148, 178, 224, 0.035); }
+.ia-grupo:hover .ia-fila td { background: var(--surface3); }
 .ia-grupo-abierto:hover .ia-fila td { background: none; }
 
 /* Estado / regla */
 .ia-regla { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: var(--ia-ink); white-space: nowrap; }
 .ia-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--ia-ink3); }
-.ia-sev-alta  { background: var(--ia-red);   box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18); }
-.ia-sev-media { background: var(--ia-amber); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.16); }
+.ia-sev-alta  { background: var(--ia-red);   box-shadow: 0 0 0 3px var(--red-bg); }
+.ia-sev-media { background: var(--ia-amber); box-shadow: 0 0 0 3px var(--amber-bg); }
 .ia-sev-baja  { background: var(--ia-ink3); }
 .ia-estado {
   display: block; width: fit-content; margin-top: 5px;
   padding: 2px 8px; border-radius: 999px;
   font-size: 10.5px; font-weight: 700; text-transform: capitalize;
 }
-.ia-est-aprobada   { background: rgba(52, 211, 153, 0.14); color: #6EE7B7; }
-.ia-est-rechazada  { background: rgba(248, 113, 113, 0.14); color: #FCA5A5; }
-.ia-est-descartada { background: rgba(148, 178, 224, 0.12); color: var(--ia-ink3); }
+.ia-est-aprobada   { background: var(--green-bg); color: var(--green-text); }
+.ia-est-rechazada  { background: var(--red-bg); color: var(--red-text); }
+.ia-est-descartada { background: var(--surface2); color: var(--text2); }
 
 /* Empleado */
 .ia-emp { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
@@ -314,7 +316,7 @@
 .ia-glifo {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px;
-  background: rgba(79, 195, 247, 0.12); border: 1px solid rgba(79, 195, 247, 0.38);
+  background: var(--blue-bg); border: 1px solid var(--blue);
   font-size: 10px; font-weight: 800; letter-spacing: 0.04em; color: var(--ia-cyan);
 }
 
@@ -335,13 +337,13 @@
   background: var(--ia-card); color: var(--ia-ink);
   font-family: inherit; font-size: 13px; line-height: 1.5; resize: vertical; outline: none;
 }
-.ia-textarea:focus { border-color: var(--ia-cyan); box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.14); }
+.ia-textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-bg); }
 .ia-textarea::placeholder { color: var(--ia-ink3); }
 .ia-exp-acc { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .ia-just-jefe {
   padding: 11px 13px; border-radius: 10px;
-  background: rgba(79, 195, 247, 0.07); border: 1px solid rgba(79, 195, 247, 0.24);
+  background: var(--blue-bg); border: 1px solid var(--blue);
 }
 .ia-just-jefe b { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ia-cyan); }
 .ia-just-jefe p { margin: 6px 0 4px; font-size: 13px; line-height: 1.5; color: var(--ia-ink); font-style: italic; }
@@ -382,39 +384,39 @@
    por regla + persona son decenas de lineas, y cada causa pide una accion
    distinta: el lector que duplica es del aparato; el que no marca la salida es
    de la rutina de esa persona. */
-.ia-nota { font-size: 12.5px; line-height: 1.6; color: #475569; max-width: 100ch; margin: 0 0 12px; }
+.ia-nota { font-size: 12.5px; line-height: 1.6; color: var(--text2); max-width: 100ch; margin: 0 0 12px; }
 .ia-reglas { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .ia-regla-chip {
   font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
-  background: #eef2f6; color: #334155;
+  background: var(--surface2); color: var(--text2);
 }
 .ia-grupos { display: grid; gap: 10px; }
 .ia-grupo {
-  border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 16px; background: #fff;
-  border-left: 3px solid #94a3b8;
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; background: var(--surface);
+  border-left: 3px solid var(--border-strong);
 }
 .ia-grupo-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* La cuenta va primero y grande: es el dato que decide si vale la pena mirarlo. */
 .ia-grupo-n {
-  font-size: 22px; font-weight: 800; color: #0F172A; font-variant-numeric: tabular-nums;
+  font-size: 22px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums;
   min-width: 3ch; text-align: right;
 }
 .ia-grupo-id { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 220px; }
-.ia-grupo-regla { font-size: 13px; font-weight: 700; color: #0F172A; }
-.ia-grupo-quien { font-size: 12px; color: #475569; }
-.ia-grupo-cod { color: #94a3b8; }
-.ia-grupo-fechas { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.ia-grupo-regla { font-size: 13px; font-weight: 600; color: var(--ink); }
+.ia-grupo-quien { font-size: 12px; color: var(--text2); }
+.ia-grupo-cod { color: var(--text3); }
+.ia-grupo-fechas { font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
 .ia-grupo-just {
   font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-  background: #DCFCE7; color: #166534;
+  background: var(--green-bg); color: var(--green-text);
 }
-.ia-grupo-causa { font-size: 12px; line-height: 1.55; color: #64748B; margin: 8px 0 10px; max-width: 95ch; }
+.ia-grupo-causa { font-size: 12px; line-height: 1.55; color: var(--text2); margin: 8px 0 10px; max-width: 95ch; }
 .ia-grupo-acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ia-grupo-just-in { flex: 1; min-width: 220px; }
 /* El nivel de agrupado no es cosmetico: decide de QUE es la decision. */
-.ia-nivel { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 12px; color: #64748B; }
+.ia-nivel { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 12px; color: var(--text2); }
 .ia-nivel button {
-  padding: 4px 12px; border: 1px solid #E2E8F0; background: #fff; border-radius: 999px;
-  font-size: 12px; font-weight: 600; color: #475569; cursor: pointer;
+  padding: 4px 12px; border: 1px solid var(--border-med); background: var(--surface); border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer;
 }
-.ia-nivel button.on { background: #0F172A; color: #fff; border-color: #0F172A; }
+.ia-nivel button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
