@@ -1,4 +1,6 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "BASE=${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}; git diff --quiet $BASE HEAD -- . ':(exclude)api'",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
