@@ -1,0 +1,107 @@
+<div class="status-card">
+  <header class="st-head">
+    <div>
+      <h3>Reporte de estatus</h3>
+      <p class="st-desc">Todo lo que se le ha hecho a este candidato, y qué falta.</p>
+    </div>
+    <div class="st-resumen">
+      <span class="st-frac">{{ hechas }}<i>/{{ totalCasillas }}</i></span>
+      <span class="st-frac-lbl">pasos completos</span>
+    </div>
+  </header>
+
+  <!-- ══ BARRA DEL PROCESO ══ -->
+  <div class="proceso">
+    <div class="proceso-top">
+      <span class="proceso-pct">{{ avance }}% del proceso</span>
+      @if (diasEnProceso !== null) {
+        <span class="proceso-dias" [attr.data-nivel]="nivelDias(diasEnProceso)">
+          {{ diasEnProceso }} días desde que se postuló
+        </span>
+      }
+    </div>
+
+    <div class="barra"><div class="barra-fill" [style.width.%]="avance" [class.ok]="contratado"></div></div>
+
+    <ol class="pasos">
+      @for (e of etapas; track e.id) {
+        <li [attr.data-estado]="estadoEtapa(e.id)">
+          <span class="punto" [style.background]="estadoEtapa(e.id) === 'futura' ? null : colorEtapa(e.id)">
+            {{ estadoEtapa(e.id) === 'pasada' ? '✓' : e.icon }}
+          </span>
+          <span class="paso-lbl">{{ e.shortLabel }}</span>
+        </li>
+      }
+      <li [attr.data-estado]="contratado ? 'actual' : 'futura'" class="final">
+        <span class="punto" [style.background]="contratado ? colorEtapa('contratado') : null">✓</span>
+        <span class="paso-lbl">Contratado</span>
+      </li>
+    </ol>
+
+    @if (rechazado) {
+      <div class="st-aviso rechazado">Este candidato está marcado como rechazado.</div>
+    }
+  </div>
+
+  <!-- ══ CASILLAS ══ -->
+  <div class="casillas">
+    @for (c of casillas; track c.key) {
+      <div class="casilla" [attr.data-estado]="c.estado">
+        <span class="box">{{ c.estado === 'hecho' ? '✓' : c.estado === 'parcial' ? '–' : '' }}</span>
+        <span class="ico">{{ c.icono }}</span>
+        <span class="txt">
+          <span class="lbl">{{ c.label }}</span>
+          <span class="det">{{ c.detalle }}</span>
+        </span>
+      </div>
+    }
+  </div>
+
+  <!-- ══ BITÁCORA ══ -->
+  <div class="bitacora">
+    <div class="bit-head">
+      <h4>Bitácora de seguimiento</h4>
+      <span class="bit-n">{{ bitacora.length }} registro(s)</span>
+    </div>
+
+    <div class="captura">
+      <select [(ngModel)]="canal" class="sel" aria-label="Cómo se contactó">
+        <option value="llamada">☎️ Llamada</option>
+        <option value="whatsapp">💬 WhatsApp</option>
+        <option value="presencial">🧍 Presencial</option>
+      </select>
+      <input type="text" [(ngModel)]="nota" class="inp" maxlength="200"
+             placeholder="Qué pasó (opcional): no contestó, agendé para el jueves…">
+      <button type="button" class="btn" [disabled]="registrando === 'contacto'" (click)="registrar('contacto')">
+        {{ registrando === 'contacto' ? 'Guardando…' : 'Registrar contacto' }}
+      </button>
+      <button type="button" class="btn alt" [disabled]="registrando === 'entrevista'" (click)="registrar('entrevista')">
+        🤝 Entrevista
+      </button>
+    </div>
+    @if (error) { <div class="st-aviso err">{{ error }}</div> }
+
+    @if (cargandoBitacora) {
+      <div class="bit-vacia">Cargando…</div>
+    } @else if (!bitacora.length) {
+      <div class="bit-vacia">
+        Sin registros todavía. Lo que anotes aquí es lo que cuenta en el KPI: las llamadas y los
+        WhatsApp que RH hace por su cuenta no se detectan solos.
+      </div>
+    } @else {
+      <ul class="eventos">
+        @for (e of bitacora; track e.id) {
+          <li>
+            <span class="ev-ico">{{ iconoEvento(e) }}</span>
+            <span class="ev-cuerpo">
+              <span class="ev-tit">{{ etiquetaEvento(e) }}</span>
+              @if (e.nota) { <span class="ev-nota">{{ e.nota }}</span> }
+              <span class="ev-meta">{{ cuando(e.ocurridoEn) }}@if (e.por) { · {{ e.por }} }</span>
+            </span>
+            <button type="button" class="ev-del" (click)="borrar(e)" title="Borrar registro">✕</button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

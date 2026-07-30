@@ -1,0 +1,96 @@
+/* Tarjeta de estatus del candidato. Usa las mismas variables de tema que el
+   resto del back-office para heredar claro/oscuro sin configurar nada. */
+
+.status-card { background: var(--surface, #fff); border: 1px solid var(--border, #e6e8ee);
+               border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+
+.st-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.st-head h3 { font-size: 15px; font-weight: 800; margin: 0 0 3px; }
+.st-desc { font-size: 12.5px; color: var(--text2, #64748b); margin: 0; }
+.st-resumen { text-align: right; line-height: 1.1; }
+.st-frac { font-size: 26px; font-weight: 800; color: #1F4E8C; }
+.st-frac i { font-size: 15px; font-style: normal; color: var(--text2, #94a3b8); font-weight: 700; }
+.st-frac-lbl { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text2, #94a3b8); }
+
+/* ── Barra del proceso ─────────────────────────────────────────── */
+.proceso { margin: 18px 0 4px; }
+.proceso-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.proceso-pct { font-size: 12.5px; font-weight: 800; }
+.proceso-dias { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.proceso-dias[data-nivel="bien"]     { background: #DCFCE7; color: #15803D; }
+.proceso-dias[data-nivel="atencion"] { background: #FEF3C7; color: #92400E; }
+.proceso-dias[data-nivel="tarde"]    { background: #FEE2E2; color: #B91C1C; }
+
+.barra { height: 8px; border-radius: 999px; background: var(--surface2, #eef1f6); overflow: hidden; }
+.barra-fill { height: 100%; border-radius: 999px; background: #1F4E8C; transition: width .3s; }
+.barra-fill.ok { background: #1F7A4C; }
+
+.pasos { list-style: none; display: flex; margin: 12px 0 0; padding: 0; gap: 4px; }
+.pasos li { flex: 1; text-align: center; min-width: 0; }
+.punto { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+         border-radius: 50%; font-size: 11px; font-weight: 800; color: #fff;
+         background: var(--surface2, #e2e8f0); }
+.pasos li[data-estado="futura"] .punto { color: var(--text2, #94a3b8); }
+.pasos li[data-estado="actual"] .punto { box-shadow: 0 0 0 3px rgba(31, 78, 140, .18); }
+.paso-lbl { display: block; font-size: 10.5px; margin-top: 4px; color: var(--text2, #64748b);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pasos li[data-estado="actual"] .paso-lbl { font-weight: 800; color: var(--text, #1e293b); }
+
+/* ── Casillas (el reporte de estatus) ──────────────────────────── */
+.casillas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-top: 20px; }
+.casilla { display: grid; grid-template-columns: 20px 20px 1fr; align-items: start; gap: 9px;
+           padding: 9px 11px; border-radius: 10px; background: var(--surface2, #f7f9fc);
+           border: 1px solid transparent; }
+.casilla[data-estado="hecho"]   { background: #F0FDF4; border-color: #BBF7D0; }
+.casilla[data-estado="parcial"] { background: #FFFBEB; border-color: #FDE68A; }
+
+.box { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border, #cbd5e1);
+       background: var(--surface, #fff); display: flex; align-items: center; justify-content: center;
+       font-size: 12px; font-weight: 800; margin-top: 1px; }
+.casilla[data-estado="hecho"] .box   { background: #16A34A; border-color: #16A34A; color: #fff; }
+.casilla[data-estado="parcial"] .box { background: #E1A100; border-color: #E1A100; color: #fff; }
+
+.ico { font-size: 14px; margin-top: 1px; }
+.txt { min-width: 0; }
+.lbl { display: block; font-size: 12.5px; font-weight: 700; }
+.det { display: block; font-size: 11.5px; color: var(--text2, #64748b); margin-top: 1px; line-height: 1.4; }
+
+/* ── Bitácora ──────────────────────────────────────────────────── */
+.bitacora { margin-top: 22px; border-top: 1px solid var(--border, #eef1f6); padding-top: 16px; }
+.bit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.bit-head h4 { font-size: 13px; font-weight: 800; margin: 0; }
+.bit-n { font-size: 11px; color: var(--text2, #94a3b8); font-weight: 700; }
+
+.captura { display: flex; flex-wrap: wrap; gap: 7px; }
+.sel, .inp { font: inherit; font-size: 12.5px; padding: 8px 11px; border-radius: 9px;
+             border: 1px solid var(--border, #e2e8f0); background: var(--surface, #fff); color: inherit; }
+.inp { flex: 1; min-width: 180px; }
+.btn { font: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 9px; cursor: pointer;
+       border: 1px solid #1F4E8C; background: #1F4E8C; color: #fff; white-space: nowrap; }
+.btn:disabled { opacity: .6; cursor: default; }
+.btn.alt { background: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
+
+.bit-vacia { font-size: 12px; color: var(--text2, #64748b); background: var(--surface2, #f7f9fc);
+             border: 1px dashed var(--border, #d8dee9); border-radius: 10px; padding: 11px 13px;
+             margin-top: 10px; line-height: 1.5; }
+
+.eventos { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.eventos li { display: grid; grid-template-columns: 22px 1fr 22px; align-items: start; gap: 9px;
+              padding: 8px 10px; border-radius: 9px; background: var(--surface2, #f7f9fc); }
+.ev-ico { font-size: 14px; }
+.ev-cuerpo { min-width: 0; }
+.ev-tit { font-size: 12.5px; font-weight: 700; }
+.ev-nota { display: block; font-size: 12px; margin-top: 1px; }
+.ev-meta { display: block; font-size: 10.5px; color: var(--text2, #94a3b8); margin-top: 2px; }
+.ev-del { border: none; background: none; cursor: pointer; color: var(--text2, #cbd5e1); font-size: 12px; padding: 0; }
+.ev-del:hover { color: #DC2626; }
+
+.st-aviso { font-size: 12px; border-radius: 9px; padding: 9px 12px; margin-top: 10px; }
+.st-aviso.err       { background: #FEE2E2; color: #B91C1C; }
+.st-aviso.rechazado { background: var(--surface2, #f1f5f9); color: var(--text2, #64748b); margin-top: 12px; }
+
+@media (max-width: 560px) {
+  .pasos { flex-wrap: wrap; gap: 10px 4px; }
+  .pasos li { flex: 0 0 30%; }
+  .st-resumen { text-align: left; }
+}

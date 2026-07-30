@@ -67,32 +67,41 @@
 
     <!-- STEPPER · se llena según el progreso real de cada fase -->
     <div class="stepper-card">
-      <div class="stepper-container">
+      <ol class="stepper-container">
         @for (step of FLUJO_LINEAL; track step; let idx = $index) {
           @if (ETAPAS[idx]; as eta) {
-            <div class="stepper-step"
+            <li class="stepper-step"
                  [class.active]="candidato.status === step"
                  [class.completed]="etapaCompletada(step)"
                  [class.parcial]="!etapaCompletada(step) && etapaProgreso(step) > 0"
                  (click)="moverEtapaDirecto(step)"
                  [title]="eta.title + ' · ' + etapaProgreso(step) + '%'">
-              <div class="stepper-circle">
-                <!-- Anillo de progreso para fases parciales -->
-                <svg class="ring-progress" viewBox="0 0 40 40" aria-hidden="true">
-                  <circle class="ring-bg" cx="20" cy="20" r="18"></circle>
-                  <circle class="ring-fill" cx="20" cy="20" r="18"
-                          [attr.stroke-dasharray]="113.1"
-                          [attr.stroke-dashoffset]="113.1 - (113.1 * etapaProgreso(step) / 100)"></circle>
-                </svg>
-                <span class="step-num">
-                  @if (etapaCompletada(step)) { ✓ } @else { {{ eta.icon }} }
+
+              <!-- Riel: línea izquierda + círculo + línea derecha -->
+              <div class="step-rail">
+                <span class="rail rail-prev" [class.on]="etapaPreviaCompletada(idx)"></span>
+                <span class="stepper-circle">
+                  <!-- Anillo de progreso para fases parciales -->
+                  <svg class="ring-progress" viewBox="0 0 40 40" aria-hidden="true">
+                    <circle class="ring-bg" cx="20" cy="20" r="18"></circle>
+                    <circle class="ring-fill" cx="20" cy="20" r="18"
+                            [attr.stroke-dasharray]="113.1"
+                            [attr.stroke-dashoffset]="113.1 - (113.1 * etapaProgreso(step) / 100)"></circle>
+                  </svg>
+                  <span class="step-num">
+                    @if (etapaCompletada(step)) { ✓ } @else { {{ eta.icon }} }
+                  </span>
                 </span>
+                <span class="rail rail-next" [class.on]="etapaCompletada(step)"></span>
               </div>
+
               <span class="stepper-label">{{ eta.shortLabel }}</span>
-            </div>
+              <span class="step-state">{{ etapaEstadoTexto(step) }}</span>
+              <span class="step-desc">{{ eta.description }}</span>
+            </li>
           }
         }
-      </div>
+      </ol>
     </div>
 
     
@@ -109,6 +118,10 @@
 
     <!-- ============== TAB: RESUMEN ============== -->
     @if (tabActiva === 'resumen') {
+      <!-- Reporte de estatus: qué se le ha hecho a esta persona, su avance del
+           proceso y la bitácora de contactos/entrevistas (alimenta el KPI). -->
+      <app-status-proceso [candidato]="candidato"></app-status-proceso>
+
       <div class="section-card">
         <header class="section-head">
           <h3>Estado general del proceso</h3>

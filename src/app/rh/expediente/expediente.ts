@@ -26,11 +26,17 @@ import { ToastService } from '../../core/services/toast.service';
 import { BotService } from '../../core/services/bot.service';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
 import { hojaPorKey, hojaPorNombrePuesto } from '../../core/models/competencias-puesto.model';
+// Reporte de estatus + barra del proceso + bitácora de seguimiento (pestaña
+// Resumen). Vive en su propio componente para no engordar más este archivo, que
+// ya es el más grande del back-office.
+import { StatusProcesoComponent } from '../status-proceso/status-proceso';
+// Mínimos para avanzar de fase (CV, registro completo, sin bandera grave).
+import { revisarAvance } from '../../core/models/requisitos-avance.model';
 
 @Component({
   selector: 'app-expediente',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StatusProcesoComponent],
   templateUrl: './expediente.html',
   styleUrl: './expediente.css'
 })
@@ -161,7 +167,16 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     // cuenta. Solo si sigue en Filtro Inicial (o 'nuevo'): no retrocede a quien
     // ya va más adelante. Si completó pero NO calificó, se queda en Filtro.
     const estado = this.candidato.status;
-    const debeAvanzar = calificaEnEvaluacion(r) && (!estado || estado === ID_ETAPAS.FILTRO || estado === ID_ETAPAS.NUEVO);
+    // Y además tiene que CUMPLIR LOS MÍNIMOS (CV, registro completo, sin bandera
+    // grave). Ver requisitos-avance.model.ts: hasta el 30/07/2026 el autoavance
+    // solo miraba el puntaje del cuestionario, y así subieron a la 2ª fase
+    // candidatos sin CV, con registro a medias y uno con conflicto de interés.
+    const revision = revisarAvance(this.candidato);
+    const debeAvanzar = calificaEnEvaluacion(r) && revision.ok
+      && (!estado || estado === ID_ETAPAS.FILTRO || estado === ID_ETAPAS.NUEVO);
+    if (calificaEnEvaluacion(r) && !revision.ok) {
+      this.toast.info(`Calificó, pero se queda en Filtro Inicial: ${revision.motivos[0]}`);
+    }
 
     const payload: any = {
       cuestionarioLiderazgo: this.candidato.cuestionarioLiderazgo,
@@ -286,6 +301,22 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Leyenda de estatus que se muestra debajo de cada paso del stepper.
+   * Traduce el progreso real (no el orden) a lenguaje de RH.
+   */
+  etapaEstadoTexto(etapaId: string): string {
+    if (this.etapaCompletada(etapaId)) return 'Completada';
+    const pct = this.etapaProgreso(etapaId);
+    if (this.candidato?.status === etapaId) return pct > 0 ? `En proceso · ${pct}%` : 'En proceso';
+    return pct > 0 ? `Avance ${pct}%` : 'Pendiente';
+  }
+
+  /** La barra entre dos pasos se pinta solo si el paso anterior quedó cerrado. */
+  etapaPreviaCompletada(idx: number): boolean {
+    return idx > 0 && this.etapaCompletada(FLUJO_LINEAL[idx - 1]);
+  }
+
   puedeMoverA(nuevaEtapa: string): { ok: boolean; faltan: string[] } {
     if (nuevaEtapa !== ID_ETAPAS.CONTRATADO) return { ok: true, faltan: [] };
     if (checklistCompleto(this.candidato.ofertaChecklist, CHECKLIST_OFERTA)) return { ok: true, faltan: [] };
@@ -302,6 +333,24 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     if (!v.ok) {
       this.mensajeBloqueo = { titulo: `No se puede contratar a ${this.candidato.nombre}`, faltantes: v.faltan };
       return;
+    }
+
+    // AVISO (no bloqueo) cuando se avanza a alguien que no cumple los mínimos.
+    // A RH se le advierte y decide: puede tener razones que el sistema no sabe
+    // (trajo el CV impreso, el puesto se abre la semana que entra). Al SISTEMA en
+    // cambio se le prohíbe avanzar solo — ver requisitos-avance.model.ts.
+    const avanza = FLUJO_LINEAL.indexOf(nuevaEtapa) > FLUJO_LINEAL.indexOf(this.candidato.status)
+      || nuevaEtapa === ID_ETAPAS.CONTRATADO;
+    if (avanza) {
+      const revision = revisarAvance(this.candidato, this.puestosLista.filter(p => p.activo !== false).map(p => p.nombre));
+      if (!revision.ok) {
+        const seguir = confirm(
+          `${this.candidato.nombre} no cumple lo mínimo para avanzar:\n\n` +
+          revision.motivos.map(m => `• ${m}`).join('\n') +
+          `\n\n¿Avanzarlo de todos modos?`
+        );
+        if (!seguir) return;
+      }
     }
 
     const actualizacion: any = { status: nuevaEtapa };
