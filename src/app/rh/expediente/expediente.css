@@ -257,7 +257,10 @@ button.crumb-link:hover { color: var(--brand); text-decoration: underline; }
   cursor: pointer;
   flex: 1 1 0;
   min-width: 148px;
-  padding: 0 6px;
+  /* Sin padding lateral: cualquier espacio aquí parte el riel y la línea de
+     progreso aparece cortada entre un paso y el siguiente. El aire entre
+     columnas lo da el max-width de la descripción, no el padding. */
+  padding: 0;
   transition: opacity 0.18s;
 }
 .stepper-step:hover .stepper-label { color: var(--ink); }
@@ -366,11 +369,15 @@ button.crumb-link:hover { color: var(--brand); text-decoration: underline; }
 .stepper-step.completed .stepper-label { color: var(--ink); }
 .stepper-step.completed .step-state { color: var(--green-text); }
 
-/* ACTIVO · círculo navy relleno con halo */
+/* ACTIVO · círculo navy relleno con anillo
+   El anillo va separado del círculo por un aro del color del fondo, para que se
+   lea como "aquí está parado" incluso cuando la etapa ADEMÁS está completada y
+   el círculo ya es verde. Con un halo suave del mismo color, la etapa actual se
+   veía idéntica a las anteriores y se perdía el dato más importante del stepper. */
 .stepper-step.active .stepper-circle {
   background: var(--brand);
   border-color: var(--brand);
-  box-shadow: 0 0 0 4px var(--brand-bg);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--brand);
 }
 .stepper-step.active .step-num {
   color: #fff;
@@ -379,7 +386,7 @@ button.crumb-link:hover { color: var(--brand); text-decoration: underline; }
 .stepper-step.active.completed .stepper-circle {
   background: var(--green);
   border-color: var(--green);
-  box-shadow: 0 0 0 4px var(--green-bg);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--brand);
 }
 .stepper-step.active .stepper-label {
   color: var(--ink);
@@ -1409,8 +1416,97 @@ button.crumb-link:hover { color: var(--brand); text-decoration: underline; }
 }
 
 /* STAR — bloque con header simple y textarea de evidencia */
-.star-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
-.star-row-head .check-label { flex: 1; min-width: 0; }
+/* ============================================================
+   DESGLOSE STAR · las 15 competencias que califica el jefe
+   Este bloque se quedó SIN estilos cuando se rehizo el HTML: en pantalla
+   salía "0/1500/15 calificadas" y "Recepción1. Recepción de mercancía",
+   todo pegado, porque ningún selector le daba layout. Detectado el
+   30/07/2026 al revisar la pestaña con el navegador.
+   ============================================================ */
+
+/* Marcador del puntaje total, con el color de la banda alcanzada */
+.star-total {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border-med);
+  border-left: 3px solid var(--text3);
+  border-radius: var(--radius);
+  background: var(--surface3);
+}
+.star-total-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.star-total-banda {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+}
+.star-total.banda-pendiente    { border-left-color: var(--border-strong); }
+.star-total.banda-pendiente .star-total-num { color: var(--text2); }
+.star-total.banda-verde        { border-left-color: var(--green); background: var(--green-bg); }
+.star-total.banda-verde .star-total-banda { color: var(--green-text); }
+.star-total.banda-verde-claro  { border-left-color: var(--green); }
+.star-total.banda-amarillo     { border-left-color: var(--amber); background: var(--amber-bg); }
+.star-total.banda-amarillo .star-total-banda { color: var(--amber-text); }
+.star-total.banda-rojo         { border-left-color: var(--red);   background: var(--red-bg); }
+.star-total.banda-rojo .star-total-banda { color: var(--red-text); }
+
+/* Una fila por competencia, con la misma lectura de tabla que los checklists */
+.star-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.star-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.star-item:last-child { border-bottom: none; }
+.star-item:hover { background: var(--surface3); }
+.star-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.star-item-cat {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.star-item-nombre { font-size: 13px; color: var(--ink); font-weight: 500; }
+.star-item-nivel {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-med);
+  background: var(--surface3);
+  color: var(--text2);
+  white-space: nowrap;
+}
+/* Los tres niveles del formato oficial (NIVELES_STAR): 10 / 8 / 5 puntos */
+.star-item-nivel[data-nivel="supera"]   { background: var(--green-bg); border-color: var(--green); color: var(--green-text); }
+.star-item-nivel[data-nivel="cumple"]   { background: var(--amber-bg); border-color: var(--amber); color: var(--amber-text); }
+.star-item-nivel[data-nivel="inferior"] { background: var(--red-bg);   border-color: var(--red);   color: var(--red-text); }
+.star-item-nivel.pend {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text3);
+  font-weight: 500;
+}
 .chip-btn.active {
   background: var(--ink);
   color: #fff;

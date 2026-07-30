@@ -505,7 +505,10 @@
         <!-- DESGLOSE STAR (read-only): lo captura el gerente por el link -->
         @if (competenciasActivas().length) {
           @if (resultadoStar(); as r) {
-            <div class="star-total" [ngClass]="r.banda.clase">
+            <!-- La banda se pinta SOLO cuando están las 15 calificadas. Con el
+                 desglose a medias, 0/150 caía en "No Recomendable" y la tarjeta
+                 salía roja: parecía un reprobado cuando nadie ha evaluado nada. -->
+            <div class="star-total" [ngClass]="r.completa ? r.banda.clase : 'banda-pendiente'">
               <span class="star-total-num">{{ r.puntaje }}/{{ r.max }}</span>
               <span class="star-total-banda">{{ r.completa ? r.banda.label : (r.calificadas + '/' + r.total + ' calificadas') }}</span>
             </div>

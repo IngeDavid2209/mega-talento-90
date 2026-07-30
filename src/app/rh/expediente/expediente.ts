@@ -306,9 +306,13 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
    * Traduce el progreso real (no el orden) a lenguaje de RH.
    */
   etapaEstadoTexto(etapaId: string): string {
-    if (this.etapaCompletada(etapaId)) return 'Completada';
+    const aqui = this.candidato?.status === etapaId;
+    // "Completada" a secas escondía el dato más útil cuando la etapa actual ya
+    // estaba cerrada: se leía igual que las anteriores y no se sabía dónde está
+    // parada la persona ni qué sigue.
+    if (this.etapaCompletada(etapaId)) return aqui ? 'Completada · aquí va' : 'Completada';
     const pct = this.etapaProgreso(etapaId);
-    if (this.candidato?.status === etapaId) return pct > 0 ? `En proceso · ${pct}%` : 'En proceso';
+    if (aqui) return pct > 0 ? `En proceso · ${pct}%` : 'En proceso';
     return pct > 0 ? `Avance ${pct}%` : 'Pendiente';
   }
 
