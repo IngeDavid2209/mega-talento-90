@@ -137,6 +137,31 @@ export interface AlertaAgente {
   respondidoPor?: string | null;
   respondidoEn?: string | null;
 }
+/**
+ * Una línea de la cola agrupada: todas las alertas de la MISMA regla, la misma
+ * sucursal y la misma persona. Es lo que convierte 2,510 tarjetas en decenas de
+ * líneas sobre las que sí se puede decidir.
+ */
+export interface GrupoAlertas {
+  regla: string;
+  sucursalId: string;
+  empleadoCodigo: string;
+  empleadoNombre: string;
+  /** Cuántas personas cubre la línea (en el nivel 'sucursal', varias). */
+  personas?: number;
+  total: number;
+  primeraFecha: string;
+  ultimaFecha: string;
+  /** Cuántas ya traen la justificación del jefe: esas no hay que volver a preguntar. */
+  conJustificacion: number;
+}
+export interface AlertasAgrupadas {
+  grupos: GrupoAlertas[];
+  porRegla: Record<string, number>;
+  total: number;
+  nivel: string;
+}
+
 export interface ResumenAgente {
   sucursalId: string; desde: string; hasta: string;
   empleadosAnalizados: number; diasAnalizados: number; checadasLeidas: number;
@@ -326,6 +351,38 @@ export class ChecadorService {
     if (estado) params.estado = estado;
     return this.api.get<AlertaAgente[]>('/checador/agente/alertas', params);
   }
+  /**
+   * La cola agrupada por causa. Al 30/07/2026 había **2,510 borradores
+   * esperando y cero decididos**: pedir 2,510 decisiones una por una garantiza
+   * que no se tome ninguna. Y no hacen falta — `checada_duplicada` es del LECTOR
+   * (una decisión por sucursal) y `entrada_sin_salida` es de la rutina de una
+   * PERSONA (una decisión por persona).
+   */
+  async getAlertasAgrupadas(
+    sucursalId?: string, desde?: string, hasta?: string, estado?: string,
+    nivel: 'persona' | 'sucursal' = 'sucursal'
+  ): Promise<AlertasAgrupadas> {
+    const params: any = { nivel };
+    if (sucursalId) params.sucursalId = sucursalId;
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    if (estado) params.estado = estado;
+    return this.api.get<AlertasAgrupadas>('/checador/agente/alertas/agrupadas', params);
+  }
+
+  /**
+   * Decide un GRUPO completo. Solo `rechazada` o `descartada`: aprobar en bloque
+   * mandaría un WhatsApp por alerta al jefe de la sucursal, así que aprobar sigue
+   * siendo de una en una.
+   */
+  async decidirGrupo(g: {
+    regla: string; sucursalId: string; empleadoCodigo?: string;
+    desde?: string; hasta?: string;
+    estado: 'rechazada' | 'descartada'; justificacion?: string;
+  }): Promise<{ afectadas: number }> {
+    return this.api.put<{ afectadas: number }>('/checador/agente/alertas/grupo', g);
+  }
+
   /** RH resuelve una alerta: aprobada | rechazada | descartada (+ justificación opcional). */
   async decidirAlerta(id: string, estado: EstadoAlerta, justificacion?: string): Promise<AlertaAgente> {
     return this.api.put<AlertaAgente>(`/checador/agente/alertas/${id}`, { estado, justificacion });

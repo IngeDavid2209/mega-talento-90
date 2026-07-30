@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   ChecadorService, AlertaAgente, ResumenAgente, JefeSucursal,
-  EstadoAgente, CorridaSucursal,
+  EstadoAgente, CorridaSucursal, GrupoAlertas, AlertasAgrupadas,
 } from '../../core/services/checador.service';
 import { CENTROS_CHECADOR } from '../../core/models/sucursales.model';
 
@@ -23,7 +23,15 @@ interface FilaJefe {
 /** Tarjeta de la tira de indicadores. */
 interface Kpi { n: string; u: string; l: string; pie: string; tono?: 'alerta' }
 
-type Tab = 'pendientes' | 'resueltas' | 'todas';
+type Tab = 'causas' | 'pendientes' | 'resueltas' | 'todas';
+
+/** Una linea de la cola agrupada, con lo que la vista necesita encima. */
+interface FilaGrupo extends GrupoAlertas {
+  trabajando: boolean;
+  justificacion: string;
+  hecho: number;        // cuantas se decidieron (para el mensaje efimero)
+  error: string;
+}
 
 /**
  * Vista RH del AGENTE DE HORARIOS. Muestra lo que el agente ya revisó por su
@@ -45,7 +53,7 @@ export class AgenteHorariosComponent {
   desde = '';
   hasta = '';
 
-  tab: Tab = 'pendientes';
+  tab: Tab = 'causas';
   cargando = false;
   cargandoAlertas = false;
   error = '';
@@ -57,6 +65,22 @@ export class AgenteHorariosComponent {
 
   /** Bitácora del corredor automático (Fase 3). */
   estadoAgente: EstadoAgente | null = null;
+
+  // ── La cola agrupada POR CAUSA ──
+  // 2,510 borradores esperando y cero decididos: la lista de uno en uno no se
+  // trabaja nunca. Agrupada por regla + persona son decenas de lineas.
+  grupos: FilaGrupo[] = [];
+  agrupadas: AlertasAgrupadas | null = null;
+  cargandoGrupos = false;
+  /**
+   * A qué nivel se agrupa, y cambia de QUÉ es la decisión:
+   *   'sucursal' (default) — 2,510 alertas caben en 16 líneas. Es el nivel
+   *      correcto para `checada_duplicada`: si el lector de una plaza lee doble,
+   *      no son 47 decisiones, es una.
+   *   'persona' — 339 líneas. Es el nivel correcto para `entrada_sin_salida`,
+   *      que es la rutina de alguien en concreto.
+   */
+  nivelGrupos: 'persona' | 'sucursal' = 'sucursal';
 
   private readonly ETIQUETAS: Record<string, string> = {
     retardo: 'Retardo', falta: 'Falta', checada_duplicada: 'Checada duplicada',
@@ -81,6 +105,7 @@ export class AgenteHorariosComponent {
     // Se cargan de una: sirven para avisar si la sucursal elegida no tiene jefe.
     void this.cargarJefes();
     void this.cargarEstado();
+    void this.cargarGrupos();
   }
 
   /** Lee la bitácora del corredor para poder mostrar resultados al entrar. */
@@ -97,6 +122,7 @@ export class AgenteHorariosComponent {
     this.resumen = null;
     this.abiertas.clear();
     void this.cargarAlertas();
+    void this.cargarGrupos();
   }
 
   async analizar() {
@@ -136,7 +162,99 @@ export class AgenteHorariosComponent {
     if (this.tab === t) return;
     this.tab = t;
     this.abiertas.clear();
-    await this.cargarAlertas();
+    if (t === 'causas') await this.cargarGrupos();
+    else await this.cargarAlertas();
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // LA COLA AGRUPADA POR CAUSA
+  //
+  // Las dos reglas que quedan activas no describen 2,510 problemas distintos:
+  //   · `checada_duplicada` = el lector leyo el dedo dos veces. Es del APARATO;
+  //     la decision es por sucursal, no por dia.
+  //   · `entrada_sin_salida` = alguien no marca al salir. Es de la rutina de una
+  //     PERSONA, y esta concentrado en pocas.
+  // ══════════════════════════════════════════════════════════════════
+
+  /** Trae la cola agrupada (de la sucursal elegida, o de todas si no hay). */
+  async cargarGrupos() {
+    this.cargandoGrupos = true;
+    try {
+      const r = await this.checador.getAlertasAgrupadas(
+        this.sucursalId || undefined, undefined, undefined, undefined, this.nivelGrupos);
+      this.agrupadas = r;
+      this.grupos = r.grupos.map((g) => ({
+        ...g, trabajando: false, justificacion: '', hecho: 0, error: '',
+      }));
+    } catch (e: any) {
+      this.error = e?.message || 'No se pudo agrupar la cola.';
+      this.grupos = [];
+      this.agrupadas = null;
+    } finally {
+      this.cargandoGrupos = false;
+    }
+  }
+
+  /**
+   * Decide un grupo completo. Solo rechazar o descartar: aprobar manda un
+   * WhatsApp por alerta al jefe, asi que eso sigue siendo de una en una (y por
+   * eso el boton de aprobar no existe aqui, sino en la lista).
+   */
+  async decidirGrupoFila(f: FilaGrupo, estado: 'rechazada' | 'descartada') {
+    f.error = '';
+    f.trabajando = true;
+    try {
+      const r = await this.checador.decidirGrupo({
+        regla: f.regla, sucursalId: f.sucursalId, empleadoCodigo: f.empleadoCodigo,
+        estado, justificacion: f.justificacion || undefined,
+      });
+      f.hecho = r.afectadas;
+      // Se quita de la lista: ya no espera decision.
+      this.grupos = this.grupos.filter((x) => x !== f);
+      if (this.agrupadas) {
+        this.agrupadas.total -= r.afectadas;
+        this.agrupadas.porRegla[f.regla] = (this.agrupadas.porRegla[f.regla] || 0) - r.afectadas;
+      }
+      this.mensaje = `${r.afectadas} alerta(s) de ${this.etiquetaRegla(f.regla)} marcadas como ${estado}.`;
+      void this.cargarEstado();
+    } catch (e: any) {
+      f.error = e?.message || 'No se pudo decidir el grupo.';
+    } finally {
+      f.trabajando = false;
+    }
+  }
+
+  /** Cambia el nivel de agrupado y recarga. */
+  async cambiarNivel(n: 'persona' | 'sucursal') {
+    if (this.nivelGrupos === n) return;
+    this.nivelGrupos = n;
+    await this.cargarGrupos();
+  }
+
+  /** Qué significa cada regla en una frase, y qué conviene hacer con ella. */
+  causaDe(regla: string): string {
+    switch (regla) {
+      case 'checada_duplicada':
+        return 'El lector leyó el dedo dos veces. Es del aparato, no de la persona: '
+             + 'la decisión es por sucursal, y lo que corresponde es descartarlas y revisar el lector.';
+      case 'entrada_sin_salida':
+        return 'No marcó al salir, así que ese día no se le puede medir el retardo. '
+             + 'Si es su costumbre, hay que hablar con la persona; descartar solo esconde el hueco.';
+      case 'multiples_entradas':
+        return 'Dos entradas separadas por horas: puede ser turno partido o dos personas usando el mismo código.';
+      case 'salida_sin_entrada':
+        return 'Hay salida pero no entrada: falta la primera marca del día.';
+      default:
+        return '';
+    }
+  }
+
+  /** Total de líneas agrupadas (para el encabezado). */
+  get totalGrupos(): number { return this.grupos.length; }
+  /** Las reglas presentes en la cola, con su cuenta. */
+  get reglasEnCola(): { regla: string; n: number }[] {
+    const p = this.agrupadas?.porRegla || {};
+    return Object.keys(p).filter((k) => p[k] > 0).map((k) => ({ regla: k, n: p[k] })).sort((a, b) => b.n - a.n);
   }
 
   /** Lo que se pinta en la tabla según la pestaña. */

@@ -368,18 +368,6 @@
   font-weight: 600;
 }
 
-/* Marco teórico (eyebrow arriba del título largo de la sección STAR) */
-.marco-teorico {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--brand);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.4;
-  margin-bottom: 6px;
-}
-
 /* Título largo (nombre académico de la entrevista conductual) */
 .section-head h3.titulo-largo {
   font-size: 17px;
@@ -534,6 +522,7 @@
 }
 @media (max-width: 820px) {
   .lid-dash-body { grid-template-columns: 1fr; gap: 22px; }
+
 }
 
 /* GRID SVG grande */
@@ -952,208 +941,7 @@
 @media (max-width: 540px) {
   .monitor-escala { gap: 3px; }
   .esc-label { font-size: 8px; }
-}
 
-/* Lista de tarjetas (estilo viejo, mantenido por si se necesita) */
-.lid-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-/* Tarjeta individual: azul + header amarillo */
-.lid-card {
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px -4px rgba(15,14,12,0.18);
-  border: 1px solid #0a1e3d;
-  transition: transform 0.18s, box-shadow 0.18s;
-}
-.lid-card.lid-card-contestada {
-  box-shadow: 0 8px 20px -6px rgba(15,14,12,0.25), 0 0 0 2px var(--green);
-}
-
-/* Header amarillo institucional */
-.lid-card-head {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  padding: 10px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-.lid-head-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.lid-head-icon {
-  width: 32px; height: 32px;
-  background: #fff;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #d97706;
-}
-.lid-head-icon svg { width: 18px; height: 18px; }
-.lid-head-text { display: flex; flex-direction: column; line-height: 1.2; }
-.lid-head-text strong {
-  font-size: 13px;
-  color: #1a1a1a;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-.lid-head-text small {
-  font-size: 10px;
-  color: #4a4a4a;
-  font-weight: 500;
-}
-.lid-head-brand {
-  background: #fff;
-  color: #d97706;
-  font-weight: 800;
-  font-size: 11px;
-  text-align: center;
-  line-height: 1.1;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-style: italic;
-  letter-spacing: 0.02em;
-}
-
-/* Cuerpo azul */
-.lid-card-body {
-  background: linear-gradient(180deg, #0e2e63 0%, #0a1e3d 100%);
-  color: #fff;
-  padding: 18px 18px 14px;
-  position: relative;
-}
-.lid-numero {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  width: 36px; height: 36px;
-  background: #fff;
-  color: #0e2e63;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'DM Mono', monospace;
-  font-size: 18px;
-  font-weight: 700;
-}
-.lid-pregunta {
-  margin: 0 0 14px 52px;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: #fff;
-  font-weight: 500;
-}
-
-/* Opciones Likert */
-.lid-opciones {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.lid-opcion {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: #fff;
-  position: relative;
-}
-.lid-opcion:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-}
-.lid-opcion.seleccionada {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: #f59e0b;
-  box-shadow: 0 2px 8px -2px rgba(245, 158, 11, 0.5);
-}
-.lid-opcion input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.lid-op-num {
-  flex-shrink: 0;
-  width: 24px; height: 24px;
-  background: #f59e0b;
-  color: #0a1e3d;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  font-weight: 700;
-}
-.lid-op-texto {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.lid-op-texto strong {
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.01em;
-}
-.lid-op-texto small {
-  font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.65);
-}
-.lid-op-radio {
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  background: transparent;
-  flex-shrink: 0;
-  transition: all 0.15s;
-  position: relative;
-}
-.lid-opcion.seleccionada .lid-op-radio {
-  border-color: #f59e0b;
-  background: #f59e0b;
-}
-.lid-opcion.seleccionada .lid-op-radio::after {
-  content: '';
-  position: absolute;
-  top: 4px; left: 4px;
-  width: 6px; height: 6px;
-  background: #0a1e3d;
-  border-radius: 50%;
-}
-
-.lid-card-foot {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: center;
-}
-.lid-card-foot small {
-  font-size: 9.5px;
-  color: rgba(255, 255, 255, 0.55);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-@media (max-width: 540px) {
-  .lid-pregunta { margin-left: 0; margin-top: 44px; font-size: 13px; }
-  .lid-resumen-main { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .lid-puntaje-num { font-size: 36px; }
 }
 .section-head h3 + .section-desc {
   margin-top: 4px;
@@ -1507,137 +1295,12 @@
 
 /* STAR — bloque con header simple y textarea de evidencia */
 .star-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
-.star-block {
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  border-left: 3px solid transparent;
-  overflow: hidden;
-  transition: border-color 0.18s ease;
-}
-.star-block.con-evidencia {
-  border-left-color: var(--green);
-}
-.star-row-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--surface3);
-  border-bottom: 1px solid var(--border);
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ink);
-}
 .star-row-head .check-label { flex: 1; min-width: 0; }
-.evidencia-tag {
-  font-size: 10px;
-  padding: 3px 8px;
-  background: var(--green-bg);
-  color: var(--green-text);
-  border-radius: 999px;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-.star-notes {
-  display: block;
-  width: 100%;
-  border: none !important;
-  border-radius: 0 !important;
-  background: var(--surface) !important;
-  padding: 12px 16px !important;
-  font-size: 12.5px !important;
-  resize: vertical;
-  min-height: 50px;
-  box-sizing: border-box;
-}
-.star-notes:focus {
-  box-shadow: inset 0 0 0 2px var(--ink) !important;
-}
-
-/* APTITUDES */
-.tipo-vacante-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 18px;
-  flex-wrap: wrap;
-}
-.tipo-vacante-row label {
-  margin: 0 !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-  font-size: 12.5px !important;
-  color: var(--text2) !important;
-  font-weight: 500 !important;
-}
-.chip-btn {
-  padding: 7px 14px;
-  border: 1px solid var(--border-med);
-  background: var(--surface);
-  color: var(--text2);
-  border-radius: var(--radius-sm);
-  font-weight: 500;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.16s;
-  font-family: inherit;
-  letter-spacing: 0.01em;
-}
-.chip-btn:hover { border-color: var(--ink); color: var(--ink); }
 .chip-btn.active {
   background: var(--ink);
   color: #fff;
   border-color: var(--ink);
 }
-.aptitudes-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px;
-  margin-bottom: 18px;
-}
-.aptitud-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--surface3);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  color: var(--text);
-  font-weight: 500;
-  border: 1px solid var(--border);
-}
-.aptitud-bullet {
-  width: 4px; height: 4px;
-  background: var(--brand);
-  border-radius: 50%;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.form-checkbox label {
-  display: flex !important;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  padding: 10px 14px;
-  background: var(--surface3);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-  font-size: 13px !important;
-  color: var(--text) !important;
-  font-weight: 500 !important;
-  margin: 22px 0 0 !important;
-}
-.form-checkbox input { width: 16px !important; height: 16px; }
 
 /* HINT */
 .hint-box {
@@ -1775,10 +1438,6 @@
   font-weight: 600;
   letter-spacing: 0.04em;
 }
-.badge-contratar { background: var(--green-bg); color: var(--green-text); }
-.badge-bolsa     { background: var(--blue-bg); color: var(--blue-text); }
-.badge-rechazar  { background: var(--red-bg); color: var(--red-text); }
-.badge-pendiente { background: var(--surface2); color: var(--text2); }
 
 .btn-mini {
   background: var(--ink);
@@ -1878,36 +1537,6 @@
 
 /* ARCHIVOS */
 .hidden-input { display: none; }
-.upload-area { margin-bottom: 22px; }
-.upload-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 28px;
-  border: 1px dashed var(--border-med);
-  border-radius: var(--radius);
-  text-align: center;
-  cursor: pointer;
-  background: var(--surface3);
-  transition: all 0.18s;
-  box-sizing: border-box;
-}
-.upload-btn:hover {
-  background: var(--surface);
-  border-color: var(--ink);
-}
-.upload-title {
-  font-weight: 500;
-  font-size: 13.5px;
-  color: var(--ink);
-}
-.upload-btn small {
-  font-size: 11.5px;
-  color: var(--text3);
-  letter-spacing: 0.04em;
-}
 
 .doc-list {
   display: flex;
@@ -2151,6 +1780,7 @@
     letter-spacing: 0.04em;
     margin-top: 6px;
   }
+
 }
 
 /* MODAL */
@@ -2232,173 +1862,13 @@
   letter-spacing: 0.01em;
 }
 .block-btn:hover { background: var(--ink-soft); }
-
-/* ============================================================
-   RÚBRICA DE APTITUDES — tarjeta de puntaje + niveles seleccionables
-   ============================================================ */
-.puntaje-card {
-  margin: 4px 0 22px;
-  padding: 22px 24px;
-  background: var(--surface3);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--slate);
-  border-radius: var(--radius-lg);
-  transition: all 0.25s ease;
-}
 .puntaje-card.aprobado {
   background: var(--green-bg);
   border-color: var(--green);
   border-left-color: var(--green);
 }
-.puntaje-card.incompleto {
-  border-left-color: var(--amber);
-  background: var(--gold-bg);
-}
-
-.puntaje-main {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-}
-.puntaje-num-wrap {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-}
-.puntaje-num {
-  font-family: 'DM Mono', monospace;
-  font-size: 48px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
 .puntaje-card.aprobado .puntaje-num { color: var(--green-text); }
-.puntaje-card.incompleto .puntaje-num { color: var(--amber-text); }
-.puntaje-max {
-  font-family: 'DM Mono', monospace;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text3);
-}
-.puntaje-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-.puntaje-status {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-}
 .puntaje-card.aprobado .puntaje-status { color: var(--green-text); }
-.puntaje-card.incompleto .puntaje-status { color: var(--amber-text); }
-.puntaje-progreso {
-  font-size: 11.5px;
-  color: var(--text2);
-  font-family: 'DM Mono', monospace;
-}
-
-.desglose-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-.desglose-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--text2);
-}
-.desglose-chip strong {
-  font-family: 'DM Mono', monospace;
-  font-weight: 600;
-  color: var(--ink);
-}
-.desglose-chip.nivel-excelente strong { color: #047857; }
-.desglose-chip.nivel-bueno strong     { color: #0E7490; }
-.desglose-chip.nivel-regular strong   { color: #B45309; }
-.desglose-chip.nivel-bajo strong      { color: #B91C1C; }
-
-/* Lista de aptitudes con sus niveles */
-.rubrica-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-.rubrica-item {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  transition: border-color 0.18s;
-}
-.rubrica-item:hover { border-color: var(--border-med); }
-
-.rubrica-header { margin-bottom: 12px; }
-.rubrica-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.005em;
-}
-.rubrica-criterio {
-  margin: 3px 0 0;
-  font-size: 12px;
-  color: var(--text2);
-  line-height: 1.5;
-}
-
-.rubrica-niveles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: 8px;
-}
-
-.nivel-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 10px 6px;
-  background: var(--surface);
-  border: 1.5px solid var(--border-med);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.16s ease;
-  font-family: inherit;
-}
-.nivel-btn:hover {
-  border-color: var(--ink);
-  background: var(--surface3);
-  transform: translateY(-1px);
-}
-.nivel-peso {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text3);
-  letter-spacing: 0.02em;
-}
-.nivel-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text2);
-  letter-spacing: 0.01em;
-}
 
 /* Estado activo según nivel — colores semánticos del modelo */
 .nivel-btn.active {
@@ -2413,18 +1883,6 @@
 .nivel-btn[data-nivel="bueno"].active     { background: #0E7490; }
 .nivel-btn[data-nivel="regular"].active   { background: #B45309; }
 .nivel-btn[data-nivel="bajo"].active      { background: #B91C1C; }
-
-/* Form grid de 2 columnas para tiempo + puntaje readonly */
-.form-grid.two-col {
-  grid-template-columns: 1fr 1fr;
-}
-.form-grid input[readonly] {
-  background: var(--surface3);
-  color: var(--ink);
-  font-family: 'DM Mono', monospace;
-  font-weight: 600;
-  cursor: not-allowed;
-}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {

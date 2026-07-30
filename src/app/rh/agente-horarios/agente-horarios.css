@@ -376,3 +376,45 @@
 @media (max-width: 560px) {
   .ia-kpis { grid-template-columns: 1fr; }
 }
+
+/* ── LA COLA AGRUPADA POR CAUSA ─────────────────────────────────────
+   2,510 borradores esperando decision no se trabajan de uno en uno. Agrupados
+   por regla + persona son decenas de lineas, y cada causa pide una accion
+   distinta: el lector que duplica es del aparato; el que no marca la salida es
+   de la rutina de esa persona. */
+.ia-nota { font-size: 12.5px; line-height: 1.6; color: #475569; max-width: 100ch; margin: 0 0 12px; }
+.ia-reglas { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.ia-regla-chip {
+  font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  background: #eef2f6; color: #334155;
+}
+.ia-grupos { display: grid; gap: 10px; }
+.ia-grupo {
+  border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 16px; background: #fff;
+  border-left: 3px solid #94a3b8;
+}
+.ia-grupo-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* La cuenta va primero y grande: es el dato que decide si vale la pena mirarlo. */
+.ia-grupo-n {
+  font-size: 22px; font-weight: 800; color: #0F172A; font-variant-numeric: tabular-nums;
+  min-width: 3ch; text-align: right;
+}
+.ia-grupo-id { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 220px; }
+.ia-grupo-regla { font-size: 13px; font-weight: 700; color: #0F172A; }
+.ia-grupo-quien { font-size: 12px; color: #475569; }
+.ia-grupo-cod { color: #94a3b8; }
+.ia-grupo-fechas { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.ia-grupo-just {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: #DCFCE7; color: #166534;
+}
+.ia-grupo-causa { font-size: 12px; line-height: 1.55; color: #64748B; margin: 8px 0 10px; max-width: 95ch; }
+.ia-grupo-acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ia-grupo-just-in { flex: 1; min-width: 220px; }
+/* El nivel de agrupado no es cosmetico: decide de QUE es la decision. */
+.ia-nivel { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 12px; color: #64748B; }
+.ia-nivel button {
+  padding: 4px 12px; border: 1px solid #E2E8F0; background: #fff; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: #475569; cursor: pointer;
+}
+.ia-nivel button.on { background: #0F172A; color: #fff; border-color: #0F172A; }

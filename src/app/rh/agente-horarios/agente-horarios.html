@@ -154,19 +154,105 @@
   <!-- ===================== PESTAÑAS ===================== -->
   <div class="ia-tabs-row">
     <nav class="ia-tabs" role="group" aria-label="Filtro de alertas">
+      <button [class.on]="tab === 'causas'" (click)="cambiarTab('causas')"
+              title="La cola agrupada: una línea por causa en vez de una tarjeta por día">Por causa</button>
       <button [class.on]="tab === 'pendientes'" (click)="cambiarTab('pendientes')">Pendientes</button>
       <button [class.on]="tab === 'resueltas'" (click)="cambiarTab('resueltas')">Resueltas</button>
       <button [class.on]="tab === 'todas'" (click)="cambiarTab('todas')">Todas</button>
     </nav>
-    <button class="ia-icon-btn" (click)="cargarAlertas()" title="Refrescar alertas" aria-label="Refrescar alertas">
+    <button class="ia-icon-btn" (click)="tab === 'causas' ? cargarGrupos() : cargarAlertas()"
+            title="Refrescar" aria-label="Refrescar">
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <path d="M13.5 8a5.5 5.5 0 1 1-1.9-4.2"/><path d="M13.6 2.4v3.3h-3.3"/>
       </svg>
     </button>
-    <span class="ia-conteo">{{ alertasVisibles.length }} alerta(s)</span>
+    <span class="ia-conteo">
+      @if (tab === 'causas') { {{ totalGrupos }} línea(s) · {{ agrupadas?.total }} alerta(s) }
+      @else { {{ alertasVisibles.length }} alerta(s) }
+    </span>
   </div>
 
+  <!-- ===================== LA COLA AGRUPADA POR CAUSA =====================
+       Una línea por regla + persona, en vez de una tarjeta por día. Con 2,510
+       borradores esperando, la lista de uno en uno no se trabaja nunca; agrupada
+       son decenas de líneas y la decisión que corresponde a cada causa es
+       distinta (el lector duplica → es del aparato; no marcó la salida → es de
+       la rutina de esa persona). -->
+  @if (tab === 'causas') {
+    @if (cargandoGrupos) {
+      <p class="ia-vacio">Agrupando la cola…</p>
+    } @else if (!grupos.length) {
+      <p class="ia-vacio">
+        No hay borradores esperando decisión@if (sucursalId) { en esta sucursal }.
+      </p>
+    } @else {
+      <div class="ia-nivel">
+        <span>Agrupar por:</span>
+        <button [class.on]="nivelGrupos === 'sucursal'" (click)="cambiarNivel('sucursal')"
+                title="Una línea por regla y plaza. Es el nivel correcto cuando la causa es el lector.">Sucursal</button>
+        <button [class.on]="nivelGrupos === 'persona'" (click)="cambiarNivel('persona')"
+                title="Una línea por persona. Es el nivel correcto cuando la causa es su rutina.">Persona</button>
+      </div>
+
+      <p class="ia-nota">
+        {{ agrupadas?.total }} borradores esperando, agrupados en <b>{{ totalGrupos }} líneas</b>.
+        En bloque solo se puede <b>rechazar</b> (no era una inconsistencia) o <b>descartar</b>
+        (es real, pero no se va a perseguir). <b>Aprobar sigue siendo de una en una</b>, en la
+        pestaña Pendientes: aprobar avisa por WhatsApp al jefe de la sucursal, y un grupo de 400
+        mandaría 400 mensajes a una persona real.
+      </p>
+
+      <div class="ia-reglas">
+        @for (r of reglasEnCola; track r.regla) {
+          <span class="ia-regla-chip"><b>{{ r.n }}</b> {{ etiquetaRegla(r.regla) }}</span>
+        }
+      </div>
+
+      <div class="ia-grupos">
+        @for (f of grupos; track f.regla + f.sucursalId + f.empleadoCodigo) {
+          <div class="ia-grupo">
+            <div class="ia-grupo-top">
+              <span class="ia-grupo-n">{{ f.total }}</span>
+              <div class="ia-grupo-id">
+                <span class="ia-grupo-regla">{{ etiquetaRegla(f.regla) }}</span>
+                <span class="ia-grupo-quien">
+                  @if (f.empleadoCodigo) {
+                    {{ f.empleadoNombre || '(sin nombre en el padrón)' }}
+                    <span class="ia-grupo-cod">#{{ f.empleadoCodigo }}</span> · {{ f.sucursalId }}
+                  } @else {
+                    <b>{{ f.sucursalId }}</b> · {{ f.personas }} persona(s) afectadas
+                  }
+                </span>
+                <span class="ia-grupo-fechas">del {{ f.primeraFecha }} al {{ f.ultimaFecha }}</span>
+              </div>
+              @if (f.conJustificacion > 0) {
+                <span class="ia-grupo-just" title="Su jefe ya justificó estas por WhatsApp">
+                  {{ f.conJustificacion }} ya justificada(s)
+                </span>
+              }
+            </div>
+            @if (causaDe(f.regla)) {
+              <p class="ia-grupo-causa">{{ causaDe(f.regla) }}</p>
+            }
+            <div class="ia-grupo-acciones">
+              <input class="ia-in ia-grupo-just-in" [(ngModel)]="f.justificacion"
+                     placeholder="Motivo (se guarda en las {{ f.total }})">
+              <button class="ia-btn ia-btn-sm" [disabled]="f.trabajando"
+                      (click)="decidirGrupoFila(f, 'rechazada')"
+                      title="No era una inconsistencia real">Rechazar las {{ f.total }}</button>
+              <button class="ia-btn ia-btn-sm ia-btn-ghost" [disabled]="f.trabajando"
+                      (click)="decidirGrupoFila(f, 'descartada')"
+                      title="Es real, pero no se va a perseguir (p. ej. el lector duplica)">Descartar las {{ f.total }}</button>
+              @if (f.error) { <span class="ia-jefe-err">{{ f.error }}</span> }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
   <!-- ===================== TABLA DE ALERTAS ===================== -->
+  @if (tab !== 'causas') {
   @if (!sucursalId) {
     <p class="ia-vacio">Elige una sucursal para ver lo que el agente encontró.</p>
   } @else if (cargandoAlertas) {
@@ -267,5 +353,6 @@
         }
       </table>
     </div>
+  }
   }
 </div>
