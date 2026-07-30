@@ -9,6 +9,7 @@ import {
   calcularResultadoLiderazgo, calificaEnEvaluacion
 } from '../../app/core/models/cuestionario-liderazgo.model';
 import { ID_ETAPAS } from '../../app/core/models/proceso.model';
+import { revisarAvance } from '../../app/core/models/requisitos-avance.model';
 
 @Component({
   selector: 'app-evaluacion-liderazgo',
@@ -255,6 +256,17 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     const actual = this.candidato?.status;
     // Solo reubicamos a quienes siguen en la 1ª fase (o sin etapa / 'nuevo').
     if (actual && actual !== ID_ETAPAS.FILTRO && actual !== ID_ETAPAS.NUEVO) return;
+
+    // Y solo si CUMPLE LOS MÍNIMOS del expediente. Contestar bien el cuestionario
+    // no sustituye tener CV ni el registro completo: hasta el 30/07/2026 esto no
+    // se revisaba y así llegaron a la 2ª fase candidatos sin CV, con el registro a
+    // medias y uno con conflicto de interés declarado. Si no cumple se queda en
+    // Filtro Inicial —su respuesta YA quedó guardada— y RH decide a mano.
+    const revision = revisarAvance(this.candidato);
+    if (!revision.ok) {
+      console.warn('[evaluacion] no se autoavanza:', revision.motivos.join(' · '));
+      return;
+    }
     try {
       await this.candidateService.updateCandidate(
         this.candidatoId,
