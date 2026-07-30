@@ -21,6 +21,50 @@
   } @else {
 
 
+    <!-- REQUISICIONES ABIERTAS · lo que las sucursales están pidiendo hoy.
+         Va arriba de todo a propósito: es la única sección del panel que pide
+         una acción con fecha; el resto son indicadores para leer. -->
+    @if (requis && (requis.pendientes || requis.autorizadas)) {
+      <section class="req-panel" [class.urge]="requis.vencidas > 0 || requis.paraHoy > 0">
+        <header class="req-panel-head">
+          <div>
+            <h2>Requisiciones abiertas</h2>
+            <p>
+              {{ requis.personasPedidas }} persona(s) pedidas en
+              {{ requis.pendientes + requis.autorizadas }} requisición(es)
+              @if (requis.pendientes) { · <b>{{ requis.pendientes }} sin autorizar</b> }
+            </p>
+          </div>
+          <div class="req-panel-cifras">
+            @if (requis.vencidas) {
+              <span class="req-cifra tarde">{{ requis.vencidas }} vencida(s)</span>
+            }
+            @if (requis.paraHoy) {
+              <span class="req-cifra hoy">{{ requis.paraHoy }} para hoy</span>
+            }
+            <button type="button" class="req-ver" (click)="irARequisiciones()">Ver todas</button>
+          </div>
+        </header>
+
+        @if (requis.urgentes.length) {
+          <ul class="req-lista">
+            @for (r of requis.urgentes; track r.id) {
+              <li class="req-item" [attr.data-nivel]="nivelRequis(r)" (click)="irARequisiciones()">
+                <span class="req-item-puesto">
+                  {{ r.puesto }}@if (r.vacantes > 1) { <b> × {{ r.vacantes }}</b> }
+                </span>
+                <span class="req-item-suc">{{ sucursalRequis(r.sucursalId) }}</span>
+                <span class="req-item-urg">{{ urgenciaRequis(r) }}</span>
+                @if (r.estado === 'pendiente') { <span class="req-item-est">sin autorizar</span> }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    } @else if (requisError) {
+      <p class="req-aviso">No se pudieron leer las requisiciones. El resto del panel sí está al día.</p>
+    }
+
     <!-- KPIs -->
     <section class="kpi-section">
       <div class="kpi-card">

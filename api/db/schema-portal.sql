@@ -114,3 +114,57 @@ CREATE TABLE IF NOT EXISTS puestos (
   extra             JSONB NOT NULL DEFAULT '{}'::jsonb,
   creado_en         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- =====================================================================
+-- REQUISICIONES DE PERSONAL
+--
+-- La petición formal de una sucursal: "necesito a alguien para este puesto".
+-- Hasta ahora esto viajaba por WhatsApp y por eso no había forma de saber
+-- cuántas están esperando, desde cuándo, ni cuáles ya se cubrieron.
+--
+-- Tres decisiones que explican la forma de la tabla:
+--
+-- 1. `puesto` ES TEXTO LIBRE Y `puesto_id` ES OPCIONAL. Se pide personal para
+--    puestos que todavía NO existen como vacante publicada — de hecho ese es el
+--    caso normal: primero se pide, después se abre la vacante. Obligar a elegir
+--    de un catálogo haría que la requisición no se pudiera capturar cuando más
+--    urge.
+--
+-- 2. LA URGENCIA SE GUARDA COMO FECHA, NO COMO BANDERA. "Urgente" envejece:
+--    lo que era para hoy, mañana ya está vencido y nadie lo nota. Con
+--    `fecha_requerida` la pantalla puede decir "vencida hace 3 días" en vez de
+--    un chip rojo permanente que se vuelve paisaje.
+--
+-- 3. `cubierta_por` APUNTA AL CANDIDATO. Es el puente que faltaba entre pedir
+--    gente y contratarla: sin él no se puede responder "esta vacante, ¿con
+--    quién se cubrió y en cuántos días?".
+--
+--   estado = pendiente | autorizada | rechazada | cubierta | cancelada
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS requisiciones (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  folio           SERIAL,
+  puesto          TEXT NOT NULL,
+  puesto_id       UUID REFERENCES puestos(id) ON DELETE SET NULL,
+  sucursal_id     TEXT,
+  area            TEXT,
+  vacantes        INTEGER NOT NULL DEFAULT 1,
+  motivo          TEXT,               -- nuevo | reemplazo | temporal | otro
+  reemplaza_a     TEXT,               -- a quién sustituye, si es reemplazo
+  fecha_requerida DATE,               -- para cuándo se necesita (hoy = urgente)
+  justificacion   TEXT,
+  archivo_url     TEXT,               -- el formato escaneado/firmado, si lo hay
+  archivo_nombre  TEXT,
+  solicita        TEXT,               -- quién la pide (jefe de la sucursal)
+  estado          TEXT NOT NULL DEFAULT 'pendiente',
+  resuelta_por    TEXT,
+  resuelta_en     TIMESTAMPTZ,
+  nota_resolucion TEXT,
+  cubierta_por    UUID REFERENCES candidatos(id) ON DELETE SET NULL,
+  cubierta_en     TIMESTAMPTZ,
+  creado_por      TEXT,
+  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_requis_estado   ON requisiciones (estado);
+CREATE INDEX IF NOT EXISTS idx_requis_fecha    ON requisiciones (fecha_requerida);
+CREATE INDEX IF NOT EXISTS idx_requis_sucursal ON requisiciones (sucursal_id);

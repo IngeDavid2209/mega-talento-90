@@ -10,6 +10,8 @@ import {
   nivelSeguimiento, diasSinSeguimiento, esActivoEnProceso,
   SEGUIMIENTO_AVISO_DIAS, SEGUIMIENTO_CRITICO_DIAS, NivelSeguimiento
 } from '../../core/models/seguimiento.model';
+import { RequisicionesService, ResumenRequisiciones, Requisicion } from '../../core/services/requisiciones.service';
+import { centroChecadorPorId } from '../../core/models/sucursales.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -81,7 +83,53 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // dashboard (nunca se liberaban), degradando la app progresivamente.
   private unsubscribeFn: (() => void) | null = null;
 
+  // ── Requisiciones abiertas ────────────────────────────────────────
+  //
+  // El panel ya decía cuánta gente hay en proceso, pero no cuánta gente están
+  // PIDIENDO las sucursales. Sin eso, "8 en aptitudes" no dice si vamos bien o
+  // mal: depende de si hay 2 requisiciones esperando o 20.
+  private requisicionesService = inject(RequisicionesService);
+  requis: ResumenRequisiciones | null = null;
+  requisError = false;
+
+  async cargarRequisiciones() {
+    try {
+      this.requis = await this.requisicionesService.resumen();
+    } catch {
+      // El panel completo no se cae por esto: se muestra el aviso y ya.
+      this.requisError = true;
+    }
+  }
+
+  irARequisiciones() { this.router.navigate(['/app/requisiciones']); }
+
+  /** "Vencida hace 2 días" / "Para hoy" / "Faltan 3 días" */
+  urgenciaRequis(r: Requisicion): string {
+    const d = r.diasParaFecha;
+    if (d === null) return `${r.diasEsperando} día(s) esperando`;
+    if (d < 0) return `Vencida hace ${Math.abs(d)} día(s)`;
+    if (d === 0) return 'Para hoy';
+    if (d === 1) return 'Para mañana';
+    return `Faltan ${d} día(s)`;
+  }
+
+  /** El id de sucursal no se le enseña a nadie: se traduce al nombre real. */
+  sucursalRequis(id: string | null): string {
+    if (!id) return 'sin sucursal';
+    const s = centroChecadorPorId(id);
+    return s ? `${s.ciudad}${s.direccion ? ' · ' + s.direccion.split(',')[0] : ''}` : id;
+  }
+
+  nivelRequis(r: Requisicion): string {
+    const d = r.diasParaFecha;
+    if (d === null) return r.diasEsperando > 7 ? 'atencion' : 'bien';
+    if (d < 0) return 'tarde';
+    if (d <= 1) return 'atencion';
+    return 'bien';
+  }
+
   async ngOnInit() {
+    this.cargarRequisiciones();
     this.unsubscribeFn = this.candidateService.listenToCandidates(datos => {
       this.ngZone.run(() => {
         this.candidatos = datos;

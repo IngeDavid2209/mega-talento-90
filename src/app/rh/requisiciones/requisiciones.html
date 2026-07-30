@@ -1,0 +1,223 @@
+<div class="rq-wrap">
+
+  <header class="rq-head">
+    <div>
+      <h1>Requisiciones de personal</h1>
+      <p class="rq-sub">
+        Lo que cada sucursal necesita, con fecha. Antes esto viajaba por WhatsApp y no había
+        forma de saber cuántas están esperando ni desde cuándo.
+      </p>
+    </div>
+    <button type="button" class="rq-btn rq-btn-alta" (click)="abrirAlta()">+ Nueva requisición</button>
+  </header>
+
+  <!-- Lo que urge, arriba y en números -->
+  @if (!cargando && lista.length) {
+    <div class="rq-tiras">
+      <div class="rq-tira" [class.alerta]="cuantasVencidas > 0">
+        <span class="rq-tira-n">{{ cuantasVencidas }}</span>
+        <span class="rq-tira-l">vencidas</span>
+      </div>
+      <div class="rq-tira" [class.aviso]="cuantasParaHoy > 0">
+        <span class="rq-tira-n">{{ cuantasParaHoy }}</span>
+        <span class="rq-tira-l">para hoy</span>
+      </div>
+      <div class="rq-tira">
+        <span class="rq-tira-n">{{ personasPedidas }}</span>
+        <span class="rq-tira-l">personas pedidas</span>
+      </div>
+    </div>
+  }
+
+  <div class="rq-filtros">
+    @for (f of FILTROS; track f.id) {
+      <button type="button" class="rq-pill" [class.on]="filtro === f.id" (click)="cambiarFiltro(f.id)">
+        {{ f.label }}
+      </button>
+    }
+  </div>
+
+  @if (cargando) {
+    <p class="rq-estado">Cargando…</p>
+  } @else if (error) {
+    <p class="rq-estado err">{{ error }}</p>
+  } @else if (!lista.length) {
+    <p class="rq-vacio">
+      No hay requisiciones {{ filtro === 'abiertas' ? 'abiertas' : 'con este filtro' }}.
+      Cuando una sucursal pida personal, se captura aquí con el botón de arriba.
+    </p>
+  } @else {
+
+    <div class="rq-lista">
+      @for (r of lista; track r.id) {
+        <article class="rq-card" [attr.data-nivel]="nivel(r)">
+
+          <div class="rq-card-top">
+            <span class="rq-folio">#{{ r.folio }}</span>
+            <div class="rq-id">
+              <h3>
+                {{ r.puesto }}
+                @if (r.vacantes > 1) { <span class="rq-x">× {{ r.vacantes }}</span> }
+              </h3>
+              <p class="rq-meta">
+                {{ sucursal(r.sucursalId) }}
+                @if (r.area) { · {{ r.area }} }
+                · {{ motivoLabel(r.motivo) }}@if (r.motivo === 'reemplazo' && r.reemplazaA) { de {{ r.reemplazaA }} }
+              </p>
+            </div>
+            <span class="rq-urgencia" [attr.data-nivel]="nivel(r)">{{ urgencia(r) }}</span>
+          </div>
+
+          <div class="rq-datos">
+            <span class="rq-dato"><b>Se necesita</b> {{ fecha(r.fechaRequerida) }}</span>
+            <span class="rq-dato"><b>Pedida</b> {{ fecha(r.creadoEn) }}@if (r.solicita) { por {{ r.solicita }} }</span>
+            @if (r.archivoUrl) {
+              <a class="rq-dato rq-adj" [href]="r.archivoUrl" target="_blank" rel="noopener">
+                {{ r.archivoNombre || 'Ver formato' }}
+              </a>
+            }
+            @if (r.estado === 'cubierta' && r.cubiertaNombre) {
+              <span class="rq-dato ok"><b>Cubierta con</b> {{ r.cubiertaNombre }}</span>
+            }
+          </div>
+
+          @if (r.justificacion) {
+            <p class="rq-just">{{ r.justificacion }}</p>
+          }
+
+          @if (r.notaResolucion) {
+            <p class="rq-nota">{{ r.notaResolucion }}@if (r.resueltaPor) { — {{ r.resueltaPor }} }</p>
+          }
+
+          <div class="rq-acciones">
+            @if (r.estado === 'pendiente') {
+              <button type="button" class="rq-btn rq-ok" [disabled]="ocupado.has(r.id)"
+                      (click)="cambiarEstado(r, 'autorizada')">Autorizar</button>
+              <button type="button" class="rq-btn rq-no" [disabled]="ocupado.has(r.id)"
+                      (click)="cambiarEstado(r, 'rechazada')">Rechazar</button>
+            }
+            @if (r.estado === 'autorizada') {
+              <button type="button" class="rq-btn" (click)="buscarCandidatos(r)">Buscar candidatos</button>
+              <button type="button" class="rq-btn rq-ok" [disabled]="ocupado.has(r.id)"
+                      (click)="cambiarEstado(r, 'cubierta')">Marcar cubierta</button>
+            }
+            @if (r.estado === 'pendiente' || r.estado === 'autorizada') {
+              <button type="button" class="rq-btn rq-ghost" [disabled]="ocupado.has(r.id)"
+                      (click)="cambiarEstado(r, 'cancelada')">Cancelar</button>
+            }
+            @if (r.estado !== 'pendiente' && r.estado !== 'autorizada') {
+              <button type="button" class="rq-btn rq-ghost" [disabled]="ocupado.has(r.id)"
+                      (click)="cambiarEstado(r, 'pendiente')">Reabrir</button>
+            }
+            <button type="button" class="rq-link-borrar" (click)="borrar(r)">Borrar</button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
+
+<!-- ══════════════ ALTA ══════════════ -->
+@if (abierto) {
+  <div class="rq-modal-fondo" (click)="cerrarAlta()">
+    <div class="rq-modal" (click)="$event.stopPropagation()">
+      <header class="rq-modal-head">
+        <h2>Nueva requisición</h2>
+        <button type="button" class="rq-cerrar" (click)="cerrarAlta()" aria-label="Cerrar">✕</button>
+      </header>
+
+      <div class="rq-form">
+        <label class="rq-campo rq-ancho">
+          <span>Puesto que se necesita *</span>
+          <input type="text" [(ngModel)]="nueva.puesto" (input)="alEscribirPuesto()"
+                 list="rq-puestos" placeholder="Ej. Cajero, Almacenista, Auxiliar de producción"
+                 maxlength="80" autocomplete="off">
+          <datalist id="rq-puestos">
+            @for (p of puestos; track p.id) { <option [value]="p.nombre"></option> }
+          </datalist>
+          @if (nueva.puestoId) {
+            <small class="rq-ayuda ok">Coincide con una vacante publicada: queda enlazada.</small>
+          } @else if (nueva.puesto) {
+            <small class="rq-ayuda">No hay una vacante con ese nombre. Se puede pedir igual.</small>
+          }
+        </label>
+
+        <label class="rq-campo">
+          <span>Sucursal</span>
+          <select [(ngModel)]="nueva.sucursalId">
+            <option value="">— elige —</option>
+            @for (s of SUCURSALES; track s.id) {
+              <option [value]="s.id">{{ s.ciudad }}@if (s.direccion) { · {{ s.direccion.split(',')[0] }} }</option>
+            }
+          </select>
+        </label>
+
+        <label class="rq-campo">
+          <span>Área</span>
+          <input type="text" [(ngModel)]="nueva.area" maxlength="60" placeholder="Ej. Piso de venta">
+        </label>
+
+        <label class="rq-campo rq-corto">
+          <span>¿Cuántas personas?</span>
+          <input type="number" [(ngModel)]="nueva.vacantes" min="1" max="99">
+        </label>
+
+        <label class="rq-campo">
+          <span>Motivo</span>
+          <select [(ngModel)]="nueva.motivo">
+            @for (m of MOTIVOS; track m.id) { <option [value]="m.id">{{ m.label }}</option> }
+          </select>
+        </label>
+
+        @if (nueva.motivo === 'reemplazo') {
+          <label class="rq-campo">
+            <span>¿A quién reemplaza?</span>
+            <input type="text" [(ngModel)]="nueva.reemplazaA" maxlength="80" placeholder="Nombre de quien se va">
+          </label>
+        }
+
+        <label class="rq-campo">
+          <span>¿Para cuándo se necesita?</span>
+          <input type="date" [(ngModel)]="nueva.fechaRequerida">
+          <small class="rq-ayuda">
+            Déjala en hoy si urge para hoy mismo. De aquí sale el orden de la bandeja.
+          </small>
+        </label>
+
+        <label class="rq-campo">
+          <span>¿Quién la pide?</span>
+          <input type="text" [(ngModel)]="nueva.solicita" maxlength="80" placeholder="Jefe de la sucursal">
+        </label>
+
+        <label class="rq-campo rq-ancho">
+          <span>Justificación</span>
+          <textarea rows="3" [(ngModel)]="nueva.justificacion" maxlength="600"
+                    placeholder="Por qué se necesita: carga de trabajo, temporada, renuncia…"></textarea>
+        </label>
+
+        <div class="rq-campo rq-ancho">
+          <span>Formato firmado (opcional)</span>
+          @if (nueva.archivoUrl) {
+            <div class="rq-adjunto">
+              <a [href]="nueva.archivoUrl" target="_blank" rel="noopener">{{ nueva.archivoNombre }}</a>
+              <button type="button" class="rq-link-borrar" (click)="quitarAdjunto()">Quitar</button>
+            </div>
+          } @else {
+            <label class="rq-subir">
+              <input type="file" (change)="adjuntar($event)" [disabled]="subiendo" hidden>
+              {{ subiendo ? 'Subiendo…' : 'Adjuntar archivo' }}
+            </label>
+            <small class="rq-ayuda">Si el formato firmado llega después, la requisición se guarda sin él.</small>
+          }
+        </div>
+      </div>
+
+      <footer class="rq-modal-pie">
+        <button type="button" class="rq-btn rq-ghost" (click)="cerrarAlta()">Cancelar</button>
+        <button type="button" class="rq-btn rq-btn-alta" [disabled]="!puedeGuardar" (click)="guardar()">
+          {{ guardando ? 'Guardando…' : 'Registrar requisición' }}
+        </button>
+      </footer>
+    </div>
+  </div>
+}

@@ -26,6 +26,7 @@ import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/result
 import { HorariosComponent } from './rh/horarios/horarios';
 import { AgenteHorariosComponent } from './rh/agente-horarios/agente-horarios';
 import { KpiComponent } from './rh/kpi/kpi';
+import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
 
 export const routes: Routes = [
   {
@@ -36,6 +37,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'concentrado', component: ConcentradoComponent },
       { path: 'kpi', component: KpiComponent }, // tablero operativo (contactos, tiempos, cobertura)
+      { path: 'requisiciones', component: RequisicionesComponent }, // lo que cada sucursal pide
       { path: 'destacados', component: DestacadosComponent },
       { path: 'en-riesgo', component: EnRiesgoComponent },
       { path: 'etapa/:etapaId', component: EtapaComponent },
