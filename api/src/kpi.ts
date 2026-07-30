@@ -36,6 +36,24 @@ import { requireAuth, AuthedRequest } from './auth';
 export const kpiRouter = Router();
 kpiRouter.use(requireAuth);
 
+/**
+ * ── LOS DÍAS SE CUENTAN EN HORA DE MÉXICO, NO EN UTC ────────────────────
+ *
+ * El Postgres de Railway corre en `Etc/UTC`, así que `creado_en::date` parte el
+ * día a las 18:00 hora de México. Medido el 30/07/2026 sobre la tabla `mensajes`:
+ * 1,998 de 8,251 registros (24%) caían en un día distinto al real. En un tablero
+ * que responde "¿a cuánta gente se contactó HOY?", eso es un cuarto del trabajo
+ * de la tarde apareciendo como del día siguiente.
+ *
+ * `dia()` convierte un timestamptz al día calendario mexicano y `hoy()` da la
+ * fecha de hoy con el mismo criterio. Se usan en TODA consulta que agrupe o
+ * filtre por fecha; si se mezclan las dos formas, los totales no cuadran entre
+ * bloques del mismo tablero.
+ */
+const TZ = 'America/Mexico_City';
+const dia = (col: string) => `((${col} AT TIME ZONE '${TZ}')::date)`;
+const hoy = () => `((now() AT TIME ZONE '${TZ}')::date)`;
+
 function fallo(res: Response, e: any, msg: string) {
   console.error('[kpi]', msg, e);
   return res.status(500).json({ error: msg });
@@ -115,6 +133,123 @@ kpiRouter.delete('/eventos/:id', async (req: Request, res: Response) => {
 });
 
 // =====================================================================
+// FUERA DE LUGAR: quién está en una fase adelantada sin cumplir lo mínimo
+// =====================================================================
+//
+// El 30/07/2026, revisando a mano, salieron 20 candidatos en fases posteriores a
+// Filtro Inicial que no debían estar ahí: sin CV, con el registro del bot a
+// medias, pidiendo un puesto cerrado, y uno con conflicto de interés declarado.
+// La causa era el autoavance del cuestionario (ya corregido en el front), pero
+// los que ya subieron siguen arriba, y esto tiene que poder revisarse SIN que
+// nadie corra un script.
+//
+// ── Dos reglas para que la lista sirva ──
+//
+// 1. "SIN DICTAMEN" NO ES UNA FALLA. Los candidatos que entraron antes de que
+//    existiera el análisis automático no están mal: están sin evaluar. Se cuentan
+//    aparte (`sinEvaluar`) porque mezclarlos convertía 20 avisos útiles en 89
+//    líneas de ruido — y una alerta con ruido se ignora.
+//
+// 2. EL PUESTO SE REVISA A LA LIGERA, A PROPÓSITO. Se marca solo cuando el texto
+//    del candidato no comparte NINGUNA palabra con las vacantes abiertas. Es
+//    preferible dejar pasar un caso dudoso que llenar la lista de falsas alarmas
+//    ("Cajero (a) o Anaquelista" es un puesto válido escrito a su manera).
+// =====================================================================
+
+const FASES_ADELANTADAS = ['entrevista_rh', 'aptitudes', 'psicometria', 'contratado'];
+
+const normPalabra = (s: string) => String(s || '').toLowerCase().normalize('NFD')
+  .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').trim();
+
+/** Palabras de 4+ letras: las que de verdad identifican un puesto. */
+function palabrasDe(texto: string): string[] {
+  return normPalabra(texto).split(/\s+/).filter(w => w.length >= 4);
+}
+
+/** ¿El texto del candidato se parece a ALGUNA vacante abierta? (a la ligera) */
+function pareceVacanteAbierta(texto: string, vacantes: string[]): boolean {
+  const mias = palabrasDe(texto);
+  if (!mias.length) return true; // sin texto no acusamos
+  return vacantes.some(v => palabrasDe(v).some(w =>
+    mias.some(m => m.startsWith(w.slice(0, 5)) || w.startsWith(m.slice(0, 5)))
+  ));
+}
+
+kpiRouter.get('/fuera-de-lugar', async (_req: Request, res: Response) => {
+  try {
+    const vac = await pool.query(
+      `SELECT nombre FROM puestos WHERE activo IS DISTINCT FROM false`
+    );
+    const vacantes: string[] = vac.rows.map((r: any) => r.nombre);
+
+    const { rows } = await pool.query(
+      `SELECT id, nombre_completo AS nombre, puesto_interes AS puesto,
+              portal_status AS etapa, estado AS "estadoBot",
+              cv_url, documentos, portal_data,
+              round((EXTRACT(EPOCH FROM (now() - creado_en)) / 86400)::numeric, 1) AS dias
+         FROM candidatos
+        WHERE deleted_at IS NULL AND portal_status = ANY($1::text[])
+        ORDER BY nombre_completo`,
+      [FASES_ADELANTADAS]
+    );
+
+    const casos: any[] = [];
+    let sinEvaluar = 0;
+
+    for (const c of rows) {
+      const pd = (c.portal_data && typeof c.portal_data === 'object') ? c.portal_data : {};
+      const docs = Array.isArray(c.documentos) ? c.documentos : [];
+      const tieneCv = !!(String(c.cv_url || '').trim() || pd.cvUrl
+        || docs.some((d: any) => d && d.slot === 'cv'));
+      const d = pd.dictamen || null;
+      const motivos: string[] = [];
+
+      if (!tieneCv) motivos.push('No tiene CV en el expediente.');
+
+      const eb = String(c.estadoBot || '');
+      if (eb.startsWith('esperando_')) {
+        motivos.push(`Su registro quedó incompleto: falta ${eb.replace('esperando_', '').replace(/_/g, ' ')}.`);
+      }
+
+      // Banderas graves de política (familiar en la empresa, prueba no apta).
+      // `sin_cv` se omite porque ya se reporta arriba con sus propias palabras.
+      for (const r of ((d?.reglas || []) as any[]).filter(x => x?.gravedad === 'alta' && x?.codigo !== 'sin_cv')) {
+        motivos.push(r.texto || `Bandera grave: ${r.codigo}`);
+      }
+
+      if (d?.recomendacion === 'descartar' && d?.cv_leido) {
+        motivos.push(`El análisis del CV recomienda descartar (${d.puntaje}/100).`);
+      }
+
+      if (c.puesto && !pareceVacanteAbierta(c.puesto, vacantes)) {
+        motivos.push(`Pide "${c.puesto}" y no hay una vacante abierta que corresponda.`);
+      }
+
+      if (/prueba|borrar|^test/i.test(String(c.nombre || ''))) {
+        motivos.push('Parece un registro de PRUEBA.');
+      }
+
+      if (!motivos.length) { if (!d) sinEvaluar++; continue; }
+      casos.push({
+        id: c.id, nombre: c.nombre, puesto: c.puesto, etapa: c.etapa,
+        dias: Number(c.dias), motivos,
+        dictamen: d ? { recomendacion: d.recomendacion, puntaje: d.puntaje, nivel: d.nivel } : null,
+      });
+    }
+
+    return res.json({
+      total: rows.length,
+      conProblema: casos.length,
+      sinEvaluar,
+      casos,
+      nota: sinEvaluar
+        ? `${sinEvaluar} candidato(s) en fases adelantadas todavía no tienen análisis del CV. No es una falla: nadie los ha evaluado.`
+        : null,
+    });
+  } catch (e) { return fallo(res, e, 'No se pudo revisar quién está fuera de lugar.'); }
+});
+
+// =====================================================================
 // EL TABLERO
 // =====================================================================
 
@@ -132,8 +267,12 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
 
   try {
     const rango = await pool.query(
-      `SELECT coalesce($1::date, current_date - ($3::int - 1)) AS desde,
-              coalesce($2::date, current_date) AS hasta`,
+      // Se devuelven como TEXTO 'YYYY-MM-DD' a propósito: si salen como `date`,
+      // el driver los convierte a Date de JS en la zona del proceso y al llegar
+      // al navegador ya son "2026-07-30T00:00:00.000Z" — el front concatenaba
+      // 'T12:00:00' a eso y toda la gráfica mostraba "Invalid Date".
+      `SELECT to_char(coalesce($1::date, ${hoy()} - ($3::int - 1)), 'YYYY-MM-DD') AS desde,
+              to_char(coalesce($2::date, ${hoy()}), 'YYYY-MM-DD') AS hasta`,
       [desde, hasta, dias]
     );
     const D = rango.rows[0].desde, H = rango.rows[0].hasta;
@@ -146,47 +285,54 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
     const serie = await pool.query(
       `WITH dias AS (SELECT generate_series($1::date, $2::date, '1 day')::date AS dia),
        post AS (
-         SELECT creado_en::date AS dia, count(*) AS n
+         SELECT ${dia('creado_en')} AS dia, count(*) AS n
            FROM candidatos WHERE deleted_at IS NULL
-            AND creado_en::date BETWEEN $1 AND $2 GROUP BY 1
+            AND ${dia('creado_en')} BETWEEN $1 AND $2 GROUP BY 1
        ),
        bot_out AS (
-         SELECT creado_en::date AS dia, telefono
-           FROM mensajes WHERE direccion='out' AND creado_en::date BETWEEN $1 AND $2
+         SELECT ${dia('creado_en')} AS dia, telefono
+           FROM mensajes WHERE direccion='out' AND ${dia('creado_en')} BETWEEN $1 AND $2
           GROUP BY 1,2
        ),
        bot_in AS (
-         SELECT creado_en::date AS dia, count(DISTINCT telefono) AS n
-           FROM mensajes WHERE direccion='in' AND creado_en::date BETWEEN $1 AND $2
+         SELECT ${dia('creado_en')} AS dia, count(DISTINCT telefono) AS n
+           FROM mensajes WHERE direccion='in' AND ${dia('creado_en')} BETWEEN $1 AND $2
           GROUP BY 1
        ),
        rh AS (
-         SELECT ocurrido_en::date AS dia, candidato_id
+         SELECT ${dia('ocurrido_en')} AS dia, candidato_id
            FROM candidatos_eventos
           WHERE tipo='contacto' AND coalesce(canal,'') <> 'bot'
-            AND ocurrido_en::date BETWEEN $1 AND $2
+            AND ${dia('ocurrido_en')} BETWEEN $1 AND $2
           GROUP BY 1,2
        ),
+       -- Para deduplicar contra el bot se compara por teléfono. Si el candidato
+       -- no tiene teléfono capturado NO se puede cruzar, así que se le da una
+       -- llave propia con su id: sin esto, todas las personas sin teléfono se
+       -- fundían en una sola fila y el día reportaba un contacto donde hubo diez.
        rh_tel AS (
-         SELECT r.dia, regexp_replace(coalesce(c.telefono,''), '[^0-9]', '', 'g') AS tel
+         SELECT r.dia,
+                coalesce(nullif(right(regexp_replace(coalesce(c.telefono,''), '[^0-9]', '', 'g'), 10), ''),
+                         'sin-tel:' || r.candidato_id::text) AS tel
            FROM rh r JOIN candidatos c ON c.id = r.candidato_id
        ),
        unicos AS (
-         SELECT dia, right(regexp_replace(telefono,'[^0-9]','','g'), 10) AS tel FROM bot_out
+         SELECT dia, coalesce(nullif(right(regexp_replace(telefono,'[^0-9]','','g'), 10), ''),
+                              'sin-tel-bot:' || telefono) AS tel FROM bot_out
          UNION
-         SELECT dia, right(tel, 10) FROM rh_tel
+         SELECT dia, tel FROM rh_tel
        ),
        ent AS (
-         SELECT ocurrido_en::date AS dia, count(*) AS n
+         SELECT ${dia('ocurrido_en')} AS dia, count(*) AS n
            FROM candidatos_eventos WHERE tipo='entrevista'
-            AND ocurrido_en::date BETWEEN $1 AND $2 GROUP BY 1
+            AND ${dia('ocurrido_en')} BETWEEN $1 AND $2 GROUP BY 1
        ),
        contrat AS (
-         SELECT cambiado_en::date AS dia, count(DISTINCT candidato_id) AS n
+         SELECT ${dia('cambiado_en')} AS dia, count(DISTINCT candidato_id) AS n
            FROM candidatos_transiciones WHERE etapa_destino='contratado'
-            AND cambiado_en::date BETWEEN $1 AND $2 GROUP BY 1
+            AND ${dia('cambiado_en')} BETWEEN $1 AND $2 GROUP BY 1
        )
-       SELECT d.dia,
+       SELECT to_char(d.dia, 'YYYY-MM-DD') AS dia,
               coalesce(p.n, 0)::int  AS postulaciones,
               (SELECT count(*) FROM bot_out b WHERE b.dia = d.dia)::int AS "contactadosBot",
               (SELECT count(*) FROM rh r WHERE r.dia = d.dia)::int      AS "contactadosRH",
@@ -267,12 +413,18 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
 
     // ── 5. Tiempo real por etapa (del historial de transiciones) ─────
     const porEtapa = await pool.query(
-      `SELECT etapa_origen AS etapa, count(*)::int AS n,
+      // etapa_origen NULL = el candidato entró por el bot y RH lo movió sin que
+      // nadie le hubiera fijado etapa nunca. Ese caso ES Filtro Inicial: el resto
+      // del sistema lo lee así (el embudo hace el mismo coalesce). Filtrarlo por
+      // NULL tiraba a la basura la transición más común del proceso —el 30/07/2026
+      // eran 5 de las 6 transiciones registradas— y dejaba la primera etapa, donde
+      // están 200 de 298 candidatos, sin ningún tiempo medido.
+      `SELECT coalesce(etapa_origen, 'filtro_inicial') AS etapa, count(*)::int AS n,
               round(avg(horas_en_origen)::numeric, 1) AS "promHoras",
               round(min(horas_en_origen)::numeric, 1) AS "minHoras",
               round(max(horas_en_origen)::numeric, 1) AS "maxHoras"
          FROM candidatos_transiciones
-        WHERE etapa_origen IS NOT NULL AND horas_en_origen IS NOT NULL
+        WHERE horas_en_origen IS NOT NULL
         GROUP BY 1 ORDER BY n DESC`
     );
 
@@ -280,9 +432,9 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
     const conv = await pool.query(
       `SELECT
         (SELECT count(DISTINCT candidato_id)::int FROM candidatos_eventos
-          WHERE tipo='entrevista' AND ocurrido_en::date BETWEEN $1 AND $2) AS entrevistados,
+          WHERE tipo='entrevista' AND ${dia('ocurrido_en')} BETWEEN $1 AND $2) AS entrevistados,
         (SELECT count(DISTINCT candidato_id)::int FROM candidatos_transiciones
-          WHERE etapa_destino='contratado' AND cambiado_en::date BETWEEN $1 AND $2) AS contratados`,
+          WHERE etapa_destino='contratado' AND ${dia('cambiado_en')} BETWEEN $1 AND $2) AS contratados`,
       [D, H]
     );
 

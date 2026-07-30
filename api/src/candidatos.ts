@@ -318,7 +318,11 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
                (SELECT c.creado_en FROM candidatos c WHERE c.id = $1::uuid),
                now()
              ))) / 3600`,
-          [idPatch, estadoPrevio, esp.portal_status]
+          // Si nunca tuvo etapa (entró por el bot y RH lo mueve por primera vez),
+          // la etapa que DEJA es Filtro Inicial: así lo lee el portal y así lo
+          // cuenta el embudo. Guardar NULL hacía que esa transición —la más
+          // común— no apareciera en el tiempo por etapa. Ver kpi.ts.
+          [idPatch, estadoPrevio || 'filtro_inicial', esp.portal_status]
         );
       } catch (err) {
         console.error('[candidatos] NO se registró la transición de fase (el KPI de tiempos se queda sin dato):', err);

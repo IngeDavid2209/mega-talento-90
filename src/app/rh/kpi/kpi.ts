@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { KpiService, Concentrado, DiaKpi, TipoEvento, CanalEvento } from '../../core/services/kpi.service';
+import { KpiService, Concentrado, DiaKpi, TipoEvento, CanalEvento, FueraDeLugar } from '../../core/services/kpi.service';
 import { ETAPAS, ETAPA_CONTRATADO } from '../../core/models/proceso.model';
 
 /**
@@ -47,6 +47,9 @@ export class KpiComponent implements OnInit {
   ];
   dias = 7;
 
+  /** Quién está en una fase adelantada sin cumplir los mínimos. */
+  fuera: FueraDeLugar | null = null;
+
   ngOnInit() { this.cargar(); }
 
   async cargar(dias = this.dias) {
@@ -62,6 +65,10 @@ export class KpiComponent implements OnInit {
     } finally {
       this.cargando = false;
     }
+    // La revisión de fases va aparte: si falla, el tablero igual sirve.
+    this.kpiService.fueraDeLugar()
+      .then(f => { this.fuera = f; })
+      .catch(() => { this.fuera = null; });
   }
 
   // ── Gráfica de barras (sin librerías: alto en % del máximo del rango) ──
@@ -76,14 +83,23 @@ export class KpiComponent implements OnInit {
     return `${Math.round((valor / this.maxDia) * 100)}%`;
   }
 
-  /** "mié 29" — etiqueta corta para el eje. */
+  /**
+   * "mié 29" — etiqueta corta para el eje.
+   * El API manda el día como texto 'YYYY-MM-DD' (ver kpi.ts del backend). Se le
+   * pega la hora del mediodía para construir la fecha en horario LOCAL: sin eso,
+   * 'YYYY-MM-DD' se interpreta como UTC y en México la etiqueta se recorre un día.
+   */
   etiquetaDia(dia: string): string {
-    const f = new Date(dia + 'T12:00:00');
+    const f = new Date(String(dia).slice(0, 10) + 'T12:00:00');
+    if (isNaN(f.getTime())) return String(dia).slice(0, 10);
     return f.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
   }
 
+  /** Hoy según el reloj de quien mira la pantalla, no según UTC. */
   esHoy(dia: string): boolean {
-    return dia?.slice(0, 10) === new Date().toISOString().slice(0, 10);
+    const local = new Date();
+    const hoy = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
+    return String(dia).slice(0, 10) === hoy;
   }
 
   // ── Embudo y etapas ──

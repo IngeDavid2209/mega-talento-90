@@ -62,12 +62,37 @@ export interface Concentrado {
   avisos: string[];
 }
 
+/** Un candidato que está en una fase adelantada sin cumplir lo mínimo. */
+export interface CasoFueraDeLugar {
+  id: string;
+  nombre: string;
+  puesto: string;
+  etapa: string;
+  dias: number;
+  motivos: string[];
+  dictamen: { recomendacion: string; puntaje: number; nivel: string } | null;
+}
+
+export interface FueraDeLugar {
+  total: number;
+  conProblema: number;
+  /** En fases adelantadas pero SIN análisis: no es una falla, es un pendiente. */
+  sinEvaluar: number;
+  casos: CasoFueraDeLugar[];
+  nota: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private api = inject(ApiService);
 
   concentrado(dias = 7): Promise<Concentrado> {
     return this.api.get<Concentrado>('/kpi/concentrado', { dias });
+  }
+
+  /** Quién está en una fase adelantada sin cumplir los mínimos. */
+  fueraDeLugar(): Promise<FueraDeLugar> {
+    return this.api.get<FueraDeLugar>('/kpi/fuera-de-lugar');
   }
 
   /** Registra un contacto/entrevista/nota. `ocurridoEn` en ISO si no fue ahora. */

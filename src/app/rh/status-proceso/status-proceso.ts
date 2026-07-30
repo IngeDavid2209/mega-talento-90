@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { KpiService, EventoCandidato, TipoEvento, CanalEvento } from '../../core/services/kpi.service';
 import {
   ETAPAS, ETAPA_CONTRATADO, FLUJO_LINEAL, ID_ETAPAS,
-  CHECKLIST_JEFE, PSICOMETRIA_ITEMS, COMPETENCIAS_STAR,
+  CHECKLIST_JEFE, PSICOMETRIA_ITEMS,
   progresoChecklist, puntajePsico
 } from '../../core/models/proceso.model';
 import { calcularResultadoLiderazgo } from '../../core/models/cuestionario-liderazgo.model';
@@ -65,16 +65,33 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
   nota = '';
   canal: CanalEvento = 'llamada';
 
+  /**
+   * Id del candidato cuya bitácora está cargada. La condición anterior era
+   * "recarga solo si la bitácora está vacía", y eso significaba que al pasar de
+   * un candidato con eventos a otro se quedaba pintada la bitácora del primero:
+   * las llamadas de una persona atribuidas a otra. Comparar el id es lo único
+   * que distingue "ya la tengo" de "es de alguien más".
+   */
+  private idCargado = '';
+
   ngOnInit() { this.cargarBitacora(); }
-  ngOnChanges() { if (this.candidato?.id && !this.bitacora.length) this.cargarBitacora(); }
+  ngOnChanges() {
+    if (this.candidato?.id && this.candidato.id !== this.idCargado) this.cargarBitacora();
+  }
 
   async cargarBitacora() {
-    if (!this.candidato?.id) return;
+    const id = this.candidato?.id;
+    if (!id) return;
     this.cargandoBitacora = true;
+    this.idCargado = id;
     try {
-      this.bitacora = await this.kpi.eventos(this.candidato.id);
+      const eventos = await this.kpi.eventos(id);
+      // Pudo cambiar de candidato mientras la petición viajaba: si ya no es el
+      // que se pidió, se descarta la respuesta en vez de pintar datos ajenos.
+      if (this.candidato?.id !== id) return;
+      this.bitacora = eventos;
     } catch {
-      this.bitacora = [];
+      if (this.candidato?.id === id) this.bitacora = [];
     } finally {
       this.cargandoBitacora = false;
     }
@@ -175,10 +192,16 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
         : 'Se genera solo cuando llega el CV');
 
     // 3. Entrevista de orientación conductual
+    //    Completa = TODAS las preguntas contestadas. Antes se comparaba contra
+    //    COMPETENCIAS_STAR.length (8) y `porcentaje`, que es el PUNTAJE y no el
+    //    avance: un cuestionario de 12 preguntas se marcaba "hecho" con 8
+    //    contestadas. Una casilla verde con un tercio del trabajo sin hacer es
+    //    peor que no tener la casilla.
     const lid = calcularResultadoLiderazgo(c.cuestionarioLiderazgo);
+    const lidCompleto = lid.total > 0 && lid.contestadas === lid.total;
     add('conductual', 'Entrevista conductual', '💬',
-      lid.contestadas === 0 ? 'pendiente' : lid.porcentaje >= 100 || lid.contestadas >= COMPETENCIAS_STAR.length ? 'hecho' : 'parcial',
-      lid.contestadas ? `${lid.contestadas} respuestas · ${lid.porcentaje}%` : 'Sin contestar');
+      lid.contestadas === 0 ? 'pendiente' : lidCompleto ? 'hecho' : 'parcial',
+      lid.contestadas ? `${lid.contestadas}/${lid.total} respuestas · ${lid.porcentaje}%` : 'Sin contestar');
 
     // 4. Aptitudes (la califica el jefe por link)
     const apt = c.aptitudesEval;

@@ -239,6 +239,55 @@
       }
     </section>
 
+    <!-- ══ FUERA DE LUGAR ══ -->
+    @if (fuera) {
+      <section class="bloque">
+        <h2>Fuera de lugar</h2>
+        <p class="ayuda">
+          Candidatos que ya pasaron de Filtro Inicial <strong>sin cumplir lo mínimo</strong>.
+          Hasta el 30/07/2026 el sistema los subía solo al contestar el cuestionario, sin revisar nada más; ya no lo hace.
+        </p>
+
+        @if (!fuera.conProblema) {
+          <div class="estado">Nadie está fuera de lugar. 🎉</div>
+        } @else {
+          <div class="fuera-cab">
+            <span class="fuera-n">{{ fuera.conProblema }}</span>
+            <span class="fuera-lbl">de {{ fuera.total }} en fases adelantadas necesitan revisión</span>
+          </div>
+
+          <div class="lista">
+            @for (c of fuera.casos; track c.id) {
+              <article class="fila fuera" (click)="abrirExpediente(c.id)">
+                <div class="quien">
+                  <div class="nombre">
+                    {{ c.nombre || 'Sin nombre' }}
+                    <span class="etapa-chip" [style.background]="colorEtapa(c.etapa)">{{ nombreEtapa(c.etapa) }}</span>
+                  </div>
+                  <div class="meta">
+                    <span>{{ c.puesto || 'Sin puesto' }}</span>
+                    <span class="dot">·</span>
+                    <span>{{ c.dias }} días en proceso</span>
+                    @if (c.dictamen) {
+                      <span class="dot">·</span>
+                      <span>{{ c.dictamen.puntaje }}/100 · {{ c.dictamen.nivel }}</span>
+                    }
+                  </div>
+                  <ul class="motivos">
+                    @for (m of c.motivos; track m) { <li>{{ m }}</li> }
+                  </ul>
+                </div>
+              </article>
+            }
+          </div>
+        }
+
+        @if (fuera.nota) {
+          <div class="sin-dato">{{ fuera.nota }}</div>
+        }
+      </section>
+    }
+
     <!-- ══ EMBUDO + TIEMPO POR ETAPA ══ -->
     <section class="bloque dos-col">
       <div>
