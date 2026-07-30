@@ -114,7 +114,20 @@
     <!-- Cuerpo: tarjetas (izq) + gráficas (der) -->
     <div class="ar-dash">
       <div class="ar-cards">
-        @for (e of lista; track e.codigo) {
+        <!-- Los que no se pueden medir se colapsan en una línea: sus tarjetas
+             eran puros ceros y tapaban a quien sí tiene números. Siguen contando
+             en los totales y en la exportación. -->
+        @if (sinMedir.length) {
+          <button type="button" class="ar-ocultos" (click)="mostrarSinMedir = !mostrarSinMedir">
+            <span class="ar-ocultos-n">{{ sinMedir.length }}</span>
+            <span class="ar-ocultos-txt">
+              sin días medibles en el periodo
+              @if (motivosSinMedir) { <small>{{ motivosSinMedir }}</small> }
+            </span>
+            <span class="ar-ocultos-acc">{{ mostrarSinMedir ? 'Ocultar' : 'Ver' }}</span>
+          </button>
+        }
+        @for (e of listaVisible; track e.codigo) {
           <button type="button" class="ar-card"
                   [class.ar-card-bad]="e.acumuladoTotal > 0 && e.usable"
                   [class.ar-card-dudosa]="!e.usable" (click)="abrir(e)">

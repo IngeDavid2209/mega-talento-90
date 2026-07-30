@@ -110,6 +110,29 @@
 
 .ar-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
 
+/* Línea que resume a los que no se pueden medir (sus tarjetas están ocultas).
+   Ocupa el ancho completo de la rejilla para que se lea como un aviso y no
+   como una persona más. */
+.ar-ocultos {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; text-align: left; cursor: pointer;
+  background: var(--surface2); border: 1px dashed var(--border-med);
+  border-radius: var(--radius); font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ar-ocultos:hover { background: var(--surface3); border-color: var(--border-strong); }
+.ar-ocultos-n {
+  font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 500;
+  color: var(--text2); min-width: 2.5ch; text-align: right;
+}
+.ar-ocultos-txt { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text2); }
+.ar-ocultos-txt small { display: block; font-weight: 400; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+.ar-ocultos-acc {
+  flex-shrink: 0; font-size: 11.5px; font-weight: 600; color: var(--brand);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+
 .ar-card {
   background: #fff; border: 1px solid var(--border); border-left: 3px solid var(--green);
   border-radius: 14px; padding: 14px; text-align: left; cursor: pointer;

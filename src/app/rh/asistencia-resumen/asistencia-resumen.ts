@@ -384,6 +384,43 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return e.marcas.filter(m => m.gravedad === 'alta').map(m => m.detalle).join(' · ');
   }
 
+  // ── Quién se ve en la rejilla ──────────────────────────────────────
+  //
+  // Las tarjetas de gente "Sin medir" llenaban la pantalla de ceros: puros
+  // 0 min, 0 faltas, 0 h y "Ningún día medible en el periodo". No son datos,
+  // son huecos, y estorbaban para ver a quien sí tiene números.
+  //
+  // Se esconden, NO se borran: siguen contando en los totales, en las gráficas
+  // y en la exportación, y quedan detrás de una línea que dice cuántos son y
+  // por qué. Entre ellos están los que esperan que RH confirme su horario, que
+  // es trabajo pendiente de RH: desaparecerlos sin dejar rastro sería cambiar
+  // "no se puede medir" por "no existe".
+
+  /** Si está en true, la rejilla también muestra a los que no se pueden medir. */
+  mostrarSinMedir = false;
+
+  get listaVisible(): EmpleadoAsistencia[] {
+    return this.mostrarSinMedir ? this.lista : this.lista.filter(e => e.usable);
+  }
+
+  get sinMedir(): EmpleadoAsistencia[] {
+    return this.lista.filter(e => !e.usable);
+  }
+
+  /** "3 esperan horario · 2 ya no vienen · 1 sin días suficientes" */
+  get motivosSinMedir(): string {
+    const cuenta = new Map<string, number>();
+    for (const e of this.sinMedir) {
+      const alta = e.marcas.filter(m => m.gravedad === 'alta');
+      const codigo = alta[0]?.codigo || 'sin_datos';
+      cuenta.set(codigo, (cuenta.get(codigo) || 0) + 1);
+    }
+    return [...cuenta.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([c, n]) => `${n} ${this.ETIQUETA_MARCA[c] || c}`)
+      .join(' · ');
+  }
+
   // Detalle en modal: al abrir, carga las revisiones (justificación/estado).
   async abrir(e: EmpleadoAsistencia) {
     this.detalle = e;
