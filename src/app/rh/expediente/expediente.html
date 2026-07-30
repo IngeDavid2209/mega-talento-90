@@ -8,59 +8,98 @@
 
     <!-- HEADER -->
     <header class="expediente-header">
-      <button class="btn-back" (click)="volver()">← Volver a la etapa</button>
+      <nav class="crumbs">
+        <button class="crumb-link" (click)="volver()">Candidatos</button>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-link crumb-etapa">{{ etapaActualLabel() }}</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-actual">{{ candidato.nombre }}</span>
+      </nav>
 
       <div class="profile-row">
         <div class="profile-info">
-          <div class="avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
-            {{ getInitials(candidato.nombre) }}
+          <div class="avatar-wrap">
+            <div class="avatar" [style.background-color]="getAvatarColor(candidato.nombre)">
+              {{ getInitials(candidato.nombre) }}
+            </div>
+            <!-- El punto dice si la persona sigue viva en el proceso, sin abrir nada -->
+            <span class="avatar-dot"
+                  [class.en-proceso]="candidato.status !== ID_ETAPAS.RECHAZADO"
+                  [title]="etapaActualLabel()"></span>
           </div>
-          <div>
-            <span class="eyebrow">Expediente</span>
+
+          <div class="profile-datos">
             <h2>{{ candidato.nombre }}</h2>
-            <p class="profile-meta">
-              <span>{{ candidato.puesto || 'Sin puesto' }}</span>
-              <span class="dot-sep">·</span>
-              <span>{{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}</span>
+            <p class="profile-puesto">{{ candidato.puesto || 'Sin puesto asignado' }}</p>
+
+            <div class="meta-chips">
               @if (candidato.telefono) {
-                <span class="dot-sep">·</span>
-                <span>{{ candidato.telefono }}</span>
+                <span class="meta-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  {{ candidato.telefono }}
+                </span>
               }
+              <span class="meta-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {{ candidato.ciudad || candidato.sucursal || 'Sin ciudad' }}
+              </span>
               @if (candidato.fuente) {
-                <span class="dot-sep">·</span>
-                <span>{{ candidato.fuente }}</span>
+                <span class="meta-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+                  {{ candidato.fuente }}
+                </span>
               }
-            </p>
+              @if (diasEnProceso() !== null) {
+                <span class="meta-chip" [attr.data-nivel]="nivelDias(diasEnProceso()!)"
+                      title="Días desde que se postuló. La meta son 7 días; el límite, 15.">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  {{ diasEnProceso() }} día(s) en proceso
+                </span>
+              }
+            </div>
+
             @if (candidato.familiarEnEmpresa) {
               <p class="familiar-nota"
                  [class.alerta]="candidato.familiarEnEmpresa.toLowerCase().trim() !== 'ninguno'">
-                👥 <strong>Familiar/pareja en la empresa:</strong> {{ candidato.familiarEnEmpresa }}
+                <strong>Familiar/pareja en la empresa:</strong> {{ candidato.familiarEnEmpresa }}
               </p>
             }
           </div>
         </div>
 
-        <div class="profile-actions">
-          <button class="btn-secondary" (click)="contactarWhatsApp()"
-                  [disabled]="enviandoInvitacion.has(candidato.id)"
-                  title="Conectar con el bot por WhatsApp">
-            {{ enviandoInvitacion.has(candidato.id) ? 'Enviando…' : 'Contactar' }}
-          </button>
-          @if (candidato.cvFormato === 'fotos' && candidato.cvUrl) {
-            <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">CV (frente)</a>
-            @if (candidato.cvUrlReverso) {
-              <a [href]="candidato.cvUrlReverso" target="_blank" class="btn-outline">CV (reverso)</a>
+        <div class="profile-lado">
+          <!-- Puntaje del análisis automático del CV. Solo aparece si el bot
+               alcanzó a leerlo: inventar un número aquí sería peor que no tenerlo. -->
+          @if (candidato.dictamen?.recomendacion) {
+            <div class="score-box" [attr.data-rec]="candidato.dictamen.recomendacion">
+              <span class="score-num">{{ candidato.dictamen.puntaje ?? '—' }}<small>/100</small></span>
+              <span class="score-label">Análisis del CV</span>
+              <span class="score-rec">{{ candidato.dictamen.recomendacion }}</span>
+            </div>
+          }
+
+          <div class="profile-actions">
+            <button class="btn-secondary" (click)="contactarWhatsApp()"
+                    [disabled]="enviandoInvitacion.has(candidato.id)"
+                    title="Conectar con el bot por WhatsApp">
+              {{ enviandoInvitacion.has(candidato.id) ? 'Enviando…' : 'Contactar' }}
+            </button>
+            @if (candidato.cvFormato === 'fotos' && candidato.cvUrl) {
+              <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">CV (frente)</a>
+              @if (candidato.cvUrlReverso) {
+                <a [href]="candidato.cvUrlReverso" target="_blank" class="btn-outline">CV (reverso)</a>
+              }
+            } @else if (candidato.cvUrl) {
+              <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">Ver CV</a>
             }
-          } @else if (candidato.cvUrl) {
-            <a [href]="candidato.cvUrl" target="_blank" class="btn-outline">Ver CV</a>
-          }
-          @if (candidato.licenciaUrl) {
-            <a [href]="candidato.licenciaUrl" target="_blank" class="btn-outline">Ver licencia</a>
-          }
-          <button class="btn-cerrar-seg" (click)="cerrarSeguimientoActual()"
-                  title="Cerrar seguimiento y enviar a la Papelera">
-            Cerrar seguimiento
-          </button>
+            @if (candidato.licenciaUrl) {
+              <a [href]="candidato.licenciaUrl" target="_blank" class="btn-outline">Ver licencia</a>
+            }
+            <button class="btn-cerrar-seg" (click)="cerrarSeguimientoActual()"
+                    title="Cerrar seguimiento y enviar a la Papelera">
+              Cerrar seguimiento
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -503,14 +542,19 @@
         </header>
 
         <div class="check-list">
+          <div class="check-head">
+            <span>Criterio de evaluación</span>
+            <span class="check-head-val">Validación</span>
+          </div>
           @for (item of CHECKLIST_JEFE; track item.key) {
             <div class="check-row"
                  [class.row-si]="candidato.jefeChecklist?.[item.key] === 'verde'"
-                 [class.row-no]=
-                 "candidato.jefeChecklist?.[item.key] === 'rojo'">
-              <span class="check-label">{{ item.label }}</span>
+                 [class.row-no]="candidato.jefeChecklist?.[item.key] === 'rojo'">
+              <div class="check-label-wrap">
+                <span class="check-label">{{ item.label }}</span>
+                @if (item.ayuda) { <span class="check-ayuda">{{ item.ayuda }}</span> }
+              </div>
               <div class="yn-group">
-                
                 <button type="button" class="btn-yn btn-si"
                         [class.active]="candidato.jefeChecklist?.[item.key] === 'verde'"
                         (click)="setEstadoCheck('jefeChecklist', item.key, 'verde')">Sí</button>
@@ -519,7 +563,6 @@
                         (click)="setEstadoCheck('jefeChecklist', item.key, 'rojo')">No</button>
               </div>
             </div>
-            
           }
         </div>
 
@@ -626,6 +669,10 @@
         </header>
 
         <div class="check-list">
+          <div class="check-head">
+            <span>Documento</span>
+            <span class="check-head-val">Validación</span>
+          </div>
           @for (item of CHECKLIST_DOCUMENTAL; track item.key) {
             <div class="check-row"
                  [class.row-si]="candidato.documentalChecklist?.[item.key] === 'verde'"
@@ -672,6 +719,10 @@
         </div>
 
         <div class="check-list">
+          <div class="check-head">
+            <span>Punto de la oferta</span>
+            <span class="check-head-val">Validación</span>
+          </div>
           @for (item of CHECKLIST_OFERTA; track item.key) {
             <div class="check-row"
                  [class.row-si]="candidato.ofertaChecklist?.[item.key] === 'verde'"
@@ -807,6 +858,10 @@
         </header>
 
         <div class="check-list">
+          <div class="check-head">
+            <span>Trámite de alta</span>
+            <span class="check-head-val">Validación</span>
+          </div>
           @for (item of CHECKLIST_CONTRATADO; track item.key) {
             <div class="check-row"
                  [class.row-si]="candidato.contratadoChecklist?.[item.key] === 'verde'"

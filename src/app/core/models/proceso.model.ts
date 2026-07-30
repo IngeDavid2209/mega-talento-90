@@ -69,7 +69,19 @@ export const FLUJO_LINEAL: string[] = [
 // CHECKLISTS POR ETAPA
 // =====================================================================
 
-export interface ItemChecklist { key: string; label: string; icon: string; obligatorio: boolean; }
+export interface ItemChecklist {
+  key: string;
+  label: string;
+  icon: string;
+  obligatorio: boolean;
+  /**
+   * Qué se está validando, en una línea. Es opcional porque en la mayoría de las
+   * listas el título ya lo dice todo ("INE", "CURP"); se llena donde el criterio
+   * admite lecturas distintas según quién lo lea, que es justo el caso de la
+   * entrevista técnica: sin esto, cada jefe califica "compatibilidad" a su modo.
+   */
+  ayuda?: string;
+}
 
 // 1. FILTRO INICIAL — Datos mínimos validados por WhatsApp
 export const CHECKLIST_FILTRO: ItemChecklist[] = [
@@ -405,11 +417,16 @@ export function progresoPsicoDeCandidato(c: any): { hechos: number; total: numbe
 
 // 5. ENTREVISTA TÉCNICA / JEFE DIRECTO
 export const CHECKLIST_JEFE: ItemChecklist[] = [
-  { key: 'casosPracticos',   label: 'Casos prácticos',       icon: '📝', obligatorio: true },
-  { key: 'situacionales',    label: 'Preguntas situacionales', icon: '💬', obligatorio: true },
-  { key: 'tecnicaArea',      label: 'Validación técnica',    icon: '🔧', obligatorio: true },
-  { key: 'expectativas',     label: 'Expectativas alineadas',icon: '🎯', obligatorio: true },
-  { key: 'compatibilidad',   label: 'Compatibilidad equipo', icon: '👥', obligatorio: true }
+  { key: 'casosPracticos',   label: 'Casos prácticos',         icon: '📝', obligatorio: true,
+    ayuda: 'Resolvió un problema real del puesto delante del jefe.' },
+  { key: 'situacionales',    label: 'Preguntas situacionales', icon: '💬', obligatorio: true,
+    ayuda: 'Contó qué hizo en situaciones que ya vivió, no qué haría.' },
+  { key: 'tecnicaArea',      label: 'Validación técnica',      icon: '🔧', obligatorio: true,
+    ayuda: 'Domina las herramientas y el procedimiento del área.' },
+  { key: 'expectativas',     label: 'Expectativas alineadas',  icon: '🎯', obligatorio: true,
+    ayuda: 'Sueldo, horario y ubicación coinciden con lo que se ofrece.' },
+  { key: 'compatibilidad',   label: 'Compatibilidad equipo',   icon: '👥', obligatorio: true,
+    ayuda: 'Encaja con el ritmo y la forma de trabajo del equipo actual.' }
 ];
 
 // 6. VALIDACIÓN DOCUMENTAL

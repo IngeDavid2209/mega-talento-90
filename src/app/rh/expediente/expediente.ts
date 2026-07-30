@@ -317,6 +317,30 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return idx > 0 && this.etapaCompletada(FLUJO_LINEAL[idx - 1]);
   }
 
+  /** Nombre corto de la etapa donde está parado, para la migaja y el tooltip. */
+  etapaActualLabel(): string {
+    const id = this.candidato?.status;
+    if (id === ID_ETAPAS.CONTRATADO) return 'Contratados';
+    if (id === ID_ETAPAS.RECHAZADO) return 'Papelera';
+    return ETAPAS.find(e => e.id === id)?.shortLabel || ETAPAS[0].shortLabel;
+  }
+
+  /**
+   * Días desde que se postuló. Es el dato que responde "¿este lleva mucho
+   * atorado?" sin salir del expediente — la misma vara que usa el tablero de KPI
+   * (meta 7 días, límite 15).
+   */
+  diasEnProceso(): number | null {
+    const alta = this.candidato?.createdAt || this.candidato?.creadoEn;
+    if (!alta) return null;
+    const ms = Date.now() - new Date(alta).getTime();
+    return isNaN(ms) ? null : Math.max(0, Math.floor(ms / 86400000));
+  }
+
+  nivelDias(dias: number): 'bien' | 'atencion' | 'tarde' {
+    return dias <= 7 ? 'bien' : dias <= 15 ? 'atencion' : 'tarde';
+  }
+
   puedeMoverA(nuevaEtapa: string): { ok: boolean; faltan: string[] } {
     if (nuevaEtapa !== ID_ETAPAS.CONTRATADO) return { ok: true, faltan: [] };
     if (checklistCompleto(this.candidato.ofertaChecklist, CHECKLIST_OFERTA)) return { ok: true, faltan: [] };
