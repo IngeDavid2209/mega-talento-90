@@ -149,9 +149,23 @@ async function jalarUno({ ip, suc }) {
     const nombre = (u.name || '').trim() || `Empleado ${codigo}`;
     mapa.set(codigo, nombre);
     if (!DRY_RUN) {
+      // El nombre del reloj solo RELLENA, no pisa. Antes hacia
+      // `SET nombre = EXCLUDED.nombre`, y eso significaba que cada jalado
+      // sobrescribia el padron con el nombre crudo del aparato: si RH corrige
+      // "Franciscomtz" a "Francisco Martinez" en el portal, la siguiente corrida
+      // se lo deshacia en silencio. Medido el 30/07/2026 los 274 nombres
+      // comparables eran identicos, asi que hoy no cambia nada — se blinda para
+      // que el dia que RH edite uno, el jalado no le borre el trabajo.
       await pool.query(
         `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo) VALUES ($1,$2,$3,true)
-         ON CONFLICT (sucursal_id, codigo_checador) DO UPDATE SET nombre=EXCLUDED.nombre`,
+         ON CONFLICT (sucursal_id, codigo_checador) DO UPDATE
+            SET nombre = CASE
+                  WHEN empleados.nombre IS NULL
+                    OR btrim(empleados.nombre) = ''
+                    OR empleados.nombre LIKE 'Empleado %'
+                  THEN EXCLUDED.nombre
+                  ELSE empleados.nombre
+                END`,
         [suc, codigo, nombre]
       );
     }
