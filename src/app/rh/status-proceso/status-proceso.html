@@ -48,7 +48,6 @@
     @for (c of casillas; track c.key) {
       <div class="casilla" [attr.data-estado]="c.estado">
         <span class="box">{{ c.estado === 'hecho' ? '✓' : c.estado === 'parcial' ? '–' : '' }}</span>
-        <span class="ico">{{ c.icono }}</span>
         <span class="txt">
           <span class="lbl">{{ c.label }}</span>
           <span class="det">{{ c.detalle }}</span>
@@ -66,9 +65,9 @@
 
     <div class="captura">
       <select [(ngModel)]="canal" class="sel" aria-label="Cómo se contactó">
-        <option value="llamada">☎️ Llamada</option>
-        <option value="whatsapp">💬 WhatsApp</option>
-        <option value="presencial">🧍 Presencial</option>
+        <option value="llamada">Llamada</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="presencial">Presencial</option>
       </select>
       <input type="text" [(ngModel)]="nota" class="inp" maxlength="200"
              placeholder="Qué pasó (opcional): no contestó, agendé para el jueves…">
@@ -76,7 +75,7 @@
         {{ registrando === 'contacto' ? 'Guardando…' : 'Registrar contacto' }}
       </button>
       <button type="button" class="btn alt" [disabled]="registrando === 'entrevista'" (click)="registrar('entrevista')">
-        🤝 Entrevista
+        {{ registrando === 'entrevista' ? 'Guardando…' : 'Registrar entrevista' }}
       </button>
     </div>
     @if (error) { <div class="st-aviso err">{{ error }}</div> }
@@ -91,8 +90,7 @@
     } @else {
       <ul class="eventos">
         @for (e of bitacora; track e.id) {
-          <li>
-            <span class="ev-ico">{{ iconoEvento(e) }}</span>
+          <li [attr.data-tipo]="tipoEvento(e)">
             <span class="ev-cuerpo">
               <span class="ev-tit">{{ etiquetaEvento(e) }}</span>
               @if (e.nota) { <span class="ev-nota">{{ e.nota }}</span> }

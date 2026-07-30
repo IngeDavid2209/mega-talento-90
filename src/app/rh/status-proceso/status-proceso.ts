@@ -38,7 +38,6 @@ type EstadoCasilla = 'hecho' | 'parcial' | 'pendiente';
 interface Casilla {
   key: string;
   label: string;
-  icono: string;
   estado: EstadoCasilla;
   detalle: string;
 }
@@ -174,19 +173,17 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
   get casillas(): Casilla[] {
     const c = this.candidato || {};
     const out: Casilla[] = [];
-    const add = (key: string, label: string, icono: string, estado: EstadoCasilla, detalle: string) =>
-      out.push({ key, label, icono, estado, detalle });
+    const add = (key: string, label: string, estado: EstadoCasilla, detalle: string) =>
+      out.push({ key, label, estado, detalle });
 
     // 1. CV
-    add('cv', 'Currículum recibido', '📄',
-      this.tieneCv ? 'hecho' : 'pendiente',
+    add('cv', 'Currículum recibido', this.tieneCv ? 'hecho' : 'pendiente',
       this.tieneCv ? (c.cvUrl ? 'En el expediente' : 'Llegó por WhatsApp')
                    : (c.estadoBot === 'esperando_cv' ? 'Se le pidió y no lo ha mandado' : 'No lo ha entregado'));
 
     // 2. Dictamen automático del bot
     const d = c.dictamen;
-    add('dictamen', 'Análisis del CV (bot)', '🤖',
-      d?.recomendacion ? 'hecho' : 'pendiente',
+    add('dictamen', 'Análisis del CV (bot)', d?.recomendacion ? 'hecho' : 'pendiente',
       d?.recomendacion
         ? `${d.recomendacion} · ${d.puntaje}/100${d.via === 'reglas' ? ' (sin IA: revisar a mano)' : ''}`
         : 'Se genera solo cuando llega el CV');
@@ -199,52 +196,44 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
     //    peor que no tener la casilla.
     const lid = calcularResultadoLiderazgo(c.cuestionarioLiderazgo);
     const lidCompleto = lid.total > 0 && lid.contestadas === lid.total;
-    add('conductual', 'Entrevista conductual', '💬',
-      lid.contestadas === 0 ? 'pendiente' : lidCompleto ? 'hecho' : 'parcial',
+    add('conductual', 'Entrevista conductual', lid.contestadas === 0 ? 'pendiente' : lidCompleto ? 'hecho' : 'parcial',
       lid.contestadas ? `${lid.contestadas}/${lid.total} respuestas · ${lid.porcentaje}%` : 'Sin contestar');
 
     // 4. Aptitudes (la califica el jefe por link)
     const apt = c.aptitudesEval;
     const rub = c.rubricaAptitudes ? Object.keys(c.rubricaAptitudes).length : 0;
-    add('aptitudes', 'Aptitudes / STAR del jefe', '🎯',
-      apt?.completadaEn ? 'hecho' : rub ? 'parcial' : 'pendiente',
+    add('aptitudes', 'Aptitudes / STAR del jefe', apt?.completadaEn ? 'hecho' : rub ? 'parcial' : 'pendiente',
       apt?.completadaEn ? `${apt.puntaje ?? '—'} · ${apt.banda || apt.resultado || 'evaluado'}`
         : rub ? `${rub} competencias calificadas` : 'Falta generar el link al jefe');
 
     // 5. Entrevista técnica
     const jefe = progresoChecklist(c.jefeChecklist, CHECKLIST_JEFE);
-    add('tecnica', 'Entrevista técnica', '🔧',
-      jefe.hechos === 0 ? 'pendiente' : jefe.pct >= 100 ? 'hecho' : 'parcial',
+    add('tecnica', 'Entrevista técnica', jefe.hechos === 0 ? 'pendiente' : jefe.pct >= 100 ? 'hecho' : 'parcial',
       `${jefe.hechos}/${jefe.total} puntos revisados`);
 
     // 6. Psicométricas
     const ps = puntajePsico(c.psicoTests);
     const psCheck = progresoChecklist(c.psicometriaChecklist, PSICOMETRIA_ITEMS);
-    add('psicometria', 'Psicométricas', '🧠',
-      ps.evaluada ? 'hecho' : psCheck.hechos ? 'parcial' : 'pendiente',
+    add('psicometria', 'Psicométricas', ps.evaluada ? 'hecho' : psCheck.hechos ? 'parcial' : 'pendiente',
       ps.evaluada ? `Puntaje ${ps.puntaje}` : psCheck.hechos ? `${psCheck.hechos}/${psCheck.total} capturados` : 'Sin aplicar');
 
     // 7. Documentos del expediente
     const docs = (c.documentosBot || []).length + (c.expedienteDocs ? Object.keys(c.expedienteDocs).length : 0);
-    add('documentos', 'Documentos del expediente', '🗂️',
-      docs >= 5 ? 'hecho' : docs ? 'parcial' : 'pendiente',
+    add('documentos', 'Documentos del expediente', docs >= 5 ? 'hecho' : docs ? 'parcial' : 'pendiente',
       docs ? `${docs} archivo(s) recibidos` : 'Ninguno todavía');
 
     // 8-9. Trabajo de RH (de la bitácora)
     const nContactos = this.cuenta('contacto');
-    add('contactos', 'Contactos de RH', '☎️',
-      nContactos ? 'hecho' : 'pendiente',
+    add('contactos', 'Contactos de RH', nContactos ? 'hecho' : 'pendiente',
       nContactos ? `${nContactos} registrado(s)` : 'Ninguno registrado (las llamadas no se cuentan solas)');
 
     const nEnt = this.cuenta('entrevista');
-    add('entrevistas', 'Entrevistas realizadas', '🤝',
-      nEnt ? 'hecho' : 'pendiente',
+    add('entrevistas', 'Entrevistas realizadas', nEnt ? 'hecho' : 'pendiente',
       nEnt ? `${nEnt} registrada(s)` : 'Ninguna registrada');
 
     // 10. Decisión final
     const dec = c.decision;
-    add('decision', 'Decisión de RH', '✅',
-      dec?.decision ? 'hecho' : 'pendiente',
+    add('decision', 'Decisión de RH', dec?.decision ? 'hecho' : 'pendiente',
       dec?.decision ? `${dec.decision}${dec.por ? ' · ' + dec.por : ''}` : 'Sin aprobar ni descartar');
 
     return out;
@@ -283,11 +272,17 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
     }
   }
 
-  iconoEvento(e: EventoCandidato): string {
-    if (e.tipo === 'entrevista') return '🤝';
-    if (e.tipo === 'contratacion') return '🎉';
-    if (e.tipo === 'nota') return '📝';
-    return e.canal === 'whatsapp' ? '💬' : e.canal === 'presencial' ? '🧍' : '☎️';
+  /**
+   * Clave de color del evento. Reemplaza a los emojis que traía la bitácora:
+   * la identidad de la app es navy + dorado, y una fila de caritas rompe ese
+   * registro. El tipo ya se lee en la etiqueta de al lado; el color solo ayuda
+   * a barrer la lista con la vista.
+   */
+  tipoEvento(e: EventoCandidato): string {
+    if (e.tipo === 'entrevista') return 'entrevista';
+    if (e.tipo === 'contratacion') return 'contratacion';
+    if (e.tipo === 'nota') return 'nota';
+    return 'contacto';
   }
 
   etiquetaEvento(e: EventoCandidato): string {

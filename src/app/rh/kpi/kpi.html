@@ -1,7 +1,7 @@
 <div class="kpi-wrap">
   <header class="kpi-head">
     <div>
-      <h1><span class="ico">📊</span> KPI · Concentrado de candidatos</h1>
+      <h1>KPI · Concentrado de candidatos</h1>
       <p class="sub">
         Cuánto se trabaja y en cuánto tiempo. <strong>Contactos y entrevistas por día</strong>,
         <strong>días para cubrir una vacante</strong> y quién lleva demasiado tiempo atorado.
@@ -195,7 +195,7 @@
       @if (errorRegistro) { <div class="estado err">{{ errorRegistro }}</div> }
 
       @if (!datos.enProceso.atorados.length) {
-        <div class="estado">No hay candidatos en proceso. 🎉</div>
+        <div class="estado">No hay candidatos en proceso.</div>
       } @else {
         <div class="lista">
           @for (c of datos.enProceso.atorados; track c.id) {
@@ -220,17 +220,17 @@
                 <button type="button" class="mini" [disabled]="ocupado(c.id, 'contacto')"
                         (click)="registrar(c, 'contacto', 'llamada', $event)"
                         title="Registrar que le llamaste">
-                  {{ listo(c.id, 'contacto') ? '✓' : '☎' }} Llamada
+                  {{ listo(c.id, 'contacto') ? '✓ Registrada' : 'Llamada' }}
                 </button>
                 <button type="button" class="mini" [disabled]="ocupado(c.id, 'contacto')"
                         (click)="registrar(c, 'contacto', 'whatsapp', $event)"
                         title="Registrar que le escribiste por WhatsApp">
-                  💬 WhatsApp
+                  WhatsApp
                 </button>
                 <button type="button" class="mini ent" [disabled]="ocupado(c.id, 'entrevista')"
                         (click)="registrar(c, 'entrevista', 'presencial', $event)"
                         title="Registrar una entrevista realizada">
-                  {{ listo(c.id, 'entrevista') ? '✓ Registrada' : '🤝 Entrevista' }}
+                  {{ listo(c.id, 'entrevista') ? '✓ Registrada' : 'Entrevista' }}
                 </button>
               </div>
             </article>
@@ -249,7 +249,7 @@
         </p>
 
         @if (!fuera.conProblema) {
-          <div class="estado">Nadie está fuera de lugar. 🎉</div>
+          <div class="estado">Nadie está fuera de lugar.</div>
         } @else {
           <div class="fuera-cab">
             <span class="fuera-n">{{ fuera.conProblema }}</span>
