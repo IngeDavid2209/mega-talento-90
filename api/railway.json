@@ -3,7 +3,18 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm run build",
-    "watchPatterns": ["/api/**"]
+
+    "//watchPatterns": "Las rutas se comparan distinto segun de donde venga el deploy, y por eso hay DOS juegos de patrones. Un push de GitHub se evalua contra la raiz del repo, asi que ahi el patron que aplica es '/api/**' (y sirve para que un cambio solo del front no reconstruya el API). Pero 'railway up' desde api/ sube rutas RELATIVAS a esa carpeta ('src/index.ts', 'package.json'), que NUNCA coinciden con '/api/**': el 30/07/2026 eso hizo que tres deploys seguidos salieran SKIPPED y produccion siguiera sirviendo el build anterior sin un solo error visible. De ahi los patrones relativos de abajo.",
+    "watchPatterns": [
+      "/api/**",
+      "src/**",
+      "db/**",
+      "tools/**",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "railway.json"
+    ]
   },
   "deploy": {
     "startCommand": "npm run migrate && npm start",
