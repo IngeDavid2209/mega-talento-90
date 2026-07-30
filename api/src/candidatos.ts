@@ -301,20 +301,27 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
 
     // Registrar la transición de fase si el estado cambió. horas_en_origen = tiempo
     // que estuvo en la etapa que deja (desde la última transición o el alta).
+    //
+    // OJO con los CASTEOS `$1::uuid`: son obligatorios. Sin ellos Postgres infiere
+    // el tipo del parámetro por la PRIMERA comparación y luego falla al usarlo
+    // contra candidatos.id con «operator does not exist: uuid = text». Ese error
+    // caía en el catch de abajo como una advertencia y la tabla llevaba 5 días
+    // vacía sin que nadie lo notara (detectado el 29/07/2026). Si vuelve a
+    // aparecer en el log, el KPI de tiempos se queda ciego: no es un aviso menor.
     if (esp.portal_status && esp.portal_status !== estadoPrevio) {
       try {
         await pool.query(
           `INSERT INTO candidatos_transiciones (candidato_id, etapa_origen, etapa_destino, horas_en_origen)
-           SELECT $1, $2, $3,
+           SELECT $1::uuid, $2, $3,
              EXTRACT(EPOCH FROM (now() - coalesce(
-               (SELECT max(t.cambiado_en) FROM candidatos_transiciones t WHERE t.candidato_id = $1),
-               (SELECT c.creado_en FROM candidatos c WHERE c.id = $1),
+               (SELECT max(t.cambiado_en) FROM candidatos_transiciones t WHERE t.candidato_id = $1::uuid),
+               (SELECT c.creado_en FROM candidatos c WHERE c.id = $1::uuid),
                now()
              ))) / 3600`,
           [idPatch, estadoPrevio, esp.portal_status]
         );
       } catch (err) {
-        console.warn('[candidatos] no se pudo registrar la transición de fase:', err);
+        console.error('[candidatos] NO se registró la transición de fase (el KPI de tiempos se queda sin dato):', err);
       }
     }
 

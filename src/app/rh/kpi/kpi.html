@@ -1,0 +1,282 @@
+<div class="kpi-wrap">
+  <header class="kpi-head">
+    <div>
+      <h1><span class="ico">📊</span> KPI · Concentrado de candidatos</h1>
+      <p class="sub">
+        Cuánto se trabaja y en cuánto tiempo. <strong>Contactos y entrevistas por día</strong>,
+        <strong>días para cubrir una vacante</strong> y quién lleva demasiado tiempo atorado.
+      </p>
+    </div>
+    <div class="rangos">
+      @for (r of rangos; track r.dias) {
+        <button type="button" class="pill" [class.on]="dias === r.dias" (click)="cargar(r.dias)">{{ r.label }}</button>
+      }
+      <button type="button" class="pill refresh" (click)="cargar()" title="Volver a calcular">↻</button>
+    </div>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Calculando…</div>
+  } @else if (error) {
+    <div class="estado err">{{ error }}</div>
+  } @else if (datos) {
+
+    <!-- Lo que el tablero NO puede medir todavía, dicho con palabras. Un cero sin
+         explicación se lee como "no se trabajó". -->
+    @if (datos.avisos.length) {
+      <section class="avisos">
+        <div class="avisos-tit">Para leer bien estos números</div>
+        @for (a of datos.avisos; track a) {
+          <div class="aviso">· {{ a }}</div>
+        }
+      </section>
+    }
+
+    <!-- ══ TARJETAS DEL PERIODO ══ -->
+    <section class="tarjetas">
+      <article class="tarjeta">
+        <div class="t-num">{{ datos.totales.contactados }}</div>
+        <div class="t-lbl">personas contactadas</div>
+        <div class="t-pie">
+          {{ datos.totales.promedioContactadosPorDia }} al día ·
+          <span class="fuente">bot {{ datos.totales.contactadosBot }}</span> ·
+          <span class="fuente" [class.cero]="!datos.totales.contactadosRH">RH {{ datos.totales.contactadosRH }}</span>
+        </div>
+      </article>
+
+      <article class="tarjeta">
+        <div class="t-num">{{ datos.totales.respondieron }}</div>
+        <div class="t-lbl">respondieron</div>
+        <div class="t-pie">
+          @if (datos.totales.tasaRespuesta !== null) {
+            {{ datos.totales.tasaRespuesta }}% de los contactados
+          } @else { sin base para el porcentaje }
+        </div>
+      </article>
+
+      <article class="tarjeta">
+        <div class="t-num">{{ datos.totales.postulaciones }}</div>
+        <div class="t-lbl">se postularon</div>
+        <div class="t-pie">{{ datos.totales.promedioPostulacionesPorDia }} al día</div>
+      </article>
+
+      <article class="tarjeta" [class.vacia]="!datos.totales.entrevistas">
+        <div class="t-num">{{ datos.totales.entrevistas }}</div>
+        <div class="t-lbl">entrevistas</div>
+        <div class="t-pie">
+          @if (datos.conversion.tasa !== null) {
+            {{ datos.conversion.tasa }}% terminó contratado
+          } @else { se registran desde la ficha }
+        </div>
+      </article>
+
+      <article class="tarjeta" [class.vacia]="!datos.totales.contrataciones">
+        <div class="t-num">{{ datos.totales.contrataciones }}</div>
+        <div class="t-lbl">contratados</div>
+        <div class="t-pie">
+          @if (datos.cobertura.medible) {
+            mediana {{ datos.cobertura.medianaDias }} días
+          } @else { falta marcar contratados }
+        </div>
+      </article>
+    </section>
+
+    <!-- ══ ACTIVIDAD POR DÍA ══ -->
+    <section class="bloque">
+      <h2>Actividad por día</h2>
+      <p class="ayuda">Cada columna es un día. La barra oscura son las personas contactadas; la clara, las que se postularon.</p>
+
+      <div class="grafica">
+        @for (d of datos.porDia; track d.dia) {
+          <div class="col" [class.hoy]="esHoy(d.dia)">
+            <div class="barras">
+              <div class="b contact" [style.height]="alto(d.contactados)" [title]="d.contactados + ' contactados'">
+                @if (d.contactados) { <span class="v">{{ d.contactados }}</span> }
+              </div>
+              <div class="b postul" [style.height]="alto(d.postulaciones)" [title]="d.postulaciones + ' postulaciones'">
+                @if (d.postulaciones) { <span class="v">{{ d.postulaciones }}</span> }
+              </div>
+            </div>
+            <div class="eje">{{ etiquetaDia(d.dia) }}</div>
+          </div>
+        }
+      </div>
+
+      <div class="leyenda">
+        <span><i class="sw contact"></i> Contactados</span>
+        <span><i class="sw postul"></i> Postulaciones</span>
+      </div>
+
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Día</th><th>Postulados</th><th>Contactados</th>
+            <th>Bot</th><th>RH</th><th>Respondieron</th><th>Entrevistas</th><th>Contratados</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of datos.porDia; track d.dia) {
+            <tr [class.hoy]="esHoy(d.dia)">
+              <td>{{ etiquetaDia(d.dia) }}</td>
+              <td>{{ d.postulaciones }}</td>
+              <td class="fuerte">{{ d.contactados }}</td>
+              <td class="tenue">{{ d.contactadosBot }}</td>
+              <td [class.tenue]="!d.contactadosRH">{{ d.contactadosRH }}</td>
+              <td>{{ d.respondieron }}</td>
+              <td [class.tenue]="!d.entrevistas">{{ d.entrevistas }}</td>
+              <td [class.tenue]="!d.contrataciones">{{ d.contrataciones }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td>{{ suma('postulaciones') }}</td>
+            <td class="fuerte">{{ suma('contactados') }}</td>
+            <td>{{ suma('contactadosBot') }}</td>
+            <td>{{ suma('contactadosRH') }}</td>
+            <td>{{ suma('respondieron') }}</td>
+            <td>{{ suma('entrevistas') }}</td>
+            <td>{{ suma('contrataciones') }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <!-- ══ CUMPLIMIENTO DE LA META (7 / 15 DÍAS) ══ -->
+    <section class="bloque">
+      <h2>¿Se está cubriendo en 7 o 15 días?</h2>
+      <p class="ayuda">
+        Se cuenta desde que el candidato se postula. La meta son <strong>7 días</strong>;
+        pasando de <strong>15</strong> se considera fuera de tiempo.
+      </p>
+
+      <div class="meta-cab">
+        <div class="meta-num">
+          <span class="grande" [class.mal]="pctFueraDeMeta >= 50">{{ pctFueraDeMeta }}%</span>
+          <span class="chico">de los {{ datos.enProceso.total }} en proceso lleva más de 15 días</span>
+        </div>
+      </div>
+
+      <div class="barra-meta" role="img"
+           [attr.aria-label]="datos.enProceso.dentroDe7 + ' dentro de 7 días, ' + datos.enProceso.entre7y15 + ' entre 7 y 15, ' + datos.enProceso.masDe15 + ' pasados de 15'">
+        <div class="seg bien"     [style.width]="anchoProceso(datos.enProceso.dentroDe7)"></div>
+        <div class="seg atencion" [style.width]="anchoProceso(datos.enProceso.entre7y15)"></div>
+        <div class="seg tarde"    [style.width]="anchoProceso(datos.enProceso.masDe15)"></div>
+      </div>
+      <div class="leyenda">
+        <span><i class="sw bien"></i> {{ datos.enProceso.dentroDe7 }} en meta (≤7 días)</span>
+        <span><i class="sw atencion"></i> {{ datos.enProceso.entre7y15 }} en riesgo (8-15)</span>
+        <span><i class="sw tarde"></i> {{ datos.enProceso.masDe15 }} fuera de tiempo (+15)</span>
+      </div>
+
+      @if (datos.cobertura.medible) {
+        <div class="cobertura">
+          <div class="cob-item"><b>{{ datos.cobertura.en7 }}</b> cubiertas en 7 días o menos</div>
+          <div class="cob-item"><b>{{ datos.cobertura.en15 }}</b> entre 8 y 15 días</div>
+          <div class="cob-item"><b>{{ datos.cobertura.masDe15 }}</b> pasadas de 15</div>
+          <div class="cob-item mediana">mediana: <b>{{ datos.cobertura.medianaDias }}</b> días</div>
+        </div>
+      } @else {
+        <div class="sin-dato">
+          Todavía no hay contrataciones con fecha registrada, así que el tiempo real de cobertura no se puede calcular.
+          Se empieza a medir solo en cuanto RH mueva a alguien a la etapa <b>Contratados</b>.
+        </div>
+      }
+    </section>
+
+    <!-- ══ LOS MÁS ATORADOS: la lista accionable ══ -->
+    <section class="bloque">
+      <h2>Los que llevan más tiempo esperando</h2>
+      <p class="ayuda">
+        Ordenados por días en el proceso. Es la lista que conviene mover hoy.
+        <strong>Registra aquí mismo</strong> la llamada, el WhatsApp o la entrevista: así cuenta en el KPI.
+      </p>
+      @if (errorRegistro) { <div class="estado err">{{ errorRegistro }}</div> }
+
+      @if (!datos.enProceso.atorados.length) {
+        <div class="estado">No hay candidatos en proceso. 🎉</div>
+      } @else {
+        <div class="lista">
+          @for (c of datos.enProceso.atorados; track c.id) {
+            <article class="fila" [attr.data-nivel]="nivelDias(c.dias)" (click)="abrirExpediente(c.id)">
+              <div class="dias" [attr.data-nivel]="nivelDias(c.dias)">
+                <span class="d">{{ c.dias }}</span><span class="u">días</span>
+              </div>
+              <div class="quien">
+                <div class="nombre">{{ c.nombre || 'Sin nombre' }}</div>
+                <div class="meta">
+                  <span>{{ c.puesto || 'Sin puesto' }}</span>
+                  <span class="dot">·</span>
+                  <span class="etapa" [style.color]="colorEtapa(c.etapa)">{{ nombreEtapa(c.etapa) }}</span>
+                </div>
+              </div>
+              <div class="contacto">
+                <span class="lbl">último contacto de RH</span>
+                <span class="val" [class.nunca]="!c.ultimoContacto">{{ diasDesde(c.ultimoContacto) }}</span>
+              </div>
+
+              <div class="acciones">
+                <button type="button" class="mini" [disabled]="ocupado(c.id, 'contacto')"
+                        (click)="registrar(c, 'contacto', 'llamada', $event)"
+                        title="Registrar que le llamaste">
+                  {{ listo(c.id, 'contacto') ? '✓' : '☎' }} Llamada
+                </button>
+                <button type="button" class="mini" [disabled]="ocupado(c.id, 'contacto')"
+                        (click)="registrar(c, 'contacto', 'whatsapp', $event)"
+                        title="Registrar que le escribiste por WhatsApp">
+                  💬 WhatsApp
+                </button>
+                <button type="button" class="mini ent" [disabled]="ocupado(c.id, 'entrevista')"
+                        (click)="registrar(c, 'entrevista', 'presencial', $event)"
+                        title="Registrar una entrevista realizada">
+                  {{ listo(c.id, 'entrevista') ? '✓ Registrada' : '🤝 Entrevista' }}
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- ══ EMBUDO + TIEMPO POR ETAPA ══ -->
+    <section class="bloque dos-col">
+      <div>
+        <h2>Dónde está la gente ahora</h2>
+        <div class="embudo">
+          @for (e of datos.embudo; track e.etapa) {
+            <div class="emb-fila">
+              <span class="emb-nom" [style.color]="colorEtapa(e.etapa)">{{ nombreEtapa(e.etapa) }}</span>
+              <span class="emb-barra"><i [style.width]="anchoProceso(e.n)" [style.background]="colorEtapa(e.etapa)"></i></span>
+              <span class="emb-n">{{ e.n }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div>
+        <h2>Cuánto tarda cada etapa</h2>
+        @if (!datos.tiempoPorEtapa.length) {
+          <div class="sin-dato">
+            El historial de movimientos entre etapas empezó a registrarse el <b>29/07/2026</b>.
+            Los tiempos aparecen aquí en cuanto RH mueva candidatos de una etapa a otra.
+          </div>
+        } @else {
+          <table class="tabla">
+            <thead><tr><th>Etapa</th><th>Movimientos</th><th>Promedio</th><th>Meta</th></tr></thead>
+            <tbody>
+              @for (t of datos.tiempoPorEtapa; track t.etapa) {
+                <tr [class.fuera]="fueraDeSla(t.etapa, t.promHoras)">
+                  <td [style.color]="colorEtapa(t.etapa)">{{ nombreEtapa(t.etapa) }}</td>
+                  <td>{{ t.n }}</td>
+                  <td class="fuerte">{{ horasBonitas(t.promHoras) }}</td>
+                  <td class="tenue">{{ slaEtapa(t.etapa) ? horasBonitas(slaEtapa(t.etapa)!) : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </section>
+  }
+</div>

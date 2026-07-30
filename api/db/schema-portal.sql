@@ -39,14 +39,62 @@ CREATE INDEX IF NOT EXISTS idx_candidatos_portal_status ON candidatos (portal_st
 -- tiempo que estuvo en la etapa que deja (desde la transición anterior o el alta).
 CREATE TABLE IF NOT EXISTS candidatos_transiciones (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  candidato_id    TEXT NOT NULL,
+  candidato_id    UUID NOT NULL,
   etapa_origen    TEXT,
   etapa_destino   TEXT NOT NULL,
   horas_en_origen NUMERIC,
   cambiado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- MIGRACIÓN (2026-07-29). La tabla nació con `candidato_id TEXT` y eso rompía en
+-- silencio TODO el registro de transiciones: la consulta que inserta compara el
+-- mismo parámetro contra esta columna (text) y contra candidatos.id (uuid), y
+-- Postgres aborta con «operator does not exist: uuid = text». El error caía en un
+-- catch con console.warn, así que la tabla llevaba 5 días en cero sin que nadie
+-- lo notara — y sin historial no hay KPI de tiempo por etapa ni de cobertura.
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_name = 'candidatos_transiciones'
+       AND column_name = 'candidato_id'
+       AND data_type = 'text'
+  ) THEN
+    ALTER TABLE candidatos_transiciones
+      ALTER COLUMN candidato_id TYPE uuid USING candidato_id::uuid;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_transiciones_candidato ON candidatos_transiciones (candidato_id);
 CREATE INDEX IF NOT EXISTS idx_transiciones_origen    ON candidatos_transiciones (etapa_origen);
+
+-- =====================================================================
+-- BITÁCORA DE EVENTOS DEL PROCESO (KPI "Concentrado de candidatos")
+--
+-- Por qué hace falta una tabla y no otra bandera en portal_data: el KPI que pide
+-- RH necesita saber CUÁNDO pasó cada cosa y CUÁNTAS veces, no solo si pasó. Un
+-- campo booleano responde "¿ya se le llamó?"; esto responde "¿a cuántas personas
+-- se contactó el martes?", que es la pregunta real.
+--
+-- Al 29/07/2026 no existía forma de medir: (1) los contactos que RH hace por
+-- teléfono o WhatsApp personal (solo se veían los del bot, en la tabla mensajes),
+-- (2) las entrevistas realizadas (no había evento con fecha), (3) las
+-- contrataciones (la etapa existe y nadie la usaba).
+--
+--   tipo  = contacto | entrevista | contratacion | nota
+--   canal = llamada | whatsapp | presencial | bot | portal   (nulo si no aplica)
+--   por   = usuario de RH que lo registró (o 'bot')
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS candidatos_eventos (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id  UUID NOT NULL,
+  tipo          TEXT NOT NULL,
+  canal         TEXT,
+  nota          TEXT,
+  por           TEXT,
+  ocurrido_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_eventos_candidato ON candidatos_eventos (candidato_id);
+CREATE INDEX IF NOT EXISTS idx_eventos_tipo_fecha ON candidatos_eventos (tipo, ocurrido_en);
 
 -- Vacantes del portal (no existía; el bot solo tiene `productos`, que es otra cosa).
 CREATE TABLE IF NOT EXISTS puestos (

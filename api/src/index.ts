@@ -8,6 +8,7 @@ import { agenteHorariosRouter, agenteCallbackRouter, arrancarCorredor } from './
 import { candidatosRouter } from './candidatos';
 import { puestosRouter } from './puestos';
 import { usuariosRouter } from './usuarios';
+import { kpiRouter } from './kpi';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/checador/agente', agenteHorariosRouter); // Agente de Horarios (Fase 1
 app.use('/candidatos', candidatosRouter);
 app.use('/puestos', puestosRouter);
 app.use('/usuarios', usuariosRouter);
+app.use('/kpi', kpiRouter); // Concentrado de candidatos: bitácora de eventos + tablero
 
 app.listen(env.PORT, () => {
   console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);
