@@ -177,3 +177,139 @@ export async function listarAlertas(filtros: {
   );
   return rows;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// LA COLA AGRUPADA POR CAUSA
+//
+// Al 30/07/2026 hay 2,510 borradores esperando a RH, y son de solo dos reglas:
+// `entrada_sin_salida` (1,397) y `checada_duplicada` (1,113). Pedirle a alguien
+// que apruebe o rechace 2,510 tarjetas, una por una, garantiza que no lo haga
+// nunca — y no hace falta: **esas dos reglas no describen 2,510 decisiones, sino
+// un puñado de causas**.
+//
+//   · checada_duplicada = el lector leyó el dedo dos veces. Es del APARATO. La
+//     decisión es por sucursal ("este lector duplica"), no por día.
+//   · entrada_sin_salida = alguien no marca al salir. Es de la PERSONA (o de su
+//     rutina), y está concentrado: en Zamora Canindo, 9 de las 11 personas
+//     crónicas. La decisión es por persona.
+//
+// Así que se agrupa por regla + sucursal + persona: 2,510 tarjetas se vuelven
+// unas decenas de líneas, cada una con su cuenta y su rango de fechas.
+// ══════════════════════════════════════════════════════════════════
+
+export interface GrupoAlertas {
+  regla: string;
+  sucursalId: string;
+  /** Vacío cuando el nivel es 'sucursal': la línea cubre a toda la plaza. */
+  empleadoCodigo: string;
+  empleadoNombre: string;
+  /** Cuántas personas distintas cubre la línea (1 en el nivel 'persona'). */
+  personas?: number;
+  total: number;
+  primeraFecha: string;
+  ultimaFecha: string;
+  /** Cuántas ya tienen la justificación del jefe (no hay que volver a preguntar). */
+  conJustificacion: number;
+}
+
+/**
+ * Agrupa los borradores pendientes. `estado` por omisión es 'sugerida_ia': lo
+ * que espera decisión. Sin `sucursalId` agrupa todas las plazas.
+ */
+export async function agruparAlertas(filtros: {
+  sucursalId?: string; desde?: string; hasta?: string; estado?: string;
+  /**
+   * A qué nivel agrupar, y no es un detalle: cambia de qué es la decisión.
+   *   'persona'  (default) — regla + sucursal + persona. 2,510 alertas dan 339
+   *              líneas: es el nivel correcto para `entrada_sin_salida`, que es
+   *              la rutina de alguien en concreto.
+   *   'sucursal' — regla + sucursal. Da ~16 líneas, y es el nivel correcto para
+   *              `checada_duplicada`: si el lector de una plaza lee doble, no es
+   *              una decisión por cada una de sus 47 personas.
+   */
+  nivel?: 'persona' | 'sucursal';
+} = {}): Promise<{ grupos: GrupoAlertas[]; porRegla: Record<string, number>; total: number; nivel: string; personas?: number }> {
+  const params: any[] = [filtros.estado || 'sugerida_ia'];
+  const conds: string[] = ['estado = $1'];
+  if (filtros.sucursalId) { params.push(filtros.sucursalId); conds.push(`sucursal_id = $${params.length}`); }
+  if (filtros.desde) { params.push(filtros.desde); conds.push(`fecha >= $${params.length}`); }
+  if (filtros.hasta) { params.push(filtros.hasta); conds.push(`fecha <= $${params.length}`); }
+
+  const porSucursal = filtros.nivel === 'sucursal';
+  const { rows } = await pool.query(
+    `SELECT regla, sucursal_id,
+            ${porSucursal ? "'' AS empleado_codigo" : 'empleado_codigo'},
+            ${porSucursal
+              ? "count(DISTINCT btrim(empleado_codigo))::int || ' persona(s)' AS empleado_nombre"
+              : 'max(empleado_nombre) AS empleado_nombre'},
+            count(DISTINCT btrim(empleado_codigo))::int AS personas,
+            count(*)::int AS total,
+            min(fecha)::text AS primera,
+            max(fecha)::text AS ultima,
+            count(*) FILTER (WHERE justificacion_jefe IS NOT NULL)::int AS con_justificacion
+       FROM asistencia_alertas
+      WHERE ${conds.join(' AND ')}
+      GROUP BY regla, sucursal_id${porSucursal ? '' : ', empleado_codigo'}
+      ORDER BY count(*) DESC`,
+    params
+  );
+
+  const grupos: GrupoAlertas[] = rows.map((r) => ({
+    regla: r.regla,
+    sucursalId: r.sucursal_id,
+    empleadoCodigo: String(r.empleado_codigo || '').trim(),
+    empleadoNombre: r.empleado_nombre || '',
+    personas: r.personas,
+    total: r.total,
+    primeraFecha: r.primera,
+    ultimaFecha: r.ultima,
+    conJustificacion: r.con_justificacion,
+  }));
+
+  const porRegla: Record<string, number> = {};
+  for (const g of grupos) porRegla[g.regla] = (porRegla[g.regla] || 0) + g.total;
+
+  return {
+    grupos, porRegla,
+    total: grupos.reduce((s, g) => s + g.total, 0),
+    nivel: porSucursal ? 'sucursal' : 'persona',
+  };
+}
+
+/**
+ * Decide un GRUPO completo de una vez.
+ *
+ * A propósito NO admite 'aprobada'. Aprobar dispara el aviso por WhatsApp al
+ * jefe de la sucursal: aprobar un grupo de 400 mandaría 400 mensajes a una
+ * persona real. Aprobar sigue siendo de una en una, donde se ve a quién se le
+ * avisa. En bloque solo se puede **rechazar** (no es una inconsistencia real) o
+ * **descartar** (es real, pero no se va a perseguir: el lector duplica lecturas).
+ *
+ * Solo toca las que siguen en 'sugerida_ia': jamás pisa una decisión humana ya
+ * tomada, ni siquiera con el mismo filtro corriendo dos veces.
+ */
+export async function decidirGrupo(args: {
+  regla: string; sucursalId: string; empleadoCodigo?: string;
+  desde?: string; hasta?: string;
+  estado: 'rechazada' | 'descartada';
+  decididoPor: string; justificacion?: string;
+}): Promise<{ afectadas: number }> {
+  if (args.estado !== 'rechazada' && args.estado !== 'descartada') {
+    throw new Error('En bloque solo se puede rechazar o descartar; aprobar es de una en una porque avisa al jefe.');
+  }
+  const params: any[] = [args.estado, args.decididoPor, args.regla, args.sucursalId];
+  const sets = ['estado=$1', 'decidido_por=$2', 'decidido_en=now()'];
+  const conds = ["estado='sugerida_ia'", 'regla=$3', 'sucursal_id=$4'];
+  if (args.empleadoCodigo) { params.push(args.empleadoCodigo); conds.push(`btrim(empleado_codigo)=btrim($${params.length})`); }
+  if (args.desde) { params.push(args.desde); conds.push(`fecha >= $${params.length}`); }
+  if (args.hasta) { params.push(args.hasta); conds.push(`fecha <= $${params.length}`); }
+  if (args.justificacion) {
+    params.push(args.justificacion);
+    sets.push(`justificacion_sugerida=$${params.length}`);
+  }
+
+  const { rowCount } = await pool.query(
+    `UPDATE asistencia_alertas SET ${sets.join(', ')} WHERE ${conds.join(' AND ')}`, params
+  );
+  return { afectadas: rowCount || 0 };
+}

@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, AuthedRequest } from '../auth';
 import { detectar } from './detector';
-import { guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta, asegurarCodigo, justificarPorCodigo } from './persistencia';
+import {
+  guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta,
+  asegurarCodigo, justificarPorCodigo, agruparAlertas, decidirGrupo,
+} from './persistencia';
 import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
 import { estadoCorredor, correrUnaVez } from './corredor';
@@ -174,6 +177,59 @@ agenteHorariosRouter.get('/alertas', async (req: Request, res: Response) => {
     res.json(rows.map(mapAlerta));
   } catch (e) {
     fallo(res, e, 'No se pudieron leer las alertas.');
+  }
+});
+
+/**
+ * GET /checador/agente/alertas/agrupadas?sucursalId=&desde=&hasta=&estado=
+ *
+ * La misma cola, agrupada por regla + sucursal + persona. Existe porque al
+ * 30/07/2026 había **2,510 borradores esperando y CERO decididos**: pedir 2,510
+ * decisiones una por una garantiza que no se tome ninguna. Y no hacen falta —
+ * las dos reglas que quedan activas no describen 2,510 problemas distintos:
+ * `checada_duplicada` es del LECTOR (decisión por sucursal) y
+ * `entrada_sin_salida` es de la rutina de una PERSONA (decisión por persona).
+ */
+agenteHorariosRouter.get('/alertas/agrupadas', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId, desde, hasta, estado, nivel } = req.query as any;
+    res.json(await agruparAlertas({
+      sucursalId, desde, hasta, estado,
+      nivel: nivel === 'sucursal' ? 'sucursal' : 'persona',
+    }));
+  } catch (e) {
+    fallo(res, e, 'No se pudo agrupar la cola de alertas.');
+  }
+});
+
+/**
+ * PUT /checador/agente/alertas/grupo — decide un GRUPO completo.
+ * body: { regla, sucursalId, empleadoCodigo?, desde?, hasta?, estado, justificacion? }
+ *
+ * `estado` solo admite 'rechazada' o 'descartada'. Aprobar en bloque NO se
+ * permite a propósito: aprobar dispara el aviso por WhatsApp al jefe, así que un
+ * grupo de 400 mandaría 400 mensajes a una persona real. Aprobar sigue siendo de
+ * una en una, donde se ve a quién se le avisa.
+ */
+agenteHorariosRouter.put('/alertas/grupo', async (req: AuthedRequest, res: Response) => {
+  try {
+    const { regla, sucursalId, empleadoCodigo, desde, hasta, estado, justificacion } = req.body || {};
+    if (!regla || !sucursalId) {
+      return res.status(400).json({ error: 'Faltan regla y sucursalId.' });
+    }
+    if (!['rechazada', 'descartada'].includes(estado)) {
+      return res.status(400).json({
+        error: 'En bloque solo se puede rechazar o descartar. Aprobar es de una en una, porque avisa al jefe por WhatsApp.',
+      });
+    }
+    const quien = req.usuario?.email || req.usuario?.sub || 'rh';
+    const r = await decidirGrupo({
+      regla, sucursalId, empleadoCodigo, desde, hasta, estado,
+      decididoPor: quien, justificacion,
+    });
+    res.json(r);
+  } catch (e) {
+    fallo(res, e, 'No se pudo decidir el grupo.');
   }
 });
 
