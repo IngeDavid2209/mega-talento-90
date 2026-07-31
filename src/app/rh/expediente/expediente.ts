@@ -25,7 +25,9 @@ import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 import { ToastService } from '../../core/services/toast.service';
 import { BotService } from '../../core/services/bot.service';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
-import { hojaPorKey, hojaPorNombrePuesto } from '../../core/models/competencias-puesto.model';
+import {
+  hojaPorKey, hojaPorNombrePuesto, HOJAS_COMPETENCIAS
+} from '../../core/models/competencias-puesto.model';
 // Reporte de estatus + barra del proceso + bitácora de seguimiento (pestaña
 // Resumen). Vive en su propio componente para no engordar más este archivo, que
 // ya es el más grande del back-office.
@@ -518,6 +520,96 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     const p = this.puestoDelCandidato();
     const hoja = hojaPorKey(p?.hojaCompetencias) || hojaPorNombrePuesto(this.candidato?.puesto);
     return hoja?.competencias || [];
+  }
+
+  // ── ELEGIR OTRA HOJA DE ENTREVISTA ────────────────────────────────
+  //
+  // Hasta ahora la hoja salía SOLO del puesto al que se postuló, y no había
+  // forma de aplicar otra sin ir a Vacantes a cambiarle la hoja al puesto
+  // completo — lo que se la cambiaba a todos los demás candidatos de ese
+  // puesto. En la práctica pasa seguido: alguien se postula a Cajero y se le
+  // termina entrevistando para Almacenista.
+  //
+  // Se guarda en `competenciasConfig`, que es el campo que YA leen el portal
+  // del jefe y el cálculo del puntaje. Por eso el cambio llega al link sin
+  // tocar nada más.
+
+  HOJAS = HOJAS_COMPETENCIAS;
+
+  /** Hoja que le tocaría por su puesto, para la opción "la del puesto". */
+  hojaDelPuesto() {
+    const p = this.puestoDelCandidato();
+    return hojaPorKey(p?.hojaCompetencias) || hojaPorNombrePuesto(this.candidato?.puesto);
+  }
+
+  /** key de la hoja elegida a mano; '' = se usa la del puesto. */
+  get hojaElegida(): string {
+    return this.candidato?.hojaCompetenciasElegida || '';
+  }
+
+  /** Cuántas competencias tiene calificadas hoy (lo que se perdería al cambiar). */
+  private calificadasStar(): number {
+    const r = this.candidato?.rubricaAptitudes || {};
+    return Object.values(r).filter(Boolean).length;
+  }
+
+  /**
+   * Cambia la hoja de esta persona. Si el jefe ya calificó, avisa antes: las
+   * calificaciones se guardan por clave de competencia y las claves de otra
+   * hoja no coinciden, así que ese trabajo se queda sin a qué pertenecer.
+   */
+  async elegirHoja(key: string) {
+    if (!this.candidato?.id || key === this.hojaElegida) return;
+
+    const yaCalificadas = this.calificadasStar();
+    if (yaCalificadas > 0) {
+      const seguir = await this.toast.confirmar({
+        titulo: 'Ya hay competencias calificadas',
+        mensaje: `El jefe calificó ${yaCalificadas} competencia(s) con la hoja actual. Si cambias de hoja, esas calificaciones dejan de contar porque pertenecen a otra lista. ¿Cambiar de todos modos?`,
+        textoConfirmar: 'Cambiar la hoja',
+        destructivo: true
+      });
+      if (!seguir) return;
+    }
+
+    const hoja = key ? hojaPorKey(key) : this.hojaDelPuesto();
+    const payload: any = {
+      hojaCompetenciasElegida: key || null,
+      // Con una hoja elegida a mano se congela la lista: es lo que hace que el
+      // jefe vea exactamente esa. Al volver a "la del puesto" se limpia, para
+      // que siga a la vacante si mañana le cambian la hoja en Vacantes.
+      competenciasConfig: key ? (hoja?.competencias || null) : null
+    };
+
+    const previaKey = this.candidato.hojaCompetenciasElegida;
+    const previaConfig = this.candidato.competenciasConfig;
+    this.candidato.hojaCompetenciasElegida = payload.hojaCompetenciasElegida;
+    this.candidato.competenciasConfig = payload.competenciasConfig;
+
+    try {
+      await this.candidateService.updateCandidate(this.candidato.id, payload, { marcarActividad: false });
+      this.toast.exito(
+        key ? `Se evaluará con la hoja "${hoja?.nombre}".` : 'Vuelve a usarse la hoja del puesto.',
+        'Hoja de entrevista actualizada'
+      );
+      // El link viejo apunta a la hoja anterior: se invalida para que nadie lo
+      // reparta por WhatsApp creyendo que ya trae la nueva.
+      this.linkAptitudes = '';
+    } catch {
+      this.candidato.hojaCompetenciasElegida = previaKey;
+      this.candidato.competenciasConfig = previaConfig;
+      this.toast.error('No se pudo cambiar la hoja. Intenta de nuevo.');
+    }
+  }
+
+  /** De dónde viene la hoja que se está usando, en palabras. */
+  origenHoja(): string {
+    if (this.hojaElegida) {
+      return `Elegida a mano: ${hojaPorKey(this.hojaElegida)?.nombre || this.hojaElegida}`;
+    }
+    const h = this.hojaDelPuesto();
+    if (h) return `Por el puesto "${this.candidato?.puesto || '—'}": ${h.nombre}`;
+    return 'El puesto de este candidato no tiene hoja asignada.';
   }
 
   resultadoStar() {

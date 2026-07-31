@@ -466,6 +466,36 @@
           <p class="section-desc">Esta entrevista la realiza el <strong>jefe/gerente directo</strong>. Genera el link y compártelo con él; el puntaje llega solo aquí y RH lo monitorea.</p>
         </header>
 
+        <!-- QUÉ ENTREVISTA SE VA A APLICAR
+             Antes la hoja salía solo del puesto al que se postuló y cambiarla
+             obligaba a ir a Vacantes, donde se le cambia a TODOS los candidatos
+             de ese puesto. Aquí es por persona. -->
+        <div class="hoja-box">
+          <div class="hoja-campo">
+            <label for="selHoja">Entrevista que se va a aplicar</label>
+            <select id="selHoja" [value]="hojaElegida"
+                    (change)="elegirHoja($any($event.target).value)">
+              <option value="">
+                La del puesto@if (hojaDelPuesto()) { — {{ hojaDelPuesto()!.nombre }} } @else { — sin hoja asignada }
+              </option>
+              @for (h of HOJAS; track h.key) {
+                <option [value]="h.key">{{ h.nombre }} ({{ h.total }} competencias)</option>
+              }
+            </select>
+          </div>
+          <p class="hoja-origen">
+            {{ origenHoja() }}
+            @if (competenciasActivas().length) {
+              · <strong>{{ competenciasActivas().length }}</strong> competencias
+            }
+          </p>
+          @if (hojaElegida) {
+            <button type="button" class="hoja-volver" (click)="elegirHoja('')">
+              Volver a la del puesto
+            </button>
+          }
+        </div>
+
         <!-- EVALUACIÓN POR EL JEFE DIRECTO (link) -->
         <div class="eval-link-box">
           <div class="eval-link-head">
