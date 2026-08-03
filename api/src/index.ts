@@ -10,6 +10,7 @@ import { puestosRouter } from './puestos';
 import { usuariosRouter } from './usuarios';
 import { kpiRouter } from './kpi';
 import { requisicionesRouter } from './requisiciones';
+import { permanenciaRouter } from './permanencia';
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/puestos', puestosRouter);
 app.use('/usuarios', usuariosRouter);
 app.use('/kpi', kpiRouter); // Concentrado de candidatos: bitácora de eventos + tablero
 app.use('/requisiciones', requisicionesRouter); // Peticiones de personal de las sucursales
+app.use('/permanencia', permanenciaRouter);     // ¿El contratado sigue a los 30/60/90 días?
 
 app.listen(env.PORT, () => {
   console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);

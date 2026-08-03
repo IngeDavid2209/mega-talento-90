@@ -53,6 +53,20 @@ CREATE TABLE IF NOT EXISTS empleados (
 );
 ALTER TABLE empleados ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
+-- EL PUENTE ENTRE EL PROCESO Y LA NÓMINA (2026-08-03).
+--
+-- Hasta aquí `candidatos` y `empleados` eran dos mundos sin una sola línea que
+-- los uniera: el portal sabía a quién se contrató y el reloj sabía quién llega a
+-- trabajar, pero nadie podía responder "¿el que contratamos en mayo sigue?".
+-- Esa pregunta es literalmente el KPI de permanencia a 90 días.
+--
+-- Se guarda en `empleados` y no en `candidatos` porque el padrón del reloj ya
+-- existía con gente de años atrás que nunca pasó por el portal: la mayoría de
+-- las filas se quedan en NULL, y eso está bien. La liga la confirma RH; el
+-- sistema solo la sugiere por nombre (ver api/src/permanencia.ts).
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS candidato_id UUID;
+CREATE INDEX IF NOT EXISTS idx_empleados_candidato ON empleados (candidato_id);
+
 -- Una marca de asistencia ya importada del reloj.
 CREATE TABLE IF NOT EXISTS checadas (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
