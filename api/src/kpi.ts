@@ -320,6 +320,118 @@ kpiRouter.get('/fuera-de-lugar', async (_req: Request, res: Response) => {
 });
 
 // =====================================================================
+// NOVEDADES DEL DÍA — "¿qué pasó hoy?"
+// =====================================================================
+//
+// Lo que pidió Capital Humano para el dashboard: el resumen de lo nuevo que se
+// genera al día — quién se postuló y quién cambió de fase.
+//
+// ── POR QUÉ NO ES OTRO BLOQUE DE CIFRAS ─────────────────────────────
+//
+// El panel ya tiene indicadores de sobra; lo que no tenía es la respuesta a
+// "¿qué pasó desde ayer?". Por eso esto devuelve NOMBRES, no totales: un "3
+// postulados hoy" obliga a ir a buscarlos a otra pantalla, y esa fricción es la
+// razón por la que la gente nueva se queda dos días sin que nadie la toque.
+//
+// El día se corta en hora de México (ver `dia()` arriba). Se puede pedir otro
+// día con ?dia=YYYY-MM-DD: los lunes hay que poder mirar el sábado.
+kpiRouter.get('/novedades', async (req: Request, res: Response) => {
+  const pedido = String(req.query.dia || '').match(/^\d{4}-\d{2}-\d{2}$/) ? String(req.query.dia) : null;
+
+  try {
+    const D: string = pedido || (await pool.query(`SELECT to_char(${hoy()}, 'YYYY-MM-DD') AS d`)).rows[0].d;
+    const hoyReal: string = (await pool.query(`SELECT to_char(${hoy()}, 'YYYY-MM-DD') AS d`)).rows[0].d;
+    const hora = (col: string) => `to_char(${col} AT TIME ZONE '${TZ}', 'HH24:MI')`;
+
+    // ── Quién se postuló ─────────────────────────────────────────────
+    const postulados = await pool.query(
+      `SELECT id, nombre_completo AS nombre, coalesce(puesto_interes,'') AS puesto,
+              coalesce(ciudad_sucursal,'') AS ciudad,
+              coalesce(nullif(origen,''), nullif(fuente,''), 'portal') AS origen,
+              ${hora('creado_en')} AS hora
+         FROM candidatos
+        WHERE deleted_at IS NULL AND ${dia('creado_en')} = $1::date
+        ORDER BY creado_en DESC`,
+      [D]
+    );
+
+    // ── Quién cambió de fase ─────────────────────────────────────────
+    // etapa_origen NULL = venía del bot sin etapa fijada; el resto del sistema
+    // lo lee como Filtro Inicial y aquí se hace igual, para no inventar un
+    // "(ninguna) → Entrevista RH" que nadie sabe interpretar.
+    const fases = await pool.query(
+      `SELECT t.id, t.candidato_id AS "candidatoId", c.nombre_completo AS nombre,
+              coalesce(t.etapa_origen, 'filtro_inicial') AS de, t.etapa_destino AS a,
+              ${hora('t.cambiado_en')} AS hora
+         FROM candidatos_transiciones t
+         JOIN candidatos c ON c.id = t.candidato_id AND c.deleted_at IS NULL
+        WHERE ${dia('t.cambiado_en')} = $1::date
+        ORDER BY t.cambiado_en DESC`,
+      [D]
+    );
+
+    // ── Qué registró RH (llamadas, entrevistas, notas) ───────────────
+    const eventos = await pool.query(
+      `SELECT e.id, e.candidato_id AS "candidatoId", c.nombre_completo AS nombre,
+              e.tipo, e.canal, e.nota, e.por, ${hora('e.ocurrido_en')} AS hora
+         FROM candidatos_eventos e
+         JOIN candidatos c ON c.id = e.candidato_id AND c.deleted_at IS NULL
+        WHERE ${dia('e.ocurrido_en')} = $1::date
+        ORDER BY e.ocurrido_en DESC LIMIT 60`,
+      [D]
+    );
+
+    // ── Qué hizo el bot ──────────────────────────────────────────────
+    const bot = await pool.query(
+      `SELECT count(DISTINCT telefono) FILTER (WHERE direccion='in')::int  AS escribieron,
+              count(DISTINCT telefono) FILTER (WHERE direccion='out')::int AS "seLesEscribio",
+              count(*)::int AS mensajes
+         FROM mensajes WHERE ${dia('creado_en')} = $1::date`,
+      [D]
+    );
+
+    // ── Qué pidieron las sucursales ──────────────────────────────────
+    // La tabla nació después del resto; si el deploy del API va adelantado a la
+    // migración, este bloque no puede tumbar todo el panel del día.
+    let requisiciones: any[] = [];
+    try {
+      const r = await pool.query(
+        `SELECT id, folio, puesto, sucursal_id AS "sucursalId", vacantes, estado,
+                ${hora('creado_en')} AS hora
+           FROM requisiciones
+          WHERE ${dia('creado_en')} = $1::date
+          ORDER BY creado_en DESC`,
+        [D]
+      );
+      requisiciones = r.rows;
+    } catch (e) {
+      console.warn('[kpi] novedades: no se pudieron leer las requisiciones del día:', (e as any)?.message);
+    }
+
+    const resumen = {
+      postulados: postulados.rowCount || 0,
+      fases: fases.rowCount || 0,
+      eventos: eventos.rowCount || 0,
+      requisiciones: requisiciones.length,
+    };
+
+    return res.json({
+      dia: D,
+      esHoy: D === hoyReal,
+      resumen,
+      // Suma de lo que de verdad es "algo que pasó". Los mensajes del bot no
+      // entran: el bot escribe todos los días y siempre daría "hubo novedades".
+      total: resumen.postulados + resumen.fases + resumen.eventos + resumen.requisiciones,
+      postulados: postulados.rows,
+      fases: fases.rows,
+      eventos: eventos.rows,
+      requisiciones,
+      bot: bot.rows[0],
+    });
+  } catch (e) { return fallo(res, e, 'No se pudieron leer las novedades del día.'); }
+});
+
+// =====================================================================
 // EL TABLERO
 // =====================================================================
 
