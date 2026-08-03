@@ -133,6 +133,76 @@ kpiRouter.delete('/eventos/:id', async (req: Request, res: Response) => {
 });
 
 // =====================================================================
+// LA LUZ VERDE, DESDE EL PORTAL
+// =====================================================================
+//
+// El bot dictamina y deja al candidato esperando una decisión de RH: aprobar o
+// descartar. Esa decisión ya se podía tomar por WhatsApp o en el panel del bot…
+// y ahí estaba el problema: **RH trabaja en el portal**. Al 01/08/2026 había 28
+// candidatos dictaminados y CERO decisiones tomadas — no por falta de ganas, sino
+// porque la única puerta para decidir estaba en otra herramienta, con otro token.
+// Un botón que vive donde nadie lo ve es un botón que no existe.
+//
+// Este endpoint es el puente: el navegador llama aquí con su sesión normal (JWT)
+// y el servidor reenvía la decisión al bot con el `x-panel-token`. El token del
+// bot NUNCA baja al navegador; vive solo en la variable BOT_PANEL_TOKEN del API.
+//
+// El efecto es idéntico al del botón de WhatsApp (mismo endpoint del bot): se le
+// avisa al candidato si fue aprobado, se registra quién decidió y cuándo, y el
+// candidato sale de la cola.
+kpiRouter.post('/decidir', async (req: AuthedRequest, res: Response) => {
+  const b = req.body || {};
+  const id = String(b.candidatoId || '').trim();
+  const decision = String(b.decision || '').trim().toLowerCase();
+
+  if (!UUID_RE.test(id)) return res.status(400).json({ error: 'candidatoId inválido.' });
+  if (decision !== 'aprobado' && decision !== 'descartado') {
+    return res.status(400).json({ error: "decision debe ser 'aprobado' o 'descartado'." });
+  }
+
+  const BOT = String(process.env.BOT_RH_URL || '').replace(/\/+$/, '');
+  const TOKEN = String(process.env.BOT_PANEL_TOKEN || '');
+  if (!BOT || !TOKEN) {
+    return res.status(503).json({
+      error: 'Falta configurar la conexión con el bot (BOT_RH_URL / BOT_PANEL_TOKEN).',
+    });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT telefono, nombre_completo FROM candidatos WHERE id=$1::uuid',
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Candidato no encontrado.' });
+
+    const quien = (req.usuario as any)?.nombre || (req.usuario as any)?.email || 'RH';
+    const r = await fetch(`${BOT}/api/decidir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-panel-token': TOKEN },
+      body: JSON.stringify({
+        telefono: rows[0].telefono,
+        decision,
+        por: quien,
+        nota: b.nota ? String(b.nota).slice(0, 500) : undefined,
+      }),
+    });
+    const cuerpo = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error('[kpi] el bot rechazó la decisión:', r.status, cuerpo);
+      return res.status(502).json({ error: (cuerpo as any).error || 'El bot no pudo registrar la decisión.' });
+    }
+
+    // Queda también en la bitácora: el KPI necesita saber CUÁNDO se decidió.
+    await pool.query(
+      `INSERT INTO candidatos_eventos (candidato_id, tipo, canal, nota, por)
+       VALUES ($1::uuid, 'nota', 'portal', $2, $3)`,
+      [id, `Decisión de RH: ${decision}${b.nota ? ' · ' + String(b.nota).slice(0, 200) : ''}`, quien]
+    );
+    return res.json({ ok: true, decision, ...(cuerpo as any) });
+  } catch (e) { return fallo(res, e, 'No se pudo registrar la decisión.'); }
+});
+
+// =====================================================================
 // FUERA DE LUGAR: quién está en una fase adelantada sin cumplir lo mínimo
 // =====================================================================
 //
