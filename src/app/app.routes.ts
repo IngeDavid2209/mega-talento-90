@@ -27,6 +27,7 @@ import { HorariosComponent } from './rh/horarios/horarios';
 import { AgenteHorariosComponent } from './rh/agente-horarios/agente-horarios';
 import { KpiComponent } from './rh/kpi/kpi';
 import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
+import { PermanenciaComponent } from './rh/permanencia/permanencia';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,7 @@ export const routes: Routes = [
       { path: 'concentrado', component: ConcentradoComponent },
       { path: 'kpi', component: KpiComponent }, // tablero operativo (contactos, tiempos, cobertura)
       { path: 'requisiciones', component: RequisicionesComponent }, // lo que cada sucursal pide
+      { path: 'permanencia', component: PermanenciaComponent },     // ¿el contratado sigue a los 90 días?
       { path: 'destacados', component: DestacadosComponent },
       { path: 'en-riesgo', component: EnRiesgoComponent },
       { path: 'etapa/:etapaId', component: EtapaComponent },

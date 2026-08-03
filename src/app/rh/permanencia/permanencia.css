@@ -1,0 +1,127 @@
+/* Permanencia · 90 días.
+   Mismo lenguaje visual que el tablero de KPI (tarjetas, bloques, avisos) para
+   que se lean como dos vistas del mismo sistema y no como dos aplicaciones. */
+
+.perm-wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; }
+
+.perm-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
+.perm-head h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+.perm-head .sub { margin: 0; font-size: 13px; color: var(--text2); max-width: 68ch; line-height: 1.5; }
+
+.pill { font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+        border: 1px solid var(--border); background: var(--surface); color: var(--text2); }
+.pill.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.pill.refresh { font-size: 15px; padding: 6px 12px; }
+.pill:disabled { opacity: .55; cursor: default; }
+
+.estado { text-align: center; color: var(--text2); padding: 40px 16px; font-size: 14px; }
+.estado.err { color: var(--red-text); }
+
+.avisos { background: var(--amber-bg); border: 1px solid var(--amber); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 18px; }
+.avisos-tit { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--amber-text); margin-bottom: 6px; }
+.aviso { font-size: 12.5px; line-height: 1.55; color: var(--amber-text); }
+
+/* ── Tarjetas de hito ───────────────────────────────────────────── */
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+.tarjeta.vacia { opacity: .72; }
+.t-cab { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); }
+.t-num { font-size: 30px; font-weight: 600; line-height: 1.1; color: var(--green); margin-top: 2px; }
+.t-num.mal { color: var(--red); }
+.t-num.sin { color: var(--text2); }
+.t-lbl { font-size: 12.5px; font-weight: 600; }
+.t-pie { font-size: 11.5px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+
+/* ── Bloques ────────────────────────────────────────────────────── */
+.bloque { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 18px 20px; margin-bottom: 18px; }
+.bloque h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.ayuda { font-size: 12.5px; color: var(--text2); margin: 0 0 16px; line-height: 1.5; }
+.sin-dato { background: var(--surface2); border: 1px dashed var(--border); border-radius: var(--radius);
+            padding: 12px 14px; font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.tenue { color: var(--text2); font-weight: 400; }
+
+/* La tabla de cohortes crece con los meses: se desplaza sola sin empujar la página. */
+.tabla-scroll { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tabla th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text2); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabla td { padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabla .fuerte { font-weight: 600; }
+
+/* ── Filtros ────────────────────────────────────────────────────── */
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.buscar { flex: 1; min-width: 180px; font: inherit; font-size: 12.5px; padding: 7px 12px;
+          border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); }
+
+/* ── Lista de personas ──────────────────────────────────────────── */
+.lista { display: flex; flex-direction: column; gap: 8px; }
+.fila { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(200px, 1.6fr) auto; align-items: center; gap: 14px;
+        cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-left-width: 4px;
+        border-radius: var(--radius-lg); padding: 10px 14px; }
+.fila:hover { border-color: var(--brand); }
+.fila[data-estado="activo"]        { border-left-color: var(--green); }
+.fila[data-estado="sin_marcas"]    { border-left-color: var(--red); }
+.fila[data-estado="baja_portal"]   { border-left-color: var(--red); }
+.fila[data-estado="sin_verificar"] { border-left-color: var(--border-strong); }
+
+.quien { min-width: 0; }
+.quien .nombre { font-weight: 600; font-size: 14.5px; }
+.quien .meta { display: flex; flex-wrap: wrap; gap: 5px; font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+.avance { min-width: 0; }
+.avance-cab { font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.avance-cab strong { color: var(--text); font-size: 14px; }
+
+/* La barra cuenta dos cosas a la vez: lo transcurrido (claro) y lo que las
+   marcas del reloj comprueban (sólido). La diferencia entre ambas ES el dato. */
+.barra { position: relative; height: 8px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
+.barra-portal  { position: absolute; inset: 0 auto 0 0; background: var(--border-strong); }
+.barra-probado { position: absolute; inset: 0 auto 0 0; background: var(--green); }
+.marca { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--surface); opacity: .9; }
+
+.btn-fix { font: inherit; font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer;
+           border: 1px dashed var(--amber); border-radius: 999px; background: var(--amber-bg); color: var(--amber-text); }
+
+.derecha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.chip { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+        background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.chip[data-estado="activo"]      { background: var(--green-bg); color: var(--green-text); border-color: var(--green); }
+.chip[data-estado="sin_marcas"]  { background: var(--red-bg); color: var(--red-text); border-color: var(--red); }
+.chip[data-estado="baja_portal"] { background: var(--red-bg); color: var(--red-text); border-color: var(--red); }
+
+.btn-mini { font: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 11px; cursor: pointer; white-space: nowrap;
+            border: 1px solid var(--border-med); border-radius: 999px; background: var(--surface); color: var(--text); }
+.btn-mini:hover { border-color: var(--brand); }
+.btn-mini.ok { border-color: var(--green); color: var(--green-text); background: var(--green-bg); }
+.btn-mini.tenue-btn { color: var(--text2); font-weight: 400; }
+.btn-mini:disabled { opacity: .5; cursor: default; }
+
+/* ── Paneles ────────────────────────────────────────────────────── */
+.modal-fondo { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex;
+               align-items: center; justify-content: center; padding: 20px; z-index: 60; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+         padding: 20px; width: min(560px, 100%); max-height: 82vh; overflow-y: auto; }
+.modal.chico { width: min(400px, 100%); }
+.modal h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+
+.buscador { display: flex; gap: 8px; margin-bottom: 12px; }
+.buscador input { flex: 1; font: inherit; font-size: 13px; padding: 8px 12px;
+                  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.fecha { font: inherit; font-size: 13px; padding: 8px 12px; width: 100%;
+         border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+
+.reloj-lista { display: flex; flex-direction: column; gap: 6px; }
+.reloj-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
+              font: inherit; cursor: pointer; padding: 10px 12px; border: 1px solid var(--border);
+              border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.reloj-item:hover { border-color: var(--brand); }
+.reloj-item:disabled { opacity: .5; cursor: default; }
+.reloj-item strong { display: block; font-size: 13.5px; }
+.reloj-item small { font-size: 11.5px; color: var(--text2); }
+.reloj-item .ult { white-space: nowrap; }
+
+.modal-pie { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+@media (max-width: 720px) {
+  .fila { grid-template-columns: 1fr; }
+  .derecha { justify-content: flex-start; }
+}

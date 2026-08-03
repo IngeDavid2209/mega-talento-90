@@ -1,0 +1,259 @@
+<div class="perm-wrap">
+  <header class="perm-head">
+    <div>
+      <h1>Permanencia · 90 días</h1>
+      <p class="sub">
+        Contratar es la mitad del trabajo. Esto mide a cada persona
+        <strong>desde su primer contrato hasta los 90 días</strong>, y lo comprueba
+        con las marcas del reloj checador, no con una etiqueta.
+      </p>
+    </div>
+    <button type="button" class="pill refresh" (click)="cargar()" title="Volver a calcular">↻</button>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Calculando…</div>
+  } @else if (error) {
+    <div class="estado err">{{ error }}</div>
+  } @else if (datos) {
+
+    @if (datos.avisos.length) {
+      <section class="avisos">
+        <div class="avisos-tit">Para leer bien estos números</div>
+        @for (a of datos.avisos; track a) {
+          <div class="aviso">· {{ a }}</div>
+        }
+      </section>
+    }
+
+    <!-- ══ LOS HITOS ══ -->
+    <section class="tarjetas">
+      @for (h of datos.hitos; track h.dia) {
+        <article class="tarjeta" [class.vacia]="!h.elegibles">
+          <div class="t-cab">Día {{ h.dia }}</div>
+
+          @if (!h.elegibles) {
+            <div class="t-num sin">—</div>
+            <div class="t-lbl">nadie llega todavía</div>
+            <div class="t-pie">Ningún contratado lleva {{ h.dia }} días. No es un cero: aún no le toca a nadie.</div>
+          } @else if (h.pctConfirmado === null) {
+            <div class="t-num sin">?</div>
+            <div class="t-lbl">sin comprobar</div>
+            <div class="t-pie">
+              {{ h.elegibles }} cumplen {{ h.dia }} días, pero ninguno está ligado al reloj.
+              El portal dice que siguen {{ h.enPortal }}.
+            </div>
+          } @else {
+            <div class="t-num" [class.mal]="h.pctConfirmado < 70">{{ h.pctConfirmado }}%</div>
+            <div class="t-lbl">siguen, comprobado</div>
+            <div class="t-pie">
+              <strong>{{ h.confirmados }}</strong> de {{ h.verificables }} verificables
+              @if (h.sinVerificar) { · {{ h.sinVerificar }} sin comprobar }
+              <br>
+              <span class="tenue">el portal dice {{ h.enPortal }} de {{ h.elegibles }}</span>
+            </div>
+          }
+        </article>
+      }
+    </section>
+
+    <!-- ══ COHORTES ══ -->
+    <section class="bloque">
+      <h2>Por mes de contratación</h2>
+      <p class="ayuda">
+        Cada renglón es la gente que entró ese mes. Un guion significa que a esa
+        camada todavía no le toca el hito, no que lo haya reprobado.
+      </p>
+
+      @if (!datos.cohortes.length) {
+        <div class="sin-dato">
+          No hay contrataciones con fecha de ingreso registrada. Sin fecha no hay días que contar.
+        </div>
+      } @else {
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Mes</th><th>Entraron</th>
+                @for (d of datos.hitosDias; track d) { <th>Día {{ d }}</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of datos.cohortes; track c.mes) {
+                <tr>
+                  <td class="fuerte">{{ nombreMes(c.mes) }}</td>
+                  <td>{{ c.n }}</td>
+                  @for (d of datos.hitosDias; track d) {
+                    <td>
+                      @if (!c.hitos[d].elegibles) {
+                        <span class="tenue" title="Todavía no cumplen {{ d }} días">—</span>
+                      } @else {
+                        <strong>{{ c.hitos[d].confirmados }}</strong>/{{ c.hitos[d].elegibles }}
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!-- ══ PERSONAS ══ -->
+    <section class="bloque">
+      <h2>Persona por persona</h2>
+      <p class="ayuda">
+        {{ datos.resumen.total }} contratado(s) ·
+        {{ datos.resumen.ligados }} ligado(s) al reloj ·
+        {{ datos.resumen.sinFecha }} sin fecha de ingreso.
+      </p>
+
+      <div class="filtros">
+        <button type="button" class="pill" [class.on]="filtro === 'todos'" (click)="filtro = 'todos'">
+          Todos ({{ datos.personas.length }})
+        </button>
+        <button type="button" class="pill" [class.on]="filtro === 'pendientes'" (click)="filtro = 'pendientes'">
+          Falta capturar ({{ hayPendientes }})
+        </button>
+        <button type="button" class="pill" [class.on]="filtro === 'riesgo'" (click)="filtro = 'riesgo'">
+          Requiere revisión ({{ hayRiesgo }})
+        </button>
+        <input type="search" class="buscar" placeholder="Buscar por nombre o puesto…" [(ngModel)]="busqueda">
+      </div>
+
+      @if (!personas.length) {
+        <div class="sin-dato">No hay nadie en este filtro.</div>
+      }
+
+      <div class="lista">
+        @for (p of personas; track p.id) {
+          <article class="fila" [attr.data-estado]="p.estado" (click)="abrirExpediente(p.id)">
+            <div class="quien">
+              <div class="nombre">{{ p.nombre }}</div>
+              <div class="meta">
+                @if (p.puesto) { <span>{{ p.puesto }}</span> }
+                @if (p.empleado) {
+                  <span class="sep">·</span>
+                  <span>{{ nombreSucursal(p.empleado.sucursalId) }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Días y avance hacia los 90 -->
+            <div class="avance">
+              @if (p.ingreso) {
+                <div class="avance-cab">
+                  <strong>{{ p.dias }}</strong> días · entró el {{ fechaCorta(p.ingreso) }}
+                  @if (!p.fechaPropia) {
+                    <span class="tenue" title="No se capturó fecha al contratar: se tomó del historial de etapas">(deducida)</span>
+                  }
+                </div>
+                <div class="barra">
+                  <!-- Lo comprobado se pinta sólido; lo que solo dice el portal, rayado. -->
+                  <div class="barra-portal" [style.width.%]="avance(p.dias)"></div>
+                  <div class="barra-probado" [style.width.%]="avance(p.diasProbados)"></div>
+                  @for (h of datos.hitosDias; track h) {
+                    <span class="marca" [style.left.%]="avance(h)" [title]="'Día ' + h"></span>
+                  }
+                </div>
+              } @else {
+                <button type="button" class="btn-fix" (click)="abrirFecha(p, $event)">
+                  Falta la fecha de ingreso — capturarla
+                </button>
+              }
+            </div>
+
+            <div class="derecha">
+              <span class="chip" [attr.data-estado]="p.estado" [title]="explicaEstado(p)">
+                {{ etiquetaEstado(p.estado) }}
+              </span>
+
+              @if (p.empleado && !p.empleado.confirmado) {
+                <button type="button" class="btn-mini ok" (click)="aceptarSugerencia(p, $event)" [disabled]="guardando"
+                        [title]="'Coincide con ' + p.empleado.nombre + ' (código ' + p.empleado.codigo + ')'">
+                  ¿Es {{ p.empleado.nombre }}?
+                </button>
+              } @else if (!p.empleado) {
+                <button type="button" class="btn-mini" (click)="abrirLiga(p, $event)" [disabled]="guardando">
+                  Ligar al reloj
+                </button>
+              } @else {
+                <button type="button" class="btn-mini tenue-btn" (click)="quitarLiga(p, $event)" [disabled]="guardando"
+                        [title]="'Ligado a ' + p.empleado.nombre + ' · código ' + p.empleado.codigo">
+                  Desligar
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ══ PANEL: ligar con el reloj ══ -->
+  @if (ligando) {
+    <div class="modal-fondo" (click)="cerrarLiga()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>¿Quién es {{ ligando.nombre }} en el reloj?</h3>
+        <p class="ayuda">
+          Busca su código en el padrón del checador. Con esta liga se puede comprobar
+          si sigue viniendo a trabajar; sin ella solo se sabe lo que dice el portal.
+        </p>
+
+        <div class="buscador">
+          <input type="search" [(ngModel)]="qReloj" (keyup.enter)="buscarReloj()" placeholder="Nombre o apellido…">
+          <button type="button" class="pill on" (click)="buscarReloj()" [disabled]="buscandoReloj">
+            {{ buscandoReloj ? 'Buscando…' : 'Buscar' }}
+          </button>
+        </div>
+
+        @if (buscandoReloj) {
+          <div class="estado">Buscando…</div>
+        } @else if (!candidatosReloj.length) {
+          <div class="sin-dato">
+            Nadie en el padrón coincide con eso. Puede que aún no lo den de alta en el reloj
+            de su sucursal, o que esté capturado con otro nombre.
+          </div>
+        } @else {
+          <div class="reloj-lista">
+            @for (e of candidatosReloj; track e.id) {
+              <button type="button" class="reloj-item" (click)="confirmarLiga(e.id, $event)" [disabled]="guardando">
+                <div>
+                  <strong>{{ e.nombre }}</strong>
+                  <small>Código {{ e.codigo }} · {{ nombreSucursal(e.sucursalId) }}{{ e.puesto ? ' · ' + e.puesto : '' }}</small>
+                </div>
+                <small class="ult">
+                  {{ e.ultima ? 'última marca ' + fechaCorta(e.ultima) : 'sin marcas' }}
+                </small>
+              </button>
+            }
+          </div>
+        }
+
+        <div class="modal-pie">
+          <button type="button" class="pill" (click)="cerrarLiga()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══ PANEL: fecha de ingreso ══ -->
+  @if (editandoFecha) {
+    <div class="modal-fondo" (click)="cerrarFecha()">
+      <div class="modal chico" (click)="$event.stopPropagation()">
+        <h3>¿Qué día entró {{ editandoFecha.nombre }}?</h3>
+        <p class="ayuda">
+          Es el día que empezó a trabajar. Desde aquí se cuentan los 30, 60 y 90 días.
+        </p>
+        <input type="date" class="fecha" [(ngModel)]="fechaNueva" [max]="datos?.hoy">
+        <div class="modal-pie">
+          <button type="button" class="pill" (click)="cerrarFecha()">Cancelar</button>
+          <button type="button" class="pill on" (click)="guardarFecha()" [disabled]="!fechaNueva || guardando">
+            {{ guardando ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
