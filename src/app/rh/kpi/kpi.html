@@ -86,18 +86,20 @@
       <h2>Actividad por día</h2>
       <p class="ayuda">Cada columna es un día. La barra oscura son las personas contactadas; la clara, las que se postularon.</p>
 
-      <div class="grafica">
-        @for (d of datos.porDia; track d.dia) {
-          <div class="col" [class.hoy]="esHoy(d.dia)">
+      <div class="grafica" [class.densa]="densa">
+        @for (d of datos.porDia; track d.dia; let i = $index) {
+          <div class="col" [class.hoy]="esHoy(d.dia)" [title]="tituloDia(d)">
             <div class="barras">
-              <div class="b contact" [style.height]="alto(d.contactados)" [title]="d.contactados + ' contactados'">
-                @if (d.contactados) { <span class="v">{{ d.contactados }}</span> }
+              <div class="b contact" [style.height]="alto(d.contactados)">
+                @if (d.contactados && !densa) { <span class="v">{{ d.contactados }}</span> }
               </div>
-              <div class="b postul" [style.height]="alto(d.postulaciones)" [title]="d.postulaciones + ' postulaciones'">
-                @if (d.postulaciones) { <span class="v">{{ d.postulaciones }}</span> }
+              <div class="b postul" [style.height]="alto(d.postulaciones)">
+                @if (d.postulaciones && !densa) { <span class="v">{{ d.postulaciones }}</span> }
               </div>
             </div>
-            <div class="eje">{{ etiquetaDia(d.dia) }}</div>
+            <div class="eje">
+              @if (mostrarEtiqueta(i)) { <span>{{ etiquetaDia(d.dia) }}</span> }
+            </div>
           </div>
         }
       </div>

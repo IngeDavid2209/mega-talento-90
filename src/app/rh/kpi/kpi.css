@@ -38,16 +38,36 @@
 .ayuda { font-size: 12.5px; color: var(--text2); margin: 0 0 16px; line-height: 1.5; }
 .dos-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 26px; }
 
-/* ── Gráfica de barras ──────────────────────────────────────────── */
-.grafica { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding: 0 2px; }
-.col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
-.barras { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
-.b { width: 46%; max-width: 26px; border-radius: 5px 5px 0 0; min-height: 3px; position: relative; transition: height .2s; }
+/* ── Gráfica de barras ───────────────────────────────────────────
+   Dos cosas que se rompían con el rango de 30 y 90 días:
+
+   1. LAS BARRAS SALÍAN PLANAS. El alto va en % y `.barras` era `flex: 1`
+      sin altura propia: el porcentaje no tenía contra qué resolverse y
+      todas las barras caían al `min-height` de 3 px. Con una altura fija
+      el % siempre resuelve, tenga el rango 7 días o 90.
+
+   2. SE SALÍA DE LA TARJETA. `.col` era `flex: 1` (o sea `min-width: auto`)
+      y la etiqueta del eje —"mié 6", en `nowrap`— le fijaba un ancho mínimo
+      de ~40 px. Noventa columnas de 40 px son 3,600 px de gráfica dentro de
+      una tarjeta de 900. Con `min-width: 0` la columna sí se encoge, y la
+      etiqueta se saca del flujo (absoluta) para que no vuelva a empujar. */
+.grafica { display: flex; align-items: flex-end; gap: 10px; padding: 18px 2px 0; }
+.col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.barras { height: 150px; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+.b { width: 46%; max-width: 26px; min-width: 2px; border-radius: 5px 5px 0 0; min-height: 3px; position: relative; transition: height .2s; }
 .b.contact { background: var(--brand); }
 .b.postul  { background: var(--border-strong); }
 .b .v { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: var(--text2); }
-.eje { font-size: 10.5px; color: var(--text2); margin-top: 8px; white-space: nowrap; }
-.col.hoy .eje { font-weight: 600; color: var(--brand); }
+/* La etiqueta va absoluta y centrada: puede ser más ancha que su columna
+   sin ensanchar la gráfica (solo se rotula una de cada N, no se encima). */
+.eje { position: relative; width: 100%; height: 15px; margin-top: 8px; }
+.eje span { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10.5px; color: var(--text2); }
+.col.hoy .eje span { font-weight: 600; color: var(--brand); }
+
+/* Rango largo: columnas delgadas, casi sin aire entre ellas. */
+.grafica.densa { gap: 2px; }
+.grafica.densa .barras { gap: 1px; }
+.grafica.densa .b { border-radius: 2px 2px 0 0; }
 
 .leyenda { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 11.5px; color: var(--text2); }
 .leyenda .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }

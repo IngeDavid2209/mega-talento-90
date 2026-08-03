@@ -83,6 +83,31 @@ export class KpiComponent implements OnInit {
     return `${Math.round((valor / this.maxDia) * 100)}%`;
   }
 
+  /** Días dibujados en la gráfica. */
+  private get nDias(): number { return this.datos?.porDia.length || 0; }
+
+  /**
+   * Rango largo = columnas delgadas y SIN la cifra encima de cada barra.
+   * Con 90 días esas cifras se encimaban unas con otras y dejaban de leerse;
+   * el dato exacto de cada día sigue en la tabla de abajo y en el tooltip.
+   */
+  get densa(): boolean { return this.nDias > 15; }
+
+  /**
+   * ¿Esta columna lleva etiqueta en el eje? Noventa etiquetas no caben, así que
+   * se rotula una de cada N. Se cuenta DESDE EL FINAL para que el último día
+   * —hoy, la referencia de quien mira— siempre quede rotulado.
+   */
+  mostrarEtiqueta(i: number): boolean {
+    const cada = Math.max(1, Math.ceil(this.nDias / 12));
+    return (this.nDias - 1 - i) % cada === 0;
+  }
+
+  /** Tooltip de la columna: sustituye a las cifras que se ocultan en rango largo. */
+  tituloDia(d: DiaKpi): string {
+    return `${this.etiquetaDia(d.dia)} · ${d.contactados} contactado(s) · ${d.postulaciones} postulación(es)`;
+  }
+
   /**
    * "mié 29" — etiqueta corta para el eje.
    * El API manda el día como texto 'YYYY-MM-DD' (ver kpi.ts del backend). Se le
