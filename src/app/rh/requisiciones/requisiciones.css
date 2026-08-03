@@ -4,7 +4,7 @@
    estados sobrios), igual que el resto del back-office.
    ============================================================ */
 
-.rq-wrap { max-width: 1080px; margin: 0 auto; padding: 28px 24px 60px; }
+.rq-wrap { width: 100%; max-width: var(--pagina-max); margin: 0 auto; padding: 28px var(--pagina-pad) 60px; }
 
 .rq-head {
   display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;

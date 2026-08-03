@@ -2,7 +2,7 @@
    Mismas variables de tema que el resto del back-office (--surface, --border,
    --text2) para que herede claro/oscuro sin tocar nada. */
 
-.kpi-wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; }
+.kpi-wrap { width: 100%; max-width: var(--pagina-max); margin: 0 auto; padding: 20px var(--pagina-pad) 48px; }
 
 .kpi-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
 .kpi-head h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }

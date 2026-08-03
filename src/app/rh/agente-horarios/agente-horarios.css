@@ -25,9 +25,13 @@
   --ia-amber:   var(--amber);
   --ia-red:     var(--red);
 
+  display: block;
+  width: 100%;
+  max-width: var(--pagina-max);
+  margin: 0 auto;
   min-height: 100%;
   box-sizing: border-box;
-  padding: 24px 26px 60px;
+  padding: 24px var(--pagina-pad) 60px;
   background: var(--ia-bg);
   color: var(--ia-ink);
 }

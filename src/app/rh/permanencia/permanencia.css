@@ -2,7 +2,7 @@
    Mismo lenguaje visual que el tablero de KPI (tarjetas, bloques, avisos) para
    que se lean como dos vistas del mismo sistema y no como dos aplicaciones. */
 
-.perm-wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; }
+.perm-wrap { width: 100%; max-width: var(--pagina-max); margin: 0 auto; padding: 20px var(--pagina-pad) 48px; }
 
 .perm-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
 .perm-head h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }

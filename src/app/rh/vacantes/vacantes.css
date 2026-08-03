@@ -2,8 +2,9 @@
    GESTIÓN DE VACANTES · Look corporativo
    ============================================================ */
 .page-container {
-  padding: 32px 44px 60px;
-  max-width: 1320px;
+  width: 100%;
+  padding: 32px var(--pagina-pad) 60px;
+  max-width: var(--pagina-max);
   margin: 0 auto;
   box-sizing: border-box;
 }

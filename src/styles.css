@@ -71,6 +71,35 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* ============================================================
+   EL ANCHO DE UNA PÁGINA DEL BACK-OFFICE
+   ============================================================
+
+   Cada pantalla se había ido armando con su propio ancho: había siete
+   distintos (980, 1080, 1100, 1120, 1200, 1240 y 1320 px) y paddings de 16
+   a 44 px. En un monitor ancho eso deja el contenido como una tira en
+   medio de la pantalla, con más margen vacío que información, y además
+   cada pantalla se ve de un tamaño diferente que la anterior.
+
+   Dos medidas, una sola vez, para todas:
+
+   · --pagina-max  El tope. No es "sin límite" a propósito: una tabla de
+     3,000 px obliga a barrer la pantalla con la vista para seguir un
+     renglón. 2200 px aprovecha un monitor grande y todavía se lee.
+
+   · --pagina-pad  El aire de los lados, proporcional a la pantalla: 14 px
+     en un teléfono, 44 px en un escritorio. Un padding fijo de 44 px se
+     come un tercio de la pantalla de un celular.
+
+   Los textos largos NO se estiran hasta el borde: cada bloque de prosa se
+   sigue limitando a ~60-70ch en su propia hoja, porque un renglón de 200
+   caracteres es ilegible por más pantalla que haya.
+   ============================================================ */
+:root {
+  --pagina-max: 2200px;
+  --pagina-pad: clamp(14px, 2vw, 44px);
+}
+
+/* ============================================================
    REGLAS GLOBALES DE RESPONSIVIDAD
    Evita overflow horizontal accidental en cualquier vista pública.
    ============================================================ */

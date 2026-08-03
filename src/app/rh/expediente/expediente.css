@@ -3,8 +3,9 @@
    ============================================================ */
 
 .page-wrapper {
-  padding: 32px 44px 60px;
-  max-width: 1240px;
+  width: 100%;
+  padding: 32px var(--pagina-pad) 60px;
+  max-width: var(--pagina-max);
   margin: 0 auto;
   background: var(--bg);
   min-height: 100vh;

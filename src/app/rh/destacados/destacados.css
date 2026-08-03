@@ -1,4 +1,4 @@
-.dest-wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+.dest-wrap { width: 100%; max-width: var(--pagina-max); margin: 0 auto; padding: 20px var(--pagina-pad) 48px; }
 
 .dest-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
 .dest-head h1 { font-size: 22px; font-weight: 800; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }

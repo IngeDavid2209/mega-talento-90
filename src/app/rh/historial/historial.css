@@ -3,7 +3,10 @@
    ============================================================ */
 
 .dashboard-container {
-  padding: 36px 44px 60px;
+  width: 100%;
+  max-width: var(--pagina-max);
+  margin: 0 auto;
+  padding: 32px var(--pagina-pad) 60px;
   background: var(--bg);
   min-height: 100vh;
   box-sizing: border-box;

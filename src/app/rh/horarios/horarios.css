@@ -4,8 +4,9 @@
    ============================================================ */
 
 .hz-page {
-  padding: 22px 24px 60px;
-  max-width: 1200px;
+  width: 100%;
+  padding: 22px var(--pagina-pad) 60px;
+  max-width: var(--pagina-max);
   margin: 0 auto;
   box-sizing: border-box;
   color: var(--text);
