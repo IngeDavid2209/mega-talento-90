@@ -56,6 +56,41 @@
     }
   </div>
 
+  <!-- ══ LUZ VERDE DE RH ══
+       El dictamen del bot no mueve a nadie solo: espera que una persona decida.
+       Vive aquí, en la ficha, porque es donde RH está leyendo el análisis. -->
+  @if (esperaDecision) {
+    <div class="decision-pend">
+      <div class="dec-txt">
+        <span class="dec-tit">Esperando tu decisión</span>
+        <span class="dec-sub">
+          El análisis del CV recomienda <b>{{ candidato.dictamen.recomendacion }}</b>
+          ({{ candidato.dictamen.puntaje }}/100). Tú decides.
+        </span>
+      </div>
+      <div class="dec-btns">
+        <button type="button" class="btn ok" [disabled]="!!decidiendo" (click)="decidir('aprobado')">
+          {{ decidiendo === 'aprobado' ? 'Guardando…' : 'Aprobar' }}
+        </button>
+        <button type="button" class="btn no" [disabled]="!!decidiendo" (click)="decidir('descartado')">
+          {{ decidiendo === 'descartado' ? 'Guardando…' : 'Descartar' }}
+        </button>
+      </div>
+    </div>
+  } @else if (faltaLlegarAlFinal) {
+    <div class="decision-espera">
+      El análisis del CV ya está listo (<b>{{ candidato.dictamen.recomendacion }}</b>,
+      {{ candidato.dictamen.puntaje }}/100), pero la decisión se toma al final del proceso,
+      en <b>Psicométricas</b>. El bot lo va avanzando solo conforme cumpla cada etapa.
+    </div>
+  } @else if (decision) {
+    <div class="decision-hecha" [attr.data-d]="decision.decision">
+      <b>{{ decision.decision === 'aprobado' ? 'Aprobado' : 'Descartado' }}</b>
+      @if (decision.por) { por {{ decision.por }} }
+      @if (decision.en) { · {{ cuando(decision.en) }} }
+    </div>
+  }
+
   <!-- ══ BITÁCORA ══ -->
   <div class="bitacora">
     <div class="bit-head">

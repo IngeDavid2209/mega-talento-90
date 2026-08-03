@@ -262,6 +262,77 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
     }
   }
 
+  // ── LA LUZ VERDE ──────────────────────────────────────────────────
+  //
+  // El bot dictamina y deja al candidato esperando decisión. Hasta el
+  // 01/08/2026 esa decisión solo se podía dar por WhatsApp o en el panel del
+  // bot, y había 28 candidatos dictaminados con CERO decisiones: la puerta
+  // estaba en otra herramienta. Aquí, en la ficha donde RH ya está leyendo el
+  // análisis, cuesta un clic.
+
+  decidiendo = '';
+
+  /**
+   * ¿Hay un dictamen esperando decisión, Y el candidato ya llegó al final?
+   *
+   * Los botones aparecen SOLO en Psicométricas (la 4ª fase). Es lo que pidió RH:
+   * el bot empuja al candidato por las tres compuertas —expediente completo,
+   * entrevista calificada, aptitudes aprobadas por el jefe— y una persona decide
+   * hasta el final. Si el botón viviera en cualquier fase, aprobar se volvería un
+   * atajo para saltarse las compuertas, y entonces medir el proceso no serviría
+   * de nada.
+   *
+   * Los de fases anteriores igual ven su dictamen y su reporte de estatus; lo que
+   * no tienen es el botón.
+   */
+  get esperaDecision(): boolean {
+    const c = this.candidato || {};
+    if (!c.dictamen?.recomendacion || c.decision?.decision) return false;
+    return c.status === ID_ETAPAS.PSICOMETRIA;
+  }
+
+  /** Para explicarle a RH por qué todavía no hay botones. */
+  get faltaLlegarAlFinal(): boolean {
+    const c = this.candidato || {};
+    return !!c.dictamen?.recomendacion && !c.decision?.decision
+      && c.status !== ID_ETAPAS.PSICOMETRIA && !this.contratado && !this.rechazado;
+  }
+
+  /** Lo que YA se decidió, si es que se decidió. */
+  get decision(): { decision: string; por?: string; en?: string } | null {
+    return this.candidato?.decision?.decision ? this.candidato.decision : null;
+  }
+
+  async decidir(decision: 'aprobado' | 'descartado') {
+    const c = this.candidato;
+    if (!c?.id || this.decidiendo) return;
+    const rec = c.dictamen?.recomendacion;
+    // Confirmar SIEMPRE, y con más razón si va contra lo que sugirió el análisis:
+    // aprobar a quien el bot marcó para descartar puede ser lo correcto, pero
+    // debe ser deliberado.
+    const contraria = (decision === 'aprobado' && rec === 'descartar')
+      || (decision === 'descartado' && rec === 'entrevistar');
+    const texto = `¿${decision === 'aprobado' ? 'Aprobar' : 'Descartar'} a ${c.nombre}?`
+      + (contraria ? `\n\nOJO: el análisis del CV recomendó "${rec}".` : '')
+      + (decision === 'aprobado' ? '\n\nSe le avisa al candidato por WhatsApp.' : '');
+    if (!confirm(texto)) return;
+
+    this.decidiendo = decision;
+    this.error = '';
+    try {
+      await this.kpi.decidir(c.id, decision);
+      // Se refleja al instante; el candidato ya salió de la cola.
+      this.candidato.decision = { decision, por: 'tú', en: new Date().toISOString() };
+      await this.cargarBitacora();
+    } catch (e: any) {
+      this.error = e?.status === 503
+        ? 'Falta conectar el bot con el portal (avísale a sistemas).'
+        : 'No se pudo registrar la decisión. Reintenta.';
+    } finally {
+      this.decidiendo = '';
+    }
+  }
+
   async borrar(e: EventoCandidato) {
     if (!confirm('¿Borrar este registro de la bitácora?')) return;
     try {
