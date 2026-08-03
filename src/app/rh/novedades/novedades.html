@@ -1,0 +1,142 @@
+<section class="nov" [class.vacio]="datos && !datos.total">
+  <header class="nov-head">
+    <div>
+      <h2>{{ titulo }}</h2>
+      <p class="nov-sub">
+        @if (datos) {
+          {{ fechaLarga(datos.dia) }}
+          @if (datos.total) { · <strong>{{ datos.total }}</strong> movimiento(s) }
+        } @else { Lo nuevo del día }
+      </p>
+    </div>
+    <div class="nov-nav">
+      <button type="button" class="nov-btn" (click)="mover(1)" [disabled]="cargando || desplazamiento >= 7" title="Día anterior">←</button>
+      <button type="button" class="nov-btn" (click)="mover(-1)" [disabled]="cargando || desplazamiento === 0" title="Día siguiente">→</button>
+      <button type="button" class="nov-btn" (click)="cargar()" [disabled]="cargando" title="Actualizar">↻</button>
+    </div>
+  </header>
+
+  @if (cargando) {
+    <div class="nov-estado">Cargando…</div>
+  } @else if (error) {
+    <div class="nov-estado err">{{ error }}</div>
+  } @else if (datos) {
+
+    @if (!datos.total) {
+      <div class="nov-nada">
+        <strong>{{ datos.esHoy ? 'Todavía no pasa nada hoy.' : 'Ese día no hubo movimiento.' }}</strong>
+        Aquí aparecen las personas que se postulan, las que cambian de fase, lo que RH
+        registra en las fichas y las requisiciones nuevas.
+        @if (datos.bot.mensajes) {
+          <span class="nov-bot-nada">
+            El bot sí trabajó: {{ datos.bot.mensajes }} mensaje(s) con
+            {{ datos.bot.escribieron }} persona(s) que contestaron.
+          </span>
+        }
+      </div>
+    } @else {
+      <div class="nov-cols">
+
+        <!-- ── Se postularon ── -->
+        @if (datos.postulados.length) {
+          <div class="nov-col">
+            <div class="nov-col-cab">
+              <span class="punto nuevos"></span>
+              Se postularon · <strong>{{ datos.postulados.length }}</strong>
+            </div>
+            @for (p of datos.postulados; track p.id) {
+              <button type="button" class="nov-item" (click)="abrir(p.id)">
+                <span class="hora">{{ p.hora }}</span>
+                <span class="cuerpo">
+                  <strong>{{ p.nombre }}</strong>
+                  <small>
+                    {{ p.puesto || 'Sin puesto indicado' }}
+                    @if (p.ciudad) { · {{ p.ciudad }} }
+                    @if (p.origen) { · {{ p.origen }} }
+                  </small>
+                </span>
+              </button>
+            }
+          </div>
+        }
+
+        <!-- ── Cambiaron de fase ── -->
+        @if (datos.fases.length) {
+          <div class="nov-col">
+            <div class="nov-col-cab">
+              <span class="punto fases"></span>
+              Cambiaron de fase · <strong>{{ datos.fases.length }}</strong>
+            </div>
+            @for (f of datos.fases; track f.id) {
+              <button type="button" class="nov-item" (click)="abrir(f.candidatoId)">
+                <span class="hora">{{ f.hora }}</span>
+                <span class="cuerpo">
+                  <strong>{{ f.nombre }}</strong>
+                  <small class="salto">
+                    <span class="etapa" [style.color]="colorEtapa(f.de)">{{ nombreEtapa(f.de) }}</span>
+                    <span class="flecha">→</span>
+                    <span class="etapa fuerte" [style.color]="colorEtapa(f.a)">{{ nombreEtapa(f.a) }}</span>
+                  </small>
+                </span>
+              </button>
+            }
+          </div>
+        }
+
+        <!-- ── Lo que registró RH ── -->
+        @if (datos.eventos.length) {
+          <div class="nov-col">
+            <div class="nov-col-cab">
+              <span class="punto rh"></span>
+              Registró RH · <strong>{{ datos.eventos.length }}</strong>
+            </div>
+            @for (e of datos.eventos; track e.id) {
+              <button type="button" class="nov-item" (click)="abrir(e.candidatoId)">
+                <span class="hora">{{ e.hora }}</span>
+                <span class="cuerpo">
+                  <strong>{{ e.nombre }}</strong>
+                  <small>
+                    {{ etiquetaEvento(e.tipo, e.canal) }}
+                    @if (e.por) { · {{ e.por }} }
+                    @if (e.nota) { <span class="nota">“{{ e.nota }}”</span> }
+                  </small>
+                </span>
+              </button>
+            }
+          </div>
+        }
+
+        <!-- ── Requisiciones nuevas ── -->
+        @if (datos.requisiciones.length) {
+          <div class="nov-col">
+            <div class="nov-col-cab">
+              <span class="punto requis"></span>
+              Requisiciones nuevas · <strong>{{ datos.requisiciones.length }}</strong>
+            </div>
+            @for (r of datos.requisiciones; track r.id) {
+              <div class="nov-item estatico">
+                <span class="hora">{{ r.hora }}</span>
+                <span class="cuerpo">
+                  <strong>#{{ r.folio }} · {{ r.puesto }}</strong>
+                  <small>
+                    {{ r.vacantes }} persona(s)
+                    @if (r.sucursalId) { · {{ nombreSucursal(r.sucursalId) }} }
+                    · {{ r.estado }}
+                  </small>
+                </span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (datos.bot.mensajes) {
+        <footer class="nov-bot">
+          Bot de WhatsApp: {{ datos.bot.mensajes }} mensaje(s) ·
+          se escribió a {{ datos.bot.seLesEscribio }} persona(s) ·
+          contestaron {{ datos.bot.escribieron }}.
+        </footer>
+      }
+    }
+  }
+</section>

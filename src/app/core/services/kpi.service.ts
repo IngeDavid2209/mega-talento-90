@@ -82,6 +82,27 @@ export interface FueraDeLugar {
   nota: string | null;
 }
 
+/** Lo nuevo que se generó en un día: quién entró y quién se movió. */
+export interface Novedades {
+  /** 'YYYY-MM-DD' del día consultado (en hora de México). */
+  dia: string;
+  esHoy: boolean;
+  resumen: { postulados: number; fases: number; eventos: number; requisiciones: number };
+  /** Todo lo que cuenta como "pasó algo". No incluye los mensajes del bot. */
+  total: number;
+  postulados: { id: string; nombre: string; puesto: string; ciudad: string; origen: string; hora: string }[];
+  fases: { id: string; candidatoId: string; nombre: string; de: string; a: string; hora: string }[];
+  eventos: {
+    id: string; candidatoId: string; nombre: string;
+    tipo: TipoEvento; canal: CanalEvento | null; nota: string | null; por: string | null; hora: string;
+  }[];
+  requisiciones: {
+    id: string; folio: number; puesto: string; sucursalId: string | null;
+    vacantes: number; estado: string; hora: string;
+  }[];
+  bot: { escribieron: number; seLesEscribio: number; mensajes: number };
+}
+
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private api = inject(ApiService);
@@ -90,9 +111,25 @@ export class KpiService {
     return this.api.get<Concentrado>('/kpi/concentrado', { dias });
   }
 
+  /** `dia` en 'YYYY-MM-DD'; sin él, hoy en hora de México. */
+  novedades(dia?: string): Promise<Novedades> {
+    return this.api.get<Novedades>('/kpi/novedades', dia ? { dia } : {});
+  }
+
   /** Quién está en una fase adelantada sin cumplir los mínimos. */
   fueraDeLugar(): Promise<FueraDeLugar> {
     return this.api.get<FueraDeLugar>('/kpi/fuera-de-lugar');
+  }
+
+  /**
+   * La luz verde de RH sobre el dictamen del bot, DESDE EL PORTAL.
+   *
+   * Antes solo se podía decidir por WhatsApp o en el panel del bot, y por eso
+   * había 28 candidatos dictaminados con cero decisiones: la puerta estaba en
+   * otra herramienta. El token del bot no baja al navegador — el API reenvía.
+   */
+  decidir(candidatoId: string, decision: 'aprobado' | 'descartado', nota?: string): Promise<any> {
+    return this.api.post('/kpi/decidir', { candidatoId, decision, nota });
   }
 
   /** Registra un contacto/entrevista/nota. `ocurridoEn` en ISO si no fue ahora. */

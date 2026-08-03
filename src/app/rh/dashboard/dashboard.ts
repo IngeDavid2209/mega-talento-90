@@ -2,6 +2,9 @@ import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
+// "¿Qué pasó hoy?": quién se postuló y quién cambió de fase. Componente aparte
+// porque se pide al API por su cuenta y no depende de la carga del panel.
+import { NovedadesDiaComponent } from '../novedades/novedades';
 import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
@@ -16,7 +19,7 @@ import { centroChecadorPorId } from '../../core/models/sucursales.model';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, AsistenciaResumenComponent],
+  imports: [CommonModule, AsistenciaResumenComponent, NovedadesDiaComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })
