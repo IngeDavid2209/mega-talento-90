@@ -746,34 +746,121 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     return Math.max(0, Math.floor((hoy.getTime() - f.getTime()) / 86400000));
   }
 
+  /**
+   * Los hitos llegan a 90 días porque ese es el corte que mide Capital Humano
+   * (ver la pantalla Permanencia). Paraban en 30 y dejaban fuera justo el tramo
+   * donde se decide si la contratación sirvió: el segundo y el tercer mes.
+   */
   getHitosPermanencia(): { label: string; dia: number; alcanzado: boolean }[] {
     const dias = this.getDiasPermanencia();
     return [
       { label: 'Día 1',   dia: 1,  alcanzado: dias >= 1 },
-      { label: '3 días',  dia: 3,  alcanzado: dias >= 3 },
       { label: '7 días',  dia: 7,  alcanzado: dias >= 7 },
-      { label: '15 días', dia: 15, alcanzado: dias >= 15 },
-      { label: '30 días', dia: 30, alcanzado: dias >= 30 }
+      { label: '30 días', dia: 30, alcanzado: dias >= 30 },
+      { label: '60 días', dia: 60, alcanzado: dias >= 60 },
+      { label: '90 días', dia: 90, alcanzado: dias >= 90 }
     ];
   }
 
-  // SUBIDA DOCS
+  // ====== SUBIDA DE DOCUMENTOS ======
+  //
+  // Lo que pidió RH del área de contratados: cualquier tipo de archivo, más
+  // peso, y poder soltar todos juntos. Antes se subía UNO a la vez y solo
+  // PDF/JPG/PNG: un expediente de contratación son ocho o diez documentos, y
+  // ocho vueltas al explorador de archivos es la razón por la que terminaban
+  // llegando por WhatsApp.
+
+  /**
+   * Tope real por archivo. No lo inventa esta pantalla: es el límite de
+   * Cloudinary para subidas SIN FIRMAR, que es como sube el portal (el archivo
+   * va del navegador a Cloudinary, sin pasar por nuestro API). Se valida ANTES
+   * de mandarlo: es preferible avisar al instante que esperar el viaje completo
+   * de un archivo de 40 MB para recibir un error del servicio.
+   *
+   * Para pasar de aquí hay que firmar la subida desde el API.
+   */
+  readonly MAX_MB = 10;
+
+  /** Progreso de la tanda: alimenta el "Subiendo 3 de 7…" del botón. */
+  docsSubidos = 0;
+  docsTotal = 0;
+
+  /** Texto del botón de subida libre. */
+  get etiquetaSubida(): string {
+    if (!this.subiendoDoc) return '+ Agregar documentos';
+    return this.docsTotal > 1 ? `Subiendo ${this.docsSubidos + 1} de ${this.docsTotal}…` : 'Subiendo…';
+  }
+
+  /** ¿El archivo cabe? Si no, lo dice con el nombre y el peso reales. */
+  private cabe(f: File): boolean {
+    if (f.size <= this.MAX_MB * 1024 * 1024) return true;
+    this.toast.alerta(
+      `"${f.name}" pesa ${(f.size / 1024 / 1024).toFixed(1)} MB y el tope por archivo es ${this.MAX_MB} MB.`,
+      'El archivo pesa de más'
+    );
+    return false;
+  }
+
   async subirDocumento(event: any) {
-    const file = event.target.files[0];
-    if (!file || !this.candidato) return;
+    const archivos: File[] = Array.from(event?.target?.files || []);
+    if (!archivos.length || !this.candidato) return;
+
+    // Los que se pasan del tope se avisan y se quedan fuera; los demás sí suben.
+    // Cancelar la tanda completa por un archivo obligaría a repetir todo.
+    const pesados = archivos.filter(f => f.size > this.MAX_MB * 1024 * 1024);
+    const validos = archivos.filter(f => f.size <= this.MAX_MB * 1024 * 1024);
+    if (pesados.length === 1) this.cabe(pesados[0]);
+    else if (pesados.length > 1) {
+      this.toast.alerta(
+        `${pesados.map(f => f.name).join(', ')} — el tope por archivo es ${this.MAX_MB} MB.`,
+        `${pesados.length} archivos pesan de más`
+      );
+    }
+    if (!validos.length) { if (event?.target) event.target.value = ''; return; }
 
     this.subiendoDoc = true;
+    this.docsTotal = validos.length;
+    this.docsSubidos = 0;
+
+    const nuevos: { nombre: string; url: string; fecha: string }[] = [];
+    const fallidos: string[] = [];
+
+    // De uno en uno a propósito: diez subidas en paralelo desde la conexión de
+    // una sucursal se estorban entre ellas y empiezan a caerse por timeout.
+    // Además así el contador avanza de verdad, en vez de saltar de 0 a 10.
+    for (const f of validos) {
+      try {
+        const url = await this.candidateService.uploadDocument(f, this.candidato.id);
+        nuevos.push({ nombre: f.name, url, fecha: new Date().toISOString() });
+      } catch {
+        fallidos.push(f.name);
+      }
+      this.docsSubidos++;
+    }
+
     try {
-      const url = await this.candidateService.uploadDocument(file, this.candidato.id);
-      const nuevoDoc = { nombre: file.name, url, fecha: new Date().toISOString() };
-      const documentos = this.candidato.documentos || [];
-      documentos.push(nuevoDoc);
-      await this.candidateService.updateCandidate(this.candidato.id, { documentos });
-    } catch (error) {
-      this.toast.error('Hubo un error al subir el archivo.', 'No se pudo subir');
+      // Se guarda UNA sola vez con todo lo que sí subió: guardar por archivo
+      // deja el expediente a medias si se corta la conexión a mitad de la tanda.
+      if (nuevos.length) {
+        const documentos = [...(this.candidato.documentos || []), ...nuevos];
+        await this.candidateService.updateCandidate(this.candidato.id, { documentos });
+        this.candidato.documentos = documentos;
+      }
+      if (fallidos.length) {
+        this.toast.error(
+          `No subieron: ${fallidos.join(', ')}. Vuelve a intentarlo solo con esos.`,
+          nuevos.length ? 'Subieron algunos' : 'No se pudo subir'
+        );
+      } else if (nuevos.length > 1) {
+        this.toast.exito(`Se agregaron ${nuevos.length} documentos al expediente.`, 'Listo');
+      }
+    } catch {
+      this.toast.error('Los archivos se subieron pero no se pudieron guardar en el expediente.', 'No se guardó');
     } finally {
       this.subiendoDoc = false;
-      event.target.value = '';
+      this.docsTotal = 0;
+      this.docsSubidos = 0;
+      if (event?.target) event.target.value = '';
     }
   }
 
@@ -804,6 +891,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   async subirDocExpediente(key: string, event: any) {
     const file = event.target.files?.[0];
     if (!file || !this.candidato) return;
+    // Un slot guarda un solo archivo: aquí no hay tanda, pero el tope es el mismo.
+    if (!this.cabe(file)) { if (event?.target) event.target.value = ''; return; }
 
     this.subiendoDocKey = key;
     try {

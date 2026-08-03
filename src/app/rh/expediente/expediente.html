@@ -943,10 +943,14 @@
         <div class="exp-actions">
           <span class="exp-progreso">
             <strong>{{ progresoExpediente().hechos }}</strong> de {{ progresoExpediente().total }} documentos
+            <small class="exp-tope">Cualquier tipo de archivo, varios a la vez · hasta {{ MAX_MB }} MB cada uno</small>
           </span>
           <div class="exp-actions-btns">
-            <input type="file" id="docUpload" class="hidden-input" accept=".pdf,.jpg,.jpeg,.png" (change)="subirDocumento($event)" [disabled]="subiendoDoc">
-            <label for="docUpload" class="exp-btn-sec">{{ subiendoDoc ? 'Subiendo...' : '+ Otro documento' }}</label>
+            <!-- Sin `accept`: RH necesita subir Word, Excel, ZIP del despacho y
+                 fotos del celular, no solo PDF. `multiple` = toda la tanda de una. -->
+            <input type="file" id="docUpload" class="hidden-input" multiple
+                   (change)="subirDocumento($event)" [disabled]="subiendoDoc">
+            <label for="docUpload" class="exp-btn-sec" [class.ocupado]="subiendoDoc">{{ etiquetaSubida }}</label>
             <button type="button" class="exp-btn-sec" (click)="solicitarDocumentosPorBot()" [disabled]="pidiendoDocs.has(candidato.id)">
               {{ pidiendoDocs.has(candidato.id) ? 'Enviando...' : 'Pedir por WhatsApp' }}
             </button>
@@ -972,7 +976,7 @@
                 @if (docExpediente(slot.key); as d) {
                   <a [href]="d.url" target="_blank" class="doc-mini-btn ver">Ver</a>
                 }
-                <input type="file" [id]="'doc-' + slot.key" class="hidden-input" accept=".pdf,.jpg,.jpeg,.png"
+                <input type="file" [id]="'doc-' + slot.key" class="hidden-input"
                        (change)="subirDocExpediente(slot.key, $event)" [disabled]="subiendoDocKey === slot.key">
                 <label [for]="'doc-' + slot.key" class="doc-mini-btn subir">
                   {{ subiendoDocKey === slot.key ? 'Subiendo…' : (docExpediente(slot.key) ? 'Reemplazar' : 'Subir') }}
