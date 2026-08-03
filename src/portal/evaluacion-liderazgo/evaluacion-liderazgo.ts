@@ -244,18 +244,28 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Mueve al candidato a la etapa 2 (entrevista_rh) al terminar la encuesta,
-   * SOLO si CALIFICÓ (>= UMBRAL_APTITUD). Los que no califican se quedan en
-   * Filtro Inicial. Solo AVANZA: si ya va más adelante o fue rechazado/
-   * contratado, no lo toca. Es "mejor esfuerzo": si falla, no rompe la pantalla.
+   * COMPUERTA 2 → 3. Al terminar el cuestionario, si CALIFICÓ, el candidato pasa
+   * a *Aptitudes y Entrevista Técnica*.
+   *
+   * Antes esto lo movía de Filtro Inicial a Entrevista Orientación, y eso dejaba
+   * el proceso torcido: la entrevista era el requisito para ENTRAR a la fase que
+   * lleva su nombre. Con el motor de fases (bot, src/avance.js) el orden quedó
+   * derecho: el bot lo pasa a Entrevista Orientación cuando su expediente está
+   * completo y le manda esta liga; contestarla y calificar es lo que lo pasa a la
+   * SIGUIENTE fase. Cada compuerta mide lo de su propia etapa.
+   *
+   * Los que no califican se quedan donde están, para que RH los revise.
+   * Es "mejor esfuerzo": si falla, no rompe la pantalla del candidato.
    */
   private async avanzarAConductual() {
     if (!this.candidatoId) return;
-    // Solo pasan a la 2ª fase los que CALIFICAN en la encuesta.
+    // Solo avanzan los que CALIFICAN en la encuesta.
     if (!calificaEnEvaluacion(calcularResultadoLiderazgo(this.respuestas))) return;
     const actual = this.candidato?.status;
-    // Solo reubicamos a quienes siguen en la 1ª fase (o sin etapa / 'nuevo').
-    if (actual && actual !== ID_ETAPAS.FILTRO && actual !== ID_ETAPAS.NUEVO) return;
+    // Solo empuja hacia adelante: desde Filtro Inicial o desde la fase 2. A quien
+    // ya va más adelante (o fue contratado/rechazado) no se le toca.
+    const avanzables: string[] = [ID_ETAPAS.FILTRO, ID_ETAPAS.NUEVO, ID_ETAPAS.RH];
+    if (actual && !avanzables.includes(actual)) return;
 
     // Y solo si CUMPLE LOS MÍNIMOS del expediente. Contestar bien el cuestionario
     // no sustituye tener CV ni el registro completo: hasta el 30/07/2026 esto no
@@ -270,11 +280,11 @@ export class EvaluacionLiderazgoComponent implements OnInit, OnDestroy {
     try {
       await this.candidateService.updateCandidate(
         this.candidatoId,
-        { status: ID_ETAPAS.RH },
+        { status: ID_ETAPAS.APTITUDES },
         { marcarActividad: false } // lo dispara el candidato, no es seguimiento de RH
       );
     } catch (e) {
-      console.warn('No se pudo avanzar el candidato a Entrevista Orientación:', e);
+      console.warn('No se pudo avanzar el candidato a Aptitudes:', e);
     }
   }
 

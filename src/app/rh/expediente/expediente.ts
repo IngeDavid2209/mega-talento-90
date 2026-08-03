@@ -164,31 +164,35 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     const r = this.resultadoLiderazgo();
     this.candidato.dictamen.competencias = r.porcentaje;
 
-    // Al completar las 12 preguntas Y CALIFICAR (>= umbral), avanza a la 2ª fase
-    // (Entrevista Orientación), igual que cuando el candidato la contesta por su
-    // cuenta. Solo si sigue en Filtro Inicial (o 'nuevo'): no retrocede a quien
-    // ya va más adelante. Si completó pero NO calificó, se queda en Filtro.
-    const estado = this.candidato.status;
+    // COMPUERTA 2 → 3, idéntica a la de la pantalla pública: al completar las 12
+    // preguntas Y CALIFICAR, el candidato pasa a *Aptitudes y Entrevista Técnica*.
+    //
+    // El destino tiene que ser el MISMO sin importar quién capture el cuestionario
+    // —el candidato por su liga o RH aquí a mano—; si no, la misma respuesta
+    // movería a dos lugares distintos y el embudo dejaría de significar algo.
+    //
     // Y además tiene que CUMPLIR LOS MÍNIMOS (CV, registro completo, sin bandera
     // grave). Ver requisitos-avance.model.ts: hasta el 30/07/2026 el autoavance
-    // solo miraba el puntaje del cuestionario, y así subieron a la 2ª fase
-    // candidatos sin CV, con registro a medias y uno con conflicto de interés.
+    // solo miraba el puntaje, y así subieron candidatos sin CV, con registro a
+    // medias y uno con conflicto de interés declarado.
+    const estado = this.candidato.status;
     const revision = revisarAvance(this.candidato);
+    const avanzables: string[] = [ID_ETAPAS.FILTRO, ID_ETAPAS.NUEVO, ID_ETAPAS.RH];
     const debeAvanzar = calificaEnEvaluacion(r) && revision.ok
-      && (!estado || estado === ID_ETAPAS.FILTRO || estado === ID_ETAPAS.NUEVO);
+      && (!estado || avanzables.includes(estado));
     if (calificaEnEvaluacion(r) && !revision.ok) {
-      this.toast.info(`Calificó, pero se queda en Filtro Inicial: ${revision.motivos[0]}`);
+      this.toast.info(`Calificó, pero no avanza: ${revision.motivos[0]}`);
     }
 
     const payload: any = {
       cuestionarioLiderazgo: this.candidato.cuestionarioLiderazgo,
       dictamen: this.candidato.dictamen
     };
-    if (debeAvanzar) payload.status = ID_ETAPAS.RH;
+    if (debeAvanzar) payload.status = ID_ETAPAS.APTITUDES;
 
     try {
       await this.candidateService.updateCandidate(this.candidato.id, payload);
-      if (debeAvanzar) this.candidato.status = ID_ETAPAS.RH;
+      if (debeAvanzar) this.candidato.status = ID_ETAPAS.APTITUDES;
     } catch (e) {
       console.error('Error al guardar respuesta del cuestionario:', e);
     }

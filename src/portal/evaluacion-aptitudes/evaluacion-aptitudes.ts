@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { CandidateService } from '../../app/core/services/candidate';
 import { BotService } from '../../app/core/services/bot.service';
 import {
-  CompetenciaStar, NivelStar, NIVELES_STAR, calcularPuntajeStar
+  CompetenciaStar, NivelStar, NIVELES_STAR, calcularPuntajeStar, ID_ETAPAS
 } from '../../app/core/models/proceso.model';
 import { hojaPorNombrePuesto } from '../../app/core/models/competencias-puesto.model';
 
@@ -148,8 +148,22 @@ export class EvaluacionAptitudesComponent implements OnInit, OnDestroy {
     const calc = this.calc;
     // aprobado = al menos "Recomendable" (banda verde o verde-claro)
     const aprobado = calc.pct >= 76.667;
+
+    // COMPUERTA 3 → 4. Si el jefe lo aprobó, el candidato pasa solo a
+    // *Psicométricas*, que es donde el bot le manda la prueba de integridad
+    // (ver src/avance.js del bot). Si NO alcanzó la banda, se queda en Aptitudes
+    // para que RH lo revise: la del jefe es la evaluación que mide el puesto, y
+    // saltársela dejaría la psicométrica como único filtro real.
+    //
+    // Solo empuja hacia adelante: a quien ya va en Psicométricas o más allá no se
+    // le toca, así una corrección posterior del jefe no lo regresa de fase.
+    const puedeAvanzar = aprobado
+      && [ID_ETAPAS.FILTRO, ID_ETAPAS.NUEVO, ID_ETAPAS.RH, ID_ETAPAS.APTITUDES]
+        .includes(this.candidato?.status);
+
     try {
       await this.candidateService.updateCandidate(this.candidatoId, {
+        ...(puedeAvanzar ? { status: ID_ETAPAS.PSICOMETRIA } : {}),
         rubricaAptitudes: this.rubrica,
         aptitudesResultados: {
           puntaje: calc.puntaje,
