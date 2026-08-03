@@ -392,9 +392,13 @@ permanenciaRouter.patch('/ingreso', async (req: AuthedRequest, res: Response) =>
     const hoy = (await pool.query(`SELECT to_char((now() AT TIME ZONE '${TZ}')::date, 'YYYY-MM-DD') AS d`)).rows[0].d;
     if (fecha > hoy) return res.status(400).json({ error: 'La fecha de ingreso no puede ser futura.' });
 
+    // Se guarda con la hora del mediodía por la misma razón que en el portal:
+    // '2026-08-03' a secas lo lee `new Date()` como medianoche UTC, y en México
+    // eso cae el día anterior. El mediodía no se corre de día en ningún huso.
     const r = await pool.query(
       `UPDATE candidatos
-          SET portal_data = coalesce(portal_data, '{}'::jsonb) || jsonb_build_object('hiredAt', $2::text)
+          SET portal_data = coalesce(portal_data, '{}'::jsonb)
+                            || jsonb_build_object('hiredAt', ($2::text || 'T12:00:00'))
         WHERE id = $1::uuid AND deleted_at IS NULL
         RETURNING id`,
       [candidatoId, fecha]

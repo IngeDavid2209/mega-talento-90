@@ -25,6 +25,9 @@ import { normalizarTelefonoMX } from '../../core/models/puestos.model';
 import { ToastService } from '../../core/services/toast.service';
 import { BotService } from '../../core/services/bot.service';
 import { PuestosService, Puesto } from '../../core/services/puestos.service';
+// La contratación deja rastro en la bitácora: es lo que alimenta el KPI de
+// conversión (entrevistados -> contratados).
+import { KpiService } from '../../core/services/kpi.service';
 import {
   hojaPorKey, hojaPorNombrePuesto, HOJAS_COMPETENCIAS
 } from '../../core/models/competencias-puesto.model';
@@ -50,6 +53,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private botService = inject(BotService);
   private puestosService = inject(PuestosService);
+  private kpi = inject(KpiService);
 
   /** Catálogo de puestos (para resolver las aptitudes propias de cada puesto). */
   puestosLista: Puesto[] = [];
@@ -358,6 +362,117 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       ok: false,
       faltan: itemsFaltantes(this.candidato.ofertaChecklist, CHECKLIST_OFERTA).map(i => i.label)
     };
+  }
+
+  // ====== CONTRATAR: la luz verde al final del proceso ======
+  //
+  // Hasta el 03/08/2026 NO EXISTIA forma de contratar a nadie desde el portal.
+  // El stepper solo llega a Psicométricas (contratado no está en FLUJO_LINEAL),
+  // la pestaña de Oferta —donde se validan los seis puntos previos al ingreso—
+  // no tenía boton que la abriera, y la de Contratado tampoco. El codigo para
+  // mover a esa etapa llevaba meses escrito y nadie podia llamarlo.
+  //
+  // Eso explica el dato que salia en todos los tableros: 320 candidatos vivos y
+  // CERO contratados. No era que no se contratara gente; era que no habia donde
+  // decirlo. Y sin esa marca, la cobertura en 7/15 dias y la permanencia a 90
+  // dias se quedaban sin base para siempre.
+  //
+  // La fecha de ingreso SE PREGUNTA, no se asume. Casi nunca se captura el mismo
+  // dia que entra la persona —se hace el viernes, o el lunes siguiente— y usar
+  // "hoy" corre el reloj de los 90 dias desde el dia equivocado.
+
+  /** Panel de contratación abierto (null = cerrado). */
+  contratando = false;
+  fechaIngreso = '';
+  notaContratacion = '';
+  guardandoContrato = false;
+
+  /** ¿Ya está contratado? */
+  get yaContratado(): boolean { return this.candidato?.status === ID_ETAPAS.CONTRATADO; }
+
+  /** Solo el día del ingreso, sin la hora con la que se guarda. */
+  get fechaIngresoTexto(): string {
+    return String(this.candidato?.hiredAt || '').slice(0, 10);
+  }
+
+  /** Validaciones previas al ingreso que faltan (las seis de la pestaña Oferta). */
+  faltantesParaContratar(): string[] {
+    if (!this.candidato) return [];
+    return itemsFaltantes(this.candidato.ofertaChecklist, CHECKLIST_OFERTA).map(i => i.label);
+  }
+
+  /** Cumplió con todo: el boton se pinta en verde y no pide confirmacion extra. */
+  get listoParaContratar(): boolean {
+    return !!this.candidato && this.faltantesParaContratar().length === 0;
+  }
+
+  abrirContratacion() {
+    if (!this.candidato) return;
+    // Por defecto hoy, pero editable: es la fecha en que EMPIEZA a trabajar.
+    const h = new Date();
+    this.fechaIngreso = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+    this.notaContratacion = '';
+    this.contratando = true;
+  }
+
+  cerrarContratacion() { this.contratando = false; }
+
+  async confirmarContratacion() {
+    if (!this.candidato || this.guardandoContrato) return;
+    if (!this.fechaIngreso) {
+      this.toast.alerta('Falta la fecha de ingreso: es el dia desde el que se cuentan los 30, 60 y 90 dias.', 'Sin fecha no se puede');
+      return;
+    }
+
+    // Si falta alguna validacion se avisa y se deja decidir, igual que al
+    // avanzar de fase: RH puede tener razones que el sistema no conoce. Lo que
+    // no se hace es contratar en silencio saltandose los seis puntos -- queda
+    // escrito en la bitacora que se contrato con pendientes y cuales eran.
+    const faltan = this.faltantesParaContratar();
+    if (faltan.length) {
+      const seguir = confirm(
+        `${this.candidato.nombre} todavia no cumple las validaciones previas al ingreso:\n\n` +
+        faltan.map(f => `• ${f}`).join('\n') +
+        `\n\n¿Contratarlo de todos modos? Quedara registrado que se contrato con estos pendientes.`
+      );
+      if (!seguir) return;
+    }
+
+    this.guardandoContrato = true;
+    try {
+      // Se guarda con la hora del MEDIODIA, no como '2026-08-03' a secas: una
+      // fecha sin hora la interpreta `new Date()` como medianoche UTC, y en
+      // México (UTC-6) eso cae el dia anterior. El contador de permanencia
+      // habria dicho "1 dia" el mismo dia que la persona entra. El mediodia
+      // aguanta cualquier huso sin correrse de dia.
+      const hiredAt = `${this.fechaIngreso}T12:00:00`;
+      await this.candidateService.updateCandidate(this.candidato.id, {
+        status: ID_ETAPAS.CONTRATADO,
+        hiredAt
+      });
+      this.candidato.status = ID_ETAPAS.CONTRATADO;
+      this.candidato.hiredAt = hiredAt;
+
+      // Queda en la bitacora del candidato: alimenta el KPI de conversion
+      // (entrevistados -> contratados) y deja rastro de quien dio la luz verde.
+      const detalle = [
+        `Contratado. Ingreso: ${this.fechaIngreso}.`,
+        this.notaContratacion.trim(),
+        faltan.length ? `Se contrato con pendientes: ${faltan.join(', ')}.` : ''
+      ].filter(Boolean).join(' ');
+      this.kpi.registrarEvento(this.candidato.id, 'contratacion', { nota: detalle })
+        .catch(() => { /* la contratacion ya quedo guardada; la bitacora es mejor esfuerzo */ });
+
+      this.contratando = false;
+      this.toast.exito(
+        `${this.candidato.nombre} queda contratado con ingreso el ${this.fechaIngreso}.`,
+        'Contratado'
+      );
+    } catch {
+      this.toast.error('No se pudo guardar la contratacion. Revisa tu conexion e intenta de nuevo.', 'No se guardo');
+    } finally {
+      this.guardandoContrato = false;
+    }
   }
 
   async moverEtapaDirecto(nuevaEtapa: string) {

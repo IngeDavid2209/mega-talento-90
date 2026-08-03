@@ -79,6 +79,25 @@
           }
 
           <div class="profile-actions">
+            <!-- LA LUZ VERDE. Va primero y en verde porque es el desenlace del
+                 proceso: si esta accion no se ve, nadie la usa, y sin ella la
+                 cobertura y la permanencia se quedan sin dato. -->
+            @if (yaContratado) {
+              <span class="btn-contratado" title="Ingreso: {{ fechaIngresoTexto || 'sin fecha' }}">
+                ✓ Contratado
+              </span>
+            } @else {
+              <button class="btn-contratar" [class.listo]="listoParaContratar"
+                      (click)="abrirContratacion()"
+                      [title]="listoParaContratar
+                        ? 'Cumplio las validaciones previas: darle la luz verde'
+                        : 'Faltan validaciones previas al ingreso'">
+                Contratar
+                @if (!listoParaContratar) {
+                  <small>faltan {{ faltantesParaContratar().length }}</small>
+                }
+              </button>
+            }
             <button class="btn-secondary" (click)="contactarWhatsApp()"
                     [disabled]="enviandoInvitacion.has(candidato.id)"
                     title="Conectar con el bot por WhatsApp">
@@ -150,6 +169,17 @@
       <button class="tab" [class.active]="tabActiva === 'rh'"          (click)="tabActiva = 'rh'">Entrevista Orientación Conductual</button>
       <button class="tab" [class.active]="tabActiva === 'aptitudes'"   (click)="tabActiva = 'aptitudes'">Aptitudes y Entrevista Técnica</button>
       <button class="tab" [class.active]="tabActiva === 'psicometria'" (click)="tabActiva = 'psicometria'">Psicométricas</button>
+      <!-- Estas dos pestañas ya existían en el HTML pero NADIE podía abrirlas:
+           nunca se les puso botón. La de Oferta es justo donde se marcan las
+           seis validaciones que la contratación exige, así que sin ella la
+           puerta pedía una llave que no se podía fabricar. -->
+      <button class="tab" [class.active]="tabActiva === 'oferta'"      (click)="tabActiva = 'oferta'">
+        Oferta
+        @if (!listoParaContratar && !yaContratado) { <span class="tab-pend">{{ faltantesParaContratar().length }}</span> }
+      </button>
+      @if (yaContratado) {
+        <button class="tab" [class.active]="tabActiva === 'contratado'" (click)="tabActiva = 'contratado'">Ingreso y permanencia</button>
+      }
       <button class="tab" [class.active]="tabActiva === 'archivos'"    (click)="tabActiva = 'archivos'">Expediente</button>
       <button class="tab" [class.active]="tabActiva === 'conversacion'" (click)="tabActiva = 'conversacion'; cargarConversacion()">Conversación</button>
       <button class="tab" [class.active]="tabActiva === 'solicitud'"   (click)="tabActiva = 'solicitud'">Solicitud</button>
@@ -1185,6 +1215,49 @@
         @for (item of mensajeBloqueo.faltantes; track item) { <li>{{ item }}</li> }
       </ul>
       <button class="block-btn" (click)="cerrarBloqueo()">Entendido</button>
+    </div>
+  }
+
+  <!-- ============== CONTRATAR ==============
+       La fecha se pregunta y no se asume: la contratacion casi nunca se captura
+       el mismo dia que la persona entra, y de esa fecha cuelga todo el conteo de
+       30, 60 y 90 dias de la pantalla de Permanencia. -->
+  @if (contratando && candidato) {
+    <div class="block-overlay" (click)="cerrarContratacion()"></div>
+    <div class="contratar-modal">
+      <h3>Contratar a {{ candidato.nombre }}</h3>
+
+      @if (listoParaContratar) {
+        <p class="contratar-ok">Cumplió las seis validaciones previas al ingreso.</p>
+      } @else {
+        <div class="contratar-faltan">
+          <strong>Faltan validaciones previas al ingreso:</strong>
+          <ul>
+            @for (f of faltantesParaContratar(); track f) { <li>{{ f }}</li> }
+          </ul>
+          <small>Se puede contratar de todos modos, pero quedará escrito en la bitácora que se hizo con estos pendientes.</small>
+        </div>
+      }
+
+      <label class="contratar-campo">
+        <span>¿Qué día empieza a trabajar?</span>
+        <input type="date" [(ngModel)]="fechaIngreso">
+        <small>Desde aquí se cuentan los 30, 60 y 90 días de permanencia.</small>
+      </label>
+
+      <label class="contratar-campo">
+        <span>Nota (opcional)</span>
+        <input type="text" [(ngModel)]="notaContratacion" maxlength="200"
+               placeholder="Sucursal, turno, quién autorizó…">
+      </label>
+
+      <div class="contratar-pie">
+        <button type="button" class="btn-outline" (click)="cerrarContratacion()">Cancelar</button>
+        <button type="button" class="btn-contratar listo" (click)="confirmarContratacion()"
+                [disabled]="guardandoContrato || !fechaIngreso">
+          {{ guardandoContrato ? 'Guardando…' : 'Confirmar contratación' }}
+        </button>
+      </div>
     </div>
   }
 </div>
