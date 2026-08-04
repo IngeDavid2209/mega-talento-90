@@ -22,27 +22,59 @@ export const candidatosRouter = Router();
 
 /**
  * `candidatos.id` es UUID. Si llega cualquier otra cosa, Postgres lanza
- * "invalid input syntax for type uuid" y el endpoint respondía **500**.
+ * "invalid input syntax for type uuid" y el endpoint respondía 500 — por eso
+ * todo lo que no fuera UUID se atajaba antes de tocar la base.
  *
- * Eso importaba mucho más de lo que parece: las páginas PÚBLICAS
- * (/evaluacion/:id, /evaluar-aptitudes/:id, /solicitud/:id) traducen un 404 a
- * "Solicita un nuevo enlace a Capital Humano" —accionable— pero cualquier otro
- * error a "No se pudo cargar tu evaluación. Revisa tu conexión" — que manda al
- * candidato a buscar el problema en su internet cuando el problema es la liga.
- *
- * Casos reales de id inválido: una liga copiada con un espacio al final, una liga
- * cortada, y —el más común— un id VIEJO de Firestore (20 caracteres): al
- * 29/07/2026 los 225 candidatos que el bot ligó al portal guardan ese formato en
- * `portal_candidate_id`.
- *
- * Un id que no puede existir es un "no encontrado", no un error del servidor.
+ * Casos reales: una liga copiada con un espacio al final, una liga cortada, y
+ * —el más común con diferencia— un id VIEJO de Firestore de 20 caracteres.
  */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function idValido(req: Request, res: Response): string | null {
+/**
+ * EL ID VIEJO DE FIRESTORE TAMBIÉN ES UN ID VÁLIDO (03/08/2026).
+ *
+ * Hasta hoy este archivo daba 404 a todo lo que no fuera un UUID, incluidos los
+ * ids de Firestore que quedaron guardados en `portal_candidate_id`. Y no son un
+ * caso raro: son **249 de los 334 candidatos vivos**, tres de cada cuatro.
+ *
+ * El efecto se veía desde afuera: Capital Humano manda la liga de la evaluación,
+ * el candidato la abre y le sale "No encontramos tu evaluación". En los logs del
+ * 03/08 aparecen tres personas reales chocando contra esto —una de ellas seis
+ * veces seguidas—, cada intento un 404 con el id viejo en la URL.
+ *
+ * La liga la arma quien la arma (el bot guarda el id viejo, el portal el UUID) y
+ * ninguno de los dos se va a poner de acuerdo con el otro a tiempo. Traducir el
+ * id aquí arregla las ligas de los dos lados a la vez, y el índice para buscarlo
+ * (idx_candidatos_portal_id) ya existía.
+ *
+ * Lo que sigue siendo 404: un id que no es ni UUID ni existe como id viejo. Un
+ * id que no puede existir es un "no encontrado", no un error del servidor — las
+ * pantallas públicas traducen el 404 a "solicita un enlace nuevo", que es
+ * accionable, y cualquier otro error a "revisa tu conexión", que manda al
+ * candidato a buscar el problema donde no está.
+ */
+async function idValido(req: Request, res: Response): Promise<string | null> {
   const id = String(req.params.id || '').trim();
   if (UUID_RE.test(id)) return id;
-  console.warn(`[candidatos] id con formato inválido: "${req.params.id}" (${req.method} ${req.originalUrl})`);
+
+  if (id) {
+    try {
+      // Si hubiera más de una fila con el mismo id viejo (el bot y el portal
+      // llegaron a duplicar a la misma persona), se toma la más reciente: es la
+      // que la liga recién enviada pretende abrir.
+      const { rows } = await pool.query(
+        `SELECT id FROM candidatos
+          WHERE portal_candidate_id = $1 AND deleted_at IS NULL
+          ORDER BY creado_en DESC LIMIT 1`,
+        [id]
+      );
+      if (rows.length) return rows[0].id as string;
+    } catch (e) {
+      console.error('[candidatos] no se pudo resolver el id viejo:', (e as any)?.message);
+    }
+  }
+
+  console.warn(`[candidatos] id no encontrado: "${req.params.id}" (${req.method} ${req.originalUrl})`);
   res.status(404).json({ error: 'No encontrado.' });
   return null;
 }
@@ -250,7 +282,7 @@ candidatosRouter.get('/kpi-fases', requireAuth, async (_req: Request, res: Respo
 
 // Leer un candidato (lo usan /solicitud/:id y /evaluar-*).
 candidatosRouter.get('/:id', async (req: Request, res: Response) => {
-  const id = idValido(req, res);
+  const id = await idValido(req, res);
   if (!id) return;
   try {
     const { rows } = await pool.query('SELECT * FROM candidatos WHERE id=$1 LIMIT 1', [id]);
@@ -262,7 +294,7 @@ candidatosRouter.get('/:id', async (req: Request, res: Response) => {
 // Actualizar (parcial). Público: lo usan /solicitud y /evaluar-* para escribir.
 // marcarActividad=false para acciones del candidato (no cuenta como seguimiento de RH).
 candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
-  const idPatch = idValido(req, res);
+  const idPatch = await idValido(req, res);
   if (!idPatch) return;
   try {
     const d = req.body || {};
@@ -353,7 +385,7 @@ candidatosRouter.get('/papelera/borrados', requireAuth, async (_req: Request, re
 
 // Soft-delete.
 candidatosRouter.delete('/:id', requireAuth, async (req: Request, res: Response) => {
-  const id = idValido(req, res);
+  const id = await idValido(req, res);
   if (!id) return;
   try {
     await pool.query('UPDATE candidatos SET deleted_at=now() WHERE id=$1', [id]);
@@ -363,7 +395,7 @@ candidatosRouter.delete('/:id', requireAuth, async (req: Request, res: Response)
 
 // Cierre de seguimiento (soft-delete con motivo).
 candidatosRouter.post('/:id/cierre-seguimiento', requireAuth, async (req: Request, res: Response) => {
-  const id = idValido(req, res);
+  const id = await idValido(req, res);
   if (!id) return;
   try {
     await pool.query(
@@ -378,7 +410,7 @@ candidatosRouter.post('/:id/cierre-seguimiento', requireAuth, async (req: Reques
 
 // Restaurar de papelera.
 candidatosRouter.post('/:id/restaurar', requireAuth, async (req: Request, res: Response) => {
-  const id = idValido(req, res);
+  const id = await idValido(req, res);
   if (!id) return;
   try {
     await pool.query('UPDATE candidatos SET deleted_at=NULL WHERE id=$1', [id]);
@@ -388,7 +420,7 @@ candidatosRouter.post('/:id/restaurar', requireAuth, async (req: Request, res: R
 
 // Borrado físico (definitivo, desde la papelera).
 candidatosRouter.delete('/:id/definitivo', requireAuth, async (req: Request, res: Response) => {
-  const id = idValido(req, res);
+  const id = await idValido(req, res);
   if (!id) return;
   try {
     await pool.query('DELETE FROM candidatos WHERE id=$1', [id]);
