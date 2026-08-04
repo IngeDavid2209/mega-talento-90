@@ -5,7 +5,10 @@
     <h2>Candidatos duplicados</h2>
     <p class="dup-desc">
       Detectamos automáticamente postulaciones con el mismo teléfono o el mismo nombre completo.
-      Revisa cada grupo y elige qué registro conservar — los demás se eliminarán.
+      Casi siempre no es alguien que se postuló dos veces: es un registro que abrió el
+      <strong>bot de WhatsApp</strong> y otro que abrió el <strong>formulario del portal</strong>,
+      y cada uno trae lo que al otro le falta. Por eso lo normal aquí es <strong>Fusionar</strong>:
+      junta todo en un registro sin perder nada. «Conservar solo este» descarta lo del otro.
     </p>
   </header>
 
@@ -64,7 +67,17 @@
               </dl>
 
               <div class="cand-actions">
-                <button class="btn-conservar" (click)="pedirConservar(g, c)">Conservar este</button>
+                <!-- Fusionar va primero y destacado: es lo correcto en casi todos
+                     los casos de esta pantalla. Conservar-y-descartar queda como
+                     la salida para cuando de verdad sobra un registro. -->
+                <button class="btn-fusionar" (click)="pedirFusionar(g, c)"
+                        title="Juntar todo aquí sin perder datos del otro registro">
+                  Fusionar aquí
+                </button>
+                <button class="btn-conservar" (click)="pedirConservar(g, c)"
+                        title="Descartar los otros sin recuperar sus datos">
+                  Conservar solo este
+                </button>
                 <button class="btn-borrar" (click)="pedirBorrarUno(c)" title="Eliminar solo este registro">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>

@@ -72,6 +72,15 @@ export class CandidateService {
     await this.api.delete(`/candidatos/${id}`);
   }
 
+  /**
+   * Junta dos registros de la misma persona en `conservarId`: del absorbido solo
+   * se toma lo que al otro le falte, y el absorbido se va a la Papelera (se
+   * puede restaurar). Ver api/src/candidatos.ts para las reglas de la mezcla.
+   */
+  async fusionarCandidatos(conservarId: string, absorberId: string): Promise<any> {
+    return this.api.post(`/candidatos/${conservarId}/fusionar`, { absorberId });
+  }
+
   async cerrarSeguimiento(id: string): Promise<void> {
     await this.api.post(`/candidatos/${id}/cierre-seguimiento`);
   }

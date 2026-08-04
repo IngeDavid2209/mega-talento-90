@@ -111,11 +111,43 @@ export class DuplicadosComponent implements OnInit, OnDestroy {
 
   // ====== Acciones ======
 
+  /**
+   * FUSIONAR es lo que casi siempre se quiere aquí, no "conservar uno".
+   *
+   * Los duplicados de esta base no son gente que se postuló dos veces: son un
+   * registro del bot de WhatsApp y otro del formulario del portal para la misma
+   * persona, a veces creados en el mismo minuto. Cada uno trae lo que al otro le
+   * falta —el del bot los documentos que llegaron por chat, el del portal el CV
+   * y la fuente—, así que quedarse con uno tira medio expediente.
+   *
+   * La fusión solo rellena huecos: nada de lo que ya tiene el registro que se
+   * conserva se pisa. El otro va a la Papelera, de donde se puede restaurar.
+   */
+  pedirFusionar(grupo: Grupo, conservar: any) {
+    const otros = grupo.candidatos.filter(c => c.id !== conservar.id);
+    this.confirmacion = {
+      titulo: `Fusionar en el registro de ${conservar.nombre}`,
+      mensaje:
+        `Se juntará todo en este registro: de ${otros.length === 1 ? 'el otro' : `los otros ${otros.length}`} ` +
+        `se toma únicamente lo que aquí falte (CV, documentos de WhatsApp, teléfono, fuente…), ` +
+        `más su bitácora y su historial de etapas. Nada de lo que ya tiene este registro se pierde. ` +
+        `${otros.length === 1 ? 'El otro registro se va' : 'Los otros se van'} a la Papelera y se ${otros.length === 1 ? 'puede' : 'pueden'} restaurar.`,
+      accion: async () => {
+        for (const c of otros) {
+          await this.candidateService.fusionarCandidatos(conservar.id, c.id);
+        }
+      }
+    };
+  }
+
   pedirConservar(grupo: Grupo, conservar: any) {
     const otros = grupo.candidatos.filter(c => c.id !== conservar.id);
     this.confirmacion = {
-      titulo: `Conservar a ${conservar.nombre}`,
-      mensaje: `Se eliminarán los otros ${otros.length} registro(s) duplicado(s) y quedará solo este. Esta acción no se puede deshacer.`,
+      titulo: `Conservar solo a ${conservar.nombre}`,
+      mensaje:
+        `Se mandarán a la Papelera los otros ${otros.length} registro(s) SIN recuperar sus datos: ` +
+        `si alguno traía el CV o documentos que este no tiene, se quedan en la Papelera con él. ` +
+        `Si lo que quieres es juntarlos, usa Fusionar.`,
       accion: async () => {
         for (const c of otros) {
           await this.candidateService.eliminarCandidato(c.id);

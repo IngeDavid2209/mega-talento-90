@@ -238,7 +238,10 @@
   gap: 6px;
   margin-top: auto;
 }
-.btn-conservar {
+/* Fusionar es la acción correcta en casi todos los grupos de esta pantalla, así
+   que es la que va sólida. Conservar-y-descartar pasa a ser la secundaria: se
+   deja disponible, pero deja de parecer el camino por defecto. */
+.btn-fusionar {
   flex: 1;
   padding: 8px 12px;
   background: var(--ink);
@@ -251,7 +254,22 @@
   font-family: inherit;
   transition: background 0.18s;
 }
-.btn-conservar:hover { background: var(--ink-soft); }
+.btn-fusionar:hover { background: var(--ink-soft); }
+
+.btn-conservar {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--text2);
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+.btn-conservar:hover { border-color: var(--ink); color: var(--ink); }
 .btn-borrar {
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;

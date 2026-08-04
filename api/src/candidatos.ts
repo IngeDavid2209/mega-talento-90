@@ -383,6 +383,151 @@ candidatosRouter.get('/papelera/borrados', requireAuth, async (_req: Request, re
   } catch (e) { return fallo(res, e, 'Error al listar papelera.'); }
 });
 
+/**
+ * FUSIONAR DOS REGISTROS DE LA MISMA PERSONA
+ * POST /candidatos/:id/fusionar   body: { absorberId }
+ *
+ * Al 03/08/2026 había 15 personas con dos registros, y el patrón siempre era el
+ * mismo: uno lo abre el bot de WhatsApp y otro el formulario del portal, a veces
+ * en el MISMO MINUTO. No es que la gente se postule dos veces —es que hay dos
+ * sistemas escribiendo en la misma tabla y solo uno pasa por el anti-duplicado.
+ *
+ * Lo que ya existía era "conservar este", que manda los otros a la papelera. El
+ * problema es que cada registro trae lo que el otro no: el del bot tiene los
+ * documentos que llegaron por WhatsApp y su estado de conversación; el del
+ * portal tiene el CV, la fuente y la solicitud. Quedarse con uno tira la mitad
+ * del expediente de una persona real.
+ *
+ * ── DOS REGLAS ──────────────────────────────────────────────────────
+ *
+ * 1. SOLO SE RELLENAN HUECOS. Ningún dato del registro que se conserva se pisa;
+ *    del absorbido se toma únicamente lo que en el otro está vacío. Así fusionar
+ *    nunca puede empeorar el expediente que ya estabas viendo.
+ *
+ * 2. LA FECHA DE ALTA ES LA MÁS VIEJA DE LAS DOS. Es el día en que la persona
+ *    se postuló de verdad; quedarse con la del registro más nuevo borraría los
+ *    días que lleva esperando y haría ver la cobertura mejor de lo que es.
+ *
+ * El absorbido va a la papelera (soft-delete), no se destruye: si la fusión se
+ * hizo mal, se restaura. Y se le hereda su `portal_candidate_id` al que queda si
+ * este no tenía, para que las ligas viejas que andan circulando sigan abriendo.
+ */
+candidatosRouter.post('/:id/fusionar', requireAuth, async (req: Request, res: Response) => {
+  const conservarId = await idValido(req, res);
+  if (!conservarId) return;
+
+  const absorberRaw = String((req.body || {}).absorberId || '').trim();
+  if (!absorberRaw) return res.status(400).json({ error: 'Falta absorberId.' });
+
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+
+    // El id a absorber puede venir como UUID o como id viejo de Firestore.
+    const abs = await cliente.query(
+      `SELECT * FROM candidatos
+        WHERE (id::text = $1 OR portal_candidate_id = $1) AND deleted_at IS NULL
+        LIMIT 1`,
+      [absorberRaw]
+    );
+    if (!abs.rows.length) { await cliente.query('ROLLBACK'); return res.status(404).json({ error: 'El registro a absorber no existe.' }); }
+
+    const b = abs.rows[0];
+    if (b.id === conservarId) { await cliente.query('ROLLBACK'); return res.status(400).json({ error: 'No se puede fusionar un registro consigo mismo.' }); }
+
+    const cons = await cliente.query('SELECT * FROM candidatos WHERE id=$1 AND deleted_at IS NULL', [conservarId]);
+    if (!cons.rows.length) { await cliente.query('ROLLBACK'); return res.status(404).json({ error: 'El registro a conservar no existe.' }); }
+    const a = cons.rows[0];
+
+    // Columnas donde "vacío" es null o cadena vacía: se rellenan desde el otro.
+    const HUECOS = [
+      'nombre_completo', 'telefono', 'ciudad_sucursal', 'puesto_interes',
+      'cv_url', 'cv_url_reverso', 'cv_formato', 'licencia_url',
+      'familiar_en_empresa', 'fuente', 'origen', 'estado', 'portal_status',
+      'portal_candidate_id', 'solicitud_electronica', 'rubrica_aptitudes', 'aptitudes_eval',
+    ];
+    // $1 es SIEMPRE el id del que se conserva; de $2 en adelante van los valores
+    // que se rellenan. No se mete ningún parámetro que la consulta no use:
+    // Postgres no puede inferir el tipo de un parámetro huérfano y aborta con
+    // "could not determine data type of parameter".
+    const sets: string[] = [];
+    const vals: any[] = [conservarId];
+    let n = 2;
+    const rellenados: string[] = [];
+    for (const col of HUECOS) {
+      const actual = (a as any)[col];
+      const otro = (b as any)[col];
+      const vacio = actual === null || actual === undefined || actual === '';
+      if (vacio && otro !== null && otro !== undefined && otro !== '') {
+        sets.push(`${col} = $${n++}`);
+        vals.push(otro);
+        rellenados.push(col);
+      }
+    }
+
+    // El JSON del portal: lo del absorbido primero para que lo del conservado
+    // gane en cualquier llave repetida (el operador || de jsonb deja al de la
+    // derecha encima).
+    sets.push(`portal_data = coalesce($${n++}::jsonb, '{}'::jsonb) || coalesce(portal_data, '{}'::jsonb)`);
+    vals.push(b.portal_data ? JSON.stringify(b.portal_data) : null);
+
+    // Documentos del bot: se concatenan los dos arreglos. El duplicado exacto
+    // por URL se limpia abajo, en SQL, para no dejar el mismo archivo dos veces.
+    sets.push(`documentos = (
+      SELECT coalesce(jsonb_agg(DISTINCT d), '[]'::jsonb) FROM (
+        SELECT jsonb_array_elements(
+                 CASE WHEN jsonb_typeof(documentos)='array' THEN documentos ELSE '[]'::jsonb END) AS d
+          FROM candidatos WHERE id = $1
+        UNION
+        SELECT jsonb_array_elements(
+                 CASE WHEN jsonb_typeof($${n}::jsonb)='array' THEN $${n}::jsonb ELSE '[]'::jsonb END) AS d
+      ) t)`);
+    vals.push(b.documentos ? JSON.stringify(b.documentos) : null);
+    n++;
+
+    // La fecha de alta más vieja y la última actividad más reciente.
+    sets.push(`creado_en = LEAST(creado_en, $${n++}::timestamptz)`);
+    vals.push(b.creado_en);
+    sets.push(`ultima_actividad = GREATEST(coalesce(ultima_actividad, to_timestamp(0)), coalesce($${n++}::timestamptz, to_timestamp(0)))`);
+    vals.push(b.ultima_actividad);
+
+    await cliente.query(`UPDATE candidatos SET ${sets.join(', ')} WHERE id = $1`, vals);
+
+    // La bitácora y el historial de etapas del absorbido pasan al que queda:
+    // son hechos que le ocurrieron a la persona, no al registro.
+    await cliente.query('UPDATE candidatos_eventos SET candidato_id=$1 WHERE candidato_id=$2', [conservarId, b.id]);
+    await cliente.query('UPDATE candidatos_transiciones SET candidato_id=$1 WHERE candidato_id=$2', [conservarId, b.id]);
+
+    // El absorbido a la papelera, marcado, para poder deshacer.
+    await cliente.query(
+      `UPDATE candidatos
+          SET deleted_at = now(),
+              portal_data = coalesce(portal_data,'{}'::jsonb)
+                            || jsonb_build_object('motivoBorrado', 'fusionado', 'fusionadoCon', $2::text)
+        WHERE id = $1`,
+      [b.id, conservarId]
+    );
+
+    await cliente.query(
+      `INSERT INTO candidatos_eventos (candidato_id, tipo, canal, nota, por)
+       VALUES ($1::uuid, 'nota', 'portal', $2, $3)`,
+      [conservarId,
+       `Se fusionó el registro duplicado de ${b.nombre_completo || 'sin nombre'} (alta ${b.creado_en?.toISOString?.().slice(0, 10) || '?'}).` +
+       (rellenados.length ? ` Datos recuperados: ${rellenados.join(', ')}.` : ' No tenía datos que el otro no tuviera.'),
+       (req as any).usuario?.nombre || (req as any).usuario?.email || 'RH']
+    );
+
+    await cliente.query('COMMIT');
+    const final = await pool.query('SELECT * FROM candidatos WHERE id=$1', [conservarId]);
+    return res.json({ ok: true, rellenados, candidato: mapCandidato(final.rows[0]) });
+  } catch (e) {
+    await cliente.query('ROLLBACK').catch(() => {});
+    return fallo(res, e, 'No se pudo fusionar.');
+  } finally {
+    cliente.release();
+  }
+});
+
 // Soft-delete.
 candidatosRouter.delete('/:id', requireAuth, async (req: Request, res: Response) => {
   const id = await idValido(req, res);
