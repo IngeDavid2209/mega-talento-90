@@ -57,13 +57,16 @@ export class ContactadosComponent implements OnInit, OnDestroy {
   private unsub: any;
 
   ngOnInit() {
+    // `enProceso: true` a proposito: esta pantalla trata justamente de a quien ya
+    // contacto el bot, incluidas las conversaciones a medias. Sin esto se quedaria
+    // sin la mitad de su razon de ser.
     this.unsub = this.candidateService.listenToCandidates(datos => {
       this.ngZone.run(() => {
         this.todos = datos;
         this.clasificar();
         this.cargando = false;
       });
-    });
+    }, { enProceso: true });
   }
 
   ngOnDestroy() {

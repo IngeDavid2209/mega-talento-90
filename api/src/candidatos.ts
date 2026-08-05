@@ -368,9 +368,50 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
 // ===================== PROTEGIDAS (RH) =====================
 
 // Listar vivos.
-candidatosRouter.get('/', requireAuth, async (_req: Request, res: Response) => {
+/**
+ * UNA POSTULACION NO EMPIEZA CUANDO ALGUIEN SALUDA AL BOT, SINO CUANDO MANDA SU CV.
+ *
+ * El bot crea la fila en `candidatos` con el PRIMER mensaje, porque ahi guarda el
+ * estado de la conversacion. Eso significa que la tabla tiene, ademas de los
+ * postulados de verdad, a todo el que apenas va contestando: al 05/08/2026 eran
+ * 99 filas sin CV y sin etapa —28 apenas invitados, 16 a medio dar su RFC, 9 sin
+ * decir a que puesto le tiran—.
+ *
+ * RH se quejo dos veces de "hay candidatos sin CV en la plataforma". La primera
+ * (20/07) se arreglo ocultandolos en la pantalla de Filtro Inicial. Volvio a
+ * pasar porque el filtro vivia en UNA pantalla: el dashboard nuevo, las novedades
+ * del dia, el concentrado y el historial listan por su cuenta y ninguno lo
+ * heredo. Una regla que hay que repetir en cada consumidor se rompe en el
+ * siguiente consumidor que alguien escriba.
+ *
+ * Por eso ahora se filtra AQUI, en el unico lugar por el que pasan todas las
+ * pantallas. La regla:
+ *
+ *   se muestra si TIENE CV  ..... es una postulacion de verdad
+ *   o si TIENE ETAPA ........... RH ya lo avanzo a mano, y debe seguir viendolo
+ *                                (sale con su marca roja de "Sin CV")
+ *
+ * `?enProceso=1` los trae de vuelta, y hay dos pantallas que lo necesitan de
+ * verdad: CONTACTADOS (su tema es justamente a quien ya contacto el bot) y
+ * DUPLICADOS (el duplicado tipico es la fila del bot sin CV mas la del portal con
+ * CV: ocultando la primera no se pueden fusionar).
+ */
+candidatosRouter.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM candidatos WHERE deleted_at IS NULL ORDER BY creado_en DESC');
+    const enProceso = /^(1|true|si|sí|on)$/i.test(String((req.query as any).enProceso || ''));
+    const filtroPostulados = enProceso ? '' : `
+      AND (
+        (cv_url IS NOT NULL AND btrim(cv_url) <> '')
+        OR EXISTS (
+          SELECT 1 FROM jsonb_array_elements(COALESCE(documentos, '[]'::jsonb)) d
+           WHERE d->>'slot' = 'cv'
+             AND COALESCE(d->>'url', d->>'archivo_local', '') <> ''
+        )
+        OR portal_status IS NOT NULL
+      )`;
+    const { rows } = await pool.query(
+      `SELECT * FROM candidatos WHERE deleted_at IS NULL${filtroPostulados} ORDER BY creado_en DESC`
+    );
     return res.json(rows.map(mapCandidato));
   } catch (e) { return fallo(res, e, 'Error al listar candidatos.'); }
 });

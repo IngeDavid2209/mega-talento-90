@@ -32,8 +32,18 @@ export class CandidateService {
     return 0;
   }
 
-  async getCandidates(): Promise<any[]> {
-    return this.api.get<any[]>('/candidatos');
+  /**
+   * Los candidatos POSTULADOS: los que tienen CV o los que RH ya avanzó de etapa.
+   * El bot crea la fila con el primer mensaje, así que la tabla también tiene
+   * conversaciones a medias —gente que apenas está contestando—; esas NO son
+   * postulaciones y el API las deja fuera por omisión.
+   *
+   * `enProceso: true` las trae. Solo dos pantallas lo necesitan: Contactados
+   * (su tema es a quién ya contactó el bot) y Duplicados (el duplicado típico es
+   * la fila del bot sin CV más la del portal con CV).
+   */
+  async getCandidates(opciones: { enProceso?: boolean } = {}): Promise<any[]> {
+    return this.api.get<any[]>('/candidatos', opciones.enProceso ? { enProceso: 1 } : undefined);
   }
 
   /** KPI de fases: tiempo promedio (horas) por etapa a partir del historial de transiciones. */
@@ -49,8 +59,9 @@ export class CandidateService {
     return [...(vivos || []), ...(borrados || [])];
   }
 
-  listenToCandidates(callback: (candidatos: any[]) => void) {
-    return this.poll(async () => callback(await this.api.get<any[]>('/candidatos')));
+  listenToCandidates(callback: (candidatos: any[]) => void, opciones: { enProceso?: boolean } = {}) {
+    const params = opciones.enProceso ? { enProceso: 1 } : undefined;
+    return this.poll(async () => callback(await this.api.get<any[]>('/candidatos', params)));
   }
 
   listenToCandidatosBorrados(callback: (candidatos: any[]) => void) {

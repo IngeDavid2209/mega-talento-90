@@ -33,13 +33,16 @@ export class DuplicadosComponent implements OnInit, OnDestroy {
   confirmacion: { titulo: string; mensaje: string; accion: () => Promise<void> } | null = null;
 
   ngOnInit() {
+    // `enProceso: true` a proposito: el duplicado tipico es la fila que abrio el
+    // bot (sin CV todavia) mas la del portal (con CV). Si la primera no llega,
+    // esta pantalla deja de poder fusionarlos.
     this.unsub = this.candidateService.listenToCandidates((datos) => {
       this.ngZone.run(() => {
         this.todos = datos;
         this.detectarDuplicados();
         this.cargando = false;
       });
-    });
+    }, { enProceso: true });
   }
 
   ngOnDestroy() {
