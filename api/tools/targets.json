@@ -1,5 +1,7 @@
 [
-  { "//": "PADRON DE RELOJES, verificado contra la base el 05/08/2026. Cada IP se",
+  { "//BARRIDO": "El 05/08/2026 se barrieron COMPLETAS, direccion por direccion (254 cada una), las 13 subredes de la lista de puertas de enlace: 0, 10, 20, 30, 32, 40, 42, 44, 50, 52, 54, 60, 70 y 90. Resultado: 10 relojes en total. Cada plaza tiene UNO solo; las oficinas tienen tres (.80 entrada/salida, .81 comida, .196 sin identificar) y CEDIS uno (.153). En 10.x, 20.x, 30.x, 52.x, 60.x, 70.x y 90.x NO hay ningun reloj, asi que ni Morelia Abastos ni 'Sucursal PH' son alcanzables desde la red del corporativo: su dato solo puede entrar corriendo el agente DENTRO de esas plazas.",
+
+    "//": "PADRON DE RELOJES, verificado contra la base el 05/08/2026. Cada IP se",
     "//2": "confirmo leyendo el padron DEL RELOJ y comparandolo con el de la",
     "//3": "sucursal: el nombre del departamento no basta, porque si una IP queda",
     "//4": "pegada al slug equivocado las checadas entran bajo otra plaza y eso NO",
