@@ -309,6 +309,90 @@ candidatosRouter.get('/kpi-fases', requireAuth, async (_req: Request, res: Respo
 });
 
 // Leer un candidato (lo usan /solicitud/:id y /evaluar-*).
+// OJO CON EL ORDEN: esta ruta va ANTES de `/:id`, que esta unas lineas abajo.
+// Express prueba en orden y `/:id` casa con cualquier segmento, asi que puesta
+// despues, `/candidatos/cv-armados` se leia como el id "cv-armados" y devolvia
+// 404 "No encontrado". Es la misma trampa que ya mordio al callback del bot en
+// el modulo de horarios.
+/**
+ * LOS CURRICULUMS QUE ARMO EL BOT
+ * GET /candidatos/cv-armados
+ *
+ * Hay gente que quiere trabajar y no tiene CV — no es que no lo quiera mandar,
+ * es que no lo tiene. Antes esa persona se quedaba fuera del proceso por un
+ * archivo. Ahora el bot le hace las preguntas por WhatsApp, dibuja la hoja y se
+ * la manda; si el candidato la aprueba, esa hoja se vuelve su CV.
+ *
+ * Esta pantalla existe porque esos currículums merecen mirarse aparte: los
+ * escribió el bot con lo que dictó una persona, y conviene que RH los revise
+ * sabiendolo, no mezclados con los que alguien redactó y subió.
+ *
+ * DOS ESTADOS, y la diferencia importa:
+ *   · `borrador`  el bot ya se lo mandó y ESPERA que el candidato conteste "sí".
+ *                 Todavía no cuenta como CV: si se queda aquí, la postulación
+ *                 sigue incompleta y alguien tiene que empujarla.
+ *   · `aprobado`  el candidato lo revisó y aceptó; ya es su CV en el expediente.
+ *
+ * El PDF lo sirve el BOT (su volumen), con una liga por token: por eso `url`
+ * apunta a otro dominio y no hace falta autenticación para abrirla.
+ */
+candidatosRouter.get('/cv-armados', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    // `documentos` la escriben varios servicios y hay filas donde quedó como
+    // objeto en vez de arreglo: sin este CASE, la consulta revienta entera.
+    const DOCS = `jsonb_array_elements(CASE WHEN jsonb_typeof(c.documentos)='array' THEN c.documentos ELSE '[]'::jsonb END)`;
+    const { rows } = await pool.query(`
+      SELECT c.id, c.telefono, c.nombre_completo, c.ciudad_sucursal, c.estado,
+             c.portal_status, c.creado_en,
+             c.portal_data->'solicitud' AS solicitud,
+             (SELECT jsonb_agg(d ORDER BY d->>'recibido_en')
+                FROM ${DOCS} d
+               WHERE d->>'slot' IN ('cv','cv_borrador')
+                 AND COALESCE((d->>'generado_por_bot')::boolean, false)) AS hojas
+        FROM candidatos c
+       WHERE c.deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM ${DOCS} d
+            WHERE d->>'slot' IN ('cv','cv_borrador')
+              AND COALESCE((d->>'generado_por_bot')::boolean, false))
+       ORDER BY c.creado_en DESC`);
+
+    const salida = rows.map((r: any) => {
+      const hojas: any[] = r.hojas || [];
+      // La aprobada es la que quedó con slot 'cv'; si no hay, sigue en borrador.
+      const aprobada = hojas.filter((h) => h.slot === 'cv').pop();
+      const borrador = hojas.filter((h) => h.slot === 'cv_borrador').pop();
+      const hoja = aprobada || borrador;
+      const sol = r.solicitud || {};
+      const respuestas = sol.respuestas || sol || {};
+      return {
+        id: r.id,
+        telefono: r.telefono,
+        nombre: r.nombre_completo || '(sin nombre)',
+        ciudad: r.ciudad_sucursal || '',
+        estadoBot: r.estado,
+        etapa: r.portal_status || null,
+        creadoEn: r.creado_en,
+        estado: aprobada ? 'aprobado' : 'borrador',
+        armadoEn: hoja?.recibido_en || null,
+        aprobadoEn: aprobada?.subido_en || null,
+        archivo: hoja?.filename || null,
+        url: hoja?.url || null,
+        intentos: hojas.filter((h) => h.slot === 'cv_borrador').length,
+        // Lo que dictó por WhatsApp: sirve para leerlo sin abrir el PDF.
+        respuestas,
+      };
+    });
+
+    return res.json({
+      total: salida.length,
+      aprobados: salida.filter((x) => x.estado === 'aprobado').length,
+      borradores: salida.filter((x) => x.estado === 'borrador').length,
+      candidatos: salida,
+    });
+  } catch (e) { return fallo(res, e, 'Error al listar los CV armados por el bot.'); }
+});
+
 candidatosRouter.get('/:id', async (req: Request, res: Response) => {
   const id = await idValido(req, res);
   if (!id) return;
@@ -433,85 +517,6 @@ candidatosRouter.get('/', requireAuth, async (req: Request, res: Response) => {
     );
     return res.json(rows.map(mapCandidato));
   } catch (e) { return fallo(res, e, 'Error al listar candidatos.'); }
-});
-
-/**
- * LOS CURRICULUMS QUE ARMO EL BOT
- * GET /candidatos/cv-armados
- *
- * Hay gente que quiere trabajar y no tiene CV — no es que no lo quiera mandar,
- * es que no lo tiene. Antes esa persona se quedaba fuera del proceso por un
- * archivo. Ahora el bot le hace las preguntas por WhatsApp, dibuja la hoja y se
- * la manda; si el candidato la aprueba, esa hoja se vuelve su CV.
- *
- * Esta pantalla existe porque esos currículums merecen mirarse aparte: los
- * escribió el bot con lo que dictó una persona, y conviene que RH los revise
- * sabiendolo, no mezclados con los que alguien redactó y subió.
- *
- * DOS ESTADOS, y la diferencia importa:
- *   · `borrador`  el bot ya se lo mandó y ESPERA que el candidato conteste "sí".
- *                 Todavía no cuenta como CV: si se queda aquí, la postulación
- *                 sigue incompleta y alguien tiene que empujarla.
- *   · `aprobado`  el candidato lo revisó y aceptó; ya es su CV en el expediente.
- *
- * El PDF lo sirve el BOT (su volumen), con una liga por token: por eso `url`
- * apunta a otro dominio y no hace falta autenticación para abrirla.
- */
-candidatosRouter.get('/cv-armados', requireAuth, async (_req: Request, res: Response) => {
-  try {
-    // `documentos` la escriben varios servicios y hay filas donde quedó como
-    // objeto en vez de arreglo: sin este CASE, la consulta revienta entera.
-    const DOCS = `jsonb_array_elements(CASE WHEN jsonb_typeof(c.documentos)='array' THEN c.documentos ELSE '[]'::jsonb END)`;
-    const { rows } = await pool.query(`
-      SELECT c.id, c.telefono, c.nombre_completo, c.ciudad_sucursal, c.estado,
-             c.portal_status, c.creado_en,
-             c.portal_data->'solicitud' AS solicitud,
-             (SELECT jsonb_agg(d ORDER BY d->>'recibido_en')
-                FROM ${DOCS} d
-               WHERE d->>'slot' IN ('cv','cv_borrador')
-                 AND COALESCE((d->>'generado_por_bot')::boolean, false)) AS hojas
-        FROM candidatos c
-       WHERE c.deleted_at IS NULL
-         AND EXISTS (
-           SELECT 1 FROM ${DOCS} d
-            WHERE d->>'slot' IN ('cv','cv_borrador')
-              AND COALESCE((d->>'generado_por_bot')::boolean, false))
-       ORDER BY c.creado_en DESC`);
-
-    const salida = rows.map((r: any) => {
-      const hojas: any[] = r.hojas || [];
-      // La aprobada es la que quedó con slot 'cv'; si no hay, sigue en borrador.
-      const aprobada = hojas.filter((h) => h.slot === 'cv').pop();
-      const borrador = hojas.filter((h) => h.slot === 'cv_borrador').pop();
-      const hoja = aprobada || borrador;
-      const sol = r.solicitud || {};
-      const respuestas = sol.respuestas || sol || {};
-      return {
-        id: r.id,
-        telefono: r.telefono,
-        nombre: r.nombre_completo || '(sin nombre)',
-        ciudad: r.ciudad_sucursal || '',
-        estadoBot: r.estado,
-        etapa: r.portal_status || null,
-        creadoEn: r.creado_en,
-        estado: aprobada ? 'aprobado' : 'borrador',
-        armadoEn: hoja?.recibido_en || null,
-        aprobadoEn: aprobada?.subido_en || null,
-        archivo: hoja?.filename || null,
-        url: hoja?.url || null,
-        intentos: hojas.filter((h) => h.slot === 'cv_borrador').length,
-        // Lo que dictó por WhatsApp: sirve para leerlo sin abrir el PDF.
-        respuestas,
-      };
-    });
-
-    return res.json({
-      total: salida.length,
-      aprobados: salida.filter((x) => x.estado === 'aprobado').length,
-      borradores: salida.filter((x) => x.estado === 'borrador').length,
-      candidatos: salida,
-    });
-  } catch (e) { return fallo(res, e, 'Error al listar los CV armados por el bot.'); }
 });
 
 // Papelera (borrados).
