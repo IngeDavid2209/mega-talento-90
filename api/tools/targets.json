@@ -1,14 +1,43 @@
 [
-  { "ip": "192.168.32.215", "suc": "morelia-vicente-guerrero", "nota": "Morelia · Av. Madero 3600 — OJO: tiene DHCP en ON, su IP puede cambiar al reiniciarse" },
-  { "ip": "192.168.42.37",  "suc": "la-piedad-abastos",        "nota": "La Piedad · Abastos — la lista decia 192.168.10.2, ahi no hay nada" },
-  { "ip": "192.168.40.12",  "suc": "8-esquinas",               "nota": "8 Esquinas — la lista decia .40.11; tiene ~50 mil checadas acumuladas" },
-  { "ip": "192.168.50.12",  "suc": "zamora-canindo",           "nota": "Zamora · Canindo — no estaba en la lista" },
-  { "ip": "192.168.54.10",  "suc": "zamora-catedral",          "nota": "Zamora · Catedral — no estaba en la lista" },
-  { "ip": "192.168.44.12",  "suc": "yurecuaro-centro",         "nota": "Yurecuaro · Centro — no estaba en la lista" },
+  { "//": "PADRON DE RELOJES, verificado contra la base el 05/08/2026. Cada IP se",
+    "//2": "confirmo leyendo el padron DEL RELOJ y comparandolo con el de la",
+    "//3": "sucursal: el nombre del departamento no basta, porque si una IP queda",
+    "//4": "pegada al slug equivocado las checadas entran bajo otra plaza y eso NO",
+    "//5": "se nota mirando la pantalla. La evidencia va en la nota de cada una." },
 
-  { "ip": "192.168.30.253", "suc": "morelia-abastos", "pendiente": true,
-    "nota": "PENDIENTE, NO RESPONDE. Su subred SI es alcanzable (192.168.30.1 contesta) y no hay ningun ZK en 192.168.30.x: el equipo esta apagado o sin cable. Ademas su puerta de enlace (192.168.0.254) esta FUERA de su propia subred, deberia ser 192.168.30.1. Esta sucursal NUNCA se ha importado." },
+  { "ip": "192.168.0.80", "suc": "corporativo",
+    "nota": "Oficinas (entrada y salida). NUEVO: corporativo nunca habia tenido reloj configurado, su dato entraba a mano. Verificado: 39 de sus 41 usuarios estan en el padron de corporativo con el MISMO nombre." },
+
+  { "ip": "192.168.0.153", "suc": "cedis",
+    "nota": "NUEVO: cedis tampoco tenia reloj, y por eso llevaba sin datos desde el 17/07. Verificado: 20 de 21 usuarios con el mismo nombre. Tiene historia desde 2023-09-14." },
+
+  { "ip": "192.168.32.215", "suc": "morelia-vicente-guerrero",
+    "nota": "Morelia Madero. Verificado 29/30 nombres. OJO: tiene DHCP en ON, su IP puede cambiar al reiniciarse." },
+
+  { "ip": "192.168.40.12", "suc": "8-esquinas",
+    "nota": "Verificado 102/102 nombres. Es el de mas volumen: ~50 mil checadas." },
+
+  { "ip": "192.168.42.37", "suc": "la-piedad-abastos",
+    "nota": "NO viene en la lista nueva de IPs, pero responde y verifica 58/58 nombres con datos hasta hoy. Se CONSERVA a proposito: quitarlo dejaria a la plaza sin datos sin que nadie lo note. La lista nueva trae 'Sucursal PH' en 192.168.10.2, que no responde: si PH es esta misma plaza, sobra una de las dos." },
+
+  { "ip": "192.168.44.12", "suc": "yurecuaro-centro",
+    "nota": "Verificado 15/15 nombres. Su historia arranca en 2024-11-28: es la de mayor recuperacion pendiente." },
+
+  { "ip": "192.168.50.12", "suc": "zamora-canindo",
+    "nota": "Canindo. Verificado 95/95 nombres." },
+
+  { "ip": "192.168.54.10", "suc": "zamora-catedral",
+    "nota": "En la lista nueva se llama 'Damaso'. Verificado 26 de 27 nombres contra zamora-catedral: es la misma plaza con otro nombre local." },
+
+  { "ip": "192.168.0.81", "suc": "REVISAR-NUMERACION", "pendiente": true,
+    "nota": "PENDIENTE, NO JALAR. 'Oficinas desayuno y comida'. Es la MISMA gente de corporativo pero con OTRA numeracion: #11 es Alfonso (en el padron es #111), #21 Ivonne (#121), #6 Perla (#106), #23 Carmen (#123). De sus 47 usuarios, 34 tienen nombre identico en el padron y solo 1 codigo coincide con el reloj de entrada/salida. Jalarlo por codigo le atribuiria las marcas a la persona EQUIVOCADA. Se resuelve renumerando el reloj con los mismos codigos, o agregando una tabla de traduccion codigo->codigo." },
+
+  { "ip": "192.168.10.2", "suc": "SUCURSAL-PH", "pendiente": true,
+    "nota": "PENDIENTE, NO RESPONDE en el puerto 4370. Ya se habia probado el 28/07 con el mismo resultado. Falta saber que plaza es 'PH' y cual es su IP real." },
+
+  { "ip": "192.168.50.253", "suc": "morelia-abastos", "pendiente": true,
+    "nota": "PENDIENTE, NO RESPONDE. En la lista anterior figuraba como 192.168.30.253 y tampoco respondia. Esta plaza NUNCA se ha importado: es trabajo de campo (equipo apagado, sin cable, o IP distinta)." },
 
   { "ip": "192.168.80.79", "suc": "SIN-IDENTIFICAR", "pendiente": true,
-    "nota": "PENDIENTE, SIN IDENTIFICAR. Responde y tiene datos hasta hoy, pero sus 7 usuarios (Sistemas, Rubio, LicOmar, Lizbeth, Alejandro, Cristobal, Dionisio) no coinciden con NINGUN padron. Hay que averiguar de que sucursal es antes de jalarlo, o las checadas entrarian con la sucursal equivocada." }
+    "nota": "PENDIENTE, ya no viene en la lista nueva. Respondia con datos al dia y sus 7 usuarios (Sistemas, Rubio, LicOmar, Lizbeth, Alejandro, Cristobal, Dionisio) no coincidian con ningun padron. Se deja anotado por si reaparece." }
 ]

@@ -37,7 +37,12 @@ function motivo(e) {
   if (e.code) return `${e.code}${e.address ? ' ' + e.address : ''}`;
   try { return JSON.stringify(e); } catch { return String(e); }
 }
-const TODOS = process.env.TARGETS ? JSON.parse(process.env.TARGETS) : require('./targets.json');
+// Las entradas SIN `ip` se descartan: targets.json lleva un bloque de
+// documentacion al principio (JSON no admite comentarios) y sin este filtro se
+// contaba como un reloj mas, salia como "undefined (undefined)" y engordaba el
+// marcador de fallos con algo que no es un reloj.
+const TODOS = (process.env.TARGETS ? JSON.parse(process.env.TARGETS) : require('./targets.json'))
+  .filter((t) => t && typeof t.ip === 'string' && t.ip.trim());
 // Los marcados con "pendiente": true se saltan a propósito: son relojes que no
 // responden o que todavía no se sabe a qué sucursal pertenecen. Intentarlos cada
 // 5 minutos solo llenaría el log de errores y taparía los problemas reales.
