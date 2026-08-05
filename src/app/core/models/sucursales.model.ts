@@ -80,8 +80,39 @@ export const CENTROS_INTERNOS: Sucursal[] = [
   { id: 'morelia-abastos', ciudad: 'Morelia',     direccion: 'Central de Abastos', mapsUrl: '' }
 ];
 
-/** Ubicaciones para el módulo de checador: sucursales públicas + centros internos. */
+/**
+ * Ubicaciones para el módulo de checador: sucursales públicas + centros internos.
+ * Es el catálogo COMPLETO; sirve para resolver el nombre de cualquier id que
+ * aparezca en datos históricos, incluso de una plaza que hoy no tiene reloj.
+ */
 export const CENTROS_CHECADOR: Sucursal[] = [...SUCURSALES, ...CENTROS_INTERNOS];
+
+/**
+ * Plazas SIN reloj checador. No tienen ni un empleado en el padrón del checador
+ * ni una sola checada — verificado contra la base el 05/08/2026 — así que en las
+ * pantallas de asistencia salían en el selector y no mostraban NADA, que se lee
+ * como "el sistema está roto".
+ *
+ * Siguen en `CENTROS_CHECADOR` a propósito: el catálogo completo se usa para
+ * requisiciones de personal (se puede pedir gente para una plaza sin reloj) y
+ * para resolver nombres. Lo que se filtra es el SELECTOR del checador.
+ *
+ * Para reactivar una: instalar su reloj, jalar sus checadas y quitarla de aquí.
+ * En cuanto tenga datos, vuelve a aparecer.
+ */
+export const CENTROS_SIN_RELOJ: string[] = [
+  'la-piedad-centro',    // nunca ha tenido reloj ni padrón
+  'morelia-figaredo',    // nunca ha tenido reloj ni padrón
+  'santa-ana-pacueco',   // nunca ha tenido reloj ni padrón
+  'morelia-abastos',     // el equipo no responde en el puerto 4370 (probado 28/07 y 05/08)
+];
+
+/**
+ * Lo que SÍ se ofrece en el checador: las ocho plazas que hoy tienen reloj y
+ * datos al día. Un selector que ofrece plazas vacías hace dudar de todo lo demás.
+ */
+export const CENTROS_CON_RELOJ: Sucursal[] =
+  CENTROS_CHECADOR.filter(s => !CENTROS_SIN_RELOJ.includes(s.id));
 
 /** Busca una ubicación de checador (sucursal pública o centro interno) por id. */
 export function centroChecadorPorId(id: string): Sucursal | undefined {

@@ -7,7 +7,7 @@ import {
   AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi
 } from '../../core/services/checador.service';
 import { aFechaLocal } from '../../core/models/checador.model';
-import { CENTROS_CHECADOR, centroChecadorPorId } from '../../core/models/sucursales.model';
+import { CENTROS_CON_RELOJ, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
@@ -103,7 +103,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** Emite el evento del <input file> para que el padre procese el archivo. */
   @Output() archivo = new EventEmitter<Event>();
 
-  SUCURSALES = CENTROS_CHECADOR;
+  SUCURSALES = CENTROS_CON_RELOJ;
 
   // Catálogos para el detalle
   ESTADOS: { v: EstadoRevision; l: string }[] = [
@@ -132,7 +132,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     horario_confirmado: 'horario confirmado'
   };
 
-  sucursalFiltro = CENTROS_CHECADOR[0]?.id || '';
+  sucursalFiltro = CENTROS_CON_RELOJ[0]?.id || '';
   desde = '';
   hasta = '';
 

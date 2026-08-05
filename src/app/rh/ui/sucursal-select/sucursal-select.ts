@@ -1,7 +1,7 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SUCURSALES, CENTROS_INTERNOS, centroChecadorPorId, Sucursal } from '../../../core/models/sucursales.model';
+import { SUCURSALES, CENTROS_INTERNOS, CENTROS_SIN_RELOJ, centroChecadorPorId, Sucursal } from '../../../core/models/sucursales.model';
 
 interface Grupo { titulo: string; items: { id: string; ciudad: string; detalle: string }[]; }
 
@@ -34,9 +34,12 @@ export class SucursalSelectComponent {
     const f = this.filtro.trim().toLowerCase();
     const coincide = (s: Sucursal) =>
       !f || `${s.ciudad} ${s.direccion}`.toLowerCase().includes(f);
+    const conReloj = (s: Sucursal) => !CENTROS_SIN_RELOJ.includes(s.id);
     const grupos: Grupo[] = [
-      { titulo: 'Sucursales', items: SUCURSALES.filter(coincide).map(s => this.toDetalle(s)) },
-      { titulo: 'Centros internos', items: CENTROS_INTERNOS.filter(coincide).map(s => this.toDetalle(s)) }
+      // Solo las que tienen reloj: ofrecer una plaza sin datos hace pensar que la
+      // pantalla esta rota (ver CENTROS_SIN_RELOJ).
+      { titulo: 'Sucursales', items: SUCURSALES.filter(conReloj).filter(coincide).map(s => this.toDetalle(s)) },
+      { titulo: 'Centros internos', items: CENTROS_INTERNOS.filter(conReloj).filter(coincide).map(s => this.toDetalle(s)) }
     ];
     return grupos.filter(g => g.items.length);
   }

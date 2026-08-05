@@ -11,7 +11,7 @@ import {
   TIPOS_CHECADA, DIAS_SEMANA, aFechaLocal
 } from '../../core/models/checador.model';
 import { parsearTextoChecadas, parsearFilasExcel } from '../../core/models/parser-attlog';
-import { CENTROS_CHECADOR, centroChecadorPorId } from '../../core/models/sucursales.model';
+import { CENTROS_CON_RELOJ, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
 import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
@@ -46,14 +46,14 @@ export class HorariosComponent implements OnInit, OnDestroy {
   private toast = inject(ToastService);
 
   // Catálogos / constantes para la vista (incluye centros internos como Corporativo)
-  SUCURSALES = CENTROS_CHECADOR;
+  SUCURSALES = CENTROS_CON_RELOJ;
   DIAS_SEMANA = DIAS_SEMANA;
   TIPOS_CHECADA = TIPOS_CHECADA;
 
   tabActiva: Tab = 'checadas';
 
   // Filtros compartidos
-  sucursalFiltro = CENTROS_CHECADOR[0]?.id || '';
+  sucursalFiltro = CENTROS_CON_RELOJ[0]?.id || '';
   desde = '';
   hasta = '';
 
@@ -278,7 +278,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   nuevaArea() {
     this.areaEdit = {
-      sucursalId: this.sucursalFiltro || CENTROS_CHECADOR[0].id,
+      sucursalId: this.sucursalFiltro || CENTROS_CON_RELOJ[0].id,
       nombre: '', ipChecador: '', deviceId: '', activo: true
     };
   }
@@ -320,7 +320,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   nuevoHorario() {
     this.horarioEdit = {
-      sucursalId: this.sucursalFiltro || CENTROS_CHECADOR[0].id,
+      sucursalId: this.sucursalFiltro || CENTROS_CON_RELOJ[0].id,
       areaId: '',
       nombre: '',
       dias: [1, 2, 3, 4, 5],
@@ -387,7 +387,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   nuevoEmpleado(esPromotora = false) {
     this.empleadoEdit = {
-      sucursalId: this.sucursalFiltro || CENTROS_CHECADOR[0].id,
+      sucursalId: this.sucursalFiltro || CENTROS_CON_RELOJ[0].id,
       codigoChecador: '', nombre: '', puesto: '', fotoUrl: '', activo: true,
       esPromotora
     };

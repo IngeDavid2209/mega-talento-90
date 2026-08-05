@@ -62,7 +62,18 @@
   @if (cargando) {
     <div class="ar-empty">Cargando asistencia…</div>
   } @else if (!lista.length) {
-    <div class="ar-empty">Sin checadas en este periodo. Ajusta las fechas o importa el archivo del reloj.</div>
+    <!-- El mensaje distingue los dos casos. Antes decia "ajusta las fechas" para
+         todo, incluso cuando la plaza no tenia reloj: mandaba a mover fechas en
+         una pantalla que nunca iba a mostrar nada. -->
+    <div class="ar-empty">
+      @if (datos && datos.resumen.personas === 0) {
+        Esta plaza no tiene personal dado de alta en el checador ni checadas registradas.
+        Si ya tiene reloj instalado, hay que jalar sus datos por primera vez.
+      } @else {
+        Sin checadas del {{ desde }} al {{ hasta }}. Prueba con un periodo más amplio
+        —el botón <b>Todo</b> ajusta el rango a lo que esta plaza tiene registrado—.
+      }
+    </div>
   } @else {
     <!-- KPIs -->
     <div class="ar-kpis">

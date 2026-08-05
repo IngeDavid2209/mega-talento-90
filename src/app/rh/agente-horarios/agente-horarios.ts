@@ -5,7 +5,7 @@ import {
   ChecadorService, AlertaAgente, ResumenAgente, JefeSucursal,
   EstadoAgente, CorridaSucursal, GrupoAlertas, AlertasAgrupadas,
 } from '../../core/services/checador.service';
-import { CENTROS_CHECADOR } from '../../core/models/sucursales.model';
+import { CENTROS_CON_RELOJ } from '../../core/models/sucursales.model';
 
 /** Fila editable del panel de jefes: una por centro de trabajo del checador. */
 interface FilaJefe {
@@ -48,7 +48,7 @@ interface FilaGrupo extends GrupoAlertas {
 export class AgenteHorariosComponent {
   private checador = inject(ChecadorService);
 
-  sucursales = CENTROS_CHECADOR;
+  sucursales = CENTROS_CON_RELOJ;
   sucursalId = '';
   desde = '';
   hasta = '';
