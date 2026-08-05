@@ -1,0 +1,111 @@
+<div class="cva-wrap">
+
+  <header class="cva-head">
+    <span class="eyebrow">Currículums asistidos</span>
+    <h2>CV que armó el bot</h2>
+    <p class="cva-desc">
+      Hay gente que quiere trabajar y <strong>no tiene CV</strong> — no es que no lo quiera mandar, es que
+      no lo tiene. El bot le hace las preguntas por WhatsApp, dibuja la hoja y se la manda; cuando el
+      candidato contesta <em>sí</em>, esa hoja se vuelve su CV. Aquí están aparte porque conviene
+      revisarlos sabiendo quién los escribió.
+    </p>
+  </header>
+
+  @if (cargando) {
+    <div class="cva-estado"><div class="spinner"></div><p>Buscando currículums…</p></div>
+  } @else if (error) {
+    <div class="cva-estado cva-error">{{ error }}</div>
+  } @else if (!total) {
+    <div class="cva-estado">
+      <p><strong>Todavía no hay ninguno.</strong></p>
+      <p class="cva-mini">
+        El bot empezó a armar currículums el 3 de agosto. En cuanto alguien sin CV termine sus
+        preguntas por WhatsApp, aparecerá aquí.
+      </p>
+    </div>
+  } @else {
+
+    <!-- Lo que hay que atender va primero: los borradores esperan una respuesta
+         del candidato, y mientras tanto su postulación sigue incompleta. -->
+    <div class="cva-resumen">
+      <button type="button" class="cva-chip" [class.on]="filtro === 'todos'" (click)="filtro = 'todos'">
+        <span class="cva-chip-n">{{ total }}</span><span class="cva-chip-l">En total</span>
+      </button>
+      <button type="button" class="cva-chip alerta" [class.on]="filtro === 'borrador'" (click)="filtro = 'borrador'"
+              title="El bot ya se los mandó y esperan que el candidato lo apruebe. Hasta entonces su postulación sigue incompleta.">
+        <span class="cva-chip-n">{{ borradores }}</span><span class="cva-chip-l">Esperan respuesta</span>
+      </button>
+      <button type="button" class="cva-chip ok" [class.on]="filtro === 'aprobado'" (click)="filtro = 'aprobado'">
+        <span class="cva-chip-n">{{ aprobados }}</span><span class="cva-chip-l">Ya son su CV</span>
+      </button>
+
+      <div class="cva-buscar">
+        <input type="text" [(ngModel)]="busqueda" placeholder="Buscar por nombre, teléfono o ciudad…">
+      </div>
+      <button type="button" class="cva-btn-ghost" (click)="cargar()">Actualizar</button>
+    </div>
+
+    @if (!lista.length) {
+      <div class="cva-estado"><p>Ninguno con ese filtro.</p></div>
+    }
+
+    <div class="cva-lista">
+      @for (c of lista; track c.id) {
+        <article class="cva-card" [class.borrador]="c.estado === 'borrador'">
+          <div class="cva-card-top">
+            <div class="cva-avatar">{{ iniciales(c.nombre) }}</div>
+            <div class="cva-id">
+              <span class="cva-nombre">{{ c.nombre }}</span>
+              <span class="cva-sub">
+                {{ c.telefono }}@if (c.ciudad) { · {{ c.ciudad }} }
+                @if (c.etapa) { · <span class="cva-etapa">{{ c.etapa }}</span> }
+              </span>
+            </div>
+
+            @if (c.estado === 'aprobado') {
+              <span class="cva-estado-chip ok"
+                    title="El candidato lo revisó y lo aceptó: ya es su CV en el expediente.">Ya es su CV</span>
+            } @else {
+              <span class="cva-estado-chip alerta"
+                    title="El bot se lo mandó y espera que lo apruebe. Mientras tanto su postulación sigue incompleta.">
+                Espera respuesta@if (diasEsperando(c) !== null) { · {{ diasEsperando(c) }} d }
+              </span>
+            }
+          </div>
+
+          <div class="cva-meta">
+            <span>Armado el <b>{{ fecha(c.armadoEn) }}</b></span>
+            <span>{{ camposContestados(c) }} datos contestados</span>
+            @if (c.intentos > 1) {
+              <span title="Pidió corregir algo y el bot se lo rehizo.">{{ c.intentos }} versiones</span>
+            }
+          </div>
+
+          <div class="cva-acciones">
+            @if (c.url) {
+              <a class="cva-btn" [href]="c.url" target="_blank" rel="noopener">Ver el CV (PDF)</a>
+            } @else {
+              <span class="cva-sin-archivo">Sin archivo disponible</span>
+            }
+            <a class="cva-btn-ghost" [routerLink]="['/app/expediente', c.id]">Abrir expediente</a>
+            <button type="button" class="cva-btn-ghost" (click)="toggle(c)">
+              {{ abierto(c) ? 'Ocultar lo que dictó' : 'Ver lo que dictó' }}
+            </button>
+          </div>
+
+          @if (abierto(c)) {
+            <!-- Un resumen, no los 130 campos: esto sirve para decidir si vale la
+                 pena abrir el PDF, no para reemplazarlo. -->
+            <dl class="cva-datos">
+              @for (d of resumen(c); track d.etiqueta) {
+                <div><dt>{{ d.etiqueta }}</dt><dd>{{ d.valor }}</dd></div>
+              } @empty {
+                <div><dt>—</dt><dd>No alcanzó a contestar datos suficientes.</dd></div>
+              }
+            </dl>
+          }
+        </article>
+      }
+    </div>
+  }
+</div>

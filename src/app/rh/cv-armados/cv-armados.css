@@ -1,0 +1,81 @@
+.cva-wrap { padding: 22px 26px 40px; max-width: 1100px; }
+
+.cva-head { margin-bottom: 18px; }
+.cva-head h2 { margin: 2px 0 6px; font-size: 22px; color: var(--ink, #0F172A); }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold, #D99B00); }
+.cva-desc { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text2, #475569); max-width: 95ch; }
+
+.cva-estado { padding: 28px; text-align: center; color: var(--text2, #475569); font-size: 14px; }
+.cva-estado.cva-error { color: #A62121; }
+.cva-mini { font-size: 12.5px; color: var(--text3, #94A3B8); max-width: 60ch; margin: 6px auto 0; }
+.spinner {
+  width: 26px; height: 26px; border: 3px solid #E2E8F0; border-top-color: var(--gold, #D99B00);
+  border-radius: 50%; margin: 0 auto 10px; animation: cva-giro .8s linear infinite;
+}
+@keyframes cva-giro { to { transform: rotate(360deg); } }
+
+/* Los contadores SON el filtro: un control menos que explicar, y de paso
+   obligan a que el número y la lista siempre digan lo mismo. */
+.cva-resumen { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.cva-chip {
+  display: flex; flex-direction: column; gap: 1px; padding: 9px 16px; border-radius: 12px;
+  border: 1px solid var(--border, #E2E8F0); background: #fff; cursor: pointer; text-align: left;
+}
+.cva-chip:hover { border-color: var(--border-med, #CBD5E1); }
+.cva-chip.on { background: var(--ink, #0F172A); border-color: var(--ink, #0F172A); }
+.cva-chip.on .cva-chip-n, .cva-chip.on .cva-chip-l { color: #fff; }
+.cva-chip-n { font-size: 19px; font-weight: 800; color: var(--ink, #0F172A); font-variant-numeric: tabular-nums; }
+.cva-chip-l { font-size: 11px; color: var(--text3, #94A3B8); }
+.cva-chip.alerta .cva-chip-n { color: #8A5A00; }
+.cva-chip.alerta.on { background: #8A5A00; border-color: #8A5A00; }
+.cva-chip.ok .cva-chip-n { color: #166534; }
+.cva-chip.ok.on { background: #166534; border-color: #166534; }
+
+.cva-buscar { margin-left: auto; }
+.cva-buscar input {
+  border: 1px solid var(--border, #E2E8F0); border-radius: 9px; padding: 8px 12px;
+  font-size: 13px; min-width: 250px;
+}
+
+.cva-lista { display: grid; gap: 12px; }
+.cva-card {
+  border: 1px solid var(--border, #E2E8F0); border-left: 3px solid #166534; border-radius: 14px;
+  padding: 14px 18px; background: #fff;
+}
+/* El borrador se ve distinto porque es lo único que pide una acción. */
+.cva-card.borrador { border-left-color: var(--gold, #D99B00); background: #FFFDF7; }
+
+.cva-card-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cva-avatar {
+  width: 38px; height: 38px; border-radius: 50%; background: var(--ink, #0F172A); color: #fff;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.cva-id { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
+.cva-nombre { font-size: 15px; font-weight: 700; color: var(--ink, #0F172A); }
+.cva-sub { font-size: 12px; color: var(--text3, #94A3B8); }
+.cva-etapa { text-transform: capitalize; }
+
+.cva-estado-chip { font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+.cva-estado-chip.ok { background: #DCFCE7; color: #166534; }
+.cva-estado-chip.alerta { background: #FBEED9; color: #8A5A00; }
+
+.cva-meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 0; font-size: 12px; color: var(--text3, #94A3B8); }
+.cva-meta b { color: var(--text2, #475569); font-weight: 600; }
+
+.cva-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cva-btn, .cva-btn-ghost {
+  font-size: 12.5px; font-weight: 600; padding: 7px 14px; border-radius: 9px;
+  border: 1px solid transparent; cursor: pointer; text-decoration: none;
+}
+.cva-btn { background: var(--ink, #0F172A); color: #fff; }
+.cva-btn:hover { opacity: .9; }
+.cva-btn-ghost { background: #fff; color: var(--text2, #475569); border-color: var(--border, #E2E8F0); }
+.cva-btn-ghost:hover { border-color: var(--border-med, #CBD5E1); }
+.cva-sin-archivo { font-size: 12.5px; color: #A62121; }
+
+.cva-datos {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 20px;
+  margin: 12px 0 0; padding-top: 12px; border-top: 1px dashed var(--border, #E2E8F0);
+}
+.cva-datos dt { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text3, #94A3B8); font-weight: 700; }
+.cva-datos dd { margin: 1px 0 0; font-size: 13px; color: var(--ink, #0F172A); }

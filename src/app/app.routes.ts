@@ -19,6 +19,7 @@ import { VacantesComponent } from './rh/vacantes/vacantes';
 import { DuplicadosComponent } from './rh/duplicados/duplicados';
 import { PapeleraComponent } from './rh/papelera/papelera';
 import { ContactadosComponent } from './rh/contactados/contactados';
+import { CvArmadosComponent } from './rh/cv-armados/cv-armados';
 import { DestacadosComponent } from './rh/destacados/destacados';
 import { EnRiesgoComponent } from './rh/enriesgo/enriesgo';
 import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
@@ -48,6 +49,7 @@ export const routes: Routes = [
       { path: 'vacantes',  component: VacantesComponent },
       { path: 'duplicados', component: DuplicadosComponent },
       { path: 'contactados', component: ContactadosComponent },
+      { path: 'cv-armados', component: CvArmadosComponent }, // los CV que armó el bot por WhatsApp
       { path: 'guia-evaluacion', component: GuiaEvaluacionComponent },
       { path: 'resultados-evaluacion', component: ResultadosEvaluacionComponent },
       { path: 'horarios', component: HorariosComponent },
