@@ -32,6 +32,9 @@
   { "ip": "192.168.0.81", "suc": "REVISAR-NUMERACION", "pendiente": true,
     "nota": "PENDIENTE, NO JALAR. 'Oficinas desayuno y comida'. Es la MISMA gente de corporativo pero con OTRA numeracion: #11 es Alfonso (en el padron es #111), #21 Ivonne (#121), #6 Perla (#106), #23 Carmen (#123). De sus 47 usuarios, 34 tienen nombre identico en el padron y solo 1 codigo coincide con el reloj de entrada/salida. Jalarlo por codigo le atribuiria las marcas a la persona EQUIVOCADA. Se resuelve renumerando el reloj con los mismos codigos, o agregando una tabla de traduccion codigo->codigo." },
 
+  { "ip": "192.168.0.196", "suc": "SIN-IDENTIFICAR", "pendiente": true,
+    "nota": "PENDIENTE, NO JALAR. Encontrado el 05/08/2026 barriendo 192.168.0.x; no venia en ninguna lista. 12 usuarios (Admin, Lupita, Joaquin, Angel, Victor, Lesly, Mariano, Victorino, Tere, Elena, Dayan) y datos del 13/01/2026 a hoy: alguien lo usa a diario. No se puede identificar con los datos: sus nombres son comunes y empatan parecido con varias plazas (la-piedad 16, 8-esquinas 15, corporativo 14 puntos de afinidad), y Mariano y Victorino no estan en ningun padron. HIPOTESIS: por tamano (12 personas) y por estar en la red de oficinas, podria ser 'Sucursal PH', cuya IP 192.168.10.2 no responde. Confirmar con RH antes de jalarlo." },
+
   { "ip": "192.168.10.2", "suc": "SUCURSAL-PH", "pendiente": true,
     "nota": "PENDIENTE, NO RESPONDE en el puerto 4370. Ya se habia probado el 28/07 con el mismo resultado. Falta saber que plaza es 'PH' y cual es su IP real." },
 
