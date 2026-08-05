@@ -44,7 +44,9 @@
   border: 1px solid var(--border-med); border-radius: 9px; padding: 8px 10px;
   font-size: 13.5px; color: var(--ink); background: #fff; min-width: 140px;
 }
-.ar-field-suc { flex: 0 1 300px; min-width: 220px; }
+/* El selector de sucursal pasó de desplegable a fila de botones: necesita el
+   ancho completo. Con 300px los ocho chips se apilaban en cuatro renglones. */
+.ar-field-suc { flex: 1 1 100%; min-width: 0; }
 
 /* Periodo: un solo control con las dos fechas dentro */
 .ar-periodo {

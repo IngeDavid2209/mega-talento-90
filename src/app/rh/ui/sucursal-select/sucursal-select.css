@@ -1,107 +1,45 @@
-.ss { position: relative; width: 100%; }
+/* Selector de sucursal en fila: todas visibles, una seleccionada.
+   El chip elegido no se marca SOLO con color —lleva el pin dorado— para que se
+   distinga tambien en pantallas malas o para quien no distingue bien los tonos. */
+.ss-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
 
-/* ===== Trigger ===== */
-.ss-trigger {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%;
-  padding: 11px 14px;
+.ss-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 999px;
   background: #fff;
-  border: 1px solid var(--border-med);
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 14.5px;
-  color: var(--ink);
-  text-align: left;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.ss-trigger:hover { border-color: var(--ink); }
-.ss.abierto .ss-trigger {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(26, 47, 78, 0.10);
-}
-
-.ss-pin {
-  display: flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; flex-shrink: 0;
-  border-radius: 8px;
-  background: var(--ink);
-  color: var(--gold);
-}
-.ss-pin svg { width: 16px; height: 16px; }
-
-.ss-label {
-  flex: 1; min-width: 0;
+  color: var(--ink, #0F172A);
+  font-size: 13px;
   font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
 }
+.ss-chip:hover { border-color: var(--border-med, #CBD5E1); background: var(--surface2, #F8FAFC); }
+.ss-chip:focus-visible { outline: 2px solid var(--gold, #D99B00); outline-offset: 2px; }
 
-.ss-chevron {
-  width: 18px; height: 18px; flex-shrink: 0;
-  color: var(--text3);
-  transition: transform 0.18s;
+.ss-chip.on {
+  background: var(--ink, #0F172A);
+  border-color: var(--ink, #0F172A);
+  color: #fff;
 }
-.ss.abierto .ss-chevron { transform: rotate(180deg); color: var(--ink); }
+.ss-chip.on:hover { background: var(--ink, #0F172A); }
+.ss-pin { width: 13px; height: 13px; color: var(--gold, #D99B00); flex-shrink: 0; }
 
-/* ===== Panel ===== */
-.ss-panel {
-  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
-  z-index: 60;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 18px 42px rgba(26, 47, 78, 0.18);
-  overflow: hidden;
-  animation: ss-in 0.14s ease-out;
-}
-@keyframes ss-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* CEDIS y Corporativo no son dulcerias: el borde punteado lo dice sin gastar
+   una fila aparte ni una etiqueta. */
+.ss-chip.interno { border-style: dashed; }
+.ss-chip.interno.on { border-style: solid; }
 
-.ss-search {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface3);
+@media (max-width: 640px) {
+  .ss-chip { padding: 6px 11px; font-size: 12.5px; }
 }
-.ss-search svg { width: 16px; height: 16px; color: var(--text3); flex-shrink: 0; }
-.ss-search input {
-  flex: 1; border: none; background: none; outline: none;
-  font-size: 14px; color: var(--ink);
-}
-.ss-search input::placeholder { color: var(--text3); }
-
-.ss-list { max-height: 320px; overflow-y: auto; padding: 6px; }
-
-.ss-grupo {
-  padding: 8px 10px 4px;
-  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--gold);
-}
-
-.ss-opt {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%;
-  padding: 9px 10px;
-  border: none; background: none; cursor: pointer;
-  border-radius: 9px;
-  text-align: left;
-  border-left: 3px solid transparent;
-}
-.ss-opt:hover { background: var(--surface2); }
-.ss-opt.sel {
-  background: rgba(26, 47, 78, 0.06);
-  border-left-color: var(--gold);
-}
-
-.ss-opt-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.ss-opt-ciudad { font-size: 14px; font-weight: 700; color: var(--ink); }
-.ss-opt-detalle {
-  font-size: 12px; color: var(--text3); margin-top: 1px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ss-opt.sel .ss-opt-ciudad { color: var(--ink); }
-
-.ss-check { width: 17px; height: 17px; color: var(--gold); flex-shrink: 0; }
-
-.ss-vacio { padding: 16px 12px; text-align: center; color: var(--text3); font-size: 13px; }

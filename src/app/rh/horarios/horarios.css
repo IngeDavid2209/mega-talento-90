@@ -33,6 +33,9 @@
 }
 /* el selector de sucursal no necesita todo el ancho de la página */
 .hz-toolbar > .hz-field { flex: 0 1 340px; }
+/* El de sucursal es ahora una fila de botones (todas a la vista), no un
+   desplegable: se lleva el renglón completo. */
+.hz-toolbar > .hz-field:first-child { flex: 1 1 100%; }
 
 /* CAMPOS */
 .hz-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
