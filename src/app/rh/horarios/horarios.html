@@ -22,6 +22,10 @@
   <nav class="hz-tabs">
     <button [class.active]="tabActiva === 'checadas'" (click)="cambiarTab('checadas')">Checadas</button>
     <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
+    <button [class.active]="tabActiva === 'promotoras'" (click)="cambiarTab('promotoras')">
+      Promotoras
+      @if (promotoras.length) { <span class="hz-tab-num">{{ promotoras.length }}</span> }
+    </button>
   </nav>
 
   <!-- ============================ CHECADAS ============================ -->
@@ -88,6 +92,93 @@
           }
         </div>
       }
+    </section>
+  }
+
+  <!-- ============================ PROMOTORAS ============================
+       No son personal de piso: andan en calle o en punto de venta y no checan
+       en el reloj de la sucursal. Aquí adentro dejan de contar para la
+       asistencia; siguen siendo personal, solo que no se miden con esa vara. -->
+  @if (tabActiva === 'promotoras') {
+    <section class="hz-panel">
+      <div class="hz-panel-head">
+        <h2>Promotoras de {{ nombreSucursal(sucursalFiltro) }}</h2>
+        <button class="hz-btn hz-btn-primary" (click)="nuevoEmpleado(true)">+ Nueva promotora</button>
+      </div>
+
+      <p class="hz-hint">
+        Las promotoras <strong>no cuentan en la asistencia</strong>: no aparecen en las faltas,
+        los retardos ni las alertas de la sucursal, porque no checan en su reloj. Medidas con la
+        misma vara que el personal de planta salían con falta todos los días.
+        Siguen dadas de alta y sus checadas se guardan igual, por si algún día marcan.
+      </p>
+
+      @if (!promotoras.length) {
+        <div class="hz-empty">
+          Todavía no hay promotoras en esta sucursal. Agrégalas abajo desde el personal
+          ya registrado, o da de alta una nueva.
+        </div>
+      } @else {
+        <div class="hz-emp-cat">
+          <span class="hz-emp-cat-title">Promotoras</span>
+          <span class="hz-emp-cat-count">{{ promotoras.length }} persona(s)</span>
+        </div>
+        <div class="hz-emp-cards">
+          @for (e of promotoras; track e.id) {
+            <div class="hz-emp-card hz-promo" [class.hz-inactivo]="!e.activo">
+              <div class="hz-emp-avatar">
+                @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
+                @else { <span>{{ iniciales(e.nombre) }}</span> }
+              </div>
+              <div class="hz-emp-info">
+                <div class="hz-emp-card-nombre">{{ e.nombre }}</div>
+                <div class="hz-emp-card-suc">{{ nombreSucursal(e.sucursalId) }}</div>
+                <div class="hz-emp-card-meta">
+                  Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }
+                  @if (!e.activo) { · <span class="hz-emp-inactivo-tag">Inactivo</span> }
+                </div>
+              </div>
+              <div class="hz-emp-card-actions">
+                <button class="hz-link" (click)="editarEmpleado(e)">Editar</button>
+                <button class="hz-link" (click)="marcarPromotora(e, false)" [disabled]="moviendo === e.id"
+                        title="Vuelve a contar en la asistencia de la sucursal">
+                  {{ moviendo === e.id ? 'Moviendo…' : 'Pasar a planta' }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Agregar a alguien que ya está dado de alta como personal de planta -->
+      <div class="hz-promo-add">
+        <h3>Agregar desde el personal ya registrado</h3>
+        <p class="hz-hint">
+          Busca a la persona y pásala a Promotoras. No se borra ni se da de baja:
+          solo deja de medirse con la asistencia de piso.
+        </p>
+        <input class="hz-input" type="search" [(ngModel)]="buscarParaPromotora"
+               placeholder="Buscar por nombre, código o puesto…">
+
+        @if (!candidatosAPromotora.length) {
+          <div class="hz-empty">
+            @if (buscarParaPromotora) { Nadie de planta coincide con "{{ buscarParaPromotora }}". }
+            @else { No hay personal de planta en esta sucursal. }
+          </div>
+        } @else {
+          <ul class="hz-promo-lista">
+            @for (e of candidatosAPromotora; track e.id) {
+              <li>
+                <span class="hz-promo-nombre">{{ e.nombre }}</span>
+                <span class="hz-promo-meta">Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }</span>
+                <button class="hz-btn hz-btn-sec" (click)="marcarPromotora(e, true)" [disabled]="moviendo === e.id">
+                  {{ moviendo === e.id ? 'Moviendo…' : 'Es promotora' }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
     </section>
   }
 
@@ -248,6 +339,11 @@
 
       <label class="hz-check">
         <input type="checkbox" [(ngModel)]="empleadoEdit.activo"> Empleado activo
+      </label>
+      <label class="hz-check">
+        <input type="checkbox" [(ngModel)]="empleadoEdit.esPromotora">
+        Es promotora
+        <small>No cuenta en la asistencia de la sucursal: no checa en su reloj.</small>
       </label>
       <div class="hz-modal-actions">
         <button class="hz-btn hz-btn-ghost" (click)="cerrarModales()">Cancelar</button>

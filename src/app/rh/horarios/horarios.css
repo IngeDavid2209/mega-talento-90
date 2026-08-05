@@ -543,3 +543,49 @@
 .hz-det-marcas li.alta { background: #FDECEC; color: #A62121; border-left-color: #DC2626; }
 .hz-sem-bolsa { font-size: 11px; color: #64748B; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hz-fila-mudo { background: #F8FAFC; color: #64748B; }
+
+/* ══════════════════════ PROMOTORAS ══════════════════════
+   Apartado propio dentro de Horarios. Las promotoras no checan en el reloj de
+   la sucursal, así que quedan fuera del análisis de asistencia; aquí se ven y
+   se administran sin ensuciar la lista de personal de planta. */
+
+.hz-tab-num {
+  display: inline-block; margin-left: 6px; padding: 0 6px;
+  border-radius: 999px; font-size: 11px; font-weight: 700;
+  background: var(--surface); color: var(--text2);
+}
+.hz-tabs button.active .hz-tab-num { background: rgba(255, 255, 255, .22); color: #fff; }
+
+/* Se distinguen de un vistazo del personal de planta. */
+.hz-emp-card.hz-promo { border-left: 3px solid var(--gold, #D99B00); }
+
+.hz-promo-add {
+  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);
+}
+.hz-promo-add h3 { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
+
+.hz-input {
+  width: 100%; max-width: 420px; font: inherit; font-size: 13px; padding: 9px 13px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text); margin-bottom: 12px;
+}
+.hz-input:focus { outline: none; border-color: var(--brand); }
+
+.hz-promo-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hz-promo-lista li {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+}
+.hz-promo-lista li:hover { border-color: var(--brand); }
+.hz-promo-nombre { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.hz-promo-meta { font-size: 12px; color: var(--text2); margin-right: auto; }
+
+.hz-btn-sec {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border-strong); font-size: 12.5px; padding: 6px 14px;
+}
+.hz-btn-sec:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.hz-btn-sec:disabled { opacity: .55; cursor: default; }
+
+/* La leyenda del checkbox de promotora, dentro del modal de empleado. */
+.hz-check small { display: block; width: 100%; margin-top: 2px; font-size: 11.5px; color: var(--text2); }

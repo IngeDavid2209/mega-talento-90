@@ -66,6 +66,13 @@ export interface Empleado {
   puesto?: string;
   fotoUrl?: string;
   activo: boolean;
+  /**
+   * Promotora: no es personal de piso ni de planta. Anda en calle o en punto de
+   * venta y no checa en el reloj de la sucursal, así que se saca del análisis de
+   * asistencia — medida con esa vara salía con falta todos los días. Vive en su
+   * propio apartado dentro de Horarios.
+   */
+  esPromotora?: boolean;
 }
 
 /** Tipos de marca que reporta ZKTeco (columna de estado). */

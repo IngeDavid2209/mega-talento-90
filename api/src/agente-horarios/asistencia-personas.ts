@@ -208,8 +208,13 @@ async function contexto(sucursalId: string) {
   const unaMarca = new Map<string, { dias: number; conUna: number }>();
   for (const r of una) unaMarca.set(String(r.empleado_codigo).trim(), { dias: r.dias, conUna: r.con_una });
 
+  // Las promotoras SÍ se traen, con su marca. No se filtran en el SQL a
+  // propósito: si una promotora llegara a checar y su código no estuviera en
+  // este padrón, el análisis la reportaría como "código que checa sin estar dado
+  // de alta" — cambiaríamos un ruido por otro. Se traen para poder ponerle
+  // nombre a su código, y se saltan más abajo, al armar la lista de personas.
   const { rows: emps } = await pool.query(
-    `SELECT codigo_checador, nombre, puesto, foto_url, activo
+    `SELECT codigo_checador, nombre, puesto, foto_url, activo, es_promotora
        FROM empleados WHERE sucursal_id = $1`,
     [sucursalId]
   );
@@ -332,6 +337,10 @@ export async function asistenciaPersonas(
 
   for (const cod of codigos) {
     const emp = ctx.padron.get(cod);
+    // Las promotoras no se miden con esta vara: no son personal de piso y no
+    // checan en el reloj de la sucursal, así que aparecían con falta todos los
+    // días. Un tablero que grita todos los días deja de mirarse.
+    if (emp?.es_promotora) continue;
     const datos = porCodigo.get(cod);
     const dias = datos?.dias || [];
     const turnosConf = conf.get(cod) || null;

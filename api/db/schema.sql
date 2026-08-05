@@ -67,6 +67,18 @@ ALTER TABLE empleados ADD COLUMN IF NOT EXISTS foto_url TEXT;
 ALTER TABLE empleados ADD COLUMN IF NOT EXISTS candidato_id UUID;
 CREATE INDEX IF NOT EXISTS idx_empleados_candidato ON empleados (candidato_id);
 
+-- PROMOTORAS (04/08/2026).
+--
+-- No son personal de piso: andan en calle o en punto de venta y no checan en el
+-- reloj de la sucursal. Medidas con la misma vara que los de planta salían con
+-- falta todos los días, y ese ruido diario es lo que hace que se deje de mirar
+-- el tablero de asistencia.
+--
+-- Se marcan aquí y no en `puesto` porque el puesto es texto libre que cada
+-- sucursal escribe a su manera: filtrar por él sería adivinar.
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS es_promotora BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_empleados_promotora ON empleados (sucursal_id, es_promotora);
+
 -- Una marca de asistencia ya importada del reloj.
 CREATE TABLE IF NOT EXISTS checadas (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),

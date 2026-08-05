@@ -143,12 +143,18 @@ export async function detectar(
 
   // 1) Empleados activos de la sucursal (para faltas, nombre y turno asignado).
   const empRes = await pool.query(
-    'SELECT codigo_checador, nombre, horario_id FROM empleados WHERE sucursal_id=$1 AND activo=TRUE',
+    'SELECT codigo_checador, nombre, horario_id, es_promotora FROM empleados WHERE sucursal_id=$1 AND activo=TRUE',
     [sucursalId]
   );
-  const empleados: EmpleadoMin[] = empRes.rows.map((r) => ({
-    sucursalId, codigo: String(r.codigo_checador).trim(), nombre: r.nombre,
-  }));
+  // Las promotoras quedan fuera de la deteccion: no checan en el reloj de la
+  // sucursal, asi que cada dia generaban una falta y una alerta que no eran
+  // reales. Se filtran aqui y no en el SQL para que `horarioIdPorCodigo` de
+  // abajo las siga conociendo.
+  const empleados: EmpleadoMin[] = empRes.rows
+    .filter((r) => !r.es_promotora)
+    .map((r) => ({
+      sucursalId, codigo: String(r.codigo_checador).trim(), nombre: r.nombre,
+    }));
   const horarioIdPorCodigo = new Map<string, string | null>();
   for (const r of empRes.rows) horarioIdPorCodigo.set(String(r.codigo_checador).trim(), r.horario_id || null);
 

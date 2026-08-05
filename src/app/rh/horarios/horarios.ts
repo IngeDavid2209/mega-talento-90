@@ -17,7 +17,7 @@ import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
-type Tab = 'checadas' | 'horarios' | 'areas' | 'empleados';
+type Tab = 'checadas' | 'horarios' | 'areas' | 'empleados' | 'promotoras';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -115,8 +115,63 @@ export class HorariosComponent implements OnInit, OnDestroy {
   get horariosFiltrados(): HorarioArea[] {
     return this.horarios.filter(h => !this.sucursalFiltro || h.sucursalId === this.sucursalFiltro);
   }
+  /**
+   * PROMOTORAS APARTE (04/08/2026).
+   *
+   * No son personal de piso: andan en calle o en punto de venta y no checan en
+   * el reloj de la sucursal. Mezcladas con los de planta salían con falta todos
+   * los días, y un tablero que grita todos los días deja de mirarse.
+   *
+   * Por eso la pestaña de Empleados ya solo trae a los de planta y las
+   * promotoras viven en la suya. No se borran ni se dan de baja: siguen siendo
+   * personal, solo que no se miden con esta vara.
+   */
   get empleadosFiltrados(): Empleado[] {
+    return this.empleadosDeSucursal.filter(e => !e.esPromotora);
+  }
+
+  get promotoras(): Empleado[] {
+    return this.empleadosDeSucursal.filter(e => e.esPromotora);
+  }
+
+  /** Todos los de la sucursal, promotoras incluidas. */
+  private get empleadosDeSucursal(): Empleado[] {
     return this.empleados.filter(e => !this.sucursalFiltro || e.sucursalId === this.sucursalFiltro);
+  }
+
+  /** Texto del buscador para pasar a alguien de planta a promotoras. */
+  buscarParaPromotora = '';
+  moviendo = '';
+
+  /** Candidatos a promotora: los de planta de esta sucursal que empatan la búsqueda. */
+  get candidatosAPromotora(): Empleado[] {
+    const q = this.buscarParaPromotora.trim().toLowerCase();
+    const base = this.empleadosFiltrados;
+    if (!q) return base.slice(0, 12);
+    return base.filter(e =>
+      `${e.nombre} ${e.codigoChecador} ${e.puesto || ''}`.toLowerCase().includes(q)
+    ).slice(0, 12);
+  }
+
+  /** Mueve a alguien entre planta y promotoras. Es un campo, no un borrado. */
+  async marcarPromotora(e: Empleado, esPromotora: boolean) {
+    if (!e.id || this.moviendo) return;
+    this.moviendo = e.id;
+    try {
+      await this.checador.guardarEmpleado({ ...e, esPromotora });
+      // La lista se refresca sola por el sondeo, pero se refleja al instante
+      // para que el clic no se sienta perdido.
+      e.esPromotora = esPromotora;
+      this.toast.exito(esPromotora
+        ? `${e.nombre} pasó a Promotoras y ya no cuenta en la asistencia de piso.`
+        : `${e.nombre} volvió a personal de planta.`);
+      this.buscarParaPromotora = '';
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo mover a la persona. Intenta de nuevo.');
+    } finally {
+      this.moviendo = '';
+    }
   }
 
   /** Áreas de una sucursal (para los selects de los modales). */
@@ -330,10 +385,11 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   subiendoFoto = false;
 
-  nuevoEmpleado() {
+  nuevoEmpleado(esPromotora = false) {
     this.empleadoEdit = {
       sucursalId: this.sucursalFiltro || CENTROS_CHECADOR[0].id,
-      codigoChecador: '', nombre: '', puesto: '', fotoUrl: '', activo: true
+      codigoChecador: '', nombre: '', puesto: '', fotoUrl: '', activo: true,
+      esPromotora
     };
   }
   editarEmpleado(e: Empleado) {
