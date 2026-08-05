@@ -1,6 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { pool } from './db';
 import { requireAuth, AuthedRequest } from './auth';
+// Qué cuenta como postulación y qué es una conversación del bot a medias. Se
+// importa en vez de repetirse: dos listas del mismo dato con criterios distintos
+// es la forma más segura de que una de las dos mienta.
+import { ES_POSTULACION } from './candidatos';
 
 /**
  * =====================================================================
@@ -344,6 +348,13 @@ kpiRouter.get('/novedades', async (req: Request, res: Response) => {
     const hora = (col: string) => `to_char(${col} AT TIME ZONE '${TZ}', 'HH24:MI')`;
 
     // ── Quién se postuló ─────────────────────────────────────────────
+    //
+    // Con el MISMO criterio que el resto de la plataforma (ES_POSTULACION). Sin
+    // él, este bloque listaba todo lo creado en el día: el 04/08 mostró 23
+    // "postulados" de los que 6 no tenían CV y tres se llamaban "(sin nombre)"
+    // —conversaciones del bot a medias— y de paso la misma persona dos veces,
+    // porque el bot y el portal le abren un registro cada uno. Lo que RH leía
+    // como "hoy se postularon 23" eran 17 postulaciones y 6 charlas empezadas.
     const postulados = await pool.query(
       `SELECT id, nombre_completo AS nombre, coalesce(puesto_interes,'') AS puesto,
               coalesce(ciudad_sucursal,'') AS ciudad,
@@ -351,7 +362,19 @@ kpiRouter.get('/novedades', async (req: Request, res: Response) => {
               ${hora('creado_en')} AS hora
          FROM candidatos
         WHERE deleted_at IS NULL AND ${dia('creado_en')} = $1::date
+          AND ${ES_POSTULACION}
         ORDER BY creado_en DESC`,
+      [D]
+    );
+
+    // Las conversaciones que el bot abrió ese día y que NO llegaron a
+    // postulación. No se listan con nombre —no hay nada que revisar todavía—
+    // pero se cuentan: esconderlas del todo haría parecer que el bot no trabajó.
+    const conversaciones = await pool.query(
+      `SELECT count(*)::int AS n
+         FROM candidatos
+        WHERE deleted_at IS NULL AND ${dia('creado_en')} = $1::date
+          AND NOT ${ES_POSTULACION}`,
       [D]
     );
 
@@ -426,7 +449,7 @@ kpiRouter.get('/novedades', async (req: Request, res: Response) => {
       fases: fases.rows,
       eventos: eventos.rows,
       requisiciones,
-      bot: bot.rows[0],
+      bot: { ...bot.rows[0], conversaciones: conversaciones.rows[0].n },
     });
   } catch (e) { return fallo(res, e, 'No se pudieron leer las novedades del día.'); }
 });

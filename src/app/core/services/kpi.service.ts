@@ -100,7 +100,11 @@ export interface Novedades {
     id: string; folio: number; puesto: string; sucursalId: string | null;
     vacantes: number; estado: string; hora: string;
   }[];
-  bot: { escribieron: number; seLesEscribio: number; mensajes: number };
+  bot: {
+    escribieron: number; seLesEscribio: number; mensajes: number;
+    /** Conversaciones que el bot abrió ese día y que aún no son postulación. */
+    conversaciones: number;
+  };
 }
 
 @Injectable({ providedIn: 'root' })

@@ -73,3 +73,6 @@
   margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);
   font-size: 11.5px; color: var(--text2);
 }
+
+/* Las conversaciones a medias del bot: se cuentan, no se listan. */
+.nov-bot-charlas { display: block; margin-top: 4px; }

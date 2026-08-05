@@ -130,11 +130,20 @@
         }
       </div>
 
-      @if (datos.bot.mensajes) {
+      @if (datos.bot.mensajes || datos.bot.conversaciones) {
         <footer class="nov-bot">
           Bot de WhatsApp: {{ datos.bot.mensajes }} mensaje(s) ·
           se escribió a {{ datos.bot.seLesEscribio }} persona(s) ·
           contestaron {{ datos.bot.escribieron }}.
+          @if (datos.bot.conversaciones) {
+            <!-- Se cuentan pero no se listan: una charla a medias no es un
+                 candidato que revisar, y esconderla del todo haría parecer que
+                 el bot no trabajó. -->
+            <span class="nov-bot-charlas">
+              {{ datos.bot.conversaciones }} conversación(es) sin terminar: todavía no
+              son postulaciones, les falta el CV o completar el registro.
+            </span>
+          }
         </footer>
       }
     }

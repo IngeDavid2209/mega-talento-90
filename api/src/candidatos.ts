@@ -156,6 +156,34 @@ function columnasEspejo(d: any) {
   };
 }
 
+/**
+ * QUÉ CUENTA COMO UNA POSTULACIÓN, EN UN SOLO LUGAR.
+ *
+ * El bot abre la fila con el PRIMER mensaje, así que la tabla `candidatos`
+ * también guarda conversaciones a medias: gente que escribió "hola", contestó
+ * dos preguntas y se fue. Esas no son postulaciones y no deben aparecer donde
+ * RH revisa candidatos.
+ *
+ * Es una postulación si trajo CV (por el formulario o por WhatsApp) o si alguien
+ * ya la movió de etapa —en ese caso está dentro del proceso aunque le falte el
+ * CV, y esconderla sería peor: quedaría invisible a media entrevista.
+ *
+ * Vive aquí, exportada, porque el 05/08/2026 el bloque de novedades del panel
+ * repitió el listado sin este filtro y volvió a mostrar las conversaciones del
+ * bot como si fueran postulados —incluidos tres "(sin nombre)" en un solo día—.
+ * Dos listas del mismo dato con criterios distintos es la forma más segura de
+ * que una de las dos mienta.
+ */
+export const ES_POSTULACION = `(
+  (cv_url IS NOT NULL AND btrim(cv_url) <> '')
+  OR EXISTS (
+    SELECT 1 FROM jsonb_array_elements(COALESCE(documentos, '[]'::jsonb)) d
+     WHERE d->>'slot' = 'cv'
+       AND COALESCE(d->>'url', d->>'archivo_local', '') <> ''
+  )
+  OR portal_status IS NOT NULL
+)`;
+
 const soloDigitos = (s: string) => (s || '').replace(/\D/g, '');
 function fallo(res: Response, e: any, msg: string) {
   console.error('[candidatos]', msg, e);
@@ -399,16 +427,7 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
 candidatosRouter.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const enProceso = /^(1|true|si|sí|on)$/i.test(String((req.query as any).enProceso || ''));
-    const filtroPostulados = enProceso ? '' : `
-      AND (
-        (cv_url IS NOT NULL AND btrim(cv_url) <> '')
-        OR EXISTS (
-          SELECT 1 FROM jsonb_array_elements(COALESCE(documentos, '[]'::jsonb)) d
-           WHERE d->>'slot' = 'cv'
-             AND COALESCE(d->>'url', d->>'archivo_local', '') <> ''
-        )
-        OR portal_status IS NOT NULL
-      )`;
+    const filtroPostulados = enProceso ? '' : ` AND ${ES_POSTULACION}`;
     const { rows } = await pool.query(
       `SELECT * FROM candidatos WHERE deleted_at IS NULL${filtroPostulados} ORDER BY creado_en DESC`
     );
