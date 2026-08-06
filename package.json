@@ -1,6 +1,9 @@
 {
   "name": "mega-talento-90",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

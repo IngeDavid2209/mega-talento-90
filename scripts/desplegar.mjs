@@ -13,7 +13,7 @@
  *
  *   1. BASE (migraciones)  ->  npm run migrate
  *   2. API                 ->  railway up --service mega-talento-api
- *   3. FRONT               ->  vercel --prod
+ *   3. FRONT               ->  railway up --service mega-talento-front
  *
  * Siempre el que SIRVE el dato antes que el que lo CONSUME. Si el front sube
  * primero y llama a un endpoint que todavía no existe, el usuario ve errores en
@@ -23,7 +23,7 @@
  *
  * ── POR QUÉ HAY CANDADOS ──
  *
- * `vercel --prod` y `railway up` suben LA CARPETA, no lo que revisaste: si un
+ * `railway up` sube LA CARPETA, no lo que revisaste: si un
  * archivo está a medio guardar, se va a producción. El 30/07/2026 un template a
  * la mitad (`agente-horarios.html`) tumbó un build mientras dos personas
  * trabajaban en el repo. El candado que lo atrapa es el build ANTES de subir:
@@ -42,7 +42,11 @@ const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API_DIR = path.join(RAIZ, 'api');
 const SERVICIO_API = 'mega-talento-api';
 const SALUD_API = 'https://mega-talento-api-production.up.railway.app/health';
-const URL_FRONT = 'https://mega-talento-90.vercel.app';
+// El front se mudo a Railway el 05/08/2026: Vercel bloqueo la cuenta por "fair
+// use" y dejo de servir el sitio (HTTP 402), no solo de aceptar deploys. El
+// servidor estatico ya estaba listo en server.js desde el 24/07.
+const URL_FRONT = 'https://mega-talento-front-production.up.railway.app';
+const SERVICIO_FRONT = 'mega-talento-front';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
@@ -151,8 +155,8 @@ if (haceFront) {
   if (!DRY) {
     titulo('Front · subiendo');
     try {
-      sh('vercel --prod --yes', RAIZ, true);
-    } catch { morir('vercel falló'); }
+      sh(`railway up --service ${SERVICIO_FRONT} --detach`, RAIZ, true);
+    } catch { morir('el deploy del front falló'); }
 
     const r = await pide(URL_FRONT);
     if (!r.ok) {

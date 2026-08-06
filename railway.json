@@ -3,7 +3,20 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm run build",
-    "watchPatterns": ["/**", "!/api/**"]
+
+    "//watchPatterns": "Dos juegos de patrones, porque las rutas se comparan distinto segun de donde venga el deploy. Un push de GitHub se evalua contra la raiz del repo: ahi sirve '/**' con '!/api/**' para que un cambio del API no reconstruya el front. Pero 'railway up' desde esta carpeta sube rutas RELATIVAS ('src/app/...', 'package.json'), que nunca coinciden con '/**': el 05/08/2026 eso hizo que el deploy saliera SKIPPED y el servicio se quedara sin publicar, sin un solo error visible. De ahi los patrones relativos de abajo.",
+    "watchPatterns": [
+      "/**",
+      "!/api/**",
+      "src/**",
+      "public/**",
+      "server.js",
+      "package.json",
+      "package-lock.json",
+      "angular.json",
+      "tsconfig.json",
+      "railway.json"
+    ]
   },
   "deploy": {
     "startCommand": "node server.js",
