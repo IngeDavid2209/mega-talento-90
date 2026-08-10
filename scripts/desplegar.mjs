@@ -158,10 +158,10 @@ if (haceFront) {
       sh(`railway up --service ${SERVICIO_FRONT} --detach`, RAIZ, true);
     } catch { morir('el deploy del front falló'); }
 
-    const r = await pide(URL_FRONT);
+    const r = await pide(`${URL_FRONT}/health`);
     if (!r.ok) {
       morir('el portal no responde después de desplegar',
-        `   ${c.warn}VOLVER ATRÁS:${c.fin} vercel rollback   ${c.dim}(o promueve el anterior en el panel)${c.fin}`);
+        `   ${c.warn}VOLVER ATRÁS:${c.fin} railway rollback --service ${SERVICIO_FRONT}`);
     }
     bien('el portal responde');
     console.log(`   ${c.dim}Recuerda el refresh forzado (Ctrl+Shift+R): Angular cachea el bundle.${c.fin}`);
