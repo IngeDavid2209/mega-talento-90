@@ -46,13 +46,24 @@
   <!-- ══ CASILLAS ══ -->
   <div class="casillas">
     @for (c of casillas; track c.key) {
-      <div class="casilla" [attr.data-estado]="c.estado">
+      <!-- Se puede palomear: contactos y entrevistas REGISTRAN el hecho en la
+           bitácora; las demás se marcan a mano firmadas con nombre y fecha. -->
+      <button type="button" class="casilla"
+              [attr.data-estado]="c.estado"
+              [class.manual]="c.manual"
+              [class.clicable]="c.accion !== 'ninguna'"
+              [disabled]="c.accion === 'ninguna' || palomeando === c.key"
+              [title]="tituloCasilla(c)"
+              (click)="palomear(c)">
         <span class="box">{{ c.estado === 'hecho' ? '✓' : c.estado === 'parcial' ? '–' : '' }}</span>
         <span class="txt">
           <span class="lbl">{{ c.label }}</span>
-          <span class="det">{{ c.detalle }}</span>
+          <span class="det">
+            {{ palomeando === c.key ? 'Guardando…' : c.detalle }}
+            @if (c.manual) { <span class="a-mano">a mano</span> }
+          </span>
         </span>
-      </div>
+      </button>
     }
   </div>
 

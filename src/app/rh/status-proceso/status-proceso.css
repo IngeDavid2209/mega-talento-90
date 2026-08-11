@@ -49,11 +49,28 @@
 
 /* ── Casillas (el reporte de estatus) ──────────────────────────── */
 .casillas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-top: 20px; }
+/* Es un <button>: se palomea con clic. Se le quitan los adornos de botón para
+   que siga leyéndose como una casilla y no como una barra de acciones. */
 .casilla { display: grid; grid-template-columns: 20px 1fr; align-items: start; gap: 10px;
            padding: 10px 12px; border-radius: var(--radius); background: var(--surface3);
-           border: 1px solid var(--border); }
+           border: 1px solid var(--border);
+           width: 100%; text-align: left; font: inherit; color: inherit; }
 .casilla[data-estado="hecho"]   { background: var(--green-bg); border-color: var(--green); }
 .casilla[data-estado="parcial"] { background: var(--amber-bg); border-color: var(--amber); }
+
+.casilla.clicable { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.casilla.clicable:hover { border-color: var(--brand); box-shadow: 0 1px 6px -2px rgba(26,47,78,.28); }
+.casilla.clicable:hover .box { border-color: var(--brand); }
+.casilla:disabled { cursor: default; }
+/* La que no se palomea desde aquí (la decisión) no debe invitar al clic. */
+.casilla:disabled:not(.clicable) { opacity: .92; }
+
+/* Palomeada a mano: verde igual, pero se distingue de la que respalda un dato
+   real. Quién y cuándo va en el detalle; esto es solo la señal a primera vista. */
+.casilla.manual { border-style: dashed; }
+.a-mano { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+          background: var(--surface); color: var(--text2); border: 1px solid var(--border-med); }
 
 .box { width: 18px; height: 18px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-med);
        background: var(--surface); display: flex; align-items: center; justify-content: center;

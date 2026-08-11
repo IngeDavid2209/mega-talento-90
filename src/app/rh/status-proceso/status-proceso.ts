@@ -8,6 +8,9 @@ import {
   progresoChecklist, puntajePsico
 } from '../../core/models/proceso.model';
 import { calcularResultadoLiderazgo } from '../../core/models/cuestionario-liderazgo.model';
+// Para palomear a mano: guardar la marca en el candidato y firmar quién la puso.
+import { CandidateService } from '../../core/services/candidate';
+import { AuthSession } from '../../core/services/auth-session';
 
 /**
  * =====================================================================
@@ -40,6 +43,15 @@ interface Casilla {
   label: string;
   estado: EstadoCasilla;
   detalle: string;
+  /** Quién y cuándo la palomeó a mano (si es que se palomeó). */
+  manual?: { por: string; en: string };
+  /**
+   * Qué pasa al hacer clic:
+   *  · 'evento'  — registra de verdad el contacto/entrevista en la bitácora.
+   *  · 'manual'  — la marca a mano, dejando constancia de quién y cuándo.
+   *  · 'ninguna' — no se palomea desde aquí (la decisión tiene sus botones).
+   */
+  accion: 'evento' | 'manual' | 'ninguna';
 }
 
 @Component({
@@ -54,6 +66,8 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
   @Input() candidato: any = null;
 
   private kpi = inject(KpiService);
+  private candidateService = inject(CandidateService);
+  private auth = inject(AuthSession);
 
   bitacora: EventoCandidato[] = [];
   cargandoBitacora = false;
@@ -169,12 +183,64 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
     return this.bitacora.filter(e => e.tipo === tipo).length;
   }
 
+  /**
+   * PALOMEAR A MANO, SIN QUE LA CASILLA MIENTA (11/08/2026)
+   *
+   * Lo que pidió Capital Humano: poder darle clic a una casilla y que quede
+   * marcada. El problema es que estas casillas se derivan de datos reales, y
+   * una palomita puesta a mano encima de eso vuelve el reporte indistinguible
+   * de la realidad: nadie sabría si el sistema TIENE la psicométrica o si
+   * alguien nada más dijo que sí.
+   *
+   * Así que se resuelve en dos formas, según la casilla:
+   *
+   *  · Las que tienen una acción de verdad detrás —contactos y entrevistas—
+   *    NO se fingen: el clic REGISTRA el evento en la bitácora. La casilla se
+   *    pone verde porque el hecho ocurrió, y de paso alimenta el KPI, que es
+   *    justo el dato que hoy sale en cero por falta de captura.
+   *
+   *  · Las demás se marcan a mano, pero guardando QUIÉN y CUÁNDO, y la ficha
+   *    lo dice con todas sus letras ("Marcado por Leslie el 11/08"). RH tiene
+   *    razones que el sistema no conoce —la entrevista fue en papel, la prueba
+   *    se aplicó impresa— y esconder que la palomita es de una persona y no
+   *    del sistema sería exactamente el tipo de dato bonito que no aguanta la
+   *    primera pregunta incómoda.
+   *
+   * Se guarda en `portal_data.checklistManual`, que ya viaja en el PATCH del
+   * candidato: no hace falta tocar el API.
+   */
+  private get marcasManuales(): Record<string, { por: string; en: string }> {
+    const m = this.candidato?.checklistManual;
+    return (m && typeof m === 'object') ? m : {};
+  }
+
+  /** Casillas que se palomean registrando el hecho, no marcándolo. */
+  private readonly CON_EVENTO: Record<string, TipoEvento> = {
+    contactos: 'contacto',
+    entrevistas: 'entrevista',
+  };
+
   /** El reporte de estatus completo. Se recalcula solo al cambiar los datos. */
   get casillas(): Casilla[] {
     const c = this.candidato || {};
     const out: Casilla[] = [];
-    const add = (key: string, label: string, estado: EstadoCasilla, detalle: string) =>
-      out.push({ key, label, estado, detalle });
+    const manuales = this.marcasManuales;
+    const add = (key: string, label: string, estado: EstadoCasilla, detalle: string) => {
+      const manual = manuales[key];
+      // La marca a mano solo SUBE de pendiente/parcial a hecho. Si el dato real
+      // ya dice "hecho", manda el dato: una marca vieja no puede degradarlo.
+      if (manual && estado !== 'hecho') {
+        out.push({
+          key, label, estado: 'hecho', manual, accion: 'manual',
+          detalle: `Marcado por ${manual.por} el ${this.fechaCorta(manual.en)}`,
+        });
+        return;
+      }
+      out.push({
+        key, label, estado, detalle,
+        accion: this.CON_EVENTO[key] ? 'evento' : (key === 'decision' ? 'ninguna' : 'manual'),
+      });
+    };
 
     // 1. CV
     add('cv', 'Currículum recibido', this.tieneCv ? 'hecho' : 'pendiente',
@@ -241,6 +307,64 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
 
   get hechas(): number { return this.casillas.filter(c => c.estado === 'hecho').length; }
   get totalCasillas(): number { return this.casillas.length; }
+
+  // ── Palomear ──────────────────────────────────────────────────────
+
+  /** Key de la casilla que se está guardando (para apagar el clic). */
+  palomeando = '';
+
+  fechaCorta(iso: string): string {
+    const f = new Date(iso);
+    if (isNaN(f.getTime())) return String(iso).slice(0, 10);
+    return f.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  }
+
+  /** El texto del tooltip: qué va a pasar si le doy clic. */
+  tituloCasilla(c: Casilla): string {
+    if (c.accion === 'ninguna') return 'La decisión se toma con los botones de abajo';
+    if (c.accion === 'evento') {
+      return c.key === 'contactos'
+        ? 'Clic para registrar un contacto con esta persona (cuenta para el KPI)'
+        : 'Clic para registrar una entrevista realizada (cuenta para el KPI)';
+    }
+    return c.manual
+      ? 'Clic para quitar la marca'
+      : 'Clic para marcarla como hecha (queda tu nombre y la fecha)';
+  }
+
+  async palomear(c: Casilla) {
+    if (c.accion === 'ninguna' || this.palomeando || !this.candidato?.id) return;
+
+    // Contactos y entrevistas no se fingen: se registran de verdad. Ese registro
+    // es además lo que alimenta el KPI de contactos/entrevistas por día.
+    if (c.accion === 'evento') {
+      if (c.estado === 'hecho') return;   // ya hay eventos; no se "desregistra" desde aquí
+      await this.registrar(this.CON_EVENTO[c.key]);
+      return;
+    }
+
+    this.palomeando = c.key;
+    this.error = '';
+    const previas = { ...this.marcasManuales };
+    try {
+      const marcas = { ...previas };
+      if (c.manual) delete marcas[c.key];
+      else {
+        marcas[c.key] = {
+          por: this.auth.getUsuario()?.nombre || 'RH',
+          en: new Date().toISOString(),
+        };
+      }
+      // Optimista: la palomita responde al instante y se revierte si falla.
+      this.candidato.checklistManual = marcas;
+      await this.candidateService.updateCandidate(this.candidato.id, { checklistManual: marcas });
+    } catch {
+      this.candidato.checklistManual = previas;
+      this.error = 'No se pudo guardar la marca. Revisa tu conexión e intenta de nuevo.';
+    } finally {
+      this.palomeando = '';
+    }
+  }
 
   // ── Captura ───────────────────────────────────────────────────────
 
