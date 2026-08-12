@@ -44,7 +44,7 @@ interface Casilla {
   estado: EstadoCasilla;
   detalle: string;
   /** Quién y cuándo la palomeó a mano (si es que se palomeó). */
-  manual?: { por: string; en: string };
+  manual?: { por: string; en: string; motivo?: string };
   /**
    * Qué pasa al hacer clic:
    *  · 'evento'  — registra de verdad el contacto/entrevista en la bitácora.
@@ -209,7 +209,7 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
    * Se guarda en `portal_data.checklistManual`, que ya viaja en el PATCH del
    * candidato: no hace falta tocar el API.
    */
-  private get marcasManuales(): Record<string, { por: string; en: string }> {
+  private get marcasManuales(): Record<string, { por: string; en: string; motivo?: string }> {
     const m = this.candidato?.checklistManual;
     return (m && typeof m === 'object') ? m : {};
   }
@@ -232,7 +232,11 @@ export class StatusProcesoComponent implements OnInit, OnChanges {
       if (manual && estado !== 'hecho') {
         out.push({
           key, label, estado: 'hecho', manual, accion: 'manual',
-          detalle: `Marcado por ${manual.por} el ${this.fechaCorta(manual.en)}`,
+          // Se distingue la palomita suelta de la que se puso al contratar: son
+          // dos historias distintas y la ficha no debe contarlas igual.
+          detalle: manual.motivo === 'contratacion'
+            ? `Se dio por cumplido al contratar · ${manual.por}, ${this.fechaCorta(manual.en)}`
+            : `Marcado por ${manual.por} el ${this.fechaCorta(manual.en)}`,
         });
         return;
       }

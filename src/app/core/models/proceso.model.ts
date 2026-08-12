@@ -474,6 +474,19 @@ export const CHECKLIST_OFERTA: ItemChecklist[] = [
 ];
 
 // 8. CONTRATADO — Ingreso real + permanencia
+/**
+ * Las casillas del REPORTE DE ESTATUS de la ficha (status-proceso).
+ *
+ * Viven aquí y no en el componente porque el expediente también las necesita:
+ * al contratar a alguien se dan todas por cumplidas de un golpe. Si cada quien
+ * tuviera su propia lista, agregar una casilla nueva la dejaría sin marcar al
+ * contratar y nadie se daría cuenta.
+ */
+export const CASILLAS_ESTATUS = [
+  'cv', 'dictamen', 'conductual', 'aptitudes', 'tecnica',
+  'psicometria', 'documentos', 'contactos', 'entrevistas', 'decision',
+] as const;
+
 export const CHECKLIST_CONTRATADO: ItemChecklist[] = [
   { key: 'contratoFirmado',  label: 'Contrato firmado',       icon: '📝', obligatorio: true },
   { key: 'altaAdmin',        label: 'Alta administrativa',    icon: '🏢', obligatorio: true },

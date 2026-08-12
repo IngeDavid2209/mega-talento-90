@@ -8,7 +8,7 @@ import {
   COMPETENCIAS_STAR, APTITUDES_POR_TIPO,
   PSICOMETRIA_ITEMS, CHECKLIST_JEFE, CHECKLIST_DOCUMENTAL,
   CHECKLIST_OFERTA, CHECKLIST_CONTRATADO, AREAS_DICTAMEN,
-  DOCUMENTOS_EXPEDIENTE,
+  DOCUMENTOS_EXPEDIENTE, CASILLAS_ESTATUS,
   ItemChecklist, ResultadoDictamen, AptitudItem,
   NIVELES_RUBRICA, NivelRubrica, UMBRAL_APROBACION_APTITUDES,
   calcularPuntajeRubrica, resolverAptitudes,
@@ -28,6 +28,7 @@ import { PuestosService, Puesto } from '../../core/services/puestos.service';
 // La contratación deja rastro en la bitácora: es lo que alimenta el KPI de
 // conversión (entrevistados -> contratados).
 import { KpiService } from '../../core/services/kpi.service';
+import { AuthSession } from '../../core/services/auth-session';
 import {
   hojaPorKey, hojaPorNombrePuesto, HOJAS_COMPETENCIAS
 } from '../../core/models/competencias-puesto.model';
@@ -54,6 +55,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   private botService = inject(BotService);
   private puestosService = inject(PuestosService);
   private kpi = inject(KpiService);
+  // Para firmar quién dio por cumplido el reporte de estatus al contratar.
+  private auth = inject(AuthSession);
 
   /** Catálogo de puestos (para resolver las aptitudes propias de cada puesto). */
   puestosLista: Puesto[] = [];
@@ -446,12 +449,36 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
       // habria dicho "1 dia" el mismo dia que la persona entra. El mediodia
       // aguanta cualquier huso sin correrse de dia.
       const hiredAt = `${this.fechaIngreso}T12:00:00`;
+
+      /**
+       * CONTRATAR DA POR CUMPLIDO EL REPORTE DE ESTATUS (11/08/2026)
+       *
+       * Si la persona ya está contratada, el proceso se cumplió: no tiene
+       * sentido que su ficha siga mostrando "Psicométricas: sin aplicar" o
+       * "Entrevistas: ninguna registrada". Lo pidió Capital Humano y tiene
+       * razón — pero se marca con la MISMA regla que el palomeo a mano: queda
+       * firmado quién y cuándo, con el motivo "al contratar". Una casilla verde
+       * sin dueño es la que después nadie puede explicar.
+       *
+       * Las que ya están cumplidas con datos reales no se tocan: la marca
+       * manual solo sube de pendiente a hecho, nunca degrada (ver
+       * status-proceso.ts).
+       */
+      const quien = this.auth.getUsuario()?.nombre || 'RH';
+      const ahora = new Date().toISOString();
+      const marcas: Record<string, any> = { ...(this.candidato.checklistManual || {}) };
+      for (const key of CASILLAS_ESTATUS) {
+        if (!marcas[key]) marcas[key] = { por: quien, en: ahora, motivo: 'contratacion' };
+      }
+
       await this.candidateService.updateCandidate(this.candidato.id, {
         status: ID_ETAPAS.CONTRATADO,
-        hiredAt
+        hiredAt,
+        checklistManual: marcas
       });
       this.candidato.status = ID_ETAPAS.CONTRATADO;
       this.candidato.hiredAt = hiredAt;
+      this.candidato.checklistManual = marcas;
 
       // Queda en la bitacora del candidato: alimenta el KPI de conversion
       // (entrevistados -> contratados) y deja rastro de quien dio la luz verde.
@@ -477,6 +504,27 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   async moverEtapaDirecto(nuevaEtapa: string) {
     if (!this.candidato || this.candidato.status === nuevaEtapa) return;
+
+    /**
+     * SACAR A ALGUIEN DE CONTRATADO NO PUEDE SER UN CLIC DISTRAÍDO (11/08/2026)
+     *
+     * `contratado` NO está en FLUJO_LINEAL, así que `indexOf` devolvía -1 y la
+     * comparación de abajo (`indexOf(destino) > indexOf(actual)`) leía un
+     * regreso al proceso como si fuera un AVANCE: pasaba de largo sin una sola
+     * pregunta. El stepper está justo encima de las casillas del reporte, y el
+     * 11/08 entre las 16:35 y las 16:36 tres contratados —Jorge, Juan Carlos y
+     * Diana— volvieron a Aptitudes con un clic mientras alguien palomeaba su
+     * ficha. Nadie se enteró hasta que RH notó que no aparecían en Contratados.
+     */
+    if (this.candidato.status === ID_ETAPAS.CONTRATADO) {
+      const ok = confirm(
+        `${this.candidato.nombre} YA ESTÁ CONTRATADO.\n\n` +
+        `Moverlo a "${ETAPAS.find(e => e.id === nuevaEtapa)?.title || nuevaEtapa}" lo saca de la lista de Contratados y ` +
+        `deja de contar en Permanencia y en la cobertura.\n\n` +
+        `¿Seguro que quieres regresarlo al proceso?`
+      );
+      if (!ok) return;
+    }
 
     const v = this.puedeMoverA(nuevaEtapa);
     if (!v.ok) {
