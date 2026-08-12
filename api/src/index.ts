@@ -11,6 +11,7 @@ import { usuariosRouter } from './usuarios';
 import { kpiRouter } from './kpi';
 import { requisicionesRouter } from './requisiciones';
 import { permanenciaRouter } from './permanencia';
+import { encuestasRouter, arrancarEncuestas } from './encuestas-onboarding';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/usuarios', usuariosRouter);
 app.use('/kpi', kpiRouter); // Concentrado de candidatos: bitácora de eventos + tablero
 app.use('/requisiciones', requisicionesRouter); // Peticiones de personal de las sucursales
 app.use('/permanencia', permanenciaRouter);     // ¿El contratado sigue a los 30/60/90 días?
+app.use('/encuestas', encuestasRouter);         // Encuestas de onboarding (día 3/7/15/30/90)
 
 app.listen(env.PORT, () => {
   console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);
@@ -56,4 +58,7 @@ app.listen(env.PORT, () => {
   // botón; si nadie entraba, la asistencia se quedaba sin revisar. Se apaga con
   // AGENTE_AUTO=off. Ver src/agente-horarios/corredor.ts.
   arrancarCorredor();
+  // Las encuestas de onboarding se mandan solas: si dependieran de que alguien
+  // entre a una pantalla, las del fin de semana no saldrían nunca.
+  arrancarEncuestas();
 });
