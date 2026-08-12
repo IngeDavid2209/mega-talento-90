@@ -92,6 +92,29 @@ export class CandidateService {
     return this.api.post(`/candidatos/${conservarId}/fusionar`, { absorberId });
   }
 
+  /**
+   * Marca (o desmarca) a alguien como NO RECONTRATABLE. El motivo es
+   * obligatorio al marcar: sin él, la decisión no se puede sostener después.
+   * Ver api/src/candidatos.ts.
+   */
+  async marcarNoRecontratable(id: string, marcar: boolean, motivo?: string): Promise<any> {
+    return this.api.post(`/candidatos/${id}/no-recontratable`, { marcar, motivo });
+  }
+
+  /** La lista negra: quiénes están marcados. */
+  async getNoRecontratables(): Promise<any[]> {
+    return this.api.get<any[]>('/candidatos/lista/no-recontratables');
+  }
+
+  /**
+   * Quién de los que están en proceso AHORA coincide con alguien marcado. Es lo
+   * que evita que un reingreso vetado se cuele: una lista que hay que ir a
+   * consultar no detiene a nadie.
+   */
+  async getAlertasReingreso(): Promise<{ total: number; alertas: any[] }> {
+    return this.api.get('/candidatos/alertas/reingresos');
+  }
+
   async cerrarSeguimiento(id: string): Promise<void> {
     await this.api.post(`/candidatos/${id}/cierre-seguimiento`);
   }

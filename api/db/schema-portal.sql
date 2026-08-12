@@ -26,6 +26,35 @@ ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS origen                TEXT;
 ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS ultima_actividad      TIMESTAMPTZ;
 ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS deleted_at            TIMESTAMPTZ;
 
+-- =====================================================================
+-- REINGRESOS Y NO RECONTRATABLES (12/08/2026)
+-- =====================================================================
+--
+-- Capital Humano pidió dos cosas que son la misma historia: saber si quien se
+-- postula YA TRABAJÓ aquí, y poder marcar a los que no deben volver a entrar.
+-- El caso que lo detonó: alguien que estuvo unas semanas en Yurécuaro se
+-- volvió a postular y solo se detectó porque una persona lo reconoció.
+--
+-- `reingreso` es texto libre a propósito, igual que `familiar_en_empresa`: el
+-- bot pregunta sucursal, puesto, jefe y duración en UNA sola pregunta —cuatro
+-- pasos más en un cuestionario de once espantan más candidatos de los que
+-- valen— y la IA del bot lo captura tal como lo contó la persona.
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS reingreso TEXT;
+
+-- La lista negra. Es una MARCA sobre el candidato y no una tabla aparte porque
+-- la persona es la misma: si mañana se vuelve a postular con otro registro, lo
+-- que la delata es su teléfono, no una fila en otro lado.
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS no_recontratable        BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS no_recontratable_motivo TEXT;
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS no_recontratable_por    TEXT;
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS no_recontratable_en     TIMESTAMPTZ;
+
+-- El índice es por TELÉFONO NORMALIZADO, no por id: el punto de la lista negra
+-- es reconocer a la misma persona en un registro NUEVO, y ahí el id no sirve.
+CREATE INDEX IF NOT EXISTS idx_candidatos_no_recontratable
+  ON candidatos (right(regexp_replace(coalesce(telefono,''), '[^0-9]', '', 'g'), 10))
+  WHERE no_recontratable;
+
 -- Estado activo para los usuarios de RH (la tabla del bot no lo tenía).
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS desactivado_at TIMESTAMPTZ;

@@ -393,6 +393,62 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
   /** ¿Ya está contratado? */
   get yaContratado(): boolean { return this.candidato?.status === ID_ETAPAS.CONTRATADO; }
 
+  // ====== REINGRESOS Y NO RECONTRATABLES (12/08/2026) ======
+  //
+  // Lo pidió Capital Humano tras un caso concreto: alguien que estuvo unas
+  // semanas en Yurécuaro se volvió a postular y solo se detectó porque una
+  // persona lo reconoció.
+
+  /**
+   * ¿Declaró que ya trabajó aquí? Mismo criterio que usa el bot en su dictamen:
+   * vacío significa "no se le preguntó" —los registros anteriores al 12/08/2026
+   * no traen el campo— y no "no trabajó". Confundir esas dos cosas marcaría
+   * como reingreso a medio padrón, o peor, dejaría pasar a uno de verdad.
+   */
+  get esReingreso(): boolean {
+    const t = String(this.candidato?.reingreso || '').trim().toLowerCase();
+    if (!t) return false;
+    return !/^(no|nunca|ninguno|ninguna|n\/a|na|no aplica|jamas|jamás|es la primera)\b/.test(t);
+  }
+
+  marcandoVeto = false;
+
+  /** Marca (o desmarca) a alguien como no recontratable. El motivo es obligatorio. */
+  async cambiarNoRecontratable() {
+    if (!this.candidato?.id || this.marcandoVeto) return;
+
+    if (this.candidato.noRecontratable) {
+      const ok = confirm(`¿Quitarle a ${this.candidato.nombre} la marca de NO RECONTRATABLE?\n\nVolverá a poder avanzar en el proceso.`);
+      if (!ok) return;
+      this.marcandoVeto = true;
+      try {
+        const c = await this.candidateService.marcarNoRecontratable(this.candidato.id, false);
+        Object.assign(this.candidato, c);
+        this.toast.exito(`${this.candidato.nombre} ya puede volver a considerarse.`, 'Marca retirada');
+      } catch {
+        this.toast.error('No se pudo quitar la marca.', 'Error');
+      } finally { this.marcandoVeto = false; }
+      return;
+    }
+
+    // El motivo NO es opcional: marcar a alguien le cierra la puerta de un
+    // trabajo, y una lista de nombres sin motivo no aguanta la primera queja.
+    const motivo = (prompt(
+      `¿Por qué ${this.candidato.nombre} NO debe volver a ser contratado?\n\n` +
+      `Esto queda escrito con tu nombre y la fecha, y se le muestra a quien abra su ficha.`
+    ) || '').trim();
+    if (!motivo) return;
+
+    this.marcandoVeto = true;
+    try {
+      const c = await this.candidateService.marcarNoRecontratable(this.candidato.id, true, motivo);
+      Object.assign(this.candidato, c);
+      this.toast.exito(`${this.candidato.nombre} quedó en la lista de no recontratables.`, 'Marcado');
+    } catch (e: any) {
+      this.toast.error(e?.error?.error || 'No se pudo marcar.', 'Error');
+    } finally { this.marcandoVeto = false; }
+  }
+
   /** Solo el día del ingreso, sin la hora con la que se guarda. */
   get fechaIngresoTexto(): string {
     return String(this.candidato?.hiredAt || '').slice(0, 10);

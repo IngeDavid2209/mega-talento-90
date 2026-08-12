@@ -125,6 +125,14 @@ function mapCandidato(r: any) {
   if (r.cv_formato != null) out.cvFormato = r.cv_formato;
   if (r.licencia_url != null) out.licenciaUrl = r.licencia_url;
   if (r.familiar_en_empresa != null) out.familiarEnEmpresa = r.familiar_en_empresa;
+  // ¿Ya trabajó aquí? Lo captura el bot en una sola pregunta (sucursal, puesto,
+  // jefe y duración), tal como lo cuenta la persona.
+  if (r.reingreso != null) out.reingreso = r.reingreso;
+  // La marca de "no vuelve a entrar", con su motivo y su firma.
+  out.noRecontratable = r.no_recontratable === true;
+  if (r.no_recontratable_motivo != null) out.noRecontratableMotivo = r.no_recontratable_motivo;
+  if (r.no_recontratable_por != null) out.noRecontratablePor = r.no_recontratable_por;
+  if (r.no_recontratable_en != null) out.noRecontratableEn = r.no_recontratable_en;
   if (r.estado != null) out.estadoBot = r.estado;  // estado del bot (p.ej. 'esperando_cv') para el chip de CV
   if (r.solicitud_electronica != null) out.solicitudElectronica = r.solicitud_electronica;
   if (r.rubrica_aptitudes != null) out.rubricaAptitudes = r.rubrica_aptitudes;
@@ -517,6 +525,102 @@ candidatosRouter.get('/', requireAuth, async (req: Request, res: Response) => {
     );
     return res.json(rows.map(mapCandidato));
   } catch (e) { return fallo(res, e, 'Error al listar candidatos.'); }
+});
+
+/**
+ * ══ NO RECONTRATABLES · la lista de los que no vuelven a entrar ══
+ *
+ * Lo pidió Capital Humano después de un caso concreto: alguien que estuvo unas
+ * semanas en Yurécuaro se volvió a postular, y solo se detectó porque una
+ * persona lo reconoció. Sin eso, habría entrado otra vez.
+ *
+ * ── DOS DECISIONES ──────────────────────────────────────────────────
+ *
+ * 1. ES UNA MARCA, NO UN BORRADO. El expediente se conserva completo: el día
+ *    que alguien pregunte "¿por qué este no puede volver?", la respuesta tiene
+ *    que estar escrita, con el motivo, quién lo marcó y cuándo. Una lista de
+ *    nombres sin motivo no aguanta una queja.
+ *
+ * 2. EL MOTIVO ES OBLIGATORIO. Marcar a una persona como no recontratable le
+ *    cierra la puerta de un trabajo; hacerlo sin dejar por escrito por qué es
+ *    exactamente el tipo de decisión que después nadie quiere firmar.
+ */
+candidatosRouter.post('/:id/no-recontratable', requireAuth, async (req: any, res: Response) => {
+  const id = await idValido(req, res);
+  if (!id) return;
+  const b = req.body || {};
+  const marcar = b.marcar !== false;
+  const motivo = String(b.motivo || '').trim().slice(0, 500);
+
+  if (marcar && !motivo) {
+    return res.status(400).json({ error: 'Escribe el motivo: sin él, nadie va a poder sostener esta decisión después.' });
+  }
+  try {
+    const quien = req.usuario?.nombre || req.usuario?.email || 'RH';
+    const { rows } = await pool.query(
+      `UPDATE candidatos
+          SET no_recontratable = $2,
+              no_recontratable_motivo = CASE WHEN $2 THEN $3 ELSE NULL END,
+              no_recontratable_por    = CASE WHEN $2 THEN $4 ELSE NULL END,
+              no_recontratable_en     = CASE WHEN $2 THEN now() ELSE NULL END
+        WHERE id = $1::uuid AND deleted_at IS NULL
+        RETURNING *`,
+      [id, marcar, motivo || null, quien]);
+    if (!rows.length) return res.status(404).json({ error: 'Candidato no encontrado.' });
+
+    await pool.query(
+      `INSERT INTO candidatos_eventos (candidato_id, tipo, canal, nota, por)
+       VALUES ($1::uuid, 'nota', 'portal', $2, $3)`,
+      [id, marcar ? `Marcado como NO RECONTRATABLE: ${motivo}` : 'Se le quitó la marca de no recontratable.', quien]);
+
+    return res.json(mapCandidato(rows[0]));
+  } catch (e) { return fallo(res, e, 'No se pudo guardar la marca.'); }
+});
+
+/** GET /candidatos/no-recontratables — el apartado con la lista. */
+candidatosRouter.get('/lista/no-recontratables', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM candidatos
+        WHERE no_recontratable AND deleted_at IS NULL
+        ORDER BY no_recontratable_en DESC NULLS LAST`);
+    return res.json(rows.map(mapCandidato));
+  } catch (e) { return fallo(res, e, 'No se pudo leer la lista.'); }
+});
+
+/**
+ * GET /candidatos/alertas/reingresos — QUIÉN SE VOLVIÓ A POSTULAR.
+ *
+ * Esto es lo que de verdad sirve. Una lista negra que hay que ir a consultar
+ * no evita nada: el caso de Yurécuaro se detectó de milagro, porque alguien lo
+ * reconoció. Aquí se cruza al revés — de los candidatos VIVOS en proceso, se
+ * señalan los que coinciden por teléfono con alguien marcado.
+ *
+ * Se cruza por TELÉFONO normalizado a 10 dígitos y no por nombre: el nombre se
+ * escribe de diez formas y el 06/08 ya nos costó una tarde descubrir que el
+ * mismo número guardado con y sin '+52' burlaba el índice único.
+ */
+candidatosRouter.get('/alertas/reingresos', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const tel = (a: string) => `nullif(right(regexp_replace(coalesce(${a}.telefono,''),'[^0-9]','','g'),10),'')`;
+    const { rows } = await pool.query(
+      `SELECT c.id, c.nombre_completo AS nombre, c.telefono,
+              coalesce(c.portal_status,'filtro_inicial') AS etapa,
+              c.creado_en AS "sePostuloEn",
+              m.id AS "marcadoId", m.nombre_completo AS "marcadoNombre",
+              m.no_recontratable_motivo AS motivo,
+              m.no_recontratable_por AS por, m.no_recontratable_en AS "marcadoEn"
+         FROM candidatos c
+         JOIN candidatos m
+           ON m.no_recontratable
+          AND m.id <> c.id
+          AND ${tel('m')} = ${tel('c')}
+        WHERE c.deleted_at IS NULL
+          AND NOT c.no_recontratable
+          AND coalesce(c.portal_status,'') <> 'rechazado'
+        ORDER BY c.creado_en DESC`);
+    return res.json({ total: rows.length, alertas: rows });
+  } catch (e) { return fallo(res, e, 'No se pudieron revisar los reingresos.'); }
 });
 
 // Papelera (borrados).

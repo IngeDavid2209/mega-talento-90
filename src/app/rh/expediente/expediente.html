@@ -64,6 +64,24 @@
                 <strong>Familiar/pareja en la empresa:</strong> {{ candidato.familiarEnEmpresa }}
               </p>
             }
+
+            <!-- REINGRESO · se pinta igual que el familiar, que fue justo como
+                 lo pidió RH: "así como aparece que si tienen algún familiar". -->
+            @if (candidato.reingreso) {
+              <p class="familiar-nota" [class.alerta]="esReingreso">
+                <strong>{{ esReingreso ? 'REINGRESO — ya trabajó aquí:' : 'Ya trabajó aquí:' }}</strong>
+                {{ candidato.reingreso }}
+              </p>
+            }
+
+            <!-- La marca de no recontratable manda sobre todo lo demás: es lo
+                 primero que hay que ver al abrir la ficha. -->
+            @if (candidato.noRecontratable) {
+              <p class="familiar-nota veto">
+                <strong>NO RECONTRATABLE.</strong> {{ candidato.noRecontratableMotivo }}
+                <small>Lo marcó {{ candidato.noRecontratablePor }}</small>
+              </p>
+            }
           </div>
         </div>
 
@@ -117,6 +135,13 @@
             <button class="btn-cerrar-seg" (click)="cerrarSeguimientoActual()"
                     title="Cerrar seguimiento y enviar a la Papelera">
               Cerrar seguimiento
+            </button>
+            <button class="btn-veto" [class.puesto]="candidato.noRecontratable"
+                    (click)="cambiarNoRecontratable()" [disabled]="marcandoVeto"
+                    [title]="candidato.noRecontratable
+                      ? 'Quitarle la marca para que pueda volver a considerarse'
+                      : 'Marcarlo para que no vuelva a entrar, con motivo'">
+              {{ candidato.noRecontratable ? 'Quitar veto' : 'No recontratable' }}
             </button>
           </div>
         </div>

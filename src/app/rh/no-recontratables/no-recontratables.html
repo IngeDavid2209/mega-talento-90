@@ -1,0 +1,81 @@
+<div class="nr-wrap">
+  <header class="nr-head">
+    <div>
+      <h1>No recontratables</h1>
+      <p class="sub">
+        Quiénes no deben volver a entrar, y por qué. Cada marca lleva el motivo escrito,
+        con el nombre de quien la puso y la fecha — sin eso, la decisión no se sostiene
+        el día que alguien la cuestione.
+      </p>
+    </div>
+    <button type="button" class="pill refresh" (click)="cargar()" title="Volver a revisar">↻</button>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Cargando…</div>
+  } @else if (error) {
+    <div class="estado err">{{ error }}</div>
+  } @else {
+
+    <!-- ══ LA ALERTA: quién de los que están en proceso AHORA ya está vetado ══
+         Va primero porque es lo único que evita que vuelva a pasar. -->
+    @if (alertas.length) {
+      <section class="nr-alerta">
+        <div class="nr-alerta-tit">
+          ⚠️ {{ alertas.length }} persona(s) en proceso ya están en esta lista
+        </div>
+        <p class="nr-alerta-sub">
+          Se volvieron a postular con un registro nuevo. El cruce es por teléfono,
+          así que los cacha aunque hayan cambiado el nombre o el puesto.
+        </p>
+        <div class="nr-alerta-lista">
+          @for (a of alertas; track a.id) {
+            <button type="button" class="nr-alerta-fila" (click)="abrir(a.id)">
+              <span class="nr-nom">{{ a.nombre }}</span>
+              <span class="nr-meta">
+                se postuló el {{ fecha(a.sePostuloEn) }} · está en {{ a.etapa }}
+              </span>
+              <span class="nr-motivo">Vetado por: {{ a.motivo }}</span>
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (!lista.length) {
+      <div class="sin-dato">
+        No hay nadie marcado como no recontratable. La marca se pone desde el expediente
+        de la persona, con el botón <strong>“No recontratable”</strong>.
+      </div>
+    } @else {
+      <section class="bloque">
+        <h2>La lista · {{ lista.length }} persona(s)</h2>
+        <div class="nr-lista">
+          @for (c of lista; track c.id) {
+            <article class="nr-fila" (click)="abrir(c.id)">
+              <div class="nr-quien">
+                <div class="nr-nom">{{ c.nombre }}</div>
+                <div class="nr-meta">
+                  {{ c.puesto || 'Sin puesto' }}
+                  @if (c.telefono) { · {{ c.telefono }} }
+                  @if (c.ciudad) { · {{ c.ciudad }} }
+                </div>
+              </div>
+              <div class="nr-porque">
+                <div class="nr-motivo">{{ c.noRecontratableMotivo }}</div>
+                <div class="nr-firma">
+                  Lo marcó {{ c.noRecontratablePor || 'RH' }} · {{ fecha(c.noRecontratableEn) }}
+                </div>
+              </div>
+              <button type="button" class="nr-quitar" (click)="quitar(c, $event)"
+                      [disabled]="quitando === c.id"
+                      title="Permitir que vuelva a considerarse">
+                {{ quitando === c.id ? 'Quitando…' : 'Quitar marca' }}
+              </button>
+            </article>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

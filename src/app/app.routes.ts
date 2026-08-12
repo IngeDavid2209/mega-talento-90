@@ -30,6 +30,7 @@ import { KpiComponent } from './rh/kpi/kpi';
 import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
 import { PermanenciaComponent } from './rh/permanencia/permanencia';
 import { RequisicionPublicaComponent } from '../portal/requisicion/requisicion';
+import { NoRecontratablesComponent } from './rh/no-recontratables/no-recontratables';
 
 export const routes: Routes = [
   {
@@ -55,6 +56,7 @@ export const routes: Routes = [
       { path: 'resultados-evaluacion', component: ResultadosEvaluacionComponent },
       { path: 'horarios', component: HorariosComponent },
       { path: 'agente-horarios', component: AgenteHorariosComponent },
+      { path: 'no-recontratables', component: NoRecontratablesComponent }, // lista negra + alerta de reingresos
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },

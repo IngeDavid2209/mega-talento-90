@@ -1,0 +1,54 @@
+/* No recontratables. Mismo lenguaje visual que Permanencia y KPI para que se
+   lean como partes del mismo sistema. */
+
+.nr-wrap { width: 100%; max-width: var(--pagina-max); margin: 0 auto; padding: 20px var(--pagina-pad) 48px; }
+
+.nr-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
+.nr-head h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+.nr-head .sub { margin: 0; font-size: 13px; color: var(--text2); max-width: 70ch; line-height: 1.55; }
+
+.pill { font: inherit; font-size: 15px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+        border: 1px solid var(--border); background: var(--surface); color: var(--text2); }
+
+.estado { text-align: center; color: var(--text2); padding: 40px 16px; font-size: 14px; }
+.estado.err { color: var(--red-text); }
+.sin-dato { background: var(--surface2); border: 1px dashed var(--border); border-radius: var(--radius);
+            padding: 16px 18px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+.bloque { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+          padding: 18px 18px 20px; }
+.bloque h2 { font-size: 15px; font-weight: 600; margin: 0 0 14px; }
+
+/* ── La alerta: lo que de verdad evita que se cuelen ─────────────── */
+.nr-alerta { background: var(--red-bg); border: 1px solid var(--red); border-radius: var(--radius-lg);
+             padding: 16px 18px; margin-bottom: 18px; }
+.nr-alerta-tit { font-size: 14.5px; font-weight: 700; color: var(--red-text); }
+.nr-alerta-sub { margin: 4px 0 12px; font-size: 12.5px; color: var(--red-text); opacity: .9; line-height: 1.5; }
+.nr-alerta-lista { display: flex; flex-direction: column; gap: 6px; }
+.nr-alerta-fila { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer;
+                  background: var(--surface); border: 1px solid var(--red); border-radius: var(--radius);
+                  padding: 9px 12px; color: var(--text); }
+.nr-alerta-fila:hover { box-shadow: 0 2px 8px -3px rgba(220, 38, 38, .4); }
+
+/* ── La lista ────────────────────────────────────────────────────── */
+.nr-lista { display: flex; flex-direction: column; gap: 8px; }
+.nr-fila { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(220px, 2fr) auto;
+           align-items: center; gap: 14px; cursor: pointer;
+           background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--red);
+           border-radius: var(--radius-lg); padding: 11px 14px; }
+.nr-fila:hover { border-color: var(--red); }
+
+.nr-nom { font-weight: 600; font-size: 14.5px; }
+.nr-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.nr-motivo { font-size: 12.5px; color: var(--red-text); line-height: 1.45; }
+.nr-firma { font-size: 11.5px; color: var(--text2); margin-top: 3px; }
+
+.nr-quitar { font: inherit; font-size: 11.5px; font-weight: 600; padding: 6px 12px; cursor: pointer;
+             white-space: nowrap; border: 1px solid var(--border-med); border-radius: 999px;
+             background: var(--surface); color: var(--text2); }
+.nr-quitar:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); }
+.nr-quitar:disabled { opacity: .55; cursor: default; }
+
+@media (max-width: 720px) {
+  .nr-fila { grid-template-columns: 1fr; }
+}
