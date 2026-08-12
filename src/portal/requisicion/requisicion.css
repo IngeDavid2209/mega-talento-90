@@ -1,0 +1,82 @@
+/* Solicitud de personal · vista pública para encargados de sucursal.
+   Se abre casi siempre desde el celular, en piso y con prisa: tipografía
+   grande, campos altos y una sola columna. La paleta es la institucional
+   (navy + dorado), no el coral de /unete: esto lo llena personal de la
+   empresa, no un candidato. */
+
+.rq-pub {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: clamp(18px, 4vw, 36px) clamp(16px, 5vw, 28px) 60px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--text, #1e293b);
+}
+
+.rq-head { margin-bottom: 22px; }
+.rq-eyebrow {
+  display: block; font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--gold, #D99B00); margin-bottom: 6px;
+}
+.rq-head h1 { margin: 0; font-size: clamp(22px, 6vw, 28px); font-weight: 700; color: var(--ink, #1A2F4E); }
+.rq-head p { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--text2, #64748b); }
+
+.rq-form { display: flex; flex-direction: column; gap: 14px; }
+
+.rq-campo { display: block; }
+.rq-campo > span {
+  display: block; font-size: 13.5px; font-weight: 600;
+  color: var(--ink, #1A2F4E); margin-bottom: 6px;
+}
+.rq-campo > span b { color: var(--gold, #D99B00); }
+
+/* 16px en los inputs no es capricho: abajo de eso, Safari en iPhone hace
+   zoom al enfocar el campo y el formulario se desacomoda solo. */
+.rq-campo input, .rq-campo select, .rq-campo textarea {
+  width: 100%; font-family: inherit; font-size: 16px;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1.5px solid var(--border-med, #cbd5e1);
+  background: var(--surface, #fff); color: inherit;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.rq-campo input:focus, .rq-campo select:focus, .rq-campo textarea:focus {
+  border-color: var(--brand, #1A2F4E);
+  box-shadow: 0 0 0 3px rgba(26, 47, 78, .12);
+}
+.rq-campo textarea { resize: vertical; line-height: 1.5; }
+
+.rq-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 420px) { .rq-row { grid-template-columns: 1fr; } }
+
+.rq-btn {
+  width: 100%; font-family: inherit; font-size: 16px; font-weight: 700;
+  padding: 14px 20px; border-radius: 10px; cursor: pointer;
+  border: 1.5px solid var(--brand, #1A2F4E);
+  background: var(--brand, #1A2F4E); color: #fff;
+  transition: filter .15s;
+}
+.rq-btn:hover:not(:disabled) { filter: brightness(1.12); }
+.rq-btn:disabled { opacity: .6; cursor: default; }
+.rq-btn.ghost { background: transparent; color: var(--brand, #1A2F4E); margin-top: 18px; }
+
+.rq-error {
+  font-size: 13.5px; line-height: 1.5; padding: 11px 14px; border-radius: 10px;
+  background: var(--red-bg, #FDECEC); color: var(--red-text, #A62121);
+  border: 1px solid var(--red, #DC2626);
+}
+.rq-nota { margin: 4px 0 0; font-size: 12.5px; color: var(--text2, #64748b); line-height: 1.5; }
+.rq-nota b { color: var(--gold, #D99B00); }
+
+/* ── Acuse ─────────────────────────────────────────────────────── */
+.rq-ok { text-align: center; padding: 26px 20px 30px; }
+.rq-ok-check {
+  width: 58px; height: 58px; margin: 0 auto 14px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 700;
+  background: var(--green-bg, #E8F5EE); color: var(--green-text, #1F7A4C);
+  border: 2px solid var(--green, #1F7A4C);
+}
+.rq-ok h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--ink, #1A2F4E); }
+.rq-folio { margin: 10px 0 0; font-size: 17px; color: var(--text2, #64748b); }
+.rq-folio strong { color: var(--gold, #D99B00); font-size: 22px; }
+.rq-ok-txt { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: var(--text2, #64748b); }

@@ -209,3 +209,19 @@
   .rq-urgencia { order: 3; }
   .rq-acciones .rq-link-borrar { margin-left: 0; }
 }
+
+/* ── Liga para encargados ───────────────────────────────────────── */
+.rq-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.rq-btn-liga { background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); }
+.rq-btn-liga:hover { border-color: var(--brand); color: var(--brand); }
+
+.rq-liga-aviso {
+  background: var(--green-bg); border: 1px solid var(--green); color: var(--green-text);
+  border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 16px;
+  font-size: 12.5px; line-height: 1.55;
+}
+.rq-liga-aviso code {
+  display: block; margin-top: 6px; padding: 7px 10px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  font-size: 12px; word-break: break-all;
+}

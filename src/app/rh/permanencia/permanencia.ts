@@ -7,6 +7,10 @@ import {
 } from '../../core/services/permanencia.service';
 import { centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
+import { CandidateService } from '../../core/services/candidate';
+import {
+  DIAS_ENCUESTA, DiaEncuesta, EncuestaDePersona, encuestasDe, mensajeEncuesta
+} from '../../core/models/encuestas-onboarding.model';
 
 /**
  * =====================================================================
@@ -150,6 +154,110 @@ export class PermanenciaComponent implements OnInit {
   }
 
   abrirExpediente(id: string) { this.router.navigate(['/app/expediente', id]); }
+
+  // ── ENCUESTAS DE ONBOARDING ────────────────────────────────────────
+  //
+  // Las cinco encuestas de Google Forms que ya tenía Capital Humano (día 3, 7,
+  // 15, 30 y 90), enganchadas a la fecha de ingreso de cada quien. La liga sale
+  // PRELLENADA con su nombre, puesto, sucursal, fecha y qué corte le toca: son
+  // seis campos menos que contestar, y sobre todo hace que la respuesta llegue
+  // ya amarrada a la persona (ver encuestas-onboarding.model.ts).
+  //
+  // Falta el último tramo para que salgan solas: el bot no tiene endpoint para
+  // mandar un mensaje cualquiera (se probó el 12/08: /api/mensaje da 404, solo
+  // existen /api/decidir y /api/aviso-asistencia). Mientras tanto se mandan
+  // desde aquí con un clic, que ya es infinitamente mejor que a mano.
+
+  private candidatos = inject(CandidateService);
+  DIAS_ENCUESTA = DIAS_ENCUESTA;
+  marcandoEncuesta = '';
+  /** Solo las que ya tocan: la lista de trabajo del día. */
+  soloPendientes = true;
+
+  /** El calendario de encuestas de una persona. */
+  encuestasDe(p: PersonaPermanencia): EncuestaDePersona[] {
+    return encuestasDe(
+      {
+        nombre: p.nombre, puesto: p.puesto, ingreso: p.ingreso,
+        sucursal: p.empleado ? this.nombreSucursal(p.empleado.sucursalId) : '',
+      },
+      this.datos?.hoy || '',
+      p.encuestas || {}
+    );
+  }
+
+  /** Las que hay que mandar hoy o que ya se pasaron y nadie mandó. */
+  pendientesDe(p: PersonaPermanencia): EncuestaDePersona[] {
+    return this.encuestasDe(p).filter(e => e.estado === 'toca_hoy' || e.estado === 'vencida');
+  }
+
+  /** Personas que tienen algo que mandar. Es la lista accionable de la pantalla. */
+  get conEncuestaPendiente(): PersonaPermanencia[] {
+    return (this.datos?.personas || []).filter(p => p.ingreso && this.pendientesDe(p).length);
+  }
+
+  get personasConEncuestas(): PersonaPermanencia[] {
+    const base = (this.datos?.personas || []).filter(p => p.ingreso);
+    return this.soloPendientes ? this.conEncuestaPendiente : base;
+  }
+
+  etiquetaEncuesta(e: EncuestaDePersona): string {
+    switch (e.estado) {
+      case 'contestada': return 'Contestada';
+      case 'enviada':    return 'Enviada';
+      case 'toca_hoy':   return 'Toca hoy';
+      case 'vencida':    return `Vencida hace ${Math.abs(e.faltan)} d`;
+      default:           return `En ${e.faltan} d`;
+    }
+  }
+
+  /** Abre WhatsApp con el mensaje y la liga listos, y la deja marcada como enviada. */
+  async mandarPorWhatsApp(p: PersonaPermanencia, e: EncuestaDePersona) {
+    const tel = String(p.telefono || '').replace(/\D/g, '');
+    if (!tel) {
+      this.toast.alerta(`${p.nombre} no tiene teléfono capturado. Copia la liga y mándasela por otro medio.`, 'Sin teléfono');
+      return;
+    }
+    const numero = tel.length === 10 ? `52${tel}` : tel;
+    const texto = encodeURIComponent(mensajeEncuesta(p.nombre, e.dia, e.liga));
+    window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
+    await this.marcarEncuesta(p, e.dia, 'enviada');
+  }
+
+  async copiarLiga(e: EncuestaDePersona) {
+    try {
+      await navigator.clipboard.writeText(e.liga);
+      this.toast.exito('Liga copiada, ya viene con sus datos puestos.', `Encuesta día ${e.dia}`);
+    } catch {
+      this.toast.alerta('El navegador no dejó copiar. Abre la liga y cópiala de la barra.', 'No se pudo copiar');
+    }
+  }
+
+  /**
+   * Deja constancia de que se mandó (o de que contestó, cuando RH lo confirma a
+   * mano). Se guarda en el candidato, en `portal_data.encuestas`, con la misma
+   * mecánica que el resto de las marcas de la ficha.
+   */
+  async marcarEncuesta(p: PersonaPermanencia, dia: DiaEncuesta, que: 'enviada' | 'contestada') {
+    const clave = `${p.id}:${dia}`;
+    if (this.marcandoEncuesta === clave) return;
+    this.marcandoEncuesta = clave;
+    const previas = { ...(p.encuestas || {}) };
+    try {
+      const reg = { ...previas };
+      const actual = { ...(reg[String(dia)] || {}) };
+      if (que === 'enviada') actual.enviadaEn = new Date().toISOString();
+      else actual.contestadaEn = new Date().toISOString();
+      reg[String(dia)] = actual;
+      p.encuestas = reg;   // se refleja al instante
+      await this.candidatos.updateCandidate(p.id, { encuestas: reg });
+    } catch {
+      p.encuestas = previas;
+      this.toast.error('No se pudo guardar el registro de la encuesta.', 'Error');
+    } finally {
+      this.marcandoEncuesta = '';
+    }
+  }
 
   // ── Liga con el reloj ──────────────────────────────────────────────
 

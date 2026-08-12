@@ -24,6 +24,9 @@ export interface PersonaPermanencia {
   id: string;
   nombre: string;
   puesto: string;
+  telefono: string | null;
+  /** Encuestas de onboarding: { "3": { enviadaEn, contestadaEn } , ... }. */
+  encuestas: Record<string, { enviadaEn?: string; contestadaEn?: string }>;
   /** 'YYYY-MM-DD'. null = no hay fecha de ingreso y no se le pueden contar días. */
   ingreso: string | null;
   dias: number | null;

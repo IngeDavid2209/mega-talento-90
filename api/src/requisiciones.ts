@@ -24,7 +24,6 @@ import { requireAuth, AuthedRequest } from './auth';
  *    lo pinta.
  */
 export const requisicionesRouter = Router();
-requisicionesRouter.use(requireAuth);
 
 const TZ = 'America/Mexico_City';
 const hoy = () => `((now() AT TIME ZONE '${TZ}')::date)`;
@@ -69,6 +68,70 @@ const SELECT_BASE = `
  * requerida más próxima (las vencidas primero). Una bandeja ordenada por fecha
  * de captura entierra lo urgente debajo de lo que se capturó después.
  */
+/**
+ * ══ LA LIGA QUE SE LE MANDA A LOS ENCARGADOS ══ (12/08/2026)
+ *
+ * POST /requisiciones/publica — SIN SESIÓN, a propósito.
+ *
+ * Los encargados de sucursal no tienen usuario del portal ni lo van a tener:
+ * piden personal por WhatsApp, y esa petición se queda en un chat donde nadie
+ * puede contestar cuántas hay abiertas ni desde cuándo. Con una liga que
+ * pueden abrir desde el celular, la petición entra al sistema desde el minuto
+ * uno y RH la ve junto con las demás.
+ *
+ * Va declarada ANTES del `requisicionesRouter.use(requireAuth)` de más abajo:
+ * en Express el orden manda, y todo lo que se registra después de ese `use`
+ * queda protegido. Es la única ruta pública del módulo.
+ *
+ * ── Qué se cuida por ser pública ────────────────────────────────────
+ *
+ * · Entra siempre como `pendiente`: nadie de fuera puede autorizar nada, y RH
+ *   sigue siendo quien decide. Lo que llega es una PETICIÓN, no una vacante.
+ * · Solo se aceptan los campos del formulario. El estado, el folio, quién la
+ *   resolvió y a quién se contrató no se leen del cuerpo aunque los manden.
+ * · Los textos se recortan: un campo libre sin tope es una invitación a que
+ *   alguien pegue un libro dentro de la base.
+ * · Se guarda de dónde vino (`creado_por = 'liga pública'`) para que RH sepa
+ *   que la capturó la sucursal y no alguien de Capital Humano.
+ */
+requisicionesRouter.post('/publica', async (req: Request, res: Response) => {
+  const b = req.body || {};
+  const t = (v: any, max: number) => String(v ?? '').trim().slice(0, max);
+
+  const puesto = t(b.puesto, 120);
+  const solicita = t(b.solicita, 80);
+  const sucursalId = t(b.sucursalId, 60);
+
+  if (!puesto) return res.status(400).json({ error: 'Falta el puesto que se necesita.' });
+  if (!solicita) return res.status(400).json({ error: 'Falta tu nombre para saber quién lo pide.' });
+  if (!sucursalId) return res.status(400).json({ error: 'Falta la sucursal.' });
+
+  const vacantes = Math.min(Math.max(parseInt(String(b.vacantes || '1'), 10) || 1, 1), 99);
+  const motivo = MOTIVOS.includes(String(b.motivo) as any) ? String(b.motivo) : 'nuevo';
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(b.fechaRequerida || '')) ? String(b.fechaRequerida) : null;
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO requisiciones
+         (puesto, sucursal_id, area, vacantes, motivo, reemplaza_a, fecha_requerida,
+          justificacion, solicita, estado, creado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pendiente','liga pública')
+       RETURNING id, folio`,
+      [puesto, sucursalId, t(b.area, 80) || null, vacantes, motivo,
+       t(b.reemplazaA, 120) || null, fecha, t(b.justificacion, 1000) || null, solicita]
+    );
+    // Se devuelve el folio: es el acuse que el encargado puede citar por
+    // WhatsApp cuando pregunte "¿ya vieron mi solicitud?".
+    return res.json({ ok: true, folio: rows[0].folio });
+  } catch (e) {
+    console.error('[requisiciones] no se pudo guardar la petición pública:', e);
+    return res.status(500).json({ error: 'No se pudo enviar la solicitud. Intenta de nuevo.' });
+  }
+});
+
+// ── De aquí en adelante, todo exige sesión de RH ──────────────────────
+requisicionesRouter.use(requireAuth);
+
 requisicionesRouter.get('/', async (req: Request, res: Response) => {
   const estado = String(req.query.estado || '').trim();
   const sucursalId = String(req.query.sucursalId || '').trim();

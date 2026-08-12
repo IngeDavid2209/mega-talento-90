@@ -50,6 +50,32 @@ export class RequisicionesComponent implements OnInit {
   private router = inject(Router);
 
   SUCURSALES = CENTROS_CHECADOR;
+
+  // ── La liga para los encargados ───────────────────────────────────
+  //
+  // Se arma con el dominio donde está parado el portal y NO con uno fijo: el
+  // 06/08/2026 el dominio viejo se cayó por facturación y todas las ligas que
+  // andaban circulando se murieron con él. Con `location.origin` la liga
+  // siempre apunta a donde de verdad vive la app.
+  ligaCopiada = false;
+
+  get ligaEncargados(): string {
+    return `${window.location.origin}/pedir-personal`;
+  }
+
+  async compartirLiga() {
+    try {
+      await navigator.clipboard.writeText(this.ligaEncargados);
+      this.ligaCopiada = true;
+      this.toast.exito('Liga copiada. Mándasela por WhatsApp a los encargados.', 'Lista para compartir');
+      setTimeout(() => { this.ligaCopiada = false; }, 20000);
+    } catch {
+      // Si el navegador bloquea el portapapeles, al menos que la vea para
+      // copiarla a mano: peor sería un error sin salida.
+      this.ligaCopiada = true;
+      this.toast.alerta('Cópiala de aquí abajo: el navegador no dejó copiarla sola.', 'Copia manual');
+    }
+  }
   MOTIVOS: { id: MotivoRequisicion; label: string }[] = [
     { id: 'nuevo',     label: 'Puesto nuevo' },
     { id: 'reemplazo', label: 'Reemplazo' },

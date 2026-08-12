@@ -100,6 +100,85 @@
       }
     </section>
 
+    <!-- ══ ENCUESTAS DE ONBOARDING ══
+         Las cinco de Google Forms enganchadas a la fecha de ingreso. La liga
+         sale prellenada con los datos de la persona: son seis campos menos que
+         contestar y hace que la respuesta llegue amarrada a su expediente. -->
+    <section class="bloque">
+      <h2>Encuestas de onboarding</h2>
+      <p class="ayuda">
+        Los cortes de día <strong>3, 7, 15, 30 y 90</strong> se calculan desde la fecha de
+        ingreso de cada quien. La liga ya lleva puestos su nombre, puesto, sucursal, fecha
+        y qué encuesta le toca — así nadie se equivoca de corte ni escribe mal su nombre.
+      </p>
+
+      <div class="filtros">
+        <button type="button" class="pill" [class.on]="soloPendientes" (click)="soloPendientes = true">
+          Por mandar ({{ conEncuestaPendiente.length }})
+        </button>
+        <button type="button" class="pill" [class.on]="!soloPendientes" (click)="soloPendientes = false">
+          Ver a todos
+        </button>
+      </div>
+
+      @if (!personasConEncuestas.length) {
+        <div class="sin-dato">
+          @if (soloPendientes) {
+            No hay encuestas por mandar hoy. Aquí van a ir apareciendo conforme cada
+            contratado cumpla 3, 7, 15, 30 y 90 días.
+          } @else {
+            Todavía no hay contratados con fecha de ingreso: sin esa fecha no se puede
+            saber qué encuesta le toca a quién.
+          }
+        </div>
+      }
+
+      <div class="lista">
+        @for (p of personasConEncuestas; track p.id) {
+          <article class="enc-fila">
+            <div class="quien" (click)="abrirExpediente(p.id)">
+              <div class="nombre">{{ p.nombre }}</div>
+              <div class="meta">
+                <span>Entró el {{ fechaCorta(p.ingreso) }}</span>
+                <span class="sep">·</span>
+                <span>{{ p.dias }} días</span>
+                @if (!p.telefono) { <span class="sep">·</span><span class="sin-tel">sin teléfono</span> }
+              </div>
+            </div>
+
+            <div class="enc-chips">
+              @for (e of encuestasDe(p); track e.dia) {
+                <div class="enc-chip" [attr.data-estado]="e.estado"
+                     [title]="'Le toca el ' + fechaCorta(e.fecha)">
+                  <span class="enc-dia">Día {{ e.dia }}</span>
+                  <span class="enc-est">{{ etiquetaEncuesta(e) }}</span>
+
+                  @if (e.estado === 'toca_hoy' || e.estado === 'vencida') {
+                    <span class="enc-btns">
+                      <button type="button" class="btn-mini ok"
+                              (click)="mandarPorWhatsApp(p, e)"
+                              [disabled]="marcandoEncuesta === p.id + ':' + e.dia"
+                              title="Abre WhatsApp con el mensaje y su liga listos">WhatsApp</button>
+                      <button type="button" class="btn-mini" (click)="copiarLiga(e)"
+                              title="Copiar la liga prellenada">Copiar</button>
+                    </span>
+                  } @else if (e.estado === 'enviada') {
+                    <span class="enc-btns">
+                      <button type="button" class="btn-mini" (click)="mandarPorWhatsApp(p, e)"
+                              title="Volver a mandarla">Reenviar</button>
+                      <button type="button" class="btn-mini tenue-btn"
+                              (click)="marcarEncuesta(p, e.dia, 'contestada')"
+                              title="Marcar que ya la contestó">Ya contestó</button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
     <!-- ══ PERSONAS ══ -->
     <section class="bloque">
       <h2>Persona por persona</h2>

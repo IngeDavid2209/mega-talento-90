@@ -8,8 +8,24 @@
         forma de saber cuántas están esperando ni desde cuándo.
       </p>
     </div>
-    <button type="button" class="rq-btn rq-btn-alta" (click)="abrirAlta()">+ Nueva requisición</button>
+    <div class="rq-head-btns">
+      <!-- La liga para los encargados: se comparte una vez por WhatsApp y
+           dejan de pedir personal por chat. -->
+      <button type="button" class="rq-btn rq-btn-liga" (click)="compartirLiga()"
+              title="Copiar la liga para que los encargados pidan personal desde su celular">
+        {{ ligaCopiada ? '✓ Liga copiada' : 'Liga para encargados' }}
+      </button>
+      <button type="button" class="rq-btn rq-btn-alta" (click)="abrirAlta()">+ Nueva requisición</button>
+    </div>
   </header>
+
+  @if (ligaCopiada) {
+    <div class="rq-liga-aviso">
+      Mándasela a los encargados por WhatsApp. No necesitan usuario ni contraseña:
+      llenan cuatro datos y su solicitud entra aquí con folio.
+      <code>{{ ligaEncargados }}</code>
+    </div>
+  }
 
   <!-- Lo que urge, arriba y en números -->
   @if (!cargando && lista.length) {

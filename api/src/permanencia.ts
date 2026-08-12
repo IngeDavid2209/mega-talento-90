@@ -106,7 +106,8 @@ permanenciaRouter.get('/', async (_req: Request, res: Response) => {
     const { rows: contratados } = await pool.query(
       `WITH base AS (
          SELECT c.id, c.nombre_completo AS nombre, coalesce(c.puesto_interes, '') AS puesto,
-                c.portal_status AS estado,
+                c.portal_status AS estado, c.telefono,
+                c.portal_data->'encuestas' AS encuestas,
                 c.portal_data->>'hiredAt' AS hired_txt,
                 (SELECT min(t.cambiado_en) FROM candidatos_transiciones t
                   WHERE t.candidato_id = c.id AND t.etapa_destino = 'contratado') AS transicion
@@ -117,7 +118,9 @@ permanenciaRouter.get('/', async (_req: Request, res: Response) => {
                  OR EXISTS (SELECT 1 FROM candidatos_transiciones t
                              WHERE t.candidato_id = c.id AND t.etapa_destino = 'contratado'))
        )
-       SELECT id, nombre, puesto, estado,
+       SELECT id, nombre, puesto, estado, telefono,
+              -- Lo que ya se le mandó y contestó de las encuestas de onboarding.
+              coalesce(encuestas, '{}'::jsonb) AS encuestas,
               -- La fecha capturada al contratar manda. Si no existe (contratados
               -- de antes de que se guardara), sirve la del historial de etapas.
               to_char(
@@ -171,7 +174,9 @@ permanenciaRouter.get('/', async (_req: Request, res: Response) => {
         :                                             'sin_marcas';
 
       return {
-        id: c.id, nombre: c.nombre, puesto: c.puesto,
+        id: c.id, nombre: c.nombre, puesto: c.puesto, telefono: c.telefono || null,
+        // Registro de las encuestas de onboarding: qué se le mandó y qué contestó.
+        encuestas: (c.encuestas && typeof c.encuestas === 'object') ? c.encuestas : {},
         ingreso, dias, fechaPropia: c.fechaPropia, sigueEnPortal, estado,
         // Último hito cumplido, para la etiqueta de la fila.
         hito: dias == null ? null : [...HITOS].reverse().find(h => dias >= h) ?? null,

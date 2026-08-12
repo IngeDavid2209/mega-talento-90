@@ -1,0 +1,84 @@
+<div class="rq-pub">
+  <header class="rq-head">
+    <span class="rq-eyebrow">Mega Dulces · Capital Humano</span>
+    <h1>Solicitud de personal</h1>
+    <p>Llena esto y tu solicitud entra directo con Capital Humano. Te damos un folio al terminar.</p>
+  </header>
+
+  @if (folio) {
+    <!-- El acuse con folio: sin un número que citar, la siguiente pregunta
+         ("¿ya vieron mi solicitud?") vuelve a llegar por WhatsApp. -->
+    <section class="rq-ok">
+      <div class="rq-ok-check">✓</div>
+      <h2>Solicitud enviada</h2>
+      <p class="rq-folio">Folio <strong>#{{ folio }}</strong></p>
+      <p class="rq-ok-txt">
+        Capital Humano ya la tiene en su tablero. Si preguntas por ella, menciona el folio.
+      </p>
+      <button type="button" class="rq-btn ghost" (click)="otra()">Levantar otra solicitud</button>
+    </section>
+  } @else {
+    <form class="rq-form" (ngSubmit)="enviar()">
+      <label class="rq-campo">
+        <span>¿De qué sucursal? <b>*</b></span>
+        <select [(ngModel)]="f.sucursalId" name="sucursalId" required>
+          <option value="">Elige tu sucursal…</option>
+          @for (s of SUCURSALES; track s.id) {
+            <option [value]="s.id">{{ s.ciudad }}@if (s.direccion) { · {{ s.direccion.split(',')[0] }} }</option>
+          }
+        </select>
+      </label>
+
+      <label class="rq-campo">
+        <span>¿Qué puesto necesitas? <b>*</b></span>
+        <input type="text" [(ngModel)]="f.puesto" name="puesto" maxlength="120"
+               placeholder="Ej. Cajero, Anaquelista, Chofer…" required>
+      </label>
+
+      <div class="rq-row">
+        <label class="rq-campo">
+          <span>¿Cuántas personas? <b>*</b></span>
+          <input type="number" [(ngModel)]="f.vacantes" name="vacantes" min="1" max="99">
+        </label>
+        <label class="rq-campo">
+          <span>¿Para cuándo?</span>
+          <input type="date" [(ngModel)]="f.fechaRequerida" name="fechaRequerida" [min]="hoy">
+        </label>
+      </div>
+
+      <label class="rq-campo">
+        <span>¿Por qué?</span>
+        <select [(ngModel)]="f.motivo" name="motivo">
+          @for (m of MOTIVOS; track m.id) { <option [value]="m.id">{{ m.label }}</option> }
+        </select>
+      </label>
+
+      @if (f.motivo === 'reemplazo') {
+        <label class="rq-campo">
+          <span>¿A quién reemplaza?</span>
+          <input type="text" [(ngModel)]="f.reemplazaA" name="reemplazaA" maxlength="120"
+                 placeholder="Nombre de quien se fue">
+        </label>
+      }
+
+      <label class="rq-campo">
+        <span>¿Quién lo está pidiendo? <b>*</b></span>
+        <input type="text" [(ngModel)]="f.solicita" name="solicita" maxlength="80"
+               placeholder="Tu nombre" required>
+      </label>
+
+      <label class="rq-campo">
+        <span>Algo más que debamos saber</span>
+        <textarea [(ngModel)]="f.justificacion" name="justificacion" rows="3" maxlength="1000"
+                  placeholder="Horario, turno, si es urgente y por qué…"></textarea>
+      </label>
+
+      @if (error) { <div class="rq-error">{{ error }}</div> }
+
+      <button type="submit" class="rq-btn" [disabled]="enviando">
+        {{ enviando ? 'Enviando…' : 'Enviar solicitud' }}
+      </button>
+      <p class="rq-nota">Los campos con <b>*</b> son los necesarios. El resto ayuda pero no detiene tu solicitud.</p>
+    </form>
+  }
+</div>

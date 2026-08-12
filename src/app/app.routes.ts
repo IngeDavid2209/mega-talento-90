@@ -29,6 +29,7 @@ import { AgenteHorariosComponent } from './rh/agente-horarios/agente-horarios';
 import { KpiComponent } from './rh/kpi/kpi';
 import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
 import { PermanenciaComponent } from './rh/permanencia/permanencia';
+import { RequisicionPublicaComponent } from '../portal/requisicion/requisicion';
 
 export const routes: Routes = [
   {
@@ -67,6 +68,8 @@ export const routes: Routes = [
   { path: 'bolsa', component: BolsaComponent },
   { path: 'evaluacion/:id', component: EvaluacionLiderazgoComponent },
   { path: 'evaluar-aptitudes/:id', component: EvaluacionAptitudesComponent },
+  // La liga que se le manda a los encargados para pedir personal, sin sesión.
+  { path: 'pedir-personal', component: RequisicionPublicaComponent },
   { path: 'solicitud/:id', component: SolicitudComponent },
   { path: 'solicitud',     component: SolicitudComponent },
   { path: 'login', component: LoginComponent },
