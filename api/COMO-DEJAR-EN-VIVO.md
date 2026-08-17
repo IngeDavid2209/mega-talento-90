@@ -78,8 +78,32 @@ solo `apiUrl` + `token`.
    node instalar-servicio.js instalar
    ```
 
+7. **Comprobar que de verdad quedó corriendo.** Que la consola diga
+   "Servicio arrancado" NO basta: node-windows solo lanza el comando de
+   arranque, no revisa si el servicio se quedó de pie.
+   ```
+   powershell "Get-Service megatalentoagentedechecadas.exe | Select Name,Status"
+   ```
+   Tiene que decir **Running**. Si dice `Stopped`:
+   ```
+   node instalar-servicio.js revisar
+   ```
+   revisa el XML de winsw y dice qué está mal.
+
 Listo. Arranca solo con la PC, **sobrevive al cierre de sesión**, y si el proceso
 muere Windows lo levanta otra vez.
+
+> **Si el servicio queda "Detenido" con arranque automático y sin ningún log**,
+> casi siempre es la cuenta. `node-windows` escribe en el XML de winsw el nombre
+> de la PC como dominio (`DAVID-CISNEROS\LocalSystem`), una cuenta que no
+> existe; el inicio de sesión falla antes de que winsw alcance a crear su log.
+> Ya está corregido en `instalar-servicio.js` (se fuerza
+> `NT AUTHORITY\LocalSystem`), pero si alguien instaló el servicio con una
+> versión vieja del script hay que **quitarlo y volverlo a instalar**:
+> ```
+> node instalar-servicio.js quitar
+> node instalar-servicio.js instalar
+> ```
 
 > El `.bat` viejo (`jalar-en-vivo.bat`) dependía de que alguien dejara una
 > ventana abierta, y la tarea programada se moría al cerrar sesión. Así se

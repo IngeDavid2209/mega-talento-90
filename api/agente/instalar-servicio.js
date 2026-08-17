@@ -91,18 +91,80 @@ const servicio = new Service({
   stopparentfirst: true,
 });
 
+/** El id que node-windows deriva del nombre, y dónde deja el XML de winsw. */
+const ID = NOMBRE.replace(/[^\w]/gi, '').toLowerCase();
+const XML = path.join(__dirname, 'daemon', `${ID}.xml`);
+
+/**
+ * REVISA EL XML QUE QUEDÓ, en vez de confiar en que "instalar" dijo que sí.
+ *
+ * `servicio.start()` avisa que arrancó aunque el servicio se haya caído medio
+ * segundo después: node-windows solo lanza el comando, no comprueba el estado.
+ * Así fue como la primera instalación quedó en "Detenido, arranque automático,
+ * cero logs" mientras la consola decía "▶️ Servicio arrancado".
+ */
+function revisar() {
+  if (!fs.existsSync(XML)) {
+    console.log(`No hay servicio instalado (falta ${XML}).`);
+    return false;
+  }
+  const xml = fs.readFileSync(XML, 'utf8');
+  const problemas = [];
+
+  const dominio = /<domain>([^<]*)<\/domain>/.exec(xml)?.[1] || '';
+  const cuenta = /<user>([^<]*)<\/user>/.exec(xml)?.[1] || '';
+  if (cuenta === 'LocalSystem' && dominio && dominio.toUpperCase() !== 'NT AUTHORITY') {
+    problemas.push(
+      `la cuenta quedó como "${dominio}\\${cuenta}", que no existe — tiene que ser "NT AUTHORITY\\LocalSystem". ` +
+      'El servicio se instala y nunca arranca, sin dejar log.');
+  }
+  if (/<argument>undefined<\/argument>/.test(xml)) {
+    problemas.push('hay un argumento literal "undefined" en el XML.');
+  }
+  // eslint-disable-next-line no-control-regex
+  if (/[^\x00-\x7F]/.test(/<name>([^<]*)<\/name>/.exec(xml)?.[1] || '')) {
+    problemas.push('el nombre del servicio tiene caracteres no ASCII: winsw los usa para nombrar sus logs.');
+  }
+  if (!fs.existsSync(path.join(__dirname, 'config.json'))) {
+    problemas.push('falta config.json: el agente arrancará y se saldrá de inmediato.');
+  }
+
+  console.log(`\nServicio: ${NOMBRE}`);
+  console.log(`  XML:    ${XML}`);
+  console.log(`  Cuenta: ${dominio}\\${cuenta}`);
+  if (!problemas.length) {
+    console.log('  ✅ La configuración se ve bien.');
+    console.log('\n  Comprueba que de verdad esté corriendo:');
+    console.log(`     powershell "Get-Service ${ID}.exe | Select Name,Status"`);
+    console.log('  Debe decir Running. Si dice Stopped, mira el log de winsw en daemon\\.');
+    return true;
+  }
+  console.log('  ❌ Problemas:');
+  problemas.forEach((p) => console.log(`     · ${p}`));
+  console.log('\n  Se corrigen reinstalando:  node instalar-servicio.js quitar  &&  node instalar-servicio.js instalar');
+  return false;
+}
+
 servicio.on('install', () => {
   console.log(`✅ Servicio instalado: ${NOMBRE}`);
+  revisar();
   servicio.start();
 });
 servicio.on('start', () => {
-  console.log('▶️  Servicio arrancado.');
-  console.log(`   Log:  ${path.join(__dirname, 'logs')}`);
-  console.log('   Comprueba el semáforo en el portal: la sucursal debe ponerse en verde en menos de 2 min.');
+  console.log('\n▶️  Arranque solicitado.');
+  console.log(`   Log del agente: ${path.join(__dirname, 'logs')}`);
+  console.log(`   Log de winsw:   ${path.join(__dirname, 'daemon')}`);
+  console.log('\n   COMPRUÉBALO — que diga "arrancado" no basta:');
+  console.log(`     powershell "Get-Service ${ID}.exe | Select Name,Status"`);
+  console.log('   Tiene que decir Running, y el semáforo del portal ponerse en verde en menos de 2 min.');
 });
-servicio.on('alreadyinstalled', () => console.log('El servicio ya estaba instalado.'));
+servicio.on('alreadyinstalled', () => {
+  console.log('El servicio ya estaba instalado.');
+  revisar();
+});
 servicio.on('uninstall', () => console.log('🗑️  Servicio desinstalado.'));
 servicio.on('error', (e) => console.error('Error del servicio:', e));
 
-if (accion === 'instalar') servicio.install();
+if (accion === 'revisar') revisar();
+else if (accion === 'instalar') servicio.install();
 else servicio.uninstall();
