@@ -44,6 +44,35 @@ const val = (n) => { const i = ARGS.indexOf(n); return i >= 0 ? ARGS[i + 1] : nu
 const origen = new Pool({ connectionString: process.env.HR_DB_URL, ssl: false, connectionTimeoutMillis: 8000 });
 const nuestra = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
+/**
+ * ¿Estos dos nombres podrían ser la misma persona escrita distinto?
+ *
+ * Los relojes traen apodos y abreviaturas capturadas a mano: "JorgeRL" en uno y
+ * "Jrl" en el otro; "ArizGonzalez" y "Arizbeth". El cruce del sistema de origen
+ * empata nombres EXACTOS, así que estos se le escapan y quedan como si fueran
+ * personas distintas.
+ *
+ * Esto NO decide nada: solo separa "revísalo, probablemente es la misma" de
+ * "cuidado, son dos personas". La decisión sigue siendo de RH.
+ */
+function seParecen(a, b) {
+  const n = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+  const x = n(a), y = n(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  // Prefijo compartido largo: "ariz|gonzalez" contra "ariz|beth".
+  let i = 0;
+  while (i < x.length && i < y.length && x[i] === y[i]) i++;
+  if (i >= 4) return true;
+  // Abreviatura: las letras de la corta aparecen EN ORDEN dentro de la larga
+  // ("jrl" dentro de "jorgerl").
+  const [corta, larga] = x.length <= y.length ? [x, y] : [y, x];
+  if (corta.length < 3) return false;
+  let j = 0;
+  for (const c of larga) if (c === corta[j]) j++;
+  return j === corta.length;
+}
+
 // ── Proponer ─────────────────────────────────────────────────────────
 async function proponer(ipOrigen, ipDestino) {
   const { rows: eq } = await origen.query(
@@ -97,41 +126,104 @@ async function proponer(ipOrigen, ipDestino) {
     console.log('     pero NO sustituye la revisión: el cruce de origen empata por nombre.');
   }
 
+  // ══ EL CHEQUEO QUE EVITA EL DESASTRE ══════════════════════════════
+  //
+  // Para los códigos que NO ligaron por persona, no basta con proponer el
+  // patrón: hay que mirar QUIÉN ocupa ya ese número en el otro reloj.
+  //
+  // Caso real medido el 17/08/2026 en el .81: el #8 es Claudia Mata con 54
+  // marcas, y el #108 del otro reloj es VIVIANA. Aplicar el +100 a ciegas le
+  // cargaría las comidas de Claudia a Viviana. Y el #26 es Viviana, cuyo #126
+  // es "Clau" — o sea que el error además estaría cruzado.
+  //
+  // De los 13 sin ligar, 6 tenían el número de destino OCUPADO POR OTRA
+  // PERSONA. Ese es exactamente el error que mantiene este reloj en pausa.
+  const ocupados = new Map();
+  const { rows: refs } = await origen.query(
+    `SELECT en.device_user_id cod, en.device_name nom
+       FROM hr.device_enrollments en
+       JOIN hr.attendance_devices d ON d.id = en.device_id
+      WHERE d.ip_address = $1`, [ipDestino]
+  );
+  for (const r of refs) ocupados.set(String(r.cod), r.nom || '');
+
+  // Cuántas veces ha usado el reloj cada código: separa "hay que resolverlo ya"
+  // de "está dado de alta y nunca marca".
+  const { rows: usos } = await origen.query(
+    `SELECT l.device_user_id cod, count(*)::int n
+       FROM hr.attendance_logs l
+       JOIN hr.attendance_devices d ON d.id = l.device_id
+      WHERE d.ip_address = $1 GROUP BY 1`, [ipOrigen]
+  );
+  const marcasDe = new Map(usos.map((u) => [String(u.cod), u.n]));
+
   const filas = rows.map((r) => {
     const porPatron = patron != null && /^\d+$/.test(r.cod_origen)
       ? String(Number(r.cod_origen) + patron) : '';
+    const marcas = marcasDe.get(String(r.cod_origen)) || 0;
     let confianza;
+
     if (r.cod_destino && r.cod_destino === porPatron) confianza = 'PERSONA+PATRON';
     else if (r.cod_destino) confianza = 'SOLO-PERSONA';
-    else if (porPatron) confianza = 'SOLO-PATRON-REVISAR';
+    else if (porPatron && ocupados.has(porPatron)) {
+      const quien = ocupados.get(porPatron);
+      confianza = seParecen(r.nom_origen, quien)
+        ? `REVISAR-NOMBRE-PARECIDO(${porPatron}=${quien})`
+        : `COLISION-NO-APLICAR(${porPatron}=${quien})`;
+    } else if (!marcas) confianza = 'SIN-USO';
     else confianza = 'SIN-PROPUESTA';
+
     return {
       codigoReloj: r.cod_origen,
-      // Los que solo tienen el patrón NO se rellenan: que RH los escriba a mano
-      // es justo la barrera que queremos, porque son los dudosos.
+      // Los que no ligaron por persona NO se rellenan: que RH los escriba a
+      // mano es justo la barrera que queremos, porque son los peligrosos.
       codigoEmpleado: r.cod_destino || '',
       confianza, nomOrigen: r.nom_origen || '', nomDestino: r.nom_destino || '',
-      sugerenciaPatron: porPatron,
+      sugerenciaPatron: porPatron, marcas,
     };
   });
 
   const archivo = path.join(__dirname, `mapeo-${serie}.csv`);
   fs.writeFileSync(archivo, [
-    'codigo_reloj,codigo_empleado,confianza,nombre_en_este_reloj,nombre_en_el_otro,sugerencia_por_patron',
+    'codigo_reloj,codigo_empleado,confianza,marcas,nombre_en_este_reloj,nombre_en_el_otro,sugerencia_por_patron',
     ...filas.map((f) => [
-      f.codigoReloj, f.codigoEmpleado, f.confianza,
+      f.codigoReloj, f.codigoEmpleado, `"${f.confianza}"`, f.marcas,
       `"${f.nomOrigen.replace(/"/g, "'")}"`, `"${f.nomDestino.replace(/"/g, "'")}"`,
       f.sugerenciaPatron,
     ].join(',')),
   ].join('\n'), 'utf8');
 
-  const cuenta = filas.reduce((a, f) => (a[f.confianza] = (a[f.confianza] || 0) + 1, a), {});
-  console.log('\n  ' + Object.entries(cuenta).map(([k, v]) => `${v} ${k}`).join(' · '));
+  const colisiones = filas.filter((f) => f.confianza.startsWith('COLISION'));
+  const parecidos = filas.filter((f) => f.confianza.startsWith('REVISAR-NOMBRE'));
+  const sinUso = filas.filter((f) => f.confianza === 'SIN-USO');
+  const listos = filas.filter((f) => f.codigoEmpleado);
+
+  console.log(`\n  ✅ ${listos.length} resueltos (ligan por persona)`);
+  if (colisiones.length) {
+    console.log(`\n  ⛔ ${colisiones.length} COLISIONES — el número que tocaría por patrón YA ES DE OTRA PERSONA.`);
+    console.log('     Aplicar el patrón aquí le cargaría las marcas a quien no es:');
+    for (const c of colisiones) {
+      console.log(`       #${c.codigoReloj} ${c.nomOrigen} (${c.marcas} marcas) → ${c.confianza.replace(/^COLISION-NO-APLICAR/, '')}`);
+    }
+  }
+  if (parecidos.length) {
+    console.log(`\n  ⚠ ${parecidos.length} con nombre PARECIDO: probablemente la misma persona escrita distinto.`);
+    for (const c of parecidos) {
+      console.log(`       #${c.codigoReloj} ${c.nomOrigen} (${c.marcas} marcas) → ${c.confianza.replace(/^REVISAR-NOMBRE-PARECIDO/, '')}`);
+    }
+  }
+  if (sinUso.length) {
+    console.log(`\n  ○ ${sinUso.length} sin uso (dados de alta en el reloj pero no marcan): ` +
+                sinUso.map((s) => `#${s.codigoReloj} ${s.nomOrigen}`).join(', '));
+    console.log('     No urgen: no hay marcas suyas que atribuir a nadie.');
+  }
+
   console.log(`\n  Propuesta escrita en: ${archivo}`);
   console.log('\n  QUÉ SIGUE:');
-  console.log('   1. Ábrelo en Excel y revísalo CON RH, renglón por renglón.');
-  console.log('   2. Llena `codigo_empleado` en los SOLO-PATRON-REVISAR y SIN-PROPUESTA,');
-  console.log('      o bórrales el renglón si esa persona no existe en el otro reloj.');
+  console.log('   1. Ábrelo en Excel y revisa CON RH los renglones sin `codigo_empleado`.');
+  console.log('      Empieza por las COLISIONES: son las que tienen marcas y destino ocupado.');
+  console.log('   2. Escribe el código correcto, o borra el renglón si esa persona');
+  console.log('      de verdad no existe en el otro reloj.');
   console.log(`   3. node tools/mapear-codigos.js --aplicar mapeo-${serie}.csv`);
   console.log('\n  El reloj sigue EN PAUSA hasta que no quede ningún código sin traducir.');
   console.log('  Sacarlo de pausa a medias significa atribuirle marcas a quien no es.');
