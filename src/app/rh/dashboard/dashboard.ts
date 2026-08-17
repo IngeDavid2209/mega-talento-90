@@ -76,6 +76,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // une menos pero nunca deja la pantalla en blanco.
   private mapaPuesto: Record<string, string | null> = {};
   private mapaZona: Record<string, string | null> = {};
+  // Textos que el bot dictamino que NO contestan la pregunta ("Cualquiera",
+  // "Si", un nombre, un correo). Se juntan todos en el mismo cubo en vez de
+  // darle un renglon a cada uno: un renglon por cada no-respuesta ensucia el
+  // tablero sin informar nada.
+  private invalidoPuesto = new Set<string>();
+  private invalidoZona = new Set<string>();
 
   // Filas desplegadas (drill-down) en cada panel
   zonaAbierta = new Set<string>();
@@ -327,12 +333,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   private grupoPuesto(raw: any): string {
     const t = (raw || '').toString().trim();
-    return this.mapaPuesto[t] || normalizarPuesto(t);
+    if (this.mapaPuesto[t]) return this.mapaPuesto[t] as string;
+    if (this.invalidoPuesto.has(t)) return 'Sin puesto';
+    return normalizarPuesto(t);
   }
 
   private grupoZona(raw: any): string {
     const t = (raw || '').toString().trim();
-    return this.mapaZona[t] || normalizarCiudad(t);
+    if (this.mapaZona[t]) return this.mapaZona[t] as string;
+    if (this.invalidoZona.has(t)) return 'Sin ciudad';
+    return normalizarCiudad(t);
   }
 
   /**
@@ -348,11 +358,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!puestos.length && !zonas.length) return;
     try {
       const [p, z] = await Promise.all([
-        puestos.length ? this.kpi.agrupar('puesto', puestos) : Promise.resolve({ mapa: {}, pendientes: 0 }),
-        zonas.length ? this.kpi.agrupar('zona', zonas) : Promise.resolve({ mapa: {}, pendientes: 0 }),
+        puestos.length ? this.kpi.agrupar('puesto', puestos) : Promise.resolve({ mapa: {}, invalidos: [], pendientes: 0 }),
+        zonas.length ? this.kpi.agrupar('zona', zonas) : Promise.resolve({ mapa: {}, invalidos: [], pendientes: 0 }),
       ]);
       this.mapaPuesto = p.mapa || {};
       this.mapaZona = z.mapa || {};
+      this.invalidoPuesto = new Set(p.invalidos || []);
+      this.invalidoZona = new Set(z.invalidos || []);
       this.porZona = this.agruparPor(c => this.grupoZona(c.ciudad || c.sucursal), 'Sin ciudad');
       this.porPuesto = this.agruparPor(c => this.grupoPuesto(c.puesto), 'Sin puesto');
     } catch (e) {
