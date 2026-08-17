@@ -47,6 +47,9 @@ class SincronizadorHr {
     this.cola = deps.cola;
     this.enviador = deps.enviador;
     this.log = deps.log;
+    // Cómo volver a preguntar el padrón. Lo arma index.js (es el que sabe
+    // filtrar por sucursal y por config); aquí solo se vuelve a llamar.
+    this.cargarRelojes = deps.cargarRelojes;
     this.pool = new Pool({
       connectionString: config.hrDbUrl,
       ssl: false,
@@ -65,14 +68,8 @@ class SincronizadorHr {
     // `hr` pero no en nuestro padrón se reporta y se deja fuera: meter sus
     // checadas sin saber de qué plaza son las atribuiría a la sucursal
     // equivocada, y eso no se nota mirando la pantalla.
-    this.relojes = relojes;
     this.corriendo = true;
-
-    const { rows } = await this.pool.query(
-      'SELECT serial_number, ip_address FROM hr.attendance_devices'
-    );
-    const enOrigen = new Map(rows.map((r) => [r.serial_number, r.ip_address]));
-    for (const r of this.relojes) r.ipOrigen = enOrigen.get(r.serie) || r.ip;
+    const rows = await this.enriquecer(relojes);
 
     const huerfanos = rows.filter((r) => !this.relojes.some((x) => x.serie === r.serial_number));
     if (huerfanos.length) {
@@ -89,6 +86,15 @@ class SincronizadorHr {
       () => this.vuelta({}).catch((e) => this.log(`⚠ vuelta: ${e.message}`)),
       pollSeg * 1000
     );
+    // El padrón se relee solo. Sin esto, dar de alta un reloj o sacarlo de
+    // pausa obliga a entrar por escritorio remoto a la PC de cada plaza a
+    // reiniciar el servicio — y mientras tanto ese reloj no baja, sin que nada
+    // lo diga. `intervalos.padronMin` existía en la config desde el principio
+    // pero no lo leía nadie.
+    this.timers.padron = setInterval(
+      () => this.recargarPadron().catch((e) => this.log(`⚠ padrón: ${e.message}`)),
+      (this.cfg.intervalos.padronMin || 30) * 60000
+    );
     // Pasada amplia: recupera lo que el proveedor haya importado tarde.
     this.timers.amplia = setInterval(
       () => this.vuelta({ amplia: true }).catch((e) => this.log(`⚠ pasada amplia: ${e.message}`)),
@@ -101,6 +107,49 @@ class SincronizadorHr {
     for (const t of Object.values(this.timers)) clearInterval(t);
     this.timers = {};
     await this.pool.end().catch(() => {});
+  }
+
+  /**
+   * Vuelve a preguntarle a la API qué relojes le tocan. Un reloj que salió de
+   * pausa entra aquí sin reiniciar nada; uno que entró en pausa deja de subirse.
+   *
+   * Si la API no contesta se conserva la lista que ya se tenía: quedarse sin
+   * relojes porque hubo un parpadeo de internet sería peor que la lista vieja.
+   */
+  /**
+   * Le pega a cada reloj la IP con la que aparece en el origen y devuelve el
+   * inventario de equipos que ve la base del proveedor (para detectar los que
+   * están allá y no en nuestro padrón).
+   */
+  async enriquecer(relojes) {
+    const { rows } = await this.pool.query(
+      'SELECT serial_number, ip_address FROM hr.attendance_devices'
+    );
+    const enOrigen = new Map(rows.map((r) => [r.serial_number, r.ip_address]));
+    for (const r of relojes) r.ipOrigen = enOrigen.get(r.serie) || r.ip;
+    this.relojes = relojes;
+    return rows;
+  }
+
+  async recargarPadron() {
+    if (!this.cargarRelojes) return;
+    let nuevos;
+    try {
+      nuevos = await this.cargarRelojes();
+    } catch (e) {
+      this.log(`⚠ no se pudo releer el padrón (${e.message}); se conserva la lista actual`);
+      return;
+    }
+    const antes = new Set(this.relojes.map((r) => r.serie));
+    const ahora = new Set(nuevos.map((r) => r.serie));
+    const entran = nuevos.filter((r) => !antes.has(r.serie));
+    const salen = this.relojes.filter((r) => !ahora.has(r.serie));
+    if (entran.length) this.log(`+ se agregan al agente: ${entran.map((r) => r.alias || r.serie).join(', ')}`);
+    if (salen.length) this.log(`- salen del agente (en pausa o dados de baja): ${salen.map((r) => r.alias || r.serie).join(', ')}`);
+    await this.enriquecer(nuevos);
+    // Un reloj recién agregado no espera a la pasada amplia: entra con todo su
+    // histórico en la vuelta siguiente.
+    if (entran.length) await this.vuelta({ inicial: true });
   }
 
   // ── Una vuelta ───────────────────────────────────────────────────

@@ -82,6 +82,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // tablero sin informar nada.
   private invalidoPuesto = new Set<string>();
   private invalidoZona = new Set<string>();
+  // Los grupos que SI son una vacante abierta. Lo que no este aqui es gente
+  // que se postulo a algo que no tenemos, y va en su propia seccion: mezclarlo
+  // con las vacantes hace que una familia como "Sistemas" se lea como si
+  // fuera un puesto que existe.
+  private vacantesAbiertas = new Set<string>();
+
+  // Se postularon a algo que no tenemos abierto.
+  sinVacante: { nombre: string; total: number; activos: number; contratados: number; pct: number; candidatos: any[] }[] = [];
 
   // Filas desplegadas (drill-down) en cada panel
   zonaAbierta = new Set<string>();
@@ -293,6 +301,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // para unir variantes equivalentes (p.ej. "Cajero (a)" y "Cajero(a)").
     this.porZona = this.agruparPor(c => this.grupoZona(c.ciudad || c.sucursal), 'Sin ciudad');
     this.porPuesto = this.agruparPor(c => this.grupoPuesto(c.puesto), 'Sin puesto');
+    this.separarSinVacante();
 
     this.calcularSinSeguimiento(ahora);
 
@@ -352,21 +361,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * la normalización local y se reacomoda solo cuando llega el mapa. Si el
    * bot falla, no pasa nada — no se toca lo que ya se ve.
    */
+  /**
+   * Separa "candidatos por puesto" de "se postularon a algo que no tenemos".
+   *
+   * Mientras el bot no conteste, vacantesAbiertas esta vacio y NO se separa
+   * nada: se prefiere una lista junta a mandar a la seccion equivocada gente
+   * que si tiene vacante. Y "Sin puesto" se queda arriba: no es que no
+   * tengamos la vacante, es que esa persona no dijo cual queria.
+   */
+  private separarSinVacante() {
+    if (!this.vacantesAbiertas.size) { this.sinVacante = []; return; }
+    const abierto = (n: string) => this.vacantesAbiertas.has(n) || n === 'Sin puesto';
+    this.sinVacante = this.porPuesto.filter(g => !abierto(g.nombre));
+    this.porPuesto = this.porPuesto.filter(g => abierto(g.nombre));
+    // Las barras se releen contra el grupo mas grande de CADA lista, si no la
+    // seccion chica sale con todas las barras en un hilo.
+    for (const lista of [this.porPuesto, this.sinVacante]) {
+      const max = lista.reduce((m, x) => Math.max(m, x.total), 0);
+      lista.forEach(x => { x.pct = max > 0 ? Math.round((x.total / max) * 100) : 0; });
+    }
+  }
   private async afinarAgrupacion() {
     const puestos = Array.from(new Set(this.candidatos.map(c => (c.puesto || '').toString().trim()).filter(Boolean)));
     const zonas = Array.from(new Set(this.candidatos.map(c => (c.ciudad || c.sucursal || '').toString().trim()).filter(Boolean)));
     if (!puestos.length && !zonas.length) return;
     try {
       const [p, z] = await Promise.all([
-        puestos.length ? this.kpi.agrupar('puesto', puestos) : Promise.resolve({ mapa: {}, invalidos: [], pendientes: 0 }),
-        zonas.length ? this.kpi.agrupar('zona', zonas) : Promise.resolve({ mapa: {}, invalidos: [], pendientes: 0 }),
+        puestos.length ? this.kpi.agrupar('puesto', puestos) : Promise.resolve({ mapa: {}, invalidos: [], vacantes: [], pendientes: 0 }),
+        zonas.length ? this.kpi.agrupar('zona', zonas) : Promise.resolve({ mapa: {}, invalidos: [], vacantes: [], pendientes: 0 }),
       ]);
       this.mapaPuesto = p.mapa || {};
       this.mapaZona = z.mapa || {};
       this.invalidoPuesto = new Set(p.invalidos || []);
       this.invalidoZona = new Set(z.invalidos || []);
+      this.vacantesAbiertas = new Set(p.vacantes || []);
       this.porZona = this.agruparPor(c => this.grupoZona(c.ciudad || c.sucursal), 'Sin ciudad');
       this.porPuesto = this.agruparPor(c => this.grupoPuesto(c.puesto), 'Sin puesto');
+      this.separarSinVacante();
     } catch (e) {
       console.warn('[dashboard] no se pudo afinar la agrupación; se deja la local', e);
     }

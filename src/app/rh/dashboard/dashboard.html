@@ -270,6 +270,61 @@
       </div>
     </div>
 
+
+    <!-- SE POSTULARON A ALGO QUE NO TENEMOS ABIERTO
+         Va aparte de "Candidatos por puesto" a propósito: son familias
+         (Prevención y seguridad, Administrativo, Sistemas…) que NO existen
+         como vacante. Mezcladas con las abiertas se leían como si lo fueran.
+         Y es la señal más útil del tablero: qué vacante valdría la pena abrir. -->
+    @if (sinVacante.length) {
+      <div class="panel-card">
+        <header class="panel-header">
+          <div>
+            <h2>Se postularon a una vacante que no tenemos</h2>
+            <p class="panel-desc">Lo que pide la gente y hoy no está abierto · qué convendría abrir</p>
+          </div>
+        </header>
+        <div class="group-list">
+          @for (g of sinVacante; track g.nombre) {
+            <div class="group-block">
+              <button class="group-row" type="button"
+                      (click)="togglePuesto(g.nombre)"
+                      [class.abierta]="puestoAbierto.has(g.nombre)">
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <span class="group-name" [title]="g.nombre">{{ g.nombre }}</span>
+                <div class="group-bar"><div class="group-fill" [style.width.%]="g.pct"></div></div>
+                <div class="group-stats">
+                  <span class="group-total">{{ g.total }}</span>
+                  <span class="group-sub">{{ g.activos }} act. · {{ g.contratados }} cont.</span>
+                </div>
+              </button>
+              @if (puestoAbierto.has(g.nombre)) {
+                <div class="cand-list">
+                  @for (c of g.candidatos; track c.id) {
+                    <div class="cand-item">
+                      <button class="cand-open" type="button" (click)="abrirExpediente(c)">
+                        <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
+                        <span class="cand-info">
+                          <span class="cand-name">{{ capitalHumano.displayName(c) }}</span>
+                          <span class="cand-sub">{{ c.ciudad || c.sucursal || 'Sin ciudad' }} · {{ formatearFecha(c.createdAt) }}</span>
+                        </span>
+                      </button>
+                      <span class="cand-etapa">{{ getNombreEtapa(c.status) }}</span>
+                      @if (c.cvUrl) {
+                        <a class="cand-cv" [href]="c.cvUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()" title="Ver currículum">CV</a>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <!-- TIEMPO POR FASE DEL PROCESO (KPI de transiciones) -->
     <div class="panel-card fases-panel">
       <header class="panel-header">

@@ -755,7 +755,7 @@ kpiRouter.post('/agrupar', async (req: Request, res: Response) => {
   // el front se queda con las etiquetas tal como se capturaron. Es peor un
   // tablero caído que uno sin agrupar.
   if (!BOT || !TOKEN) {
-    return res.json({ mapa: {}, invalidos: [], pendientes: valores.length, sin_bot: true });
+    return res.json({ mapa: {}, invalidos: [], vacantes: [], pendientes: valores.length, sin_bot: true });
   }
 
   try {
@@ -767,11 +767,11 @@ kpiRouter.post('/agrupar', async (req: Request, res: Response) => {
     const cuerpo: any = await r.json().catch(() => ({}));
     if (!r.ok) {
       console.error('[kpi/agrupar] el bot respondió', r.status, cuerpo);
-      return res.json({ mapa: {}, invalidos: [], pendientes: valores.length, error_bot: cuerpo?.error || r.status });
+      return res.json({ mapa: {}, invalidos: [], vacantes: [], pendientes: valores.length, error_bot: cuerpo?.error || r.status });
     }
-    return res.json({ mapa: cuerpo.mapa || {}, invalidos: cuerpo.invalidos || [], pendientes: cuerpo.pendientes ?? 0 });
+    return res.json({ mapa: cuerpo.mapa || {}, invalidos: cuerpo.invalidos || [], vacantes: cuerpo.vacantes || [], pendientes: cuerpo.pendientes ?? 0 });
   } catch (e: any) {
     console.error('[kpi/agrupar] no se pudo hablar con el bot:', e?.message);
-    return res.json({ mapa: {}, invalidos: [], pendientes: valores.length, error_bot: 'sin conexión con el bot' });
+    return res.json({ mapa: {}, invalidos: [], vacantes: [], pendientes: valores.length, error_bot: 'sin conexión con el bot' });
   }
 });

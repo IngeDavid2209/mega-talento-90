@@ -77,7 +77,28 @@ export const CENTROS_INTERNOS: Sucursal[] = [
   { id: 'corporativo',     ciudad: 'Corporativo', direccion: 'Oficinas Corporativas', mapsUrl: '' },
   { id: 'cedis',           ciudad: 'CEDIS',       direccion: 'Centro de Distribución', mapsUrl: '' },
   { id: '8-esquinas',      ciudad: '8 Esquinas',  direccion: '', mapsUrl: '' },
-  { id: 'morelia-abastos', ciudad: 'Morelia',     direccion: 'Central de Abastos', mapsUrl: '' }
+  { id: 'morelia-abastos', ciudad: 'Morelia',     direccion: 'Central de Abastos', mapsUrl: '' },
+
+  // ── Los dos relojes que faltaban (17/08/2026) ──────────────────────
+  //
+  // Son relojes REALES con datos diarios que no aparecían en ninguna pantalla.
+  // No están aquí porque sean sucursales nuevas, sino porque cada uno necesita
+  // su propio espacio de códigos: mezclarlos con una plaza existente es lo que
+  // hace que una marca acabe en la persona equivocada.
+  //
+  // 192.168.0.81 — la MISMA gente de corporativo con otra numeración (#11 es el
+  // #111 de allá). El patrón es +100, pero 4 de sus códigos apuntan a otra
+  // persona: el #8 es Claudia Mata y el #108 de corporativo es Viviana. Con
+  // plaza propia, cada marca queda con el nombre que el reloj mismo declara.
+  // Fundirlo con corporativo es el paso siguiente, vía `reloj_codigo_map`.
+  { id: 'corporativo-comida', ciudad: 'Oficinas', direccion: 'Desayuno y comida', mapsUrl: '' },
+
+  // 192.168.0.196 — 12 personas checando a diario y NO se sabe de qué plaza es;
+  // sus nombres empatan parecido con tres sucursales distintas. Se muestra con
+  // nombre propio en vez de adivinarle una plaza: verlo sin saber de quién es
+  // deja el pendiente a la vista; meterlo bajo una plaza inventada lo escondería
+  // dentro de datos que sí se dan por buenos.
+  { id: 'reloj-196', ciudad: 'Reloj .196', direccion: 'Sin identificar', mapsUrl: '' }
 ];
 
 /**

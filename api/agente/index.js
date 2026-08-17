@@ -161,7 +161,13 @@ async function relojesDeEsteAgente(cfg, enviador) {
       log('❌ origen="hr" pero falta `hrDbUrl` en config.json.');
       process.exit(1);
     }
-    const sinc = new SincronizadorHr(cfg, { cola, enviador, log });
+    const sinc = new SincronizadorHr(cfg, {
+      cola, enviador, log,
+      // Se le pasa CÓMO releer el padrón, no la lista: así un reloj que RH saca
+      // de pausa entra solo, sin que nadie tenga que reiniciar el servicio en
+      // la PC de la plaza.
+      cargarRelojes: () => relojesDeEsteAgente(cfg, enviador),
+    });
 
     if (UNA_VEZ) {
       await sinc.arrancar(relojes);
