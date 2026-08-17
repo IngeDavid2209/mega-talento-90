@@ -92,25 +92,21 @@ export const CENTROS_CHECADOR: Sucursal[] = [...SUCURSALES, ...CENTROS_INTERNOS]
  * contra el sistema de origen el 17/08/2026: no tienen ni un empleado en el
  * padrón del checador ni una sola checada.
  *
- * ══ POR QUÉ YA NO SE ESCONDEN ══
+ * Se filtran del selector del checador: el módulo de asistencia solo ofrece las
+ * plazas de las que hay algo que mostrar. Un selector con plazas vacías hace
+ * dudar de los números de las que sí tienen datos.
  *
- * Hasta el 17/08/2026 estas cuatro se filtraban del selector. La razón era
- * buena: salían en la lista y no mostraban NADA, y una pantalla vacía sin
- * explicación se lee como "el sistema está roto".
+ * (El 17/08/2026 se probó mostrarlas marcadas, con el semáforo explicando el
+ * vacío. Se revirtió: aun explicadas, cuatro chips muertos en una fila de doce
+ * son ruido en la pantalla que RH usa todos los días. El pendiente de esas
+ * plazas se lleva en otro lado, no ocupando lugar aquí.)
  *
- * Pero esconderlas tenía su propio costo, y era peor: una plaza que no aparece
- * es una plaza de la que nadie se acuerda. Morelia Abastos lleva desde siempre
- * sin importarse, y precisamente por no salir en ninguna pantalla nadie lo
- * notó nunca.
+ * Siguen en `CENTROS_CHECADOR` a propósito: el catálogo completo se usa para
+ * requisiciones de personal —se puede pedir gente para una plaza sin reloj— y
+ * para resolver el nombre de cualquier id que aparezca en datos históricos.
  *
- * Ahora hay semáforo de relojes: la pantalla puede DECIR que esa plaza no tiene
- * equipo instalado, en vez de quedarse callada. Con la ausencia explicada, la
- * lista completa informa más de lo que confunde — y deja el pendiente a la
- * vista de quien puede resolverlo.
- *
- * La lista se conserva (aunque ya no filtre el selector) porque sigue siendo la
- * respuesta a "¿de cuáles NO hay que esperar datos?", y las pantallas la usan
- * para redactar el vacío.
+ * Para reactivar una: instalar su reloj, darlo de alta en el padrón (`relojes`)
+ * y quitarla de esta lista.
  */
 export const CENTROS_SIN_RELOJ: string[] = [
   'la-piedad-centro',    // nunca ha tenido reloj ni padrón
@@ -125,11 +121,14 @@ export function tieneReloj(id: string): boolean {
 }
 
 /**
- * Lo que se ofrece en el checador: TODAS las ubicaciones, con reloj o sin él.
- * Las que no tienen equipo salen igual y la pantalla explica por qué están
- * vacías (ver el comentario de CENTROS_SIN_RELOJ).
+ * Lo que SÍ se ofrece en el checador: las ocho plazas que hoy tienen reloj y
+ * devuelven datos. Los relojes registrados son diez, pero dos están en pausa
+ * (el de comida de oficinas, con numeración propia sin traducir, y el que
+ * todavía no se sabe de qué plaza es) y no corresponden a ninguna sucursal del
+ * catálogo. Esos dos se vigilan desde el semáforo de relojes, no desde aquí.
  */
-export const CENTROS_CON_RELOJ: Sucursal[] = CENTROS_CHECADOR;
+export const CENTROS_CON_RELOJ: Sucursal[] =
+  CENTROS_CHECADOR.filter(s => tieneReloj(s.id));
 
 /** Busca una ubicación de checador (sucursal pública o centro interno) por id. */
 export function centroChecadorPorId(id: string): Sucursal | undefined {
