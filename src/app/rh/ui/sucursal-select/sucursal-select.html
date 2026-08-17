@@ -6,6 +6,7 @@
             class="ss-chip"
             [class.on]="o.id === value"
             [class.interno]="o.interno"
+            [class.sin-reloj]="o.sinReloj"
             [attr.aria-pressed]="o.id === value"
             [title]="titulo(o)"
             (click)="elegir(o.id)">
@@ -16,7 +17,12 @@
           <circle cx="12" cy="10" r="3"></circle>
         </svg>
       }
-      <span>{{ o.ciudad }}</span>
+      <span>{{ o.etiqueta }}</span>
+      @if (o.sinReloj) {
+        <!-- Punto hueco: esta plaza está en la lista pero todavía no tiene reloj.
+             Sin la marca, elegirla parece que el sistema se quedó en blanco. -->
+        <span class="ss-sin-reloj-dot" aria-label="sin reloj checador"></span>
+      }
     </button>
   }
 </div>

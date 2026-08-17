@@ -43,7 +43,23 @@
     </div>
 
     <div class="ar-bar-actions">
-      <span class="ar-live" title="La asistencia se actualiza sola cada minuto"><span class="ar-live-dot"></span>En vivo</span>
+      <!-- Este chip decía "En vivo" siempre. Hablaba del refresco de la PANTALLA,
+           no de la llegada del DATO: con el reloj apagado seguía en verde, que es
+           precisamente la confusión que costó doce días de asistencia sin que
+           nadie lo notara. Ahora refleja el estado real de los relojes. -->
+      @if (peorSemaforo === 'mudo') {
+        <span class="ar-live ar-live-mal" title="Hay relojes sin señal: lo que se ve no es de hoy.">
+          <span class="ar-live-dot"></span>Sin señal
+        </span>
+      } @else if (peorSemaforo === 'atrasado') {
+        <span class="ar-live ar-live-medio" title="El dato sigue llegando, pero con retraso.">
+          <span class="ar-live-dot"></span>Con retraso
+        </span>
+      } @else {
+        <span class="ar-live" title="Los relojes están reportando y la pantalla se actualiza sola cada minuto.">
+          <span class="ar-live-dot"></span>En vivo
+        </span>
+      }
       @if (permitirImportar) {
         <label class="ar-btn ar-btn-primary" [class.ar-btn-disabled]="importando">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5m0 0L5.2 5.3M8 2.5l2.8 2.8M2.5 10v2A1.5 1.5 0 0 0 4 13.5h8a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
@@ -59,6 +75,72 @@
     </div>
   </div>
 
+  <!-- ══ SEMÁFORO DE RELOJES ══════════════════════════════════════════
+       La pantalla nunca debe parecer al día cuando no lo está.
+
+       Antes se veía idéntica con un reloj al corriente y con uno muerto desde
+       hace tres semanas: las dos mostraban "la última asistencia". Aquí se ve
+       de dónde viene el dato y hace cuánto llegó.
+
+       Ojo con lo que NO significa: un reloj mudo no quiere decir que la gente
+       faltó. Es falta de DATO. Por eso abajo se marca el resumen en vez de
+       contar faltas. -->
+  @if (relojes.length) {
+    <div class="ar-relojes" [attr.data-estado]="peorSemaforo">
+      <button type="button" class="ar-relojes-head" (click)="toggleRelojes()"
+              [attr.aria-expanded]="relojesAbierto">
+        <span class="ar-rel-dot" [attr.data-s]="peorSemaforo" aria-hidden="true"></span>
+        <span class="ar-relojes-titulo">Relojes</span>
+        <span class="ar-relojes-resumen">{{ resumenRelojes }}</span>
+        @if (relojesDesfasados.length) {
+          <span class="ar-rel-aviso"
+                title="Con la hora del reloj corrida, la tolerancia se aplica sobre una hora falsa y salen retardos que no existen.">
+            {{ relojesDesfasados.length }} con la hora corrida
+          </span>
+        }
+        <svg class="ar-relojes-chev" [class.abierto]="relojesAbierto" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 6l4 4 4-4"/>
+        </svg>
+      </button>
+
+      @if (sucursalSinSenal) {
+        <p class="ar-relojes-alerta">
+          El reloj de esta sucursal <b>no ha reportado</b>. Lo que se ve abajo es la última
+          asistencia que llegó, no la de hoy — y un día sin dato <b>no es una falta</b>.
+        </p>
+      }
+
+      @if (relojesAbierto) {
+        <ul class="ar-relojes-lista">
+          @for (r of relojes; track r.serie) {
+            <li class="ar-rel" [attr.data-s]="r.semaforo">
+              <span class="ar-rel-dot" [attr.data-s]="r.semaforo" aria-hidden="true"></span>
+              <span class="ar-rel-nombre">
+                {{ r.alias || nombreSucursal(r.sucursalId) }}
+                @if (r.modo === 'push') { <em class="ar-rel-modo">push</em> }
+              </span>
+              <span class="ar-rel-cuando">{{ desdeCuando(r) }}</span>
+              @if (desfaseTexto(r)) {
+                <span class="ar-rel-chip warn"
+                      title="La tolerancia del horario se está midiendo contra una hora que no es. Se corrige en el equipo, no en el sistema.">
+                  {{ desfaseTexto(r) }}
+                </span>
+              }
+              @if (faltantesTexto(r) && faltantesTexto(r) !== 'completo') {
+                <span class="ar-rel-chip" title="Checadas que el equipo declara tener y todavía no están en la base.">
+                  {{ faltantesTexto(r) }}
+                </span>
+              }
+              @if (motivoReloj(r)) {
+                <span class="ar-rel-motivo">{{ motivoReloj(r) }}</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
   @if (cargando) {
     <div class="ar-empty">Cargando asistencia…</div>
   } @else if (!lista.length) {
@@ -66,7 +148,18 @@
          todo, incluso cuando la plaza no tenia reloj: mandaba a mover fechas en
          una pantalla que nunca iba a mostrar nada. -->
     <div class="ar-empty">
-      @if (datos && datos.resumen.personas === 0) {
+      @if (sucursalSinReloj) {
+        <!-- Antes esta plaza ni siquiera salía en el selector. Ahora sale, así que
+             la pantalla tiene que decir POR QUÉ está vacía: no hay equipo, no es
+             que esté fallando. Son dos problemas distintos con dos soluciones
+             distintas, y confundirlos manda a revisar la red de un reloj que no
+             existe. -->
+        <b>Esta plaza todavía no tiene reloj checador.</b><br>
+        No hay ningún equipo instalado aquí, así que no hay checadas que mostrar —
+        no es una falla del sistema. Aparece en la lista para que el pendiente no
+        se pierda de vista: en cuanto se instale un reloj y se dé de alta en el
+        padrón, esta pantalla se llena sola.
+      } @else if (datos && datos.resumen.personas === 0) {
         Esta plaza no tiene personal dado de alta en el checador ni checadas registradas.
         Si ya tiene reloj instalado, hay que jalar sus datos por primera vez.
       } @else {

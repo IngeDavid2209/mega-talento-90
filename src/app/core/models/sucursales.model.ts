@@ -88,31 +88,48 @@ export const CENTROS_INTERNOS: Sucursal[] = [
 export const CENTROS_CHECADOR: Sucursal[] = [...SUCURSALES, ...CENTROS_INTERNOS];
 
 /**
- * Plazas SIN reloj checador. No tienen ni un empleado en el padrón del checador
- * ni una sola checada — verificado contra la base el 05/08/2026 — así que en las
- * pantallas de asistencia salían en el selector y no mostraban NADA, que se lee
- * como "el sistema está roto".
+ * Plazas SIN reloj checador — verificado contra la base el 05/08/2026 y otra vez
+ * contra el sistema de origen el 17/08/2026: no tienen ni un empleado en el
+ * padrón del checador ni una sola checada.
  *
- * Siguen en `CENTROS_CHECADOR` a propósito: el catálogo completo se usa para
- * requisiciones de personal (se puede pedir gente para una plaza sin reloj) y
- * para resolver nombres. Lo que se filtra es el SELECTOR del checador.
+ * ══ POR QUÉ YA NO SE ESCONDEN ══
  *
- * Para reactivar una: instalar su reloj, jalar sus checadas y quitarla de aquí.
- * En cuanto tenga datos, vuelve a aparecer.
+ * Hasta el 17/08/2026 estas cuatro se filtraban del selector. La razón era
+ * buena: salían en la lista y no mostraban NADA, y una pantalla vacía sin
+ * explicación se lee como "el sistema está roto".
+ *
+ * Pero esconderlas tenía su propio costo, y era peor: una plaza que no aparece
+ * es una plaza de la que nadie se acuerda. Morelia Abastos lleva desde siempre
+ * sin importarse, y precisamente por no salir en ninguna pantalla nadie lo
+ * notó nunca.
+ *
+ * Ahora hay semáforo de relojes: la pantalla puede DECIR que esa plaza no tiene
+ * equipo instalado, en vez de quedarse callada. Con la ausencia explicada, la
+ * lista completa informa más de lo que confunde — y deja el pendiente a la
+ * vista de quien puede resolverlo.
+ *
+ * La lista se conserva (aunque ya no filtre el selector) porque sigue siendo la
+ * respuesta a "¿de cuáles NO hay que esperar datos?", y las pantallas la usan
+ * para redactar el vacío.
  */
 export const CENTROS_SIN_RELOJ: string[] = [
   'la-piedad-centro',    // nunca ha tenido reloj ni padrón
   'morelia-figaredo',    // nunca ha tenido reloj ni padrón
   'santa-ana-pacueco',   // nunca ha tenido reloj ni padrón
-  'morelia-abastos',     // el equipo no responde en el puerto 4370 (probado 28/07 y 05/08)
+  'morelia-abastos',     // el equipo no responde en el 4370 (probado 28/07, 05/08 y 17/08)
 ];
 
+/** ¿De esta plaza hay que esperar checadas, o no tiene reloj instalado? */
+export function tieneReloj(id: string): boolean {
+  return !CENTROS_SIN_RELOJ.includes(id);
+}
+
 /**
- * Lo que SÍ se ofrece en el checador: las ocho plazas que hoy tienen reloj y
- * datos al día. Un selector que ofrece plazas vacías hace dudar de todo lo demás.
+ * Lo que se ofrece en el checador: TODAS las ubicaciones, con reloj o sin él.
+ * Las que no tienen equipo salen igual y la pantalla explica por qué están
+ * vacías (ver el comentario de CENTROS_SIN_RELOJ).
  */
-export const CENTROS_CON_RELOJ: Sucursal[] =
-  CENTROS_CHECADOR.filter(s => !CENTROS_SIN_RELOJ.includes(s.id));
+export const CENTROS_CON_RELOJ: Sucursal[] = CENTROS_CHECADOR;
 
 /** Busca una ubicación de checador (sucursal pública o centro interno) por id. */
 export function centroChecadorPorId(id: string): Sucursal | undefined {

@@ -1,0 +1,156 @@
+-- =====================================================================
+-- CHECADAS EN VIVO · padrón de relojes, latido e ingesta
+-- =====================================================================
+-- Extiende el módulo de horarios y checadas (db/schema.sql) para que el dato
+-- lo EMPUJE algo que sí está en la LAN de los relojes, en vez de que una PC
+-- con el DATABASE_URL de producción los jale cada 5 minutos.
+--
+-- Idempotente: CREATE ... IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
+-- =====================================================================
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid()
+
+-- ---------------------------------------------------------------------
+-- PADRÓN DE RELOJES — reemplaza a tools/targets.json.
+--
+-- LA IDENTIDAD DEL RELOJ ES SU NÚMERO DE SERIE, NO SU IP.
+--
+-- El importador viejo identificaba cada equipo por IP. Morelia Madero
+-- (192.168.32.215) tiene DHCP ENCENDIDO: en cuanto se reinicia, esa plaza deja
+-- de bajar y nadie se entera —no sale ningún error, simplemente dejan de llegar
+-- checadas—. Peor todavía, si otro equipo toma esa IP, las marcas de una plaza
+-- entran bajo el nombre de otra, y eso NO se nota mirando la pantalla.
+--
+-- Con la serie como llave, el agente reencuentra el reloj aunque le cambien la
+-- dirección, y `ip` queda como dato informativo (la última donde se le vio).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS relojes (
+  serie            TEXT PRIMARY KEY,        -- serial del equipo (~SerialNumber)
+  sucursal_id      TEXT NOT NULL,
+  alias            TEXT,                    -- 'Oficinas entrada/salida'
+  ip               TEXT,                    -- ÚLTIMA ip conocida, informativa
+  puerto           INTEGER NOT NULL DEFAULT 4370,
+  modo             TEXT NOT NULL DEFAULT 'agente',   -- agente | push | manual
+  comm_key         INTEGER,                 -- contraseña de comunicación, si tiene
+  activo           BOOLEAN NOT NULL DEFAULT TRUE,
+  pendiente        BOOLEAN NOT NULL DEFAULT FALSE,   -- NO aplicar (sin identificar)
+  nota             TEXT,
+  creado_en        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_relojes_sucursal ON relojes (sucursal_id);
+
+-- ---------------------------------------------------------------------
+-- LATIDO — sin esto, un reloj muerto es INVISIBLE.
+--
+-- Hoy la pantalla se ve igual con un reloj al día que con uno apagado desde
+-- hace tres semanas: en los dos casos sale la última asistencia que hay en la
+-- base. Esta tabla es lo que permite decir "esta plaza lleva 2 h sin señal" en
+-- vez de dejar que RH suponga que todos faltaron.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS relojes_estado (
+  serie              TEXT PRIMARY KEY REFERENCES relojes(serie) ON DELETE CASCADE,
+  ultima_senal       TIMESTAMPTZ,       -- último lote recibido del agente (aunque venga vacío)
+  ultima_checada     TIMESTAMPTZ,       -- fecha_hora más reciente recibida
+  ultimo_backfill    TIMESTAMPTZ,       -- última lectura VERIFICADA completa
+  ip_vista           TEXT,              -- IP donde se le encontró (puede != relojes.ip)
+  logs_en_reloj      INTEGER,           -- info.logCounts declarado por el equipo
+  logs_en_base       INTEGER,           -- lo que tenemos nosotros de esa serie
+  desfase_reloj_seg  INTEGER,           -- hora del reloj − hora del servidor
+  ultimo_error       TEXT,
+  agente_version     TEXT,
+  agente_host        TEXT
+);
+
+-- ---------------------------------------------------------------------
+-- TRADUCCIÓN DE CÓDIGOS — relojes con numeración propia.
+--
+-- Caso real documentado el 05/08/2026: 192.168.0.81 ("Oficinas desayuno y
+-- comida") es LA MISMA GENTE de corporativo con OTRA numeración —#11 es Alfonso,
+-- que en el padrón es #111; #21 Ivonne (#121); #6 Perla (#106); #23 Carmen
+-- (#123)—. De sus 47 usuarios, 34 tienen nombre idéntico en el padrón y solo 1
+-- código coincide con el reloj de entrada/salida.
+--
+-- Jalarlo por código le atribuiría las marcas a la PERSONA EQUIVOCADA. Por eso
+-- ese reloj está en `pendiente` hasta que su traducción esté completa aquí.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reloj_codigo_map (
+  serie            TEXT NOT NULL REFERENCES relojes(serie) ON DELETE CASCADE,
+  codigo_reloj     TEXT NOT NULL,
+  codigo_empleado  TEXT NOT NULL,
+  nota             TEXT,
+  PRIMARY KEY (serie, codigo_reloj)
+);
+
+-- ---------------------------------------------------------------------
+-- COLA DE INGESTA CRUDA — el lote tal como llegó, ANTES de procesarlo.
+--
+-- Sirve para tres cosas que hoy no se pueden hacer:
+--   · Reprocesar sin volver a bajar el reloj (bajar 50 mil registros de
+--     8-Esquinas son ~2 MB y varios minutos).
+--   · No perder el dato de un reloj cuya serie todavía no está dada de alta:
+--     se guarda con error='serie desconocida' y se aplica cuando RH lo registre.
+--   · Guardar lo que manda un reloj `pendiente` sin dejar que entre a `checadas`.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ingesta_lotes (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  serie         TEXT,
+  origen        TEXT NOT NULL,        -- agente | push | manual
+  recibido_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  registros     INTEGER NOT NULL,
+  aceptados     INTEGER,
+  crudo         JSONB,
+  error         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_lotes_serie ON ingesta_lotes (serie, recibido_en DESC);
+-- Los que hay que resolver a mano: series sin registrar y relojes en pausa.
+CREATE INDEX IF NOT EXISTS idx_lotes_error ON ingesta_lotes (recibido_en DESC) WHERE error IS NOT NULL;
+
+-- ---------------------------------------------------------------------
+-- CHECADAS — de qué equipo vino y por dónde entró.
+-- ---------------------------------------------------------------------
+ALTER TABLE checadas ADD COLUMN IF NOT EXISTS serie_reloj TEXT;
+ALTER TABLE checadas ADD COLUMN IF NOT EXISTS origen TEXT;         -- agente|push|manual|directo
+ALTER TABLE checadas ADD COLUMN IF NOT EXISTS recibido_en TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_checadas_recibido ON checadas (recibido_en DESC);
+CREATE INDEX IF NOT EXISTS idx_checadas_serie ON checadas (serie_reloj, fecha);
+
+-- =====================================================================
+-- EL ARREGLO DEL dedup_key  (bug latente, encontrado el 17/08/2026)
+-- =====================================================================
+-- La clave anterior era:
+--
+--     sucursal_id__codigo__fechaHora
+--
+-- Corporativo tiene DOS relojes: 192.168.0.80 (entrada y salida) y
+-- 192.168.0.81 (desayuno y comida). Los dos son `sucursal_id='corporativo'`.
+-- Con la misma sucursal, el mismo código y el mismo segundo, la checada del
+-- SEGUNDO reloj se descartaba como duplicado y se perdía en silencio. El
+-- registro nunca llegaba a existir, así que no hay manera de auditarlo después.
+--
+-- La clave nueva es:
+--
+--     serie__codigoEmpleado__fechaHora
+--
+-- ⚠️ CONVIVEN DOS FORMATOS A PROPÓSITO. El histórico ya cargado tiene claves sin
+-- serie y NO se reescribe: renombrar millones de dedup_key para "emparejar" es
+-- una operación destructiva que arriesga el único registro que tenemos de años
+-- de asistencia, y no compra nada —lo viejo ya está insertado, y la clave solo
+-- sirve para no insertar dos veces—.
+--
+-- El efecto de convivir: una checada YA cargada con la clave vieja podría
+-- volver a entrar UNA vez con la clave nueva, porque la llave es distinta. Eso
+-- se ataja en la ingesta, no con una restricción: al insertar se descarta la
+-- fila si ya existe una con el mismo (sucursal, código, fecha_hora) y sin serie
+-- —el histórico— o con ESTA misma serie. Ver `aplicarLote()` en
+-- api/src/ingesta.ts.
+--
+-- NO se pone un UNIQUE de contenido a propósito. Serviría para lo mismo, pero
+-- la restricción tendría que incluir la serie para que .80 y .81 puedan
+-- convivir, y entonces no atraparía justo el caso que aquí importa: histórico
+-- sin serie contra dato nuevo con serie. Además, un índice único sobre una
+-- tabla de millones de filas ya cargadas falla al crearse si hay un solo
+-- duplicado viejo, y dejaría la migración a medias.
+--
+-- Este índice es solo para que ese descarte sea rápido:
+CREATE INDEX IF NOT EXISTS idx_checadas_dedup_contenido
+  ON checadas (sucursal_id, empleado_codigo, fecha_hora);

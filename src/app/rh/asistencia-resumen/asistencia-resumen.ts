@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
 import {
   ChecadorService, RevisionDia, EstadoRevision,
-  AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi
+  AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi,
+  EstadoReloj, SemaforoReloj
 } from '../../core/services/checador.service';
 import { aFechaLocal } from '../../core/models/checador.model';
-import { CENTROS_CON_RELOJ, centroChecadorPorId } from '../../core/models/sucursales.model';
+import { CENTROS_CON_RELOJ, centroChecadorPorId, tieneReloj } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
@@ -152,6 +153,21 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   private pollAsist: any;
   private readonly POLL_ASIST_MS = 60000;   // refresco automático de la asistencia
 
+  // ══ SEMÁFORO DE RELOJES ══════════════════════════════════════════
+  //
+  // Antes esta pantalla se veía igual con un reloj al día que con uno muerto
+  // desde hace tres semanas: en los dos casos mostraba la última asistencia que
+  // había en la base. El chip "En vivo" de la barra hablaba del refresco de la
+  // PANTALLA, no de la llegada del DATO, y eso se leía como si todo estuviera
+  // al corriente.
+  //
+  // Falta de dato ≠ falta del empleado. Esta franja es lo que impide confundir
+  // las dos cosas.
+  relojes: EstadoReloj[] = [];
+  /** La franja arranca colapsada cuando todo está bien; se abre sola si algo falla. */
+  relojesAbierto = false;
+  private relojesTocado = false;   // ¿el usuario ya la abrió/cerró a mano?
+
   ngOnInit() {
     const hoy = new Date();
     const hace30 = new Date();
@@ -162,6 +178,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (this.sucursalIdExterna) this.sucursalFiltro = this.sucursalIdExterna;
 
     this.ajustarRangoYCargar();
+    this.cargarRelojes();
 
     // Refresco automático (en vivo): recarga sin interrumpir si estás cargando o
     // con el detalle abierto.
@@ -170,8 +187,140 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** Recarga silenciosa periódica. */
   private refrescar() {
+    // El semáforo se refresca SIEMPRE, incluso con el detalle abierto: si un
+    // reloj se cae mientras RH está capturando justificaciones, tiene que
+    // enterarse antes de firmar los números.
+    this.cargarRelojes();
     if (this.cargando || this.detalle) return;
     this.cargar(true);
+  }
+
+  /** Estado de los relojes. Si falla, se calla: nunca debe tumbar la pantalla. */
+  private async cargarRelojes() {
+    try {
+      this.relojes = await this.checador.getEstadoRelojes();
+      // Se abre sola la primera vez que hay algo que ver, y no se vuelve a
+      // imponer si la persona ya decidió cerrarla.
+      if (!this.relojesTocado && this.relojesConProblema.length) this.relojesAbierto = true;
+    } catch { /* sin semáforo la pantalla sigue sirviendo */ }
+  }
+
+  toggleRelojes() {
+    this.relojesAbierto = !this.relojesAbierto;
+    this.relojesTocado = true;
+  }
+
+  // ---- Lectura del semáforo ----
+
+  /** Todo lo que no está en verde: mudos, atrasados y en pausa. */
+  get relojesConProblema(): EstadoReloj[] {
+    return this.relojes.filter(r => r.semaforo !== 'ok');
+  }
+  get relojesMudos(): EstadoReloj[] {
+    return this.relojes.filter(r => r.semaforo === 'mudo');
+  }
+  /** Relojes con la hora corrida más de 2 min: sus retardos no son de fiar. */
+  get relojesDesfasados(): EstadoReloj[] {
+    return this.relojes.filter(r => r.desfaseRelojSeg != null && Math.abs(r.desfaseRelojSeg) > 120);
+  }
+
+  /**
+   * ¿La sucursal que se está viendo tiene algún reloj sin señal?
+   *
+   * Esto es lo que marca el resumen: si el reloj de esta plaza está mudo, los
+   * números de abajo son de la última vez que hubo dato, no de hoy.
+   */
+  get relojesDeLaSucursal(): EstadoReloj[] {
+    return this.relojes.filter(r => r.sucursalId === this.sucursalFiltro);
+  }
+  get sucursalSinSenal(): boolean {
+    const propios = this.relojesDeLaSucursal;
+    return propios.length > 0 && propios.every(r => r.semaforo === 'mudo');
+  }
+
+  /**
+   * Esta plaza NO tiene reloj instalado — no es que esté fallando.
+   *
+   * Estas cuatro plazas se escondían del selector justamente para no llegar
+   * aquí. Ahora salen, y por eso la pantalla tiene que decir la diferencia
+   * entre "no hay equipo" y "el equipo está mudo": la primera se resuelve
+   * comprando e instalando un reloj, la segunda revisando la red.
+   */
+  get sucursalSinReloj(): boolean {
+    return !!this.sucursalFiltro && !tieneReloj(this.sucursalFiltro);
+  }
+
+  /** Un resumen de una línea para el botón de la franja. */
+  get resumenRelojes(): string {
+    if (!this.relojes.length) return 'sin relojes registrados';
+    const mudos = this.relojesMudos.length;
+    const atrasados = this.relojes.filter(r => r.semaforo === 'atrasado').length;
+    const pausa = this.relojes.filter(r => r.semaforo === 'pendiente').length;
+    const ok = this.relojes.filter(r => r.semaforo === 'ok').length;
+    const partes: string[] = [];
+    if (ok) partes.push(`${ok} al día`);
+    if (atrasados) partes.push(`${atrasados} atrasado${atrasados > 1 ? 's' : ''}`);
+    if (mudos) partes.push(`${mudos} sin señal`);
+    if (pausa) partes.push(`${pausa} en pausa`);
+    return partes.join(' · ');
+  }
+
+  /** El peor estado de todos, que es el que le da color a la franja. */
+  get peorSemaforo(): SemaforoReloj | 'vacio' {
+    if (!this.relojes.length) return 'vacio';
+    if (this.relojesMudos.length) return 'mudo';
+    if (this.relojes.some(r => r.semaforo === 'atrasado')) return 'atrasado';
+    if (this.relojes.some(r => r.semaforo === 'pendiente')) return 'pendiente';
+    return 'ok';
+  }
+
+  /** "hace 40 s", "hace 1 h 12 m", "sin señal desde el 17 jul". */
+  desdeCuando(r: EstadoReloj): string {
+    if (r.semaforo === 'pendiente') return 'en pausa';
+    const s = r.segundosSinSenal;
+    if (s == null) return 'nunca ha reportado';
+    if (s < 90) return `hace ${Math.max(0, Math.round(s))} s`;
+    if (s < 3600) return `hace ${Math.round(s / 60)} min`;
+    if (s < 86400) {
+      const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+      return `hace ${h} h${m ? ' ' + m + ' m' : ''}`;
+    }
+    return r.ultimaSenal
+      ? `sin señal desde el ${this.fechaCorta(new Date(r.ultimaSenal))}`
+      : `hace ${Math.floor(s / 86400)} días`;
+  }
+
+  /**
+   * Por qué este reloj no está en verde, dicho de forma accionable. Un "no
+   * responde" genérico no le sirve a nadie: hay que saber si es red, equipo,
+   * o trabajo pendiente de RH.
+   */
+  motivoReloj(r: EstadoReloj): string {
+    if (r.semaforo === 'pendiente') {
+      return r.nota?.includes('numeracion') || r.sucursalId === 'REVISAR-NUMERACION'
+        ? 'numeración propia sin traducir — sus marcas se atribuirían a otra persona'
+        : 'sin identificar a qué plaza pertenece — sus checadas no se aplican';
+    }
+    if (r.ultimoError) return r.ultimoError;
+    if (r.semaforo === 'mudo') return 'nadie ha reportado este reloj: agente apagado, equipo apagado, o sin red';
+    if (r.semaforo === 'atrasado') return 'sigue llegando dato, pero más lento de lo normal';
+    return '';
+  }
+
+  /** El texto de la deriva, que es lo que convierte un retardo real en uno inventado. */
+  desfaseTexto(r: EstadoReloj): string {
+    const d = r.desfaseRelojSeg;
+    if (d == null || Math.abs(d) <= 120) return '';
+    const min = Math.round(Math.abs(d) / 60);
+    return `hora corrida ${d > 0 ? '+' : '−'}${min} min`;
+  }
+
+  /** Lo que le falta a la base contra lo que el equipo dice tener. */
+  faltantesTexto(r: EstadoReloj): string {
+    if (r.logsEnReloj == null || r.logsEnBase == null) return '';
+    const falta = r.logsEnReloj - r.logsEnBase;
+    if (falta <= 0) return 'completo';
+    return `faltan ${falta.toLocaleString('es-MX')}`;
   }
 
   ngOnChanges(cambios: SimpleChanges) {

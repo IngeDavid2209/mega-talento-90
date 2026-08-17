@@ -115,6 +115,52 @@ export interface AsistenciaPersonas {
   personas: PersonaAsistencia[];
 }
 
+// ══════════════════════════════════════════════════════════════════
+// SEMÁFORO DE RELOJES
+//
+// La pantalla de asistencia se refresca sola cada minuto, pero solo lee la
+// base: se ve EXACTAMENTE IGUAL con un reloj al día que con uno muerto desde
+// hace tres semanas. En los dos casos aparece la última asistencia que hay.
+//
+// Por dentro esto ya se manejaba bien —el corredor del agente de horarios mide
+// contra `max(checadas.fecha)` de cada sucursal y NO contra la fecha de hoy,
+// justo para que un reloj sin bajar no invente faltas—. Lo que faltaba era que
+// ese atraso fuera VISIBLE para quien mira la pantalla.
+//
+// Regla de producto: la pantalla nunca debe parecer al día cuando no lo está.
+// Y al revés: falta de dato ≠ falta del empleado.
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * - `ok`        → señal hace menos de 10 min
+ * - `atrasado`  → señal hace menos de 2 h
+ * - `mudo`      → 2 h o más sin señal (o nunca)
+ * - `pendiente` → reloj en pausa: sus checadas NO entran (sin identificar o
+ *                 con numeración propia sin traducir)
+ */
+export type SemaforoReloj = 'ok' | 'atrasado' | 'mudo' | 'pendiente';
+
+export interface EstadoReloj {
+  serie: string;
+  sucursalId: string;
+  alias: string;
+  modo: string;                     // agente | push | manual
+  ip: string;
+  nota: string;
+  ultimaSenal: string | null;       // último lote/latido recibido
+  ultimaChecada: string | null;     // marca más reciente que llegó de ese equipo
+  ultimoBackfill: string | null;
+  segundosSinSenal: number | null;
+  logsEnReloj: number | null;       // lo que el equipo declara tener
+  logsEnBase: number | null;        // lo que tenemos nosotros
+  /** Hora del reloj − hora del servidor. Con esto corrido, los retardos son falsos. */
+  desfaseRelojSeg: number | null;
+  ultimoError: string;
+  agenteVersion: string;
+  agenteHost: string;
+  semaforo: SemaforoReloj;
+}
+
 /** Alerta del AGENTE de horarios (borrador de inconsistencia detectada por IA). */
 export type EstadoAlerta = 'sugerida_ia' | 'aprobada' | 'rechazada' | 'descartada';
 export interface AlertaAgente {
@@ -328,6 +374,16 @@ export class ChecadorService {
    */
   async getAsistencia(sucursalId: string, desde: string, hasta: string): Promise<AsistenciaPersonas> {
     return this.api.get<AsistenciaPersonas>('/checador/agente/asistencia', { sucursalId, desde, hasta });
+  }
+
+  // ===================== SEMÁFORO DE RELOJES =====================
+  /**
+   * Estado de cada reloj: cuándo se le oyó por última vez, cuánta historia
+   * tiene, y si su hora está corrida. Es la contraparte visible del atraso que
+   * el agente de horarios ya maneja bien por dentro.
+   */
+  async getEstadoRelojes(): Promise<EstadoReloj[]> {
+    return this.api.get<EstadoReloj[]>('/checador/relojes/estado');
   }
 
   // ===================== AGENTE DE HORARIOS (IA) =====================

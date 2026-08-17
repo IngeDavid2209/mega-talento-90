@@ -1,230 +1,263 @@
 // Jala empleados + checadas de VARIOS checadores ZKTeco (SOLO LECTURA) y los
-// carga a Postgres.
-// Uso:  npm run jalar         (lee tools/targets.json y DATABASE_URL del .env)
+// manda a la API.
+//
+// ⚠️ ESTE SCRIPT YA NO ES LA FORMA DE TENER LA ASISTENCIA EN VIVO.
+//
+// Antes se dejaba corriendo en bucle cada 5 minutos en una PC de sucursal, con
+// el DATABASE_URL de producción en un `.env`. Eso tenía tres problemas: cada
+// corrida baja el LOG COMPLETO de cada reloj (8-Esquinas son ~50 mil registros,
+// ≈2 MB) y con 8 relojes eso no cierra de forma confiable en 5 minutos; solo
+// funcionaba mientras alguien dejara la ventana abierta; y ponía las
+// credenciales de la base en cada plaza.
+//
+// Ahora hay un servicio de verdad: api/agente/ (stream en vivo + backfill
+// horario + cola local que sobrevive a los cortes de internet). Este script se
+// queda como herramienta de BACKFILL manual: para recuperar historia, para
+// probar un reloj recién revivido, o para una plaza donde todavía no se
+// instaló el agente.
+//
+// Uso:
+//   npm run jalar                   manda a la API (INGESTA_URL + INGESTA_TOKEN)
+//   npm run jalar -- --dry-run      lee y verifica, no manda nada
+//   npm run jalar -- --directo      escribe a Postgres como antes (necesita DATABASE_URL)
+//   npm run jalar -- --incluir-pendientes
+//
 // La lista de relojes se toma de:
-//   1) env TARGETS (JSON): [{"ip","suc"}]   — si se define, tiene prioridad
-//   2) tools/targets.json                    — lista fija por sucursal (default)
+//   1) la tabla `relojes` de la API, si hay INGESTA_URL + INGESTA_TOKEN
+//   2) env TARGETS (JSON): [{"ip","suc"}]
+//   3) tools/targets.json
 //
 // ⚠️ LECTURA VERIFICADA — por qué NO se usa getAttendances() de la librería.
 // `node-zklib` trunca los logs grandes de forma NO DETERMINISTA y no avisa:
 // resuelve la promesa con datos parciales y un campo `err` que este script
 // ignoraba. Medido contra los relojes reales: 8-Esquinas devolvía
 // 3,273 / 32,735 / 49,103 / 49,936 registros en corridas distintas, al azar.
-// O sea que este importador ha estado cargando fracciones y reportando éxito.
-// El detalle del bug y la corrección están en tools/lector-zk.js.
+// El detalle del bug está en tools/lector-zk.js y la verificación en
+// tools/lectura-verificada.js — compartida con el agente, para que la regla no
+// se divida en dos copias que después divergen.
 //
 try { require('dotenv').config(); } catch { /* dotenv opcional */ }
-const ZKLib = require('node-zklib');
-const { Pool } = require('pg');
-const { leerChecadas, leerUsuarios } = require('./lector-zk');
+const {
+  leerVerificado, normalizarChecadas, normalizarUsuarios, motivo,
+} = require('./lectura-verificada');
 
-const PORT = parseInt(process.env.ZK_PORT || '4370', 10);
-// Reintentos cuando la lectura no cuadra con lo que el reloj declara.
-// Calibrados contra los equipos reales: con pausa de 2.5 s un reloj falló 5 de
-// 5 intentos; con 4 s pasó en el segundo.
-const INTENTOS = parseInt(process.env.ZK_INTENTOS || '8', 10) || 8;
-const PAUSA_MS = parseInt(process.env.ZK_PAUSA_MS || '4000', 10) || 4000;
-// --dry-run: lee y verifica pero NO escribe en la base. Para probar sin riesgo.
+// --dry-run: lee y verifica pero NO escribe ni manda. Para probar sin riesgo.
 const DRY_RUN = process.argv.includes('--dry-run');
+// --directo: el modo viejo, escribiendo a Postgres. Se conserva por si la API
+// no está disponible y hay que recuperar historia a mano.
+const DIRECTO = process.argv.includes('--directo');
 
-// node-zklib lanza OBJETOS, no Error: sin esto los fallos salen como
-// "[object Object]" y no se distingue un reloj apagado de un bug propio.
-function motivo(e) {
-  if (!e) return 'error desconocido';
-  if (typeof e === 'string') return e;
-  if (e.message) return e.message;
-  if (e.err && e.err.message) return e.err.message;
-  if (e.code) return `${e.code}${e.address ? ' ' + e.address : ''}`;
-  try { return JSON.stringify(e); } catch { return String(e); }
+const INGESTA_URL = (process.env.INGESTA_URL || process.env.API_URL || '').replace(/\/$/, '');
+const INGESTA_TOKEN = process.env.INGESTA_TOKEN || '';
+// Se parte en lotes para no chocar con el límite del cuerpo HTTP ni dejar la
+// API sin aire con 50 mil filas en una sola transacción.
+const TAM_LOTE = parseInt(process.env.INGESTA_LOTE || '500', 10) || 500;
+
+if (!DIRECTO && !DRY_RUN && (!INGESTA_URL || !INGESTA_TOKEN)) {
+  console.error('Falta INGESTA_URL y/o INGESTA_TOKEN en el .env.');
+  console.error('  · Para mandar a la API:  INGESTA_URL=https://…  INGESTA_TOKEN=…');
+  console.error('  · Para el modo viejo escribiendo a Postgres:  npm run jalar -- --directo');
+  process.exit(1);
 }
+
+let pool = null;
+if (DIRECTO && !DRY_RUN) {
+  const { Pool } = require('pg');
+  pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+}
+
 // Las entradas SIN `ip` se descartan: targets.json lleva un bloque de
 // documentacion al principio (JSON no admite comentarios) y sin este filtro se
 // contaba como un reloj mas, salia como "undefined (undefined)" y engordaba el
 // marcador de fallos con algo que no es un reloj.
-const TODOS = (process.env.TARGETS ? JSON.parse(process.env.TARGETS) : require('./targets.json'))
-  .filter((t) => t && typeof t.ip === 'string' && t.ip.trim());
+async function cargarTargets() {
+  if (INGESTA_URL && INGESTA_TOKEN) {
+    try {
+      const res = await fetch(`${INGESTA_URL}/checador/ingesta/relojes`, {
+        headers: { 'X-Agente-Token': INGESTA_TOKEN },
+      });
+      if (res.ok) {
+        const relojes = await res.json();
+        console.log(`  (padrón de la API: ${relojes.length} relojes)`);
+        return relojes.map((r) => ({
+          ip: r.ip, suc: r.sucursalId, serie: r.serie, commKey: r.commKey,
+          pendiente: r.pendiente, nota: r.nota,
+        })).filter((t) => t.ip);
+      }
+      console.log(`  (la API contestó ${res.status} al pedir el padrón; se usa targets.json)`);
+    } catch (e) { console.log(`  (no se pudo leer el padrón de la API: ${motivo(e)})`); }
+  }
+  const crudo = process.env.TARGETS ? JSON.parse(process.env.TARGETS) : require('./targets.json');
+  return crudo.filter((t) => t && typeof t.ip === 'string' && t.ip.trim());
+}
+
 // Los marcados con "pendiente": true se saltan a propósito: son relojes que no
 // responden o que todavía no se sabe a qué sucursal pertenecen. Intentarlos cada
-// 5 minutos solo llenaría el log de errores y taparía los problemas reales.
+// vez solo llenaría el log de errores y taparía los problemas reales.
 // Con --incluir-pendientes se prueban (útil después de revivir un equipo).
 const INCLUIR_PENDIENTES = process.argv.includes('--incluir-pendientes');
-const TARGETS = INCLUIR_PENDIENTES ? TODOS : TODOS.filter((t) => !t.pendiente);
-const PENDIENTES = TODOS.filter((t) => t.pendiente);
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
-if (!Array.isArray(TARGETS) || !TARGETS.length) {
-  console.error('No hay relojes que jalar: define TARGETS o edita tools/targets.json.');
-  process.exit(1);
-}
-
-const pad = n => String(n).padStart(2, '0');
-function fmt(d) {
-  const y = d.getFullYear(), mo = pad(d.getMonth() + 1), da = pad(d.getDate());
-  const h = pad(d.getHours()), mi = pad(d.getMinutes()), s = pad(d.getSeconds());
-  return { fecha: `${y}-${mo}-${da}`, hora: `${h}:${mi}:${s}`, fechaHora: `${y}-${mo}-${da}T${h}:${mi}:${s}` };
-}
-
-// ──────────────────────────────────────────────────────────────────
-// leerVerificado(ip) — lee el reloj y GARANTIZA que la lectura esté completa,
-// o lanza. Nunca devuelve datos parciales.
-//
-// Cómo se verifica: `info.logCounts` sí reporta el total correcto. Se lee ANTES
-// y DESPUÉS de bajar las checadas, porque si alguien checa en medio el total
-// sube — una lectura válida debe caer entre esos dos valores. Comparar contra un
-// solo número daría falsos negativos justo en las horas de entrada y salida.
-//
-// Y se valida el CONTENIDO, no solo la cantidad: un desalineamiento de bytes
-// produce el número correcto de registros con código vacío y fecha 2000-01-01.
-// La cantidad cuadra y el dato no sirve.
-// ──────────────────────────────────────────────────────────────────
-async function leerVerificado(ip) {
-  const historial = [];
-
-  for (let intento = 1; intento <= INTENTOS; intento++) {
-    // Socket NUEVO en cada intento: reutilizarlo arrastra el buffer a medias.
-    const zk = new ZKLib(ip, PORT, 20000, 5000);
-    try {
-      await zk.createSocket();
-      const antes = await zk.getInfo();
-
-      const users = await leerUsuarios(zk);
-      const logs = await leerChecadas(zk);
-
-      let despues = antes.logCounts;
-      try { despues = (await zk.getInfo()).logCounts; } catch { /* se queda el de antes */ }
-
-      const min = Math.min(antes.logCounts, despues);
-      const max = Math.max(antes.logCounts, despues);
-      const cantidadOk = logs.length >= min && logs.length <= max;
-      const usuariosOk = antes.userCounts === undefined || users.length >= antes.userCounts;
-
-      // Contenido creíble: con código y fecha posterior a 2001 (los relojes sin
-      // hora configurada graban 2000-01-01).
-      const sanos = logs.filter((x) => {
-        const cod = String(x.deviceUserId ?? '').trim();
-        const t = new Date(x.recordTime).getTime();
-        return cod !== '' && Number.isFinite(t) && t > Date.UTC(2001, 0, 1);
-      }).length;
-      const contenidoOk = logs.length === 0 || sanos / logs.length >= 0.9;
-
-      historial.push({ intento, dice: antes.logCounts, leidas: logs.length, sanos });
-
-      if (cantidadOk && usuariosOk && contenidoOk) {
-        return { users, logs, esperadas: min, intentos: intento };
-      }
-      const falla = !contenidoOk
-        ? `contenido inválido (${sanos}/${logs.length} registros creíbles)`
-        : !usuariosOk ? `usuarios incompletos (${users.length} de ${antes.userCounts})`
-        : `checadas incompletas (${logs.length} de ${antes.logCounts})`;
-      console.log(`    intento ${intento}/${INTENTOS}: ${falla}`);
-    } catch (e) {
-      const m = motivo(e);
-      console.log(`    intento ${intento}/${INTENTOS}: ${m}`);
-      // Sin conexión no hay nada que reintentar.
-      if (/ETIMEDOUT|EHOSTUNREACH|ECONNREFUSED|TCP CONNECT/i.test(m)) {
-        throw new Error(`no se pudo conectar a ${ip}:${PORT} — ${m}`);
-      }
-    } finally {
-      // Siempre cerrar: estos equipos aceptan UNA sesión a la vez y dejarla
-      // abierta los vuelve inaccesibles para el siguiente intento.
-      await zk.disconnect().catch(() => {});
-    }
-    if (intento < INTENTOS) await new Promise((r) => setTimeout(r, PAUSA_MS));
+// ── Envío a la API ────────────────────────────────────────────────────
+async function mandarLote(cuerpo) {
+  const res = await fetch(`${INGESTA_URL}/checador/ingesta`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Agente-Token': INGESTA_TOKEN },
+    body: JSON.stringify(cuerpo),
+  });
+  const txt = await res.text();
+  let json = null;
+  try { json = JSON.parse(txt); } catch { /* respuesta no-JSON */ }
+  if (res.status === 409) {
+    throw new Error(json?.mensaje || `la serie ${cuerpo.serie} no está en el padrón de relojes. ` +
+      'Corre `node tools/registrar-relojes.js` primero.');
   }
-
-  const mejor = Math.max(0, ...historial.map((h) => h.leidas || 0));
-  const dice = historial.length ? historial[historial.length - 1].dice : '?';
-  throw new Error(
-    `lectura INCOMPLETA tras ${INTENTOS} intentos: el reloj reporta ${dice} checadas y ` +
-    `la mejor lectura fue ${mejor}. NO se carga nada.`);
+  if (res.status === 202) return { pausado: true, ...json };
+  if (!res.ok) throw new Error(`la API contestó ${res.status}: ${txt.slice(0, 200)}`);
+  return json || {};
 }
 
-async function jalarUno({ ip, suc }) {
+async function enviarPorApi(lectura, filas, usuarios) {
+  if (!lectura.serie) {
+    throw new Error('el reloj no dio número de serie, y la ingesta identifica por serie. ' +
+      'Usa --directo para este equipo, o revisa su firmware.');
+  }
+  let aceptadas = 0, duplicadas = 0, pausado = false;
+  for (let i = 0; i < filas.length; i += TAM_LOTE) {
+    const grupo = filas.slice(i, i + TAM_LOTE);
+    const r = await mandarLote({
+      serie: lectura.serie,
+      ip: lectura.ip,
+      origen: 'agente',
+      agenteVersion: 'jalar-todo-zk',
+      agenteHost: require('os').hostname(),
+      infoReloj: {
+        logCounts: lectura.info?.logCounts,
+        userCounts: lectura.info?.userCounts,
+        horaReloj: lectura.horaReloj ? lectura.horaReloj.toISOString() : undefined,
+      },
+      // El padrón va SOLO en el primer lote: mandarlo 100 veces no agrega nada
+      // y multiplica los upserts de `empleados`.
+      usuarios: i === 0 ? usuarios : undefined,
+      checadas: grupo,
+      // `completa` solo en el ÚLTIMO lote: es lo que le dice a la API que ya
+      // llegó todo el log y puede recalcular logs_en_base contra logs_en_reloj.
+      completa: i + TAM_LOTE >= filas.length,
+    });
+    if (r.pausado) { pausado = true; break; }
+    aceptadas += r.aceptadas || 0;
+    duplicadas += r.duplicadas || 0;
+  }
+  // Un reloj sin checadas también tiene que reportarse: el lote vacío ES el
+  // latido, y sin él ese equipo se vería "mudo" aunque esté perfecto.
+  if (!filas.length) {
+    const r = await mandarLote({
+      serie: lectura.serie, ip: lectura.ip, origen: 'agente',
+      agenteVersion: 'jalar-todo-zk', agenteHost: require('os').hostname(),
+      infoReloj: { logCounts: lectura.info?.logCounts, userCounts: lectura.info?.userCounts },
+      usuarios, checadas: [], completa: true,
+    });
+    pausado = !!r.pausado;
+  }
+  return { aceptadas, duplicadas, pausado };
+}
+
+// ── Escritura directa a Postgres (modo viejo, --directo) ──────────────
+async function escribirDirecto(suc, filas, usuarios, serie) {
+  for (const u of usuarios) {
+    // El nombre del reloj solo RELLENA, no pisa: si RH corrige "Franciscomtz"
+    // a "Francisco Martinez" en el portal, la siguiente corrida no se lo
+    // deshace en silencio.
+    await pool.query(
+      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo) VALUES ($1,$2,$3,true)
+       ON CONFLICT (sucursal_id, codigo_checador) DO UPDATE
+          SET nombre = CASE
+                WHEN empleados.nombre IS NULL
+                  OR btrim(empleados.nombre) = ''
+                  OR empleados.nombre LIKE 'Empleado %'
+                THEN EXCLUDED.nombre
+                ELSE empleados.nombre
+              END`,
+      [suc, u.codigo, u.nombre]
+    );
+  }
+  const nombres = new Map(usuarios.map((u) => [u.codigo, u.nombre]));
+  let nc = 0;
+  for (let i = 0; i < filas.length; i += 200) {
+    const grupo = filas.slice(i, i + 200);
+    const vals = [], params = [];
+    grupo.forEach((c, j) => {
+      const b = j * 10;
+      vals.push(`($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7},$${b+8},$${b+9},now())`);
+      // dedup_key con SERIE cuando se conoce: sin ella, los dos relojes de
+      // corporativo (.80 entrada/salida y .81 comida) se comen las checadas uno
+      // del otro cuando caen en el mismo segundo.
+      const clave = serie ? `${serie}__${c.codigo}__${c.fechaHora}` : `${suc}__${c.codigo}__${c.fechaHora}`;
+      params.push(suc, c.codigo, nombres.get(c.codigo) || null, c.fechaHora, c.fecha, c.hora,
+                  null, clave, serie || null);
+    });
+    const r = await pool.query(
+      `INSERT INTO checadas (sucursal_id, empleado_codigo, empleado_nombre, fecha_hora, fecha, hora,
+                             tipo, dedup_key, serie_reloj, recibido_en)
+       VALUES ${vals.join(',')} ON CONFLICT (dedup_key) DO NOTHING`, params);
+    nc += r.rowCount || 0;
+  }
+  return nc;
+}
+
+// ── Un reloj ──────────────────────────────────────────────────────────
+async function jalarUno(t) {
   // Si la lectura no es verificablemente completa, esto LANZA y no se escribe
   // ni una fila. Antes se cargaba lo que hubiera llegado.
-  const { users, logs, esperadas, intentos } = await leerVerificado(ip);
-  if (intentos > 1) console.log(`    (cuadró en el intento ${intentos})`);
+  const lectura = await leerVerificado(t.ip, { commKey: t.commKey, log: (m) => console.log(m) });
+  if (lectura.intentos > 1) console.log(`    (cuadró en el intento ${lectura.intentos})`);
 
-  // Empleados
-  let ne = 0;
-  const mapa = new Map();
-  for (const u of users) {
-    const codigo = String(u.userId ?? u.uid ?? '').trim();
-    if (!codigo) continue;
-    const nombre = (u.name || '').trim() || `Empleado ${codigo}`;
-    mapa.set(codigo, nombre);
-    if (!DRY_RUN) {
-      // El nombre del reloj solo RELLENA, no pisa. Antes hacia
-      // `SET nombre = EXCLUDED.nombre`, y eso significaba que cada jalado
-      // sobrescribia el padron con el nombre crudo del aparato: si RH corrige
-      // "Franciscomtz" a "Francisco Martinez" en el portal, la siguiente corrida
-      // se lo deshacia en silencio. Medido el 30/07/2026 los 274 nombres
-      // comparables eran identicos, asi que hoy no cambia nada — se blinda para
-      // que el dia que RH edite uno, el jalado no le borre el trabajo.
-      await pool.query(
-        `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo) VALUES ($1,$2,$3,true)
-         ON CONFLICT (sucursal_id, codigo_checador) DO UPDATE
-            SET nombre = CASE
-                  WHEN empleados.nombre IS NULL
-                    OR btrim(empleados.nombre) = ''
-                    OR empleados.nombre LIKE 'Empleado %'
-                  THEN EXCLUDED.nombre
-                  ELSE empleados.nombre
-                END`,
-        [suc, codigo, nombre]
-      );
-    }
-    ne++;
+  // La serie que contesta debe ser la que el padrón espera. Si no lo es, la IP
+  // cambió de dueño y jalarla metería las marcas bajo la sucursal equivocada.
+  if (t.serie && lectura.serie && t.serie !== lectura.serie) {
+    throw new Error(`ESTA IP YA NO ES ESE RELOJ: el padrón espera ${t.serie} y contesta ` +
+      `${lectura.serie}. Corre tools/diagnostico-red.js --barrer para reencontrarlo.`);
   }
 
-  // Checadas (dedup + lotes)
-  const vistos = new Set(); const filas = [];
-  for (const l of logs) {
-    const codigo = String(l.deviceUserId ?? l.userId ?? l.uid ?? '').trim();
-    const t = l.recordTime instanceof Date ? l.recordTime : new Date(l.recordTime);
-    if (!codigo || isNaN(t.getTime())) continue;
-    const f = fmt(t);
-    const key = `${suc}__${codigo}__${f.fechaHora}`;
-    if (vistos.has(key)) continue;
-    vistos.add(key);
-    filas.push({ codigo, nombre: mapa.get(codigo) || null, ...f, key });
-  }
-  let nc = 0;
-  if (!DRY_RUN) {
-    for (let i = 0; i < filas.length; i += 200) {
-      const grupo = filas.slice(i, i + 200);
-      const vals = [], params = [];
-      grupo.forEach((c, j) => {
-        const b = j * 8;
-        vals.push(`($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7},$${b+8})`);
-        params.push(suc, c.codigo, c.nombre, c.fechaHora, c.fecha, c.hora, null, c.key);
-      });
-      const r = await pool.query(
-        `INSERT INTO checadas (sucursal_id, empleado_codigo, empleado_nombre, fecha_hora, fecha, hora, tipo, dedup_key)
-         VALUES ${vals.join(',')} ON CONFLICT (dedup_key) DO NOTHING`, params);
-      nc += r.rowCount || 0;
-    }
-  }
-  // Rango de fechas: si el reloj tiene meses que la base no, se ve aquí.
+  const usuarios = normalizarUsuarios(lectura.users);
+  const filas = normalizarChecadas(lectura.logs);
   const dias = [...new Set(filas.map((f) => f.fecha))].sort();
-  return {
-    ne, nc, totalChecadas: filas.length, esperadas,
+  const base = {
+    ne: usuarios.length, totalChecadas: filas.length, esperadas: lectura.esperadas,
+    serie: lectura.serie, desfaseSeg: lectura.horaReloj
+      ? Math.round((lectura.horaReloj.getTime() - Date.now()) / 1000) : null,
     desde: dias[0] || null, hasta: dias[dias.length - 1] || null,
   };
+
+  if (DRY_RUN) return { ...base, nc: 0, modo: 'dry-run' };
+  if (DIRECTO) return { ...base, nc: await escribirDirecto(t.suc, filas, usuarios, lectura.serie), modo: 'directo' };
+
+  const r = await enviarPorApi(lectura, filas, usuarios);
+  return { ...base, nc: r.aceptadas, pausado: r.pausado, modo: 'api' };
 }
 
-async function correr() {
+async function correr(TARGETS, PENDIENTES) {
   const marca = new Date().toLocaleString('es-MX');
-  console.log(`\n──── Jalado ${marca}${DRY_RUN ? '  (DRY RUN: no escribe en la base)' : ''} ────`);
+  const etiqueta = DRY_RUN ? '  (DRY RUN: no manda nada)' : DIRECTO ? '  (modo DIRECTO: escribe a Postgres)' : '';
+  console.log(`\n──── Jalado ${marca}${etiqueta} ────`);
   let ok = 0, fallidos = 0;
   for (const t of TARGETS) {
-    console.log(`\n  ${t.suc} (${t.ip})${t.nota ? ' · ' + t.nota : ''}`);
+    console.log(`\n  ${t.suc} (${t.ip})${t.nota ? ' · ' + String(t.nota).split('.')[0] : ''}`);
     try {
       const r = await jalarUno(t);
+      if (r.pausado) {
+        console.log(`  ⏸  el reloj está EN PAUSA en el padrón: se guardó el lote pero no se aplicó.`);
+        ok++;
+        continue;
+      }
       // Se reporta lo LEÍDO contra lo que el reloj DECLARA, para que una lectura
       // a medias no pueda pasar por buena nunca más.
       console.log(`  ✅ verificado: ${r.totalChecadas} de ${r.esperadas} checadas · ${r.desde || '?'} → ${r.hasta || '?'}`);
-      console.log(`     ${r.ne} empleados · ${DRY_RUN ? 'no se escribió (dry run)' : r.nc + ' checadas nuevas en la base'}`);
+      console.log(`     serie ${r.serie || '(no la dio)'} · ${r.ne} empleados · ` +
+        (DRY_RUN ? 'no se mandó (dry run)' : `${r.nc} checadas nuevas`));
+      if (r.desfaseSeg != null && Math.abs(r.desfaseSeg) > 120) {
+        console.log(`     ⚠ el reloj va ${r.desfaseSeg > 0 ? 'adelantado' : 'atrasado'} ${Math.abs(r.desfaseSeg)}s ` +
+          'contra este equipo: la tolerancia se aplica sobre una hora falsa y salen retardos que no existen.');
+      }
       ok++;
     } catch (e) {
       fallidos++;
@@ -234,30 +267,46 @@ async function correr() {
         console.log('     La conexión funciona; lo que falla es la descarga del log.');
         console.log('     Sube ZK_INTENTOS o córrelo cuando haya menos tráfico en la red.');
       } else if (/no se pudo conectar/i.test(m)) {
-        console.log('     Revisa: reloj prendido, cable de red, y que la IP siga siendo esa');
-        console.log('     (si el reloj tiene DHCP, pudo cambiar sola).');
+        console.log('     Corre `node tools/diagnostico-red.js --ip ' + t.ip + '` para saber en qué paso se rompe:');
+        console.log('     sin ruta, puerto cerrado, otra sesión abierta o contraseña de comunicación.');
       }
     }
   }
   console.log(`\n──── ${ok} de ${TARGETS.length} relojes al día · ${fallidos} con problema ────`);
   if (PENDIENTES.length && !INCLUIR_PENDIENTES) {
     console.log(`\n  ⏸  ${PENDIENTES.length} reloj(es) en pausa, no se intentaron:`);
-    PENDIENTES.forEach((t) => console.log(`     ${t.suc} (${t.ip}) — ${String(t.nota).split('.')[0]}`));
+    PENDIENTES.forEach((t) => console.log(`     ${t.suc} (${t.ip}) — ${String(t.nota || '').split('.')[0]}`));
     console.log('     Para probarlos: npm run jalar -- --incluir-pendientes');
   }
   return { ok, fallidos };
 }
 
-// Modo watch: --loop (o LOOP_MIN=n) repite cada n minutos (default 5) para
-// mantener la base "al día". Debe correr en una máquina en la red de los relojes.
-const LOOP_MIN = parseInt(process.env.LOOP_MIN || '', 10) || (process.argv.includes('--loop') ? 5 : 0);
+// Modo watch: --loop (o LOOP_MIN=n) repite cada n minutos.
+//
+// ⚠️ Esto NO es "en vivo": cada vuelta baja el log completo de cada reloj. Con
+// 8 relojes no cierra en 5 minutos, y lo único que se logra bajando el
+// intervalo es encimar corridas. Lo que da inmediatez es api/agente/ (stream).
+const LOOP_MIN = parseInt(process.env.LOOP_MIN || '', 10) || (process.argv.includes('--loop') ? 60 : 0);
 
 (async () => {
-  await correr();
+  const TODOS = await cargarTargets();
+  if (!Array.isArray(TODOS) || !TODOS.length) {
+    console.error('No hay relojes que jalar: registra el padrón con tools/registrar-relojes.js o edita tools/targets.json.');
+    process.exit(1);
+  }
+  const TARGETS = INCLUIR_PENDIENTES ? TODOS : TODOS.filter((t) => !t.pendiente);
+  const PENDIENTES = TODOS.filter((t) => t.pendiente);
+  if (!TARGETS.length) {
+    console.error('Todos los relojes del padrón están en pausa. Usa --incluir-pendientes si de verdad quieres probarlos.');
+    process.exit(1);
+  }
+
+  await correr(TARGETS, PENDIENTES);
   if (LOOP_MIN > 0) {
-    console.log(`\n⏱  Modo en vivo: repitiendo cada ${LOOP_MIN} min. Ctrl+C para detener.`);
-    setInterval(() => { correr().catch(e => console.error(e)); }, LOOP_MIN * 60 * 1000);
-  } else {
+    console.log(`\n⏱  Repitiendo cada ${LOOP_MIN} min. Ctrl+C para detener.`);
+    console.log('   Para asistencia EN VIVO instala el servicio: api/agente/ (ver COMO-DEJAR-EN-VIVO.md).');
+    setInterval(() => { correr(TARGETS, PENDIENTES).catch((e) => console.error(motivo(e))); }, LOOP_MIN * 60 * 1000);
+  } else if (pool) {
     await pool.end();
   }
-})().catch(e => { console.error(e); process.exit(1); });
+})().catch((e) => { console.error(motivo(e)); process.exit(1); });

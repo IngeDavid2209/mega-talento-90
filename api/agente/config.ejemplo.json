@@ -1,0 +1,39 @@
+{
+  "//": "Copia este archivo como config.json y llénalo. NO lleva el DATABASE_URL de Railway: el agente no habla con la base de producción, habla con la API.",
+
+  "apiUrl": "https://mega-talento-api.up.railway.app",
+  "token": "PEGA-AQUI-EL-INGESTA_TOKEN (el mismo del .env de la API)",
+
+  "//origen": "'hr' = leer la base del sistema del proveedor (lo que aplica en Mega Dulces: los 10 relojes rechazan nuestro saludo porque ese sistema ya tiene la única sesión que aceptan). 'relojes' = hablarle directo a los equipos por TCP 4370. Si se pone hrDbUrl, se asume 'hr'.",
+  "origen": "hr",
+
+  "//hrDbUrl": "Postgres del sistema de asistencia, en la LAN del corporativo (servidor_245). Solo se LEE.",
+  "hrDbUrl": "postgresql://postgres:CONTRASEÑA@192.168.0.245:5432/hr",
+
+  "//desdeInicial": "En la PRIMERA vuelta se trae todo desde esta fecha. Déjalo así para recuperar el histórico completo, o ponle una fecha reciente si el histórico viejo ya está cargado.",
+  "desdeInicial": "2000-01-01 00:00:00",
+
+  "//sucursalId": "Opcional. Acota el padrón a una sola plaza.",
+  "sucursalId": "",
+
+  "//relojes": "Opcional. Acota por SERIE cuáles le tocan a esta máquina. Vacío = todos los que devuelva el padrón de la API.",
+  "relojes": [],
+
+  "intervalos": {
+    "//pollSeg": "El 'trigger': cada cuántos segundos se busca lo nuevo.",
+    "pollSeg": 30,
+
+    "//traslapeMin": "Cuánto se retrocede en cada vuelta. Cubre las checadas que el proveedor importe con unos minutos de retraso; reenviar de más no cuesta nada porque la API deduplica.",
+    "traslapeMin": 10,
+
+    "//reconciliarMin": "Cada cuánto se hace una pasada amplia hacia atrás.",
+    "reconciliarMin": 60,
+    "//reconciliarDias": "Qué tan atrás llega esa pasada. Es la red para las importaciones tardías del proveedor.",
+    "reconciliarDias": 7,
+
+    "//backfillMin": "Solo para origen='relojes'.",
+    "backfillMin": 60,
+    "keepaliveSeg": 45,
+    "agrupaSeg": 5
+  }
+}

@@ -40,6 +40,17 @@
 .ss-chip.interno { border-style: dashed; }
 .ss-chip.interno.on { border-style: solid; }
 
+/* Plazas que todavía no tienen reloj instalado. Se ven apagadas y con un punto
+   hueco: siguen elegibles —esconderlas es lo que hizo que Morelia Abastos
+   llevara años olvidada— pero se distingue de un vistazo que ahí no va a haber
+   checadas, y por qué. */
+.ss-chip.sin-reloj { color: var(--text2, #64748B); }
+.ss-chip.sin-reloj.on { color: #fff; }
+.ss-sin-reloj-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  border: 1.5px solid currentColor; opacity: .55; flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .ss-chip { padding: 6px 11px; font-size: 12.5px; }
 }

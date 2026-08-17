@@ -38,6 +38,75 @@
   70% { box-shadow: 0 0 0 6px rgba(31,122,76,0); }
   100% { box-shadow: 0 0 0 0 rgba(31,122,76,0); }
 }
+/* El chip cambia de color con el estado REAL de los relojes, no con el hecho
+   de que la pantalla se refresque sola. */
+.ar-live-medio { color: var(--amber-text); background: var(--amber-bg); border-color: rgba(162, 98, 9, 0.24); }
+.ar-live-medio .ar-live-dot { background: var(--amber); animation: none; }
+.ar-live-mal { color: var(--red-text); background: var(--red-bg); border-color: rgba(161, 38, 38, 0.24); }
+.ar-live-mal .ar-live-dot { background: var(--red); animation: none; }
+
+/* ===== Semáforo de relojes ===== */
+.ar-relojes {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+  margin-bottom: 14px; overflow: hidden;
+}
+/* El borde izquierdo es la señal periférica: se ve sin tener que leer. */
+.ar-relojes[data-estado='mudo'] { border-left: 3px solid var(--red); }
+.ar-relojes[data-estado='atrasado'] { border-left: 3px solid var(--amber); }
+.ar-relojes[data-estado='pendiente'] { border-left: 3px solid var(--slate); }
+.ar-relojes[data-estado='ok'] { border-left: 3px solid var(--green); }
+
+.ar-relojes-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 10px 14px; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink);
+}
+.ar-relojes-head:hover { background: var(--surface2); }
+.ar-relojes-titulo { font-size: 12.5px; font-weight: 800; letter-spacing: .02em; }
+.ar-relojes-resumen { font-size: 12.5px; color: var(--text2); }
+.ar-rel-aviso {
+  font-size: 11px; font-weight: 700; color: var(--amber-text); background: var(--amber-bg);
+  border-radius: 999px; padding: 2px 9px;
+}
+.ar-relojes-chev {
+  margin-left: auto; width: 16px; height: 16px; fill: none; stroke: var(--text2);
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s;
+}
+.ar-relojes-chev.abierto { transform: rotate(180deg); }
+
+.ar-rel-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--slate); }
+.ar-rel-dot[data-s='ok'] { background: var(--green); }
+.ar-rel-dot[data-s='atrasado'] { background: var(--amber); }
+.ar-rel-dot[data-s='mudo'] { background: var(--red); }
+.ar-rel-dot[data-s='pendiente'] { background: var(--slate); }
+
+/* El aviso de "esta plaza no ha reportado" va siempre visible, aunque la lista
+   esté colapsada: es lo que impide leer los números de abajo como si fueran de hoy. */
+.ar-relojes-alerta {
+  margin: 0; padding: 9px 14px; font-size: 12.5px; line-height: 1.45;
+  color: var(--red-text); background: var(--red-bg); border-top: 1px solid rgba(161, 38, 38, 0.16);
+}
+.ar-relojes-alerta b { font-weight: 800; }
+
+.ar-relojes-lista { list-style: none; margin: 0; padding: 4px 0 8px; border-top: 1px solid var(--border); }
+.ar-rel {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
+  padding: 6px 14px; font-size: 12.5px;
+}
+.ar-rel-nombre { font-weight: 700; color: var(--ink); }
+.ar-rel-modo {
+  font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  color: var(--blue-text); background: var(--blue-bg); border-radius: 4px; padding: 1px 5px; margin-left: 5px;
+}
+.ar-rel-cuando { color: var(--text2); }
+.ar-rel[data-s='mudo'] .ar-rel-cuando { color: var(--red-text); font-weight: 700; }
+.ar-rel-chip {
+  font-size: 11px; font-weight: 700; color: var(--slate); background: var(--slate-bg);
+  border-radius: 999px; padding: 2px 8px;
+}
+.ar-rel-chip.warn { color: var(--amber-text); background: var(--amber-bg); }
+.ar-rel-motivo { flex-basis: 100%; padding-left: 19px; font-size: 11.5px; color: var(--text2); }
+
 .ar-field { display: flex; flex-direction: column; gap: 5px; }
 .ar-field label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
 .ar-field input {

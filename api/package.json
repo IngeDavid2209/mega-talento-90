@@ -16,7 +16,13 @@
     "jalar": "node tools/jalar-todo-zk.js",
     "jalar:watch": "node tools/jalar-todo-zk.js --loop",
     "estado": "node tools/estado-datos.js",
-    "probar:horario": "tsx tools/probar-horario.ts"
+    "probar:horario": "tsx tools/probar-horario.ts",
+    "agente": "node agente/index.js",
+    "agente:probar": "node agente/index.js --una-vez",
+    "diagnostico": "node tools/diagnostico-red.js",
+    "relojes:registrar": "node tools/registrar-relojes-hr.js",
+    "relojes:comparar": "node tools/comparar-hr.js",
+    "relojes:mapear": "node tools/mapear-codigos.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

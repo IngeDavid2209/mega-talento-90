@@ -1,0 +1,23 @@
+{
+  "name": "mega-talento-agente-checadas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agente local de checadas: lee los relojes ZKTeco de la LAN y los empuja a la API. NO necesita credenciales de Postgres.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "probar": "node index.js --una-vez",
+    "instalar-servicio": "node instalar-servicio.js instalar",
+    "quitar-servicio": "node instalar-servicio.js quitar"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "pg": "^8.13.1"
+  },
+  "optionalDependencies": {
+    "node-windows": "^1.0.0-beta.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
