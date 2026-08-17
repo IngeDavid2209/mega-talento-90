@@ -16,3 +16,7 @@ agente/logs/
 # Propuestas de traducción de códigos: llevan nombres de empleados.
 tools/mapeo-*.csv
 tools/diagnostico*.json
+# node-windows genera esto al instalar el servicio: el .exe de winsw y un .xml
+# con rutas ABSOLUTAS de la máquina donde se instaló. Versionarlo hace que otra
+# PC herede la configuración de esta, y ensucia cada commit con el alta local.
+agente/daemon/

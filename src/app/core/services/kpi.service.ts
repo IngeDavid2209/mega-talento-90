@@ -171,7 +171,7 @@ export class KpiService {
    * NO inventarle un grupo.
    */
   agrupar(tipo: 'puesto' | 'zona', valores: string[]) {
-    return this.api.post<{ mapa: Record<string, string | null>; pendientes: number }>(
+    return this.api.post<{ mapa: Record<string, string>; invalidos: string[]; pendientes: number }>(
       '/kpi/agrupar', { tipo, valores }
     );
   }
