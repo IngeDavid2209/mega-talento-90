@@ -277,7 +277,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** "hace 40 s", "hace 1 h 12 m", "sin señal desde el 17 jul". */
   desdeCuando(r: EstadoReloj): string {
     if (r.semaforo === 'pendiente') return 'en pausa';
-    const s = r.segundosSinSenal;
+    // Se muestra el atraso REAL de la cadena, no el de nuestro tramo: decir
+    // "hace 2 s" cuando el dato lleva dos horas parado es la mentira que este
+    // semáforo existe para evitar.
+    const s = r.origenAtrasado ? r.segundosOrigen : r.segundosSinSenal;
     if (s == null) return 'nunca ha reportado';
     if (s < 90) return `hace ${Math.max(0, Math.round(s))} s`;
     if (s < 3600) return `hace ${Math.round(s / 60)} min`;
@@ -301,10 +304,27 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         ? 'numeración propia sin traducir — sus marcas se atribuirían a otra persona'
         : 'sin identificar a qué plaza pertenece — sus checadas no se aplican';
     }
+    // Primero lo de arriba: si quien nos pasa el dato dejó de leer el reloj,
+    // revisar nuestro agente no arregla nada. Perseguir el problema del lado
+    // equivocado es lo que hace que estas cosas duren días.
+    if (r.origenAtrasado) {
+      return 'nuestro agente está al corriente, pero el sistema que lee los relojes ' +
+             `no toca este equipo desde hace ${this.duracion(r.segundosOrigen)}. ` +
+             'El pendiente está allá, no aquí.';
+    }
     if (r.ultimoError) return r.ultimoError;
     if (r.semaforo === 'mudo') return 'nadie ha reportado este reloj: agente apagado, equipo apagado, o sin red';
     if (r.semaforo === 'atrasado') return 'sigue llegando dato, pero más lento de lo normal';
     return '';
+  }
+
+  /** "40 s", "12 min", "2 h 30 m" — para redactar los motivos. */
+  private duracion(seg: number | null): string {
+    if (seg == null) return 'un rato';
+    if (seg < 90) return `${Math.max(0, Math.round(seg))} s`;
+    if (seg < 3600) return `${Math.round(seg / 60)} min`;
+    const h = Math.floor(seg / 3600), m = Math.round((seg % 3600) / 60);
+    return `${h} h${m ? ' ' + m + ' m' : ''}`;
   }
 
   /** El texto de la deriva, que es lo que convierte un retardo real en uno inventado. */

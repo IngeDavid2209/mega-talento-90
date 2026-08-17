@@ -151,6 +151,18 @@ export interface EstadoReloj {
   ultimaChecada: string | null;     // marca más reciente que llegó de ese equipo
   ultimoBackfill: string | null;
   segundosSinSenal: number | null;
+  /**
+   * Cuándo leyó este reloj el sistema del que tomamos el dato.
+   *
+   * Es la señal que distingue "nuestro agente se cayó" de "el proveedor dejó de
+   * sondear sus relojes". Sin ella el semáforo se ve verde con la asistencia
+   * parada: el agente sigue reportando puntualmente que no hay nada nuevo, y
+   * eso es indistinguible de que nadie haya checado.
+   */
+  origenVisto: string | null;
+  segundosOrigen: number | null;
+  /** El eslabón flojo es el origen, no nosotros: revisar el agente no arregla nada. */
+  origenAtrasado: boolean;
   logsEnReloj: number | null;       // lo que el equipo declara tener
   logsEnBase: number | null;        // lo que tenemos nosotros
   /** Hora del reloj − hora del servidor. Con esto corrido, los retardos son falsos. */

@@ -139,6 +139,7 @@ de hoy**. Un día sin dato no es una falta.
 | Todos en rojo y el servicio sí corre | no hay internet, o el token cambió | `api\agente\logs\` |
 | Un solo reloj en rojo | ese equipo está apagado o sin red | el sistema del proveedor también lo dirá |
 | Sale "hora corrida" | el reloj tiene la hora mal | **se corrige en el equipo**, no en el sistema |
+| El servicio se queda en "Deteniendo" para siempre | `stopparentfirst` truthy en el XML | ver abajo |
 | Todo verde pero faltan checadas | el proveedor no las ha bajado | revisar su sistema en `192.168.0.245` |
 
 **"Hora corrida" no es cosmético.** Si un reloj va 3 minutos atrasado, la

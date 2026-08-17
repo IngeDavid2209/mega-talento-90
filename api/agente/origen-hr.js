@@ -269,6 +269,12 @@ class SincronizadorHr {
       horaReloj: d.clock_drift_seconds != null
         ? new Date(Date.now() + d.clock_drift_seconds * 1000).toISOString()
         : undefined,
+      // Cuándo fue la última vez que el sistema de origen habló con ESTE reloj.
+      // Es la señal que faltaba: nuestro agente puede estar vivo y puntual
+      // mientras el proveedor lleva horas sin sondear sus equipos, y entonces
+      // copiamos fielmente una base congelada. Sin esto, el semáforo se ve
+      // verde con la asistencia parada.
+      origenVisto: d.last_seen_at ? new Date(d.last_seen_at).toISOString() : undefined,
       _ultimoError: d.last_error || null,
     };
   }

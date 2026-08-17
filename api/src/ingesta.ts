@@ -78,7 +78,16 @@ export interface LoteEntrante {
   origen: 'agente' | 'push' | 'manual';
   agenteVersion?: string | null;
   agenteHost?: string | null;
-  infoReloj?: { logCounts?: number; userCounts?: number; horaReloj?: string } | null;
+  infoReloj?: {
+    logCounts?: number; userCounts?: number; horaReloj?: string;
+    /**
+     * Cuándo leyó el equipo QUIEN NOS PASA EL DATO. No es lo mismo que nuestro
+     * latido: si el sistema de origen deja de sondear sus relojes, nuestro
+     * agente sigue vivo copiando una base congelada, y sin este dato la
+     * pantalla se vería al día estando parada.
+     */
+    origenVisto?: string | null;
+  } | null;
   usuarios?: Array<{ codigo: string; nombre?: string }> | null;
   checadas?: ChecadaEntrante[] | null;
   /** true = viene de una lectura VERIFICADA completa (backfill), no del stream. */
@@ -316,12 +325,16 @@ async function tocarEstado(
     logsEnBase = rows[0]?.n ?? null;
   }
 
+  const origenVisto = info.origenVisto ? new Date(info.origenVisto) : null;
+
   await pool.query(
     `INSERT INTO relojes_estado
        (serie, ultima_senal, ultima_checada, ultimo_backfill, ip_vista,
-        logs_en_reloj, logs_en_base, desfase_reloj_seg, ultimo_error, agente_version, agente_host)
-     VALUES ($1, now(), $2, $3, $4, $5, $6, $7, NULL, $8, $9)
+        logs_en_reloj, logs_en_base, desfase_reloj_seg, ultimo_error, agente_version, agente_host,
+        origen_visto)
+     VALUES ($1, now(), $2, $3, $4, $5, $6, $7, NULL, $8, $9, $10)
      ON CONFLICT (serie) DO UPDATE SET
+       origen_visto   = COALESCE(EXCLUDED.origen_visto, relojes_estado.origen_visto),
        ultima_senal   = now(),
        ultima_checada = GREATEST(relojes_estado.ultima_checada, EXCLUDED.ultima_checada),
        ultimo_backfill = COALESCE(EXCLUDED.ultimo_backfill, relojes_estado.ultimo_backfill),
@@ -342,6 +355,7 @@ async function tocarEstado(
       desfase,
       lote.agenteVersion || null,
       lote.agenteHost || null,
+      origenVisto && Number.isFinite(origenVisto.getTime()) ? origenVisto : null,
     ]
   );
 
@@ -466,8 +480,9 @@ relojesRouter.get('/estado', async (_req: Request, res: Response) => {
       `SELECT r.serie, r.sucursal_id, r.alias, r.ip, r.modo, r.pendiente, r.activo, r.nota,
               e.ultima_senal, e.ultima_checada, e.ultimo_backfill, e.ip_vista,
               e.logs_en_reloj, e.logs_en_base, e.desfase_reloj_seg, e.ultimo_error,
-              e.agente_version, e.agente_host,
-              EXTRACT(EPOCH FROM (now() - e.ultima_senal))::int AS segundos_sin_senal
+              e.agente_version, e.agente_host, e.origen_visto,
+              EXTRACT(EPOCH FROM (now() - e.ultima_senal))::int AS segundos_sin_senal,
+              EXTRACT(EPOCH FROM (now() - e.origen_visto))::int AS segundos_origen
          FROM relojes r
          LEFT JOIN relojes_estado e ON e.serie = r.serie
         WHERE r.activo = TRUE
@@ -479,17 +494,41 @@ relojesRouter.get('/estado', async (_req: Request, res: Response) => {
 
     res.json(rows.map((r: any) => {
       const s: number | null = r.segundos_sin_senal;
+      // Cuánto lleva SIN LEERSE el reloj del lado de quien nos pasa el dato.
+      const o: number | null = r.segundos_origen;
+
+      // ══ SE MANDA LO PEOR DE LAS DOS SEÑALES ══════════════════════════
+      //
+      // `ultima_senal` dice que nuestro agente está vivo. `origen_visto` dice
+      // que el sistema del que lee sigue sondeando sus relojes. Con solo la
+      // primera, un origen congelado se ve VERDE: el agente sigue reportando
+      // puntualmente que no hay nada nuevo, y "no hay nada nuevo" es
+      // indistinguible de "nadie ha checado".
+      //
+      // La regla del módulo es que la pantalla nunca parezca al día cuando no
+      // lo está, así que la cadena se mide por su eslabón más débil.
+      const peor = [s, o].filter((x): x is number => x != null);
+      const atraso = peor.length ? Math.max(...peor) : null;
+
       let semaforo: 'ok' | 'atrasado' | 'mudo' | 'pendiente';
       if (r.pendiente) semaforo = 'pendiente';
-      else if (s == null || s >= MUDO_SEG) semaforo = 'mudo';
-      else if (s < OK_SEG) semaforo = 'ok';
+      else if (atraso == null || atraso >= MUDO_SEG) semaforo = 'mudo';
+      else if (atraso < OK_SEG) semaforo = 'ok';
       else semaforo = 'atrasado';
+
+      // Cuando el eslabón flojo es el origen, hay que decirlo: revisar nuestro
+      // agente no arreglaría nada, y perseguir el problema del lado equivocado
+      // es justo lo que hace que estas cosas duren días.
+      const origenAtrasado = o != null && s != null && o > s && o >= OK_SEG;
 
       return {
         serie: r.serie, sucursalId: r.sucursal_id, alias: r.alias || '',
         modo: r.modo, ip: r.ip_vista || r.ip || '', nota: r.nota || '',
         ultimaSenal: r.ultima_senal, ultimaChecada: r.ultima_checada,
         ultimoBackfill: r.ultimo_backfill,
+        origenVisto: r.origen_visto,
+        segundosOrigen: o,
+        origenAtrasado,
         segundosSinSenal: s,
         logsEnReloj: r.logs_en_reloj, logsEnBase: r.logs_en_base,
         desfaseRelojSeg: r.desfase_reloj_seg,

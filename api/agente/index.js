@@ -244,6 +244,17 @@ function prepararApagado(cola, trabajos) {
   process.on('SIGINT', () => apagar('SIGINT'));
   process.on('SIGTERM', () => apagar('SIGTERM'));
 
+  // Cierre ORDENADO pedido por el servicio de Windows.
+  //
+  // Cuando node-windows corre con `stopparentfirst`, el wrapper NO mata el
+  // proceso: le manda un mensaje 'shutdown' por IPC y espera que se cierre solo
+  // (lib/wrapper.js:190). Sin este escucha, ese mensaje cae en el vacío, el
+  // proceso sigue vivo y el servicio se queda en "Deteniendo" hasta que alguien
+  // lo mata a mano. Pasó el 17/08/2026 al reiniciar el agente.
+  process.on('message', (m) => {
+    if (m === 'shutdown') apagar('shutdown del servicio');
+  });
+
   // Un error no atrapado NO debe tumbar el agente: la plaza se quedaría sin
   // checadas hasta que alguien lo notara. Se registra y se sigue; el servicio
   // de Windows reinicia si de plano el proceso muere.

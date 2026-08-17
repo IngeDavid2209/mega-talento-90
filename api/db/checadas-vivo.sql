@@ -61,6 +61,21 @@ CREATE TABLE IF NOT EXISTS relojes_estado (
   agente_host        TEXT
 );
 
+-- CUÁNDO LO LEYÓ QUIEN NOS DA EL DATO (17/08/2026).
+--
+-- El latido de arriba dice que NUESTRO agente está vivo. No dice que el dato
+-- esté fresco, y no es lo mismo: el agente lee de la base del proveedor, y si
+-- ESE sistema deja de sondear sus relojes, nosotros seguimos copiando
+-- fielmente una base congelada. Con el semáforo mirando solo `ultima_senal`,
+-- las diez plazas se ven en verde mientras la asistencia lleva horas parada.
+--
+-- Pasó el mismo 17/08: el proveedor hizo una carga a las 15:08 y no volvió a
+-- correr; a las 17:36 seguíamos "al día" contra un origen de 2.5 horas atrás.
+--
+-- Esta columna guarda el `last_seen_at` que el propio origen reporta por
+-- equipo. El semáforo se queda con LO PEOR de las dos señales.
+ALTER TABLE relojes_estado ADD COLUMN IF NOT EXISTS origen_visto TIMESTAMPTZ;
+
 -- ---------------------------------------------------------------------
 -- TRADUCCIÓN DE CÓDIGOS — relojes con numeración propia.
 --

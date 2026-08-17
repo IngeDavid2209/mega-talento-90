@@ -86,9 +86,27 @@ const servicio = new Service({
   // crear su log. La cuenta de verdad es `NT AUTHORITY\LocalSystem`.
   logOnAs: { domain: 'NT AUTHORITY', account: 'LocalSystem', password: '' },
 
-  // Sin esto node-windows manda literalmente `--stopparentfirst undefined`
-  // como argumento del wrapper.
-  stopparentfirst: true,
+  // ══ CUIDADO CON ESTE VALOR: DECIDE CÓMO SE DETIENE EL SERVICIO ══════
+  //
+  // node-windows SIEMPRE mete `--stopparentfirst <valor>` en el XML, así que no
+  // se puede simplemente omitir. Y el wrapper lo lee como booleano crudo
+  // (lib/wrapper.js:190):
+  //
+  //     if (argv.s) { child.send('shutdown') } else { child.kill() }
+  //
+  // Con CUALQUIER texto ahí —'true', 'false', 'no', 'undefined'— la condición es
+  // verdadera, porque una cadena no vacía es truthy. Entonces el wrapper deja de
+  // matar el proceso y le PIDE por mensaje que se cierre solo. Si el agente no
+  // escucha ese mensaje, nunca se entera: el servicio se queda en "Deteniendo"
+  // para siempre y hay que matarlo a mano (pasó el 17/08/2026 al reiniciar).
+  //
+  // La cadena vacía es el único valor que sale falsy y devuelve el camino
+  // confiable, `child.kill()`. Matar de golpe es seguro aquí: la cola es SQLite
+  // en modo WAL, justamente para que un corte brusco no la corrompa.
+  //
+  // Aparte, index.js sí escucha 'shutdown' — así que si alguien enciende esta
+  // opción, el cierre ordenado también funciona.
+  stopparentfirst: '',
 });
 
 /** El id que node-windows deriva del nombre, y dónde deja el XML de winsw. */
