@@ -150,4 +150,29 @@ export class KpiService {
   borrarEvento(id: string): Promise<{ ok: boolean }> {
     return this.api.delete(`/kpi/eventos/${id}`);
   }
+
+
+  /**
+   * Une las variantes de escritura de `puesto` o `ciudad`.
+   *
+   * El tablero venía contando "Jefatura de recursos humanos" y "Jefatura de
+   * Recursos Humanos" como dos puestos distintos, y "RH", "Rh", "Jefe de RH",
+   * "Capital Humano" cada uno con su renglón. La normalización local solo une
+   * lo que coincide EXACTO con el catálogo; el resto se quedaba como se
+   * escribió.
+   *
+   * Quien sabe agrupar de verdad es el BOT: conoce los alias de sucursal
+   * ("Padre Hidalgo" = Santa Ana Pacueco), resuelve texto libre contra el
+   * catálogo real de vacantes, y lo que no cae en ninguna regla lo agrupa con
+   * IA una sola vez y lo guarda. El API reenvía allá.
+   *
+   * Devuelve `{ "<texto original>": "<grupo>" | null }`. Un `null` significa
+   * "no se pudo clasificar": quien llama debe conservar la etiqueta original,
+   * NO inventarle un grupo.
+   */
+  agrupar(tipo: 'puesto' | 'zona', valores: string[]) {
+    return this.api.post<{ mapa: Record<string, string | null>; pendientes: number }>(
+      '/kpi/agrupar', { tipo, valores }
+    );
+  }
 }

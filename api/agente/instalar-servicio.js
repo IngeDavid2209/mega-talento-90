@@ -19,11 +19,15 @@
 const path = require('path');
 const fs = require('fs');
 
-const NOMBRE = 'Mega Talento · Agente de checadas';
+// Sin acentos ni signos raros A PROPÓSITO. node-windows deriva el id del
+// servicio de aquí (`name.replace(/[^\w]/gi,'')`) y además usa el nombre para
+// los archivos de log de winsw; un carácter no ASCII ahí depende de la página
+// de códigos de la consola y se rompe en unas máquinas sí y en otras no.
+const NOMBRE = 'Mega Talento Agente de Checadas';
 const accion = (process.argv[2] || '').toLowerCase();
 
-if (!['instalar', 'quitar'].includes(accion)) {
-  console.log('Uso: node instalar-servicio.js instalar | quitar');
+if (!['instalar', 'quitar', 'revisar'].includes(accion)) {
+  console.log('Uso: node instalar-servicio.js instalar | quitar | revisar');
   process.exit(1);
 }
 
@@ -54,7 +58,7 @@ try {
 
 const servicio = new Service({
   name: NOMBRE,
-  description: 'Lee los relojes checadores de esta plaza y empuja las checadas a Mega Talento 90. ' +
+  description: 'Lee las checadas de los relojes de esta plaza y las empuja a Mega Talento 90. ' +
                'Debe correr en una PC de la misma red que los relojes.',
   script: path.join(__dirname, 'index.js'),
   nodeOptions: [],
@@ -64,6 +68,27 @@ const servicio = new Service({
   wait: 5,
   grow: 0.25,
   maxRestarts: 3,
+
+  // ══ POR QUÉ SE PASA logOnAs EXPLÍCITO ══════════════════════════════
+  //
+  // Sin esta línea el servicio se instala y NUNCA arranca: queda en
+  // "Detenido" con arranque automático y sin escribir un solo log, que es de
+  // los fallos más difíciles de leer porque no deja rastro.
+  //
+  // node-windows siempre escribe un bloque <serviceaccount> en el XML de winsw
+  // (lib/winsw.js ~124) y por omisión pone como dominio el NOMBRE DE LA PC:
+  //
+  //     <domain>DAVID-CISNEROS</domain>
+  //     <user>LocalSystem</user>
+  //
+  // Windows entiende eso como la cuenta `DAVID-CISNEROS\LocalSystem`, que no
+  // existe. El inicio de sesión falla antes de que winsw llegue siquiera a
+  // crear su log. La cuenta de verdad es `NT AUTHORITY\LocalSystem`.
+  logOnAs: { domain: 'NT AUTHORITY', account: 'LocalSystem', password: '' },
+
+  // Sin esto node-windows manda literalmente `--stopparentfirst undefined`
+  // como argumento del wrapper.
+  stopparentfirst: true,
 });
 
 servicio.on('install', () => {

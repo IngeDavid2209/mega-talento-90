@@ -9,6 +9,7 @@ import { CandidateService } from '../../core/services/candidate';
 import { ETAPAS, ID_ETAPAS } from '../../core/models/proceso.model';
 import { normalizarCiudad, normalizarPuesto } from '../../core/models/normalizacion.model';
 import { CapitalHumanoService } from '../../core/services/capital-humano.service';
+import { KpiService } from '../../core/services/kpi.service';
 import {
   nivelSeguimiento, diasSinSeguimiento, esActivoEnProceso,
   SEGUIMIENTO_AVISO_DIAS, SEGUIMIENTO_CRITICO_DIAS, NivelSeguimiento
@@ -27,6 +28,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private candidateService = inject(CandidateService);
   private ngZone = inject(NgZone);
   private router = inject(Router);
+  private kpi = inject(KpiService);
   // Público para que el template use displayName() en las listas desplegables
   capitalHumano = inject(CapitalHumanoService);
 
@@ -68,6 +70,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Desglose por zona (ciudad) y por puesto
   porZona: { nombre: string; total: number; activos: number; contratados: number; pct: number; candidatos: any[] }[] = [];
   porPuesto: { nombre: string; total: number; activos: number; contratados: number; pct: number; candidatos: any[] }[] = [];
+
+  // Mapa "texto tal como se capturó" -> grupo canónico, que devuelve el bot.
+  // Vacío mientras no responda: entonces se usa la normalización local, que
+  // une menos pero nunca deja la pantalla en blanco.
+  private mapaPuesto: Record<string, string | null> = {};
+  private mapaZona: Record<string, string | null> = {};
 
   // Filas desplegadas (drill-down) en cada panel
   zonaAbierta = new Set<string>();
@@ -277,10 +285,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // Desglose por zona (ciudad) y por puesto — con etiquetas normalizadas
     // para unir variantes equivalentes (p.ej. "Cajero (a)" y "Cajero(a)").
-    this.porZona = this.agruparPor(c => normalizarCiudad(c.ciudad || c.sucursal), 'Sin ciudad');
-    this.porPuesto = this.agruparPor(c => normalizarPuesto(c.puesto), 'Sin puesto');
+    this.porZona = this.agruparPor(c => this.grupoZona(c.ciudad || c.sucursal), 'Sin ciudad');
+    this.porPuesto = this.agruparPor(c => this.grupoPuesto(c.puesto), 'Sin puesto');
 
     this.calcularSinSeguimiento(ahora);
+
+    // Y en segundo plano, que el bot una las variantes de escritura.
+    void this.afinarAgrupacion();
   }
 
   /**
@@ -305,6 +316,49 @@ export class DashboardComponent implements OnInit, OnDestroy {
   diasSinSeguimiento(c: any): number { return diasSinSeguimiento(c); }
   nivelSeguimiento(c: any): NivelSeguimiento { return nivelSeguimiento(c); }
 
+  /**
+   * El grupo de un puesto/ciudad: primero lo que dijo el bot, y si de ahí no
+   * vino nada, la normalización local de siempre.
+   *
+   * El fallback importa: si el bot está caído o todavía no contesta, el
+   * tablero se ve como antes en vez de quedarse vacío. Y un null del mapa
+   * significa "no supe clasificarlo", no "agrúpalo con los demás": se
+   * conserva la etiqueta original para no inventar un dato.
+   */
+  private grupoPuesto(raw: any): string {
+    const t = (raw || '').toString().trim();
+    return this.mapaPuesto[t] || normalizarPuesto(t);
+  }
+
+  private grupoZona(raw: any): string {
+    const t = (raw || '').toString().trim();
+    return this.mapaZona[t] || normalizarCiudad(t);
+  }
+
+  /**
+   * Le pide al bot que una las variantes de escritura y vuelve a agrupar.
+   *
+   * Se hace DESPUÉS de pintar, no antes: el tablero aparece de inmediato con
+   * la normalización local y se reacomoda solo cuando llega el mapa. Si el
+   * bot falla, no pasa nada — no se toca lo que ya se ve.
+   */
+  private async afinarAgrupacion() {
+    const puestos = Array.from(new Set(this.candidatos.map(c => (c.puesto || '').toString().trim()).filter(Boolean)));
+    const zonas = Array.from(new Set(this.candidatos.map(c => (c.ciudad || c.sucursal || '').toString().trim()).filter(Boolean)));
+    if (!puestos.length && !zonas.length) return;
+    try {
+      const [p, z] = await Promise.all([
+        puestos.length ? this.kpi.agrupar('puesto', puestos) : Promise.resolve({ mapa: {}, pendientes: 0 }),
+        zonas.length ? this.kpi.agrupar('zona', zonas) : Promise.resolve({ mapa: {}, pendientes: 0 }),
+      ]);
+      this.mapaPuesto = p.mapa || {};
+      this.mapaZona = z.mapa || {};
+      this.porZona = this.agruparPor(c => this.grupoZona(c.ciudad || c.sucursal), 'Sin ciudad');
+      this.porPuesto = this.agruparPor(c => this.grupoPuesto(c.puesto), 'Sin puesto');
+    } catch (e) {
+      console.warn('[dashboard] no se pudo afinar la agrupación; se deja la local', e);
+    }
+  }
   /**
    * Agrupa los candidatos por una clave (zona o puesto) y cuenta total,
    * activos (en proceso) y contratados. El pct es relativo al grupo más

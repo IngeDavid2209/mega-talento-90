@@ -716,3 +716,62 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
     });
   } catch (e) { return fallo(res, e, 'No se pudo calcular el concentrado.'); }
 });
+
+// ─────────────────────────────────────────────────────────────────────
+// POST /kpi/agrupar — unir las variantes de escritura de puesto y ciudad
+//
+// `puesto` y `ciudad` son texto libre: los contesta el candidato por WhatsApp,
+// no un menú. Por eso el tablero venía mostrando "Jefatura de recursos
+// humanos" (24) y "Jefatura de Recursos Humanos" (21) como dos puestos, "Aux
+// de chofer" y "Auxiliar de chofer" como dos, y "RH", "Rh", "Jefe de RH",
+// "Capital Humano" y "Líder de recursos humanos" cada uno con su renglón.
+//
+// La normalización que ya había aquí (normalizacion.model.ts) solo une lo que
+// coincide EXACTO con el catálogo; todo lo demás se queda como se escribió.
+//
+// Este endpoint reenvía al BOT, que ya sabe hacerlo: conoce los alias de cada
+// sucursal ("Padre Hidalgo" es Santa Ana Pacueco), resuelve texto libre contra
+// el catálogo real de vacantes, y lo que no cae en ninguna regla lo agrupa con
+// IA UNA sola vez y lo deja guardado.
+//
+// Se reenvía en vez de reimplementarlo en TypeScript a propósito: dos copias
+// de esta lógica serían dos fuentes de verdad, que es exactamente lo que ya
+// costó caro cuando los puestos vivían a la vez en Firestore y en Postgres.
+// Mismo patrón que /kpi/decidir: el token del bot nunca baja al navegador.
+// ─────────────────────────────────────────────────────────────────────
+kpiRouter.post('/agrupar', async (req: Request, res: Response) => {
+  const b = (req.body || {}) as any;
+  const tipo = String(b.tipo || '').trim();
+  const valores = Array.isArray(b.valores) ? b.valores.map((v: any) => String(v || '')) : null;
+
+  if (tipo !== 'puesto' && tipo !== 'zona') {
+    return res.status(400).json({ error: "tipo debe ser 'puesto' o 'zona'." });
+  }
+  if (!valores) return res.status(400).json({ error: 'valores debe ser un arreglo.' });
+
+  const BOT = String(process.env.BOT_RH_URL || '').replace(/\/+$/, '');
+  const TOKEN = String(process.env.BOT_PANEL_TOKEN || '');
+  // Sin bot configurado NO se rompe la pantalla: se devuelve un mapa vacío y
+  // el front se queda con las etiquetas tal como se capturaron. Es peor un
+  // tablero caído que uno sin agrupar.
+  if (!BOT || !TOKEN) {
+    return res.json({ mapa: {}, pendientes: valores.length, sin_bot: true });
+  }
+
+  try {
+    const r = await fetch(`${BOT}/admin/agrupar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-panel-token': TOKEN },
+      body: JSON.stringify({ tipo, valores, aprender: b.aprender === true }),
+    });
+    const cuerpo: any = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error('[kpi/agrupar] el bot respondió', r.status, cuerpo);
+      return res.json({ mapa: {}, pendientes: valores.length, error_bot: cuerpo?.error || r.status });
+    }
+    return res.json({ mapa: cuerpo.mapa || {}, pendientes: cuerpo.pendientes ?? 0 });
+  } catch (e: any) {
+    console.error('[kpi/agrupar] no se pudo hablar con el bot:', e?.message);
+    return res.json({ mapa: {}, pendientes: valores.length, error_bot: 'sin conexión con el bot' });
+  }
+});
