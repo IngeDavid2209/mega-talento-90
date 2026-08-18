@@ -214,6 +214,11 @@
     @if (tabActiva === 'resumen') {
       <!-- Reporte de estatus: qué se le ha hecho a esta persona, su avance del
            proceso y la bitácora de contactos/entrevistas (alimenta el KPI). -->
+      <!-- El juicio del bot sobre su CV contra la vacante. Vive aparte
+           (ver analisis-bot.ts): este archivo ya es el mas grande del
+           back-office y su CSS venia rozando el tope del presupuesto. -->
+      <app-analisis-bot [candidato]="candidato"></app-analisis-bot>
+
       <app-status-proceso [candidato]="candidato"></app-status-proceso>
 
       <div class="section-card">

@@ -36,13 +36,14 @@ import {
 // Resumen). Vive en su propio componente para no engordar más este archivo, que
 // ya es el más grande del back-office.
 import { StatusProcesoComponent } from '../status-proceso/status-proceso';
+import { AnalisisBotComponent } from '../analisis-bot/analisis-bot';
 // Mínimos para avanzar de fase (CV, registro completo, sin bandera grave).
 import { revisarAvance } from '../../core/models/requisitos-avance.model';
 
 @Component({
   selector: 'app-expediente',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusProcesoComponent],
+  imports: [CommonModule, FormsModule, StatusProcesoComponent, AnalisisBotComponent],
   templateUrl: './expediente.html',
   styleUrl: './expediente.css'
 })

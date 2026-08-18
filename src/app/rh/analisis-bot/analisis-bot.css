@@ -1,0 +1,49 @@
+/* ===== SEMÁFORO DEL ANÁLISIS DEL CV =====
+   Botón, no etiqueta: el estatus solo sirve si puedes ver por qué.
+   Los colores separan "cumple" (verde/azul) de "hay dudas" (ámbar) y de
+   "no encaja" (gris, deliberadamente NO rojo: no es una falta del candidato,
+   es que ese perfil no embona con esta vacante). */
+.bot-estatus {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid transparent; font: inherit; width: 100%;
+  margin-bottom: 10px; text-align: left; transition: filter .15s;
+}
+.bot-estatus:hover { filter: brightness(.97); }
+.bot-estatus.abierto { box-shadow: 0 0 0 3px rgba(15, 23, 42, .06); }
+.bot-estatus-texto { font-weight: 700; font-size: 15px; }
+.bot-estatus-pts { font-size: 13px; opacity: .75; font-variant-numeric: tabular-nums; }
+.bot-estatus-ver { margin-left: auto; font-size: 12px; opacity: .7; text-decoration: underline; }
+
+.bot-estatus.est-excelente { background: #dcfce7; border-color: #86efac; color: #14532d; }
+.bot-estatus.est-bueno     { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+.bot-estatus.est-regular   { background: #fef3c7; border-color: #fcd34d; color: #78350f; }
+.bot-estatus.est-noencaja  { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+.bot-estatus.est-sindatos  { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+
+/* ===== EL ANÁLISIS DESPLEGADO ===== */
+.bot-analisis {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 20px 24px; margin-bottom: 18px;
+}
+.bot-analisis-head h3 { margin: 0 0 4px; font-size: 16px; }
+.bot-analisis-head p { margin: 0 0 16px; font-size: 13px; color: #64748b; max-width: 80ch; }
+
+/* La crítica va primero y destacada: es lo que se lee en 10 segundos. */
+.bot-critica {
+  background: #f8fafc; border-left: 3px solid #4f46e5;
+  padding: 12px 16px; border-radius: 0 8px 8px 0;
+  font-size: 14px; line-height: 1.6; margin-bottom: 18px;
+}
+.bot-bloque { margin-bottom: 16px; }
+.bot-bloque h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+.bot-lista { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.65; }
+.bot-lista li { margin-bottom: 4px; }
+.bot-lista.destaca li::marker { color: #16a34a; }
+.bot-lista.riesgos li::marker { color: #d97706; }
+.bot-lista.riesgos li[data-sev="alta"]::marker { color: #dc2626; }
+.bot-vacio { font-size: 13px; color: #64748b; font-style: italic; margin: 0 0 16px; }
+.bot-avisosincv {
+  background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; margin: 0;
+}

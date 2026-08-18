@@ -1,0 +1,66 @@
+@if (estatus) {
+  <!-- El semáforo, como botón: el estatus solo sirve si puedes abrir el porqué. -->
+  <button class="bot-estatus" type="button"
+          [class]="'bot-estatus ' + estatus.clase"
+          [class.abierto]="abierto"
+          (click)="toggle()"
+          [title]="estatus.ayuda">
+    <span class="bot-estatus-texto">{{ estatus.texto }}</span>
+    @if (estatus.puntaje !== null) {
+      <span class="bot-estatus-pts">{{ estatus.puntaje }}/100</span>
+    }
+    <span class="bot-estatus-ver">{{ abierto ? 'ocultar análisis' : 'ver análisis' }}</span>
+  </button>
+
+  @if (abierto) {
+    <div class="bot-analisis">
+      <header class="bot-analisis-head">
+        <h3>Análisis del CV contra la vacante</h3>
+        <p>Se leyó su CV y se comparó con <b>{{ puesto }}</b>. Es una recomendación con evidencia, no la decisión: esa es tuya.</p>
+      </header>
+
+      @if (critica) {
+        <div class="bot-critica">{{ critica }}</div>
+      }
+
+      <div class="bot-bloque">
+        <h4>Por qué destacaría en este puesto</h4>
+        @if (destaca.length) {
+          <ul class="bot-lista destaca">
+            @for (x of destaca; track x) { <li>{{ x }}</li> }
+          </ul>
+        } @else {
+          <!-- Vacío es una respuesta, no un hueco: el bot tiene instrucción de
+               no inventarle virtudes a un candidato promedio. -->
+          <p class="bot-vacio">No se encontró nada que lo distinga del resto de candidatos para esta vacante.</p>
+        }
+      </div>
+
+      @if (fortalezas.length) {
+        <div class="bot-bloque">
+          <h4>Fortalezas</h4>
+          <ul class="bot-lista">
+            @for (x of fortalezas; track x) { <li>{{ x }}</li> }
+          </ul>
+        </div>
+      }
+
+      @if (riesgos.length) {
+        <div class="bot-bloque">
+          <h4>A validar en entrevista</h4>
+          <ul class="bot-lista riesgos">
+            @for (r of riesgos; track r.riesgo) {
+              <li [attr.data-sev]="r.severidad">{{ r.riesgo }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (sinCV) {
+        <p class="bot-avisosincv">
+          ⚠️ Este análisis se hizo <b>sin su CV</b>: mide lo que nos falta saber, no al candidato.
+        </p>
+      }
+    </div>
+  }
+}
