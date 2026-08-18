@@ -53,6 +53,21 @@ CREATE TABLE IF NOT EXISTS empleados (
 );
 ALTER TABLE empleados ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
+-- DEPARTAMENTO y NOMBRE COMPLETO (18/08/2026).
+--
+-- El reporte semanal de RH (ReporteSemMD.rpt) NO lista a la gente por sucursal a
+-- secas: la agrupa por DEPARTAMENTO (Compras, Contabilidad, Finanzas, RH,
+-- Sistemas, Promotoras, Staff…), y usa el nombre COMPLETO, no el apodo del reloj.
+-- Esa estructura vive en CONTPAQi/Crystal, no en el reloj; se recuperó de los
+-- propios PDFs (api/tools/parsear-reportes.py) y se siembra aquí.
+--
+-- `nombre_completo` va APARTE de `nombre` a propósito: `nombre` puede traer una
+-- corrección que hizo RH en el portal, y la regla del proyecto es no pisarla. La
+-- pantalla usa `nombre_completo` cuando existe y cae a `nombre` si no.
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS departamento TEXT;
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS nombre_completo TEXT;
+CREATE INDEX IF NOT EXISTS idx_empleados_departamento ON empleados (sucursal_id, departamento);
+
 -- EL PUENTE ENTRE EL PROCESO Y LA NÓMINA (2026-08-03).
 --
 -- Hasta aquí `candidatos` y `empleados` eran dos mundos sin una sola línea que

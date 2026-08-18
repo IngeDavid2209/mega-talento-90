@@ -20,3 +20,6 @@ tools/diagnostico*.json
 # con rutas ABSOLUTAS de la máquina donde se instaló. Versionarlo hace que otra
 # PC herede la configuración de esta, y ensucia cada commit con el alta local.
 agente/daemon/
+
+# Datos derivados de los reportes: llevan nombres de empleados.
+tools/reportes-sem33.json
