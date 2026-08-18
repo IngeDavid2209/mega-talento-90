@@ -348,7 +348,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const nueva = this.sucursalIdExterna || '';
       if (nueva && nueva !== this.sucursalFiltro) {
         this.sucursalFiltro = nueva;
-        this.ajustarRangoYCargar();
+        // Igual que el selector propio: se conserva el periodo, solo se recarga.
+        this.cargar();
       }
     }
     if (cambios['recargarToken'] && !cambios['recargarToken'].firstChange) {
@@ -373,7 +374,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get porConfirmar(): number { return this.datos?.resumen.horarioAmbiguo ?? 0; }
   get bolsaSemanal(): number { return this.datos?.bolsaSemanalMin ?? 15; }
 
-  onSucursalChange() { this.ajustarRangoYCargar(); }
+  // Al cambiar de sucursal se CONSERVA el periodo elegido y solo se recarga.
+  //
+  // Antes se llamaba a `ajustarRangoYCargar()`, que reescribía las fechas a los
+  // últimos 30 días de la nueva plaza. Eso obligaba a volver a fijar el periodo
+  // cada vez que se saltaba de una sucursal a otra —justo lo que se hace para
+  // comparar el MISMO rango entre plazas—. El autoajuste sigue existiendo, pero
+  // solo donde tiene sentido: en la carga inicial y en el botón "Todo".
+  onSucursalChange() { this.cargar(); }
 
   /** Atajo de periodo: últimos N días naturales hasta hoy. */
   aplicarRango(dias: number) {
