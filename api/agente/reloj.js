@@ -111,23 +111,31 @@ class RelojJob {
         puerto: this.reloj.puerto, commKey: this.reloj.commKey, timeoutMs: 20000,
       });
 
-      try { this.infoReloj = await this.zk.getInfo(); } catch { this.infoReloj = null; }
-
-      // El stream se registra ANTES de cualquier otra cosa sobre este socket:
-      // node-zklib solo engancha su listener si nadie más escucha `data`
-      // (zklibtcp.js: `socket.listenerCount('data') === 0 && ...`).
-      await this.zk.getRealTimeLogs((evento) => this.alChecar(evento));
+      try {
+        this.infoReloj = await this.zk.getInfo();
+        // Punto de partida del detector: lo que el reloj tiene AHORA se da por
+        // "visto". A partir de aquí, cada checada nueva hace crecer este número
+        // y eso es lo que dispara la lectura. Lo que haya cambiado mientras el
+        // agente estuvo caído lo recupera el backfill inicial.
+        if (this.infoReloj && Number.isFinite(this.infoReloj.logCounts)) {
+          this.conteoVisto = this.infoReloj.logCounts;
+        }
+      } catch { this.infoReloj = null; }
 
       this.fallosKeepalive = 0;
       this.ultimoError = null;
-      this.log(`🟢 en vivo en ${this.reloj.ip} (${porque})`);
+      this.log(`🟢 vigilando ${this.reloj.ip} (${porque})`);
       await this.enviador.latido(this.reloj.serie, {
         ip: this.reloj.ip,
         infoReloj: this.infoReloj ? { logCounts: this.infoReloj.logCounts, userCounts: this.infoReloj.userCounts } : undefined,
       });
 
+      // EL VIGÍA: consulta el conteo del reloj cada pollSeg. Barato (getInfo es
+      // un comando chico). Cuando el número sube, alguien marcó → se baja el log
+      // y se empuja lo nuevo. Reemplaza al stream (getRealTimeLogs), que no se
+      // pudo comprobar en estos equipos; getInfo sí es de fiar.
       this.timers.keepalive = setInterval(
-        () => this.keepalive(), (this.intervalos.keepaliveSeg || 45) * 1000
+        () => this.vigilar(), (this.intervalos.pollSeg || 30) * 1000
       );
     } catch (e) {
       this.ultimoError = motivo(e);
@@ -146,45 +154,42 @@ class RelojJob {
   }
 
   /**
-   * KEEPALIVE — los ZK cierran la sesión inactiva sin avisar. Un `getInfo()`
-   * cada 30-60 s la mantiene viva; dos fallos seguidos y se reconecta desde
-   * cero (socket nuevo, como hace la lectura verificada).
+   * EL VIGÍA — detecta el movimiento nuevo y de paso mantiene viva la sesión.
    *
-   * ⚠️ CARRERA CONOCIDA: con el stream registrado, una checada puede llegar
-   * justo mientras `getInfo()` espera su respuesta, y node-zklib resuelve con
-   * el primer paquete que ve (`socket.once('data')`). Por eso el resultado se
-   * VALIDA antes de creerle: un logCounts absurdo se trata como fallo de
-   * keepalive, no como dato. Reconectar de más es barato; publicar un
-   * "el reloj tiene 3 mil millones de checadas" en el semáforo, no.
+   * Cada pollSeg consulta `getInfo()`. Hace dos cosas con una sola llamada:
+   *   1. Keepalive: los ZK cierran la sesión inactiva sin avisar; este comando
+   *      la mantiene. Dos fallos seguidos y se reconecta desde cero.
+   *   2. Detección: si el reloj declara MÁS checadas que la última vez, alguien
+   *      marcó → se baja el log y se empuja lo nuevo. Si el número no cambió, no
+   *      se lee nada: el reloj no se toca de más y la red de la plaza queda
+   *      libre. Ésta es la parte que hace que la asistencia entre sola.
+   *
+   * El resultado de getInfo se VALIDA antes de creerle: un logCounts absurdo se
+   * trata como fallo de sesión, no como dato, para no disparar una lectura ni
+   * publicar "el reloj tiene 3 mil millones de checadas" en el semáforo.
    */
-  async keepalive() {
+  async vigilar() {
     if (!this.zk || this.ocupado) return;
+    let info;
     try {
-      const info = await this.zk.getInfo();
+      info = await this.zk.getInfo();
       const sano = info && Number.isFinite(info.logCounts) &&
                    info.logCounts >= 0 && info.logCounts < 10_000_000 &&
                    Number.isFinite(info.userCounts) && info.userCounts < 100_000;
-      if (!sano) throw new Error('getInfo devolvió números incoherentes (probable choque con el stream)');
+      if (!sano) throw new Error('getInfo devolvió números incoherentes');
       this.infoReloj = info;
       this.fallosKeepalive = 0;
     } catch (e) {
       this.fallosKeepalive++;
-      this.log(`keepalive ${this.fallosKeepalive}/2: ${motivo(e)}`);
-      if (this.fallosKeepalive >= 2) await this.reconectar('keepalive perdido');
+      this.log(`vigía ${this.fallosKeepalive}/2: ${motivo(e)}`);
+      if (this.fallosKeepalive >= 2) await this.reconectar('sesión perdida');
+      return;
     }
-  }
 
-  /** Llega una checada EN VIVO. Primero a la cola, después al aire. */
-  alChecar(evento) {
-    try {
-      const codigo = String(evento?.userId ?? '').trim();
-      const t = evento?.attTime instanceof Date ? evento.attTime : new Date(evento?.attTime);
-      if (!codigo || isNaN(t.getTime())) return;
-      const f = fmt(t);
-      this.cola.encolar(this.reloj.serie, [{ codigo, ...f, tipo: null }], 'stream');
-      this.log(`· #${codigo} ${f.hora}`);
-      this.programarEnvio();
-    } catch (e) { this.log(`evento ilegible: ${motivo(e)}`); }
+    if (this.conteoVisto != null && info.logCounts > this.conteoVisto) {
+      this.log(`+${info.logCounts - this.conteoVisto} checada(s) nueva(s) — bajando…`);
+      await this.backfill('movimiento nuevo');
+    }
   }
 
   /**
@@ -288,16 +293,17 @@ class RelojJob {
    * `info.logCounts`, `leerVerificado` lanza y no se encola nada: nunca se
    * carga una lectura parcial.
    */
-  async backfill() {
+  async backfill(porque = 'programado') {
     if (!this.corriendo || this.ocupado) return;
     this.ocupado = true;
     const t0 = Date.now();
     try {
-      // El stream ocupa el socket. Se suelta ANTES de leer.
+      // La sesión del vigía ocupa el socket. Se suelta ANTES de leer: los ZK
+      // aceptan UNA sola sesión a la vez.
       clearInterval(this.timers.keepalive);
       await this.soltarSocket();
 
-      this.log('backfill: leyendo el log completo…');
+      this.log(`backfill (${porque}): leyendo el log completo…`);
       const lectura = await leerVerificado(this.reloj.ip, {
         puerto: this.reloj.puerto, commKey: this.reloj.commKey,
         log: (m) => this.log(m.trim()),
@@ -309,6 +315,9 @@ class RelojJob {
       }
       this.infoReloj = lectura.info;
       this.horaReloj = lectura.horaReloj;
+      // Ya está subido lo que el reloj tiene hasta este conteo: el vigía no debe
+      // volver a dispararse hasta que el número CREZCA otra vez.
+      if (Number.isFinite(lectura.info?.logCounts)) this.conteoVisto = lectura.info.logCounts;
 
       const todas = normalizarChecadas(lectura.logs);
       // Filtrado incremental: sin esto se reenviarían las ~50 mil checadas del
