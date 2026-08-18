@@ -1,0 +1,67 @@
+/* Mismas medidas y tokens que "Candidatos en riesgo": son pantallas hermanas y
+   deben leerse igual. Lo único propio es la marca de no recontratable. */
+.reing-wrap { width: 100%; max-width: var(--pagina-max); margin: 0 auto; padding: 20px var(--pagina-pad) 48px; }
+
+.reing-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.reing-head h1 { font-size: 22px; font-weight: 800; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+.reing-head .sub { margin: 0; font-size: 13px; color: var(--text2, #64748b); max-width: 68ch; line-height: 1.5; }
+.search input { font: inherit; font-size: 13px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--border, #e2e8f0); min-width: 240px; background: var(--surface, #fff); color: inherit; }
+
+.estado { text-align: center; color: var(--text2, #64748b); padding: 40px 16px; font-size: 14px; }
+.barra-top { margin-bottom: 14px; }
+.conteo { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text2, #64748b); }
+.conteo-veto { color: #b91c1c; }
+
+.lista { display: flex; flex-direction: column; gap: 10px; }
+
+.row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e6e8ee);
+  border-left: 4px solid #6366f1;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+/* Rojo SOLO para el veto: ahí sí hay una decisión de la empresa sobre esa
+   persona, tomada a mano y con motivo escrito. Haber trabajado aquí antes no
+   es una falta, así que el resto va en índigo y no en rojo. */
+.row.vetado { border-left-color: #dc2626; background: #fef7f7; }
+
+.avatar { width: 40px; height: 40px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+.info { min-width: 0; }
+.nombre { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.meta { font-size: 12px; color: var(--text2, #64748b); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.meta .dot { opacity: .5; }
+.meta .etapa { font-weight: 700; }
+
+.dijo { font-size: 13px; margin-top: 5px; line-height: 1.45; }
+.dijo-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text2, #64748b); margin-right: 4px; }
+.motivo { font-size: 12px; color: #b91c1c; margin-top: 4px; }
+
+.tag-veto {
+  padding: 1px 7px; border-radius: 5px; background: #fee2e2; color: #991b1b;
+  font-size: 10px; font-weight: 800; letter-spacing: .04em;
+}
+
+.cuando { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.cuando-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text2, #94a3b8); }
+.cuando-val { font-size: 12px; font-weight: 700; }
+
+.acciones { display: flex; gap: 8px; }
+.btn { font: inherit; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border, #e2e8f0); background: var(--surface, #fff); cursor: pointer; }
+.btn:hover { background: var(--surface2, #f8fafc); }
+
+.nota-denominador {
+  margin: 18px 0 0; padding: 12px 16px; font-size: 13px; line-height: 1.55;
+  color: #78350f; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px;
+  max-width: 92ch;
+}
+
+@media (max-width: 720px) {
+  .row { grid-template-columns: 40px 1fr; }
+  .cuando, .acciones { grid-column: 2; justify-content: flex-start; align-items: flex-start; }
+}

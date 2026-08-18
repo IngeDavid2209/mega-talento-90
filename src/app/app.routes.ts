@@ -22,6 +22,7 @@ import { ContactadosComponent } from './rh/contactados/contactados';
 import { CvArmadosComponent } from './rh/cv-armados/cv-armados';
 import { DestacadosComponent } from './rh/destacados/destacados';
 import { EnRiesgoComponent } from './rh/enriesgo/enriesgo';
+import { ReingresosComponent } from './rh/reingresos/reingresos';
 import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
 import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/resultados-evaluacion';
 import { HorariosComponent } from './rh/horarios/horarios';
@@ -44,6 +45,7 @@ export const routes: Routes = [
       { path: 'requisiciones', component: RequisicionesComponent }, // lo que cada sucursal pide
       { path: 'permanencia', component: PermanenciaComponent },     // ¿el contratado sigue a los 90 días?
       { path: 'destacados', component: DestacadosComponent },
+      { path: 'ya-trabajaron', component: ReingresosComponent },
       { path: 'en-riesgo', component: EnRiesgoComponent },
       { path: 'etapa/:etapaId', component: EtapaComponent },
       { path: 'usuarios', component: UsuariosComponent },

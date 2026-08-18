@@ -1,0 +1,77 @@
+<div class="reing-wrap">
+  <header class="reing-head">
+    <div>
+      <h1><span class="ico">🔄</span> Ya trabajaron con nosotros</h1>
+      <p class="sub">Candidatos que <strong>declararon haber trabajado antes en Mega Dulces</strong>. Un reingreso no es malo por sí solo —hay quien se fue bien y vuelve— pero <strong>revísalo antes de avanzarlo</strong>. El bot lo pregunta al final del registro.</p>
+    </div>
+    <div class="search">
+      <input type="search" [(ngModel)]="termino" (ngModelChange)="clasificar()"
+             placeholder="Buscar nombre, puesto, ciudad o lo que contestó…" aria-label="Buscar">
+    </div>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Cargando…</div>
+  } @else {
+    <div class="barra-top">
+      <div class="conteo">
+        {{ lista.length }} de {{ contestaron }} que contestaron la pregunta
+        @if (vetados) { <span class="conteo-veto">· {{ vetados }} no recontratable(s)</span> }
+      </div>
+    </div>
+
+    @if (lista.length === 0) {
+      <div class="estado">Nadie de los que contestaron dijo haber trabajado aquí antes.</div>
+    } @else {
+      <div class="lista">
+        @for (c of lista; track c.id) {
+          <article class="row" [class.vetado]="c.noRecontratable">
+            <div class="avatar" [style.background-color]="colorEtapa(c.status)">{{ getInitials(c.nombre) }}</div>
+
+            <div class="info">
+              <div class="nombre">
+                {{ c.nombre || 'Sin nombre' }}
+                @if (c.noRecontratable) {
+                  <span class="tag-veto" [title]="c.noRecontratableMotivo || 'Sin motivo registrado'">NO RECONTRATABLE</span>
+                }
+              </div>
+              <div class="meta">
+                <span>{{ c.puesto || 'Sin puesto' }}</span>
+                <span class="dot">·</span>
+                <span>{{ c.ciudad || c.sucursal || 'Sin ciudad' }}</span>
+                <span class="etapa" [style.color]="colorEtapa(c.status)">{{ nombreEtapa(c.status) }}</span>
+              </div>
+              <!-- Se muestra lo que DIJO, no un "Sí" genérico: la pregunta del bot
+                   pide sucursal, puesto, jefe y cuánto tiempo, y sin ese detalle
+                   nadie puede verificar nada. -->
+              <div class="dijo"><span class="dijo-lbl">Dijo:</span> {{ detalle(c) }}</div>
+              @if (c.noRecontratable && c.noRecontratableMotivo) {
+                <div class="motivo">Motivo del veto: {{ c.noRecontratableMotivo }}</div>
+              }
+            </div>
+
+            <div class="cuando">
+              <span class="cuando-lbl">Se postuló</span>
+              <span class="cuando-val">{{ fecha(c.createdAt) }}</span>
+            </div>
+
+            <div class="acciones">
+              <button class="btn" (click)="abrirExpediente(c)">Expediente</button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    <!-- EL DENOMINADOR, SIEMPRE. La pregunta se agregó el 12/08/2026: sin este
+         aviso, un número chico se lee como "casi no hay ex-empleados
+         postulándose", cuando la verdad es que a la mayoría no se les preguntó. -->
+    @if (sinPreguntar) {
+      <p class="nota-denominador">
+        A <b>{{ sinPreguntar }}</b> candidato(s) nunca se les hizo esta pregunta: se agregó al
+        registro el <b>12 de agosto de 2026</b>, así que esta lista solo cubre a quienes se
+        registraron después. Que alguien no aparezca aquí no significa que no haya trabajado antes.
+      </p>
+    }
+  }
+</div>
