@@ -978,3 +978,8 @@
   margin: 0; padding: 12px 20px; font-size: 13px; color: #64748b;
   background: #f8fafc; border-top: 1px solid #e2e8f0;
 }
+
+/* Aviso de que un total excluye a alguien. Va en el encabezado del panel y no
+   en una nota al pie: un numero que excluye gente tiene que decirlo donde se
+   lee el numero, no tres parrafos abajo. */
+.desc-nota { color: #d97706; font-weight: 600; }

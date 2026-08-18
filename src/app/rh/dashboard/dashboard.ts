@@ -438,7 +438,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   private agruparPor(claveFn: (c: any) => string, fallback: string) {
     const map = new Map<string, { total: number; activos: number; contratados: number; candidatos: any[] }>();
-    this.candidatos.forEach(c => {
+    // LOS REINGRESOS NO SE CUENTAN AQUI. Salen unicamente en su propia
+    // seccion, para que nadie los avance sin haberlos visto: el caso que
+    // origino todo esto es alguien que ya habia trabajado en Yurecuaro y se
+    // detecto de milagro, porque una persona lo reconocio.
+    //
+    // Por eso los totales de "por puesto" y "por zona" son de los candidatos
+    // NUEVOS. La seccion de reingresos dice cuantos se sacaron, para que los
+    // numeros se puedan reconciliar y nadie crea que se perdio gente.
+    this.candidatos.filter(c => !esReingreso(c.reingreso)).forEach(c => {
       const clave = claveFn(c) || fallback;
       if (!map.has(clave)) map.set(clave, { total: 0, activos: 0, contratados: 0, candidatos: [] });
       const o = map.get(clave)!;

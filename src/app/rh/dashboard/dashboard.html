@@ -175,7 +175,7 @@
         <header class="panel-header">
           <div>
             <h2>Candidatos por zona</h2>
-            <p class="panel-desc">Volumen por ciudad · activos y contratados</p>
+            <p class="panel-desc">Volumen por ciudad · activos y contratados @if (reingresos.length) {<span class="desc-nota">· sin los {{ reingresos.length }} que ya trabajaron aquí</span>}</p>
           </div>
         </header>
         <div class="group-list">
@@ -224,7 +224,7 @@
         <header class="panel-header">
           <div>
             <h2>Candidatos por puesto</h2>
-            <p class="panel-desc">Volumen por vacante · activos y contratados</p>
+            <p class="panel-desc">Volumen por vacante · activos y contratados @if (reingresos.length) {<span class="desc-nota">· sin los {{ reingresos.length }} que ya trabajaron aquí</span>}</p>
           </div>
         </header>
         <div class="group-list">
@@ -282,7 +282,7 @@
         <header class="panel-header">
           <div>
             <h2>Ya trabajaron con nosotros</h2>
-            <p class="panel-desc">Declararon haber trabajado antes en Mega Dulces · revísalos antes de avanzarlos</p>
+            <p class="panel-desc">Declararon haber trabajado antes en Mega Dulces · revísalos antes de avanzarlos<br><b>No se cuentan</b> en «por puesto» ni «por zona»: aquí es el único lugar donde aparecen.</p>
           </div>
           <span class="fases-total">{{ reingresos.length }}</span>
         </header>
