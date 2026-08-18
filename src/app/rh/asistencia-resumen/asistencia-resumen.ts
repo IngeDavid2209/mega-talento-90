@@ -118,9 +118,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** Atajos de periodo de la barra de filtros. */
   RANGOS: { d: number; l: string }[] = [
     { d: 1, l: 'Hoy' },
-    { d: 7, l: '7 días' },
-    { d: 15, l: '15 días' },
-    { d: 30, l: '30 días' }
+    { d: 7, l: '7 días' }
   ];
 
   /** Etiqueta corta de cada marca, para los chips de la tarjeta. */
