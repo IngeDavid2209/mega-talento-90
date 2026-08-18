@@ -38,7 +38,7 @@
 //
 try { require('dotenv').config(); } catch { /* dotenv opcional */ }
 const {
-  leerVerificado, normalizarChecadas, normalizarUsuarios, motivo,
+  leerVerificado, normalizarChecadas, normalizarUsuarios, motivo, serieCoincide,
 } = require('./lectura-verificada');
 
 // --dry-run: lee y verifica pero NO escribe ni manda. Para probar sin riesgo.
@@ -213,7 +213,7 @@ async function jalarUno(t) {
 
   // La serie que contesta debe ser la que el padrón espera. Si no lo es, la IP
   // cambió de dueño y jalarla metería las marcas bajo la sucursal equivocada.
-  if (t.serie && lectura.serie && t.serie !== lectura.serie) {
+  if (t.serie && lectura.serie && !serieCoincide(t.serie, lectura.serie)) {
     throw new Error(`ESTA IP YA NO ES ESE RELOJ: el padrón espera ${t.serie} y contesta ` +
       `${lectura.serie}. Corre tools/diagnostico-red.js --barrer para reencontrarlo.`);
   }

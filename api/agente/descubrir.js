@@ -17,7 +17,7 @@
 // pierda un solo día de asistencia.
 
 const net = require('net');
-const { conectar, cerrar, leerSerie, motivo } = require('../tools/lectura-verificada');
+const { conectar, cerrar, leerSerie, motivo, serieCoincide } = require('../tools/lectura-verificada');
 
 const TIMEOUT_TCP_MS = 800;
 const CONCURRENCIA = 32;
@@ -77,7 +77,7 @@ async function descubrir(reloj, log = console.log) {
     const abierto = await puertoAbierto(reloj.ip, puerto);
     if (abierto) {
       const serie = await serieDe(reloj.ip, puerto, reloj.commKey);
-      if (serie && serie === esperada) return { ip: reloj.ip, cambio: false };
+      if (serie && serieCoincide(esperada, serie)) return { ip: reloj.ip, cambio: false };
       if (serie && serie !== esperada) {
         log(`  ⚠ ${reloj.ip} contesta pero es la serie ${serie}, no ${esperada}. Buscando…`);
       } else {
@@ -112,7 +112,7 @@ async function descubrir(reloj, log = console.log) {
   // Paso 4 — identificar a los que abrieron.
   for (const ip of abiertas) {
     const serie = await serieDe(ip, puerto, reloj.commKey);
-    if (serie === esperada) {
+    if (serieCoincide(esperada, serie)) {
       log(`  ✅ ${esperada} reencontrado en ${ip} (antes ${reloj.ip}). Ponle IP fija o reservación DHCP.`);
       return { ip, cambio: true, anterior: reloj.ip };
     }

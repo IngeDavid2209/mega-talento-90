@@ -44,6 +44,29 @@ function esInalcanzable(m) {
   return /ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ECONNREFUSED|ECONNRESET|TCP CONNECT/i.test(String(m));
 }
 
+// ──────────────────────────────────────────────────────────────────
+// serieCoincide(esperada, leida) — ¿son el mismo reloj?
+//
+// La serie se lee con un solo comando chico y sin verificación de contenido, y
+// de vez en cuando llega con UN byte cambiado (se vio "U=ED255000166" en vez de
+// "UEED255000166": 0x45 'E' → 0x3D '='). El guardián que evita atribuir marcas a
+// otra plaza tomaba esa corrupción por "cambió el reloj" y BLOQUEABA la lectura,
+// tirando el dato de un equipo sano.
+//
+// Un cambio real de reloj (DHCP le dio la IP a otro equipo) produce una serie
+// COMPLETAMENTE distinta, no una a un carácter de distancia. Así que se tolera
+// una diferencia de un byte en cadenas del mismo largo —eso es ruido de
+// lectura— y se bloquea solo cuando la serie es de verdad otra.
+// ──────────────────────────────────────────────────────────────────
+function serieCoincide(esperada, leida) {
+  if (!esperada || !leida) return false;
+  if (esperada === leida) return true;
+  if (esperada.length !== leida.length) return false;
+  let dif = 0;
+  for (let i = 0; i < esperada.length; i++) if (esperada[i] !== leida[i]) dif++;
+  return dif <= 1;
+}
+
 const pad = (n) => String(n).padStart(2, '0');
 /** Date → las tres formas en que la base guarda una checada (hora LOCAL del reloj). */
 function fmt(d) {
@@ -319,7 +342,7 @@ function normalizarUsuarios(users) {
 }
 
 module.exports = {
-  motivo, esInalcanzable, fmt, pad,
+  motivo, esInalcanzable, fmt, pad, serieCoincide,
   conectar, cerrar, leerSerie, leerHoraReloj, autenticar, claveComunicacion,
   leerVerificado, normalizarChecadas, normalizarUsuarios,
   PUERTO_DEFAULT, INTENTOS_DEFAULT, PAUSA_MS_DEFAULT,

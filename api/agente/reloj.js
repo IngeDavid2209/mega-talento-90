@@ -22,7 +22,7 @@
 // levantarlo. Nunca los dos a la vez: si se intenta, el reloj deja de contestar
 // y se ve exactamente igual que si estuviera apagado.
 
-const { fmt, conectar, cerrar, leerVerificado, normalizarChecadas, normalizarUsuarios, motivo } =
+const { fmt, conectar, cerrar, leerVerificado, normalizarChecadas, normalizarUsuarios, motivo, serieCoincide } =
   require('../tools/lectura-verificada');
 const { descubrir } = require('./descubrir');
 const { ErrorEnvio } = require('./enviar');
@@ -303,7 +303,7 @@ class RelojJob {
         log: (m) => this.log(m.trim()),
       });
 
-      if (lectura.serie && lectura.serie !== this.reloj.serie) {
+      if (lectura.serie && !serieCoincide(this.reloj.serie, lectura.serie)) {
         throw new Error(`ESTA IP YA NO ES ESTE RELOJ: esperaba ${this.reloj.serie} y contesta ` +
           `${lectura.serie}. No se encola nada para no atribuir las marcas a otra plaza.`);
       }
