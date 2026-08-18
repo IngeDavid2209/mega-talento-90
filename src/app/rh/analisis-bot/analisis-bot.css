@@ -1,49 +1,122 @@
-/* ===== SEMÁFORO DEL ANÁLISIS DEL CV =====
-   Botón, no etiqueta: el estatus solo sirve si puedes ver por qué.
-   Los colores separan "cumple" (verde/azul) de "hay dudas" (ámbar) y de
-   "no encaja" (gris, deliberadamente NO rojo: no es una falta del candidato,
-   es que ese perfil no embona con esta vacante). */
+/* ═══════════════════════════════════════════════════════════════════
+   ANÁLISIS DEL CV — paleta corporativa (navy + dorado, tonos sobrios).
+   El semáforo es un botón; el análisis se despliega debajo.
+   Colores por SIGNIFICADO, no decorativos: verde=a favor, azul=neutral,
+   ámbar/rojo=a resolver, gris=no encaja (NO rojo: no es falta del candidato).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── El semáforo-botón ── */
 .bot-estatus {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-radius: 10px; cursor: pointer;
-  border: 1px solid transparent; font: inherit; width: 100%;
-  margin-bottom: 10px; text-align: left; transition: filter .15s;
+  padding: 11px 15px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--border, #E2E8F0); background: var(--surface, #fff);
+  font: inherit; width: 100%; margin-bottom: 12px; text-align: left;
+  transition: border-color .15s, box-shadow .15s;
 }
-.bot-estatus:hover { filter: brightness(.97); }
-.bot-estatus.abierto { box-shadow: 0 0 0 3px rgba(15, 23, 42, .06); }
-.bot-estatus-texto { font-weight: 700; font-size: 15px; }
-.bot-estatus-pts { font-size: 13px; opacity: .75; font-variant-numeric: tabular-nums; }
-.bot-estatus-ver { margin-left: auto; font-size: 12px; opacity: .7; text-decoration: underline; }
+.bot-estatus:hover { border-color: var(--border-strong, #94a3b8); }
+.bot-estatus.abierto { border-color: var(--ink, #1A2F4E); box-shadow: 0 1px 3px rgba(26,47,78,.08); }
 
-.bot-estatus.est-excelente { background: #dcfce7; border-color: #86efac; color: #14532d; }
-.bot-estatus.est-bueno     { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
-.bot-estatus.est-regular   { background: #fef3c7; border-color: #fcd34d; color: #78350f; }
-.bot-estatus.est-noencaja  { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
-.bot-estatus.est-sindatos  { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+/* Punto de estado a la izquierda: color = veredicto. */
+.bot-estatus-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--slate, #475569); }
+.bot-estatus-texto { font-weight: 800; font-size: 15px; color: var(--ink, #1A2F4E); }
+.bot-estatus-pts { font-size: 15px; font-weight: 800; color: var(--ink, #1A2F4E); font-variant-numeric: tabular-nums; }
+.bot-estatus-pts small { font-size: 11px; font-weight: 600; color: var(--text3, #8A95A8); }
+.bot-estatus-ver {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700; color: var(--text2, #4A5568);
+}
+.bot-chev { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.bot-chev.abierto { transform: rotate(180deg); }
 
-/* ===== EL ANÁLISIS DESPLEGADO ===== */
+/* Tinte sobrio del botón según veredicto (borde-izquierdo + punto). */
+.bot-estatus.est-excelente { border-left: 4px solid var(--green, #1F7A4C); }
+.bot-estatus.est-excelente .bot-estatus-dot { background: var(--green, #1F7A4C); }
+.bot-estatus.est-bueno     { border-left: 4px solid var(--blue, #1A4FB0); }
+.bot-estatus.est-bueno .bot-estatus-dot { background: var(--blue, #1A4FB0); }
+.bot-estatus.est-regular   { border-left: 4px solid var(--gold, #E5A300); }
+.bot-estatus.est-regular .bot-estatus-dot { background: var(--gold, #E5A300); }
+.bot-estatus.est-noencaja  { border-left: 4px solid var(--slate, #475569); }
+.bot-estatus.est-noencaja .bot-estatus-dot { background: var(--slate, #475569); }
+.bot-estatus.est-sindatos  { border-left: 4px solid var(--border-strong, #cbd5e1); }
+.bot-estatus.est-sindatos .bot-estatus-texto { color: var(--text2, #4A5568); }
+.bot-estatus.est-sindatos .bot-estatus-dot { background: var(--text4, #B5BCC8); }
+
+/* ── El análisis desplegado ── */
 .bot-analisis {
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 20px 24px; margin-bottom: 18px;
+  background: var(--surface, #fff); border: 1px solid var(--border, #E2E8F0);
+  border-radius: 14px; padding: 20px 22px; margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(26,47,78,.05);
 }
-.bot-analisis-head h3 { margin: 0 0 4px; font-size: 16px; }
-.bot-analisis-head p { margin: 0 0 16px; font-size: 13px; color: #64748b; max-width: 80ch; }
+.bot-analisis-head { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 16px; }
+.bot-head-txt { flex: 1; min-width: 0; }
+.bot-analisis-head h3 { margin: 0 0 4px; font-size: 16px; font-weight: 800; color: var(--ink, #1A2F4E); }
+.bot-analisis-head p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text2, #4A5568); max-width: 78ch; }
 
-/* La crítica va primero y destacada: es lo que se lee en 10 segundos. */
+/* Anillo de puntaje: el número, de un golpe. Sin colores chillantes: el aro
+   usa el color del veredicto y el resto es carbón. */
+.bot-score {
+  --col: var(--slate, #475569);
+  flex: none; width: 66px; height: 66px; border-radius: 50%;
+  display: grid; place-content: center; text-align: center; line-height: 1;
+  background: conic-gradient(var(--col) calc(var(--pct, 0) * 1%), var(--surface2, #EEF2F8) 0);
+  position: relative;
+}
+.bot-score::before {
+  content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface, #fff);
+}
+.bot-score.est-excelente { --col: var(--green, #1F7A4C); }
+.bot-score.est-bueno     { --col: var(--blue, #1A4FB0); }
+.bot-score.est-regular   { --col: var(--gold, #E5A300); }
+.bot-score.est-noencaja  { --col: var(--slate, #475569); }
+.bot-score-num { position: relative; font-size: 20px; font-weight: 800; color: var(--ink, #1A2F4E); font-variant-numeric: tabular-nums; }
+.bot-score-de { position: relative; font-size: 9.5px; font-weight: 600; color: var(--text3, #8A95A8); }
+
+/* La crítica: lo que se lee en 10 segundos. Cinta dorada, no índigo. */
 .bot-critica {
-  background: #f8fafc; border-left: 3px solid #4f46e5;
-  padding: 12px 16px; border-radius: 0 8px 8px 0;
-  font-size: 14px; line-height: 1.6; margin-bottom: 18px;
+  background: var(--surface3, #F8FAFD); border: 1px solid var(--border, #E2E8F0);
+  border-left: 3px solid var(--gold, #E5A300);
+  padding: 12px 16px; border-radius: 0 10px 10px 0; margin-bottom: 20px;
 }
-.bot-bloque { margin-bottom: 16px; }
-.bot-bloque h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
-.bot-lista { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.65; }
-.bot-lista li { margin-bottom: 4px; }
-.bot-lista.destaca li::marker { color: #16a34a; }
-.bot-lista.riesgos li::marker { color: #d97706; }
-.bot-lista.riesgos li[data-sev="alta"]::marker { color: #dc2626; }
-.bot-vacio { font-size: 13px; color: #64748b; font-style: italic; margin: 0 0 16px; }
+.bot-critica-lbl {
+  display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--amber-text, #6B3D02); margin-bottom: 4px;
+}
+.bot-critica p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--ink, #1A2F4E); }
+
+/* Bloques con encabezado + acento */
+.bot-bloque { margin-bottom: 18px; }
+.bot-bloque:last-child { margin-bottom: 0; }
+.bot-bloque h4 {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 9px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .04em; font-weight: 800;
+  color: var(--text2, #4A5568);
+}
+.bot-h4-acento { width: 14px; height: 3px; border-radius: 2px; background: var(--green, #1F7A4C); flex: none; }
+.bot-h4-acento.azul { background: var(--blue, #1A4FB0); }
+.bot-h4-acento.ambar { background: var(--gold, #E5A300); }
+
+/* Listas con punto de color propio (mejor control que ::marker) */
+.bot-lista { margin: 0; padding: 0; list-style: none; }
+.bot-lista li {
+  display: flex; align-items: flex-start; gap: 9px;
+  font-size: 13.5px; line-height: 1.55; color: var(--ink, #1A2F4E);
+  padding: 4px 0;
+}
+.bot-lista li + li { border-top: 1px solid var(--surface2, #EEF2F8); }
+.bot-punto { width: 7px; height: 7px; border-radius: 50%; flex: none; margin-top: 6px; background: var(--slate, #475569); }
+.bot-punto.verde { background: var(--green, #1F7A4C); }
+.bot-punto.azul  { background: var(--blue, #1A4FB0); }
+.bot-punto.ambar { background: var(--gold, #E5A300); }
+.bot-punto.rojo  { background: var(--red, #A12626); }
+
+.bot-vacio { font-size: 12.5px; color: var(--text3, #8A95A8); font-style: italic; margin: 0; padding: 2px 0; }
+
+/* Aviso "sin CV": sobrio, con icono SVG en vez de emoji grande. */
 .bot-avisosincv {
-  background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px;
-  padding: 10px 14px; font-size: 13px; margin: 0;
+  display: flex; align-items: center; gap: 9px;
+  background: var(--amber-bg, #F9EFD6); border: 1px solid rgba(162,98,9,.24);
+  border-radius: 10px; padding: 10px 14px; font-size: 12.5px; color: var(--amber-text, #6B3D02);
+  margin: 16px 0 0;
 }
+.bot-avisosincv svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.bot-avisosincv b { font-weight: 800; }

@@ -5,29 +5,48 @@
           [class.abierto]="abierto"
           (click)="toggle()"
           [title]="estatus.ayuda">
+    <span class="bot-estatus-dot" aria-hidden="true"></span>
     <span class="bot-estatus-texto">{{ estatus.texto }}</span>
     @if (estatus.puntaje !== null) {
-      <span class="bot-estatus-pts">{{ estatus.puntaje }}/100</span>
+      <span class="bot-estatus-pts">{{ estatus.puntaje }}<small>/100</small></span>
     }
-    <span class="bot-estatus-ver">{{ abierto ? 'ocultar análisis' : 'ver análisis' }}</span>
+    <span class="bot-estatus-ver">
+      {{ abierto ? 'ocultar' : 'ver análisis' }}
+      <svg class="bot-chev" [class.abierto]="abierto" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+    </span>
   </button>
 
   @if (abierto) {
     <div class="bot-analisis">
       <header class="bot-analisis-head">
-        <h3>Análisis del CV contra la vacante</h3>
-        <p>Se leyó su CV y se comparó con <b>{{ puesto }}</b>. Es una recomendación con evidencia, no la decisión: esa es tuya.</p>
+        <div class="bot-head-txt">
+          <h3>Análisis del CV contra la vacante</h3>
+          <p>Se leyó su CV y se comparó con <b>{{ puesto }}</b>. Es una recomendación con evidencia, no la decisión: esa es tuya.</p>
+        </div>
+        @if (estatus.puntaje !== null) {
+          <!-- Anillo de puntaje: el número, visto de un golpe. -->
+          <div class="bot-score" [class]="estatus.clase"
+               [style.--pct.%]="estatus.puntaje">
+            <span class="bot-score-num">{{ estatus.puntaje }}</span>
+            <span class="bot-score-de">/100</span>
+          </div>
+        }
       </header>
 
       @if (critica) {
-        <div class="bot-critica">{{ critica }}</div>
+        <div class="bot-critica">
+          <span class="bot-critica-lbl">En corto</span>
+          <p>{{ critica }}</p>
+        </div>
       }
 
-      <div class="bot-bloque">
-        <h4>Por qué destacaría en este puesto</h4>
+      <div class="bot-bloque bot-destaca">
+        <h4><span class="bot-h4-acento"></span>Por qué destacaría en este puesto</h4>
         @if (destaca.length) {
-          <ul class="bot-lista destaca">
-            @for (x of destaca; track x) { <li>{{ x }}</li> }
+          <ul class="bot-lista">
+            @for (x of destaca; track x) {
+              <li><span class="bot-punto verde" aria-hidden="true"></span>{{ x }}</li>
+            }
           </ul>
         } @else {
           <!-- Vacío es una respuesta, no un hueco: el bot tiene instrucción de
@@ -38,19 +57,24 @@
 
       @if (fortalezas.length) {
         <div class="bot-bloque">
-          <h4>Fortalezas</h4>
+          <h4><span class="bot-h4-acento azul"></span>Fortalezas</h4>
           <ul class="bot-lista">
-            @for (x of fortalezas; track x) { <li>{{ x }}</li> }
+            @for (x of fortalezas; track x) {
+              <li><span class="bot-punto azul" aria-hidden="true"></span>{{ x }}</li>
+            }
           </ul>
         </div>
       }
 
       @if (riesgos.length) {
         <div class="bot-bloque">
-          <h4>A validar en entrevista</h4>
-          <ul class="bot-lista riesgos">
+          <h4><span class="bot-h4-acento ambar"></span>A validar en entrevista</h4>
+          <ul class="bot-lista">
             @for (r of riesgos; track r.riesgo) {
-              <li [attr.data-sev]="r.severidad">{{ r.riesgo }}</li>
+              <li [attr.data-sev]="r.severidad">
+                <span class="bot-punto" [class.rojo]="r.severidad === 'alta'" [class.ambar]="r.severidad !== 'alta'" aria-hidden="true"></span>
+                {{ r.riesgo }}
+              </li>
             }
           </ul>
         </div>
@@ -58,7 +82,8 @@
 
       @if (sinCV) {
         <p class="bot-avisosincv">
-          ⚠️ Este análisis se hizo <b>sin su CV</b>: mide lo que nos falta saber, no al candidato.
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 1 14h14L8 1.5zM8 6v4M8 11.5v.5"/></svg>
+          Este análisis se hizo <b>sin su CV</b>: mide lo que nos falta saber, no al candidato.
         </p>
       }
     </div>
