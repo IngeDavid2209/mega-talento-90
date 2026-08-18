@@ -271,6 +271,65 @@
     </div>
 
 
+
+    <!-- YA TRABAJARON CON NOSOTROS
+         Un reingreso no es malo por sí solo: hay quien se fue bien y vuelve.
+         Lo que no puede pasar es enterarse DESPUÉS de haberlo avanzado, que es
+         justo el caso que originó esto (alguien de Yurécuaro se volvió a
+         postular y solo se detectó porque una persona lo reconoció). -->
+    @if (reingresos.length || sinPreguntar) {
+      <div class="panel-card">
+        <header class="panel-header">
+          <div>
+            <h2>Ya trabajaron con nosotros</h2>
+            <p class="panel-desc">Declararon haber trabajado antes en Mega Dulces · revísalos antes de avanzarlos</p>
+          </div>
+          <span class="fases-total">{{ reingresos.length }}</span>
+        </header>
+
+        @if (reingresos.length) {
+          <div class="cand-list">
+            @for (c of reingresos; track c.id) {
+              <div class="cand-item">
+                <button class="cand-open" type="button" (click)="abrirExpediente(c)">
+                  <span class="cand-avatar" [style.background-color]="getColorEtapa(c.status)">{{ getInitials(c.nombre) }}</span>
+                  <span class="cand-info">
+                    <span class="cand-name">
+                      {{ capitalHumano.displayName(c) }}
+                      @if (c.noRecontratable) {
+                        <span class="tag-veto" title="Marcado como no recontratable">NO RECONTRATABLE</span>
+                      }
+                    </span>
+                    <!-- Se muestra lo que DIJO, no solo un "Sí": sin el detalle
+                         (sucursal, puesto, jefe, cuánto tiempo) nadie puede
+                         verificar nada, y el aviso se queda en ruido. -->
+                    <span class="cand-sub">{{ c.puesto || 'sin puesto' }} · {{ c.ciudad || c.sucursal || 'sin ciudad' }} — <b>{{ detalleReingreso(c) }}</b></span>
+                  </span>
+                </button>
+                <span class="cand-etapa">{{ getNombreEtapa(c.status) }}</span>
+                @if (c.cvUrl) {
+                  <a class="cand-cv" [href]="c.cvUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()" title="Ver currículum">CV</a>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="empty-row">Nadie de los que contestaron dijo haber trabajado aquí antes.</p>
+        }
+
+        <!-- El denominador honesto: la pregunta se agregó el 12/08/2026, así que
+             un número chico aquí NO significa que no haya ex-empleados
+             postulándose — significa que a la mayoría no se les preguntó. -->
+        @if (sinPreguntar) {
+          <p class="reingreso-nota">
+            A <b>{{ sinPreguntar }}</b> candidato(s) nunca se les hizo esta pregunta
+            (se agregó al registro el 12/08/2026), así que este conteo cubre solo a
+            quienes se registraron después.
+          </p>
+        }
+      </div>
+    }
+
     <!-- SE POSTULARON A ALGO QUE NO TENEMOS ABIERTO
          Va aparte de "Candidatos por puesto" a propósito: son familias
          (Prevención y seguridad, Administrativo, Sistemas…) que NO existen

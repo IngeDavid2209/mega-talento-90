@@ -37,6 +37,7 @@ import {
 // ya es el más grande del back-office.
 import { StatusProcesoComponent } from '../status-proceso/status-proceso';
 import { AnalisisBotComponent } from '../analisis-bot/analisis-bot';
+import { esReingreso } from '../../core/models/reingreso.model';
 // Mínimos para avanzar de fase (CV, registro completo, sin bandera grave).
 import { revisarAvance } from '../../core/models/requisitos-avance.model';
 
@@ -407,9 +408,10 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
    * como reingreso a medio padrón, o peor, dejaría pasar a uno de verdad.
    */
   get esReingreso(): boolean {
-    const t = String(this.candidato?.reingreso || '').trim().toLowerCase();
-    if (!t) return false;
-    return !/^(no|nunca|ninguno|ninguna|n\/a|na|no aplica|jamas|jamás|es la primera)\b/.test(t);
+    // La regla vive en core/models/reingreso.model.ts: el dashboard hace la
+    // misma pregunta, y dos copias terminarian diciendo cosas distintas de la
+    // misma persona.
+    return esReingreso(this.candidato?.reingreso);
   }
 
   marcandoVeto = false;

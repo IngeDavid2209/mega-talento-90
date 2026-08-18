@@ -16,6 +16,7 @@ import {
 } from '../../core/models/seguimiento.model';
 import { RequisicionesService, ResumenRequisiciones, Requisicion } from '../../core/services/requisiciones.service';
 import { centroChecadorPorId } from '../../core/models/sucursales.model';
+import { esReingreso, seLePregunto, detalleReingreso } from '../../core/models/reingreso.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -304,6 +305,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.separarSinVacante();
 
     this.calcularSinSeguimiento(ahora);
+    this.calcularReingresos();
 
     // Y en segundo plano, que el bot una las variantes de escritura.
     void this.afinarAgrupacion();
@@ -369,6 +371,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * que si tiene vacante. Y "Sin puesto" se queda arriba: no es que no
    * tengamos la vacante, es que esa persona no dijo cual queria.
    */
+  // ====== YA TRABAJARON CON NOSOTROS ======
+  //
+  // Lo pidió Capital Humano tras un caso concreto: alguien que estuvo unas
+  // semanas en Yurécuaro se volvió a postular y solo se detectó porque una
+  // persona lo reconoció. Un reingreso no es malo por sí solo —hay quien se fue
+  // bien y vuelve— pero hay que MIRARLO antes de avanzarlo, no enterarse
+  // después.
+  //
+  // La regla de quién cuenta como reingreso vive en core/models/reingreso.model
+  // y la comparte con el expediente: dos copias terminarían diciendo cosas
+  // distintas de la misma persona.
+  reingresos: any[] = [];
+  // Cuántos NUNCA contestaron la pregunta. Se muestra a fuerza: sin ese
+  // denominador, "3 reingresos" se lee como "solo 3 ex-empleados se
+  // postularon", cuando la verdad es "3 de los 77 a los que preguntamos".
+  sinPreguntar = 0;
+
+  private calcularReingresos() {
+    this.reingresos = this.candidatos
+      .filter(c => esReingreso(c.reingreso))
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    this.sinPreguntar = this.candidatos.filter(c => !seLePregunto(c.reingreso)).length;
+  }
+
+  /** Lo que contestó, listo para leer. */
+  detalleReingreso(c: any): string { return detalleReingreso(c?.reingreso); }
+
   private separarSinVacante() {
     if (!this.vacantesAbiertas.size) { this.sinVacante = []; return; }
     const abierto = (n: string) => this.vacantesAbiertas.has(n) || n === 'Sin puesto';

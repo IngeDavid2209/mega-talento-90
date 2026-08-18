@@ -94,19 +94,25 @@ async function leerHoraReloj(zk) {
   return new Date(t + 2000, mes, dia, hor, min, seg);
 }
 
-// ──────────────────────────────────────────────────────────────────
-// CONTRASEÑA DE COMUNICACIÓN (Comm Key)
+// ══════════════════════════════════════════════════════════════════
+// EL SALUDO CON AUTENTICACIÓN — lo único que a node-zklib le faltaba
 //
-// Un reloj con Comm Key configurada se ve EXACTAMENTE igual que uno apagado, y
-// no lo es. Peor: `createSocket()` de node-zklib lo da por conectado, porque
-// solo comprueba que el equipo haya contestado ALGO (zklibtcp.js ~línea 57) y
-// no mira que la respuesta sea CMD_ACK_UNAUTH (2005). Después falla todo lo
-// demás y parece un problema de red.
+// Estos relojes (firmware ZMM220) contestan CMD_ACK_UNAUTH (2005) al saludo y
+// EXIGEN un CMD_AUTH después, AUNQUE la clave sea 0. node-zklib nunca manda ese
+// CMD_AUTH: su connect() manda CMD_CONNECT y da por buena cualquier respuesta
+// (zklibtcp.js:57), así que cree que conectó y todo lo de después falla. Se veía
+// como "pide contraseña" o "no responde", y no era ni una cosa ni la otra.
 //
-// El algoritmo es el estándar de ZKTeco (el mismo de pyzk): la clave se mezcla
-// con el sessionId que acaba de dar el equipo, se enmascara con "ZKSO" y se le
-// aplica un tic. Se manda con CMD_AUTH sobre la sesión ya abierta.
-// ──────────────────────────────────────────────────────────────────
+// pyzk (la librería de Python) SÍ hace el CMD_AUTH, y por eso el script de
+// prueba leyó los 10 relojes con password=0 desde esta misma máquina. O sea que
+// la clave real ES 0 — dato comprobado, no adivinado— y lo que había que
+// arreglar era el protocolo, no encontrar una contraseña.
+//
+// claveComunicacion() es el make_commkey del firmware, portado byte por byte de
+// pyzk: la clave se mezcla con el sessionId, se enmascara con "ZKSO", se
+// intercambian los dos u16 y se aplica el tic. El último byte es el tic CRUDO,
+// no XOR — ese era el bug de la versión anterior.
+// ══════════════════════════════════════════════════════════════════
 function claveComunicacion(clave, sessionId, ticks = 50) {
   let k = 0;
   const key = Number(clave) | 0;
@@ -124,43 +130,63 @@ function claveComunicacion(clave, sessionId, ticks = 50) {
   s.writeUInt16LE(x.readUInt16LE(2), 0);
   s.writeUInt16LE(x.readUInt16LE(0), 2);
 
+  // pyzk (base.py make_commkey): pack(BBBB, k0^B, k1^B, B, k3^B). El tic CRUDO
+  // va en la posición 2, y la 3 es k3^B. Éste era el byte que estaba fuera de
+  // lugar y hacía que hasta la clave correcta (0) se rechazara.
   const t = ticks & 0xff;
-  return Buffer.from([s[0] ^ t, s[1] ^ t, s[2], s[3] ^ t]);
+  return Buffer.from([s[0] ^ t, s[1] ^ t, t, s[3] ^ t]);
 }
 
-/** Autentica una sesión ya abierta contra un reloj con Comm Key. */
-async function autenticar(zk, commKey) {
-  const tcp = zk.zklibTcp;
+/** Manda CMD_AUTH sobre la sesión abierta. Lanza si el reloj no lo acepta. */
+async function autenticar(tcp, commKey) {
   const paquete = claveComunicacion(commKey, tcp.sessionId);
-  const respuesta = await zk.executeCmd(COMMANDS.CMD_AUTH, paquete);
-  // La librería resuelve con cualquier respuesta, así que el commandId se
-  // revisa aquí: es la diferencia entre "entré" y "creí que entré".
-  if (Buffer.isBuffer(respuesta) && respuesta.length >= 2) {
-    const cmd = respuesta.readUInt16LE(0);
-    if (cmd === COMMANDS.CMD_ACK_UNAUTH) {
-      throw new Error('la contraseña de comunicación (comm_key) no es la correcta');
-    }
+  const rReply = await tcp.executeCmd(COMMANDS.CMD_AUTH, paquete);
+  const cmd = rReply && rReply.length >= 2 ? rReply.readUInt16LE(0) : 0;
+  if (cmd !== COMMANDS.CMD_ACK_OK) {
+    throw new Error(
+      `el reloj rechazó la autenticación (respondió ${cmd}); la comm_key ${commKey} no es la correcta`);
   }
   return true;
 }
 
 /**
- * Abre una sesión con el reloj. Devuelve la instancia ZKLib conectada.
+ * Abre una sesión con el reloj, autenticando cuando hace falta.
  *
- * ⚠️ Los ZKTeco aceptan UNA SOLA sesión TCP en el 4370. Si queda un socket
- * colgado —o si el software del proveedor está conectado— el reloj "no
- * responde" aunque esté prendido y con ping. Por eso cada uso va con su
- * `cerrar()` en un finally, siempre.
+ * NO se usa el connect() de node-zklib: ese manda CMD_CONNECT y resuelve con
+ * cualquier respuesta, sin mirar si fue UNAUTH y sin mandar CMD_AUTH. Aquí se
+ * abre el socket, se hace el saludo a mano para poder LEER el commandId, y si el
+ * reloj pide autenticación se le manda CMD_AUTH con la clave (0 por defecto,
+ * que es la comprobada).
+ *
+ * ⚠️ Los ZKTeco aceptan UNA SOLA sesión TCP en el 4370. Por eso cada uso va con
+ * su `cerrar()` en un finally, siempre.
  */
 async function conectar(ip, opciones = {}) {
   const puerto = opciones.puerto || PUERTO_DEFAULT;
   const zk = new ZKLib(ip, puerto, opciones.timeoutMs || 20000, opciones.inportMs || 5000);
-  await zk.createSocket();
-  if (opciones.commKey != null && opciones.commKey !== '') {
-    try { await autenticar(zk, opciones.commKey); }
-    catch (e) { await cerrar(zk); throw e; }
+
+  // Solo abrimos el socket TCP; el saludo lo hacemos nosotros.
+  await zk.zklibTcp.createSocket(opciones.onError, opciones.onClose);
+  zk.connectionType = 'tcp';
+  const tcp = zk.zklibTcp;
+
+  try {
+    // executeCmd(CMD_CONNECT) además fija tcp.sessionId, que CMD_AUTH necesita.
+    const rReply = await tcp.executeCmd(COMMANDS.CMD_CONNECT, '');
+    const cmd = rReply && rReply.length >= 2 ? rReply.readUInt16LE(0) : 0;
+
+    if (cmd === COMMANDS.CMD_ACK_UNAUTH) {
+      // La clave 0 está comprobada (pyzk lee con password=0). Si el padrón trae
+      // otra en relojes.comm_key, se respeta.
+      await autenticar(tcp, opciones.commKey != null && opciones.commKey !== '' ? opciones.commKey : 0);
+    } else if (cmd !== COMMANDS.CMD_ACK_OK) {
+      throw new Error(`el reloj respondió un comando inesperado al saludo (${cmd})`);
+    }
+    return zk;
+  } catch (e) {
+    await cerrar(zk);
+    throw e;
   }
-  return zk;
 }
 
 /** Cierre defensivo: nunca lanza, porque siempre se llama desde un finally. */
