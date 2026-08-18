@@ -34,7 +34,7 @@
  */
 
 import { execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -158,12 +158,43 @@ if (haceFront) {
       sh(`railway up --service ${SERVICIO_FRONT} --detach`, RAIZ, true);
     } catch { morir('el deploy del front falló'); }
 
-    const r = await pide(`${URL_FRONT}/health`);
-    if (!r.ok) {
-      morir('el portal no responde después de desplegar',
+    // ── ¿DE VERDAD ESTÁ ARRIBA LO QUE ACABO DE SUBIR? ──
+    //
+    // Antes esto solo pedía /health y cantaba victoria. El 18/08/2026 el script
+    // dijo "✅ Listo" mientras producción seguía sirviendo el bundle ANTERIOR:
+    // tardó 45 segundos más en salir, y en ese rato uno abre el portal, no ve
+    // su cambio y empieza a buscar el error en el código equivocado.
+    //
+    // "Responde" y "responde con lo que subí" no son lo mismo. Angular pone un
+    // hash en el nombre del bundle (main-XXXX.js) en cada build, así que basta
+    // comparar el del dist local contra el que anuncia el index de producción.
+    let hashLocal = null;
+    try {
+      const idx = readFileSync(path.join(RAIZ, 'dist/mega-talento-90/browser/index.html'), 'utf8');
+      hashLocal = (idx.match(/main-[A-Za-z0-9]+\.js/) || [])[0] || null;
+    } catch { /* sin dist legible se cae al chequeo de antes */ }
+
+    let listo = false;
+    for (let i = 0; i < 20 && !listo; i++) {
+      const r = await pide(`${URL_FRONT}/`);
+      if (r.ok) {
+        if (!hashLocal) { listo = true; break; }          // sin hash: como antes
+        const servido = (r.texto.match(/main-[A-Za-z0-9]+\.js/) || [])[0] || '';
+        if (servido === hashLocal) { listo = true; break; }
+      }
+      if (i === 0) console.log(`   ${c.dim}esperando a que salga el bundle nuevo…${c.fin}`);
+      process.stdout.write('.');
+      await esperar(15000);
+    }
+    if (!listo) {
+      console.log('');
+      morir(`producción sigue sin servir ${hashLocal}`,
+        `   ${c.dim}El build subió, pero el edge todavía entrega el bundle anterior.${c.fin}\n` +
+        `   ${c.dim}Revisa el deploy en Railway o vuelve a correrlo en un minuto.${c.fin}\n` +
         `   ${c.warn}VOLVER ATRÁS:${c.fin} railway rollback --service ${SERVICIO_FRONT}`);
     }
-    bien('el portal responde');
+    if (hashLocal) console.log('');
+    bien(`el portal responde${hashLocal ? ` con ${hashLocal}` : ''}`);
     console.log(`   ${c.dim}Recuerda el refresh forzado (Ctrl+Shift+R): Angular cachea el bundle.${c.fin}`);
   }
 }
