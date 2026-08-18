@@ -1,0 +1,54 @@
+/* Buscador global de postulados — vive en la barra superior. */
+.bg-wrap { position: relative; width: min(420px, 46vw); }
+
+.bg-box {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px; padding: 0 12px; height: 38px;
+  transition: background .15s, border-color .15s;
+}
+.bg-box:focus-within { background: #fff; border-color: #fff; }
+.bg-lupa { width: 17px; height: 17px; color: rgba(255, 255, 255, 0.8); flex: none; }
+.bg-box:focus-within .bg-lupa { color: var(--text3, #8A95A8); }
+
+.bg-input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: none;
+  font: inherit; font-size: 13.5px; color: #fff;
+}
+.bg-input::placeholder { color: rgba(255, 255, 255, 0.7); }
+.bg-box:focus-within .bg-input { color: var(--ink, #1A2F4E); }
+.bg-box:focus-within .bg-input::placeholder { color: var(--text4, #B5BCC8); }
+.bg-x { border: 0; background: none; color: var(--text3, #8A95A8); cursor: pointer; font-size: 12px; padding: 2px 4px; }
+
+/* Desplegable de resultados */
+.bg-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 60;
+  background: #fff; border: 1px solid var(--border, #E2E8F0); border-radius: 12px;
+  box-shadow: 0 12px 28px -12px rgba(26, 47, 78, .28); overflow: hidden;
+  max-height: 60vh; overflow-y: auto;
+}
+.bg-item {
+  display: grid; grid-template-columns: 1fr auto; grid-template-areas: "nom fase" "meta fase";
+  align-items: center; gap: 1px 10px; width: 100%;
+  border: 0; background: none; text-align: left; cursor: pointer;
+  padding: 9px 12px; border-bottom: 1px solid var(--border, #EEF2F8);
+}
+.bg-item:last-child { border-bottom: 0; }
+.bg-item.on, .bg-item:hover { background: var(--surface2, #F4F6FA); }
+.bg-item-nom { grid-area: nom; font-size: 13.5px; font-weight: 700; color: var(--ink, #1A2F4E); }
+.bg-item-meta { grid-area: meta; font-size: 11.5px; color: var(--text3, #8A95A8); }
+.bg-item-puesto { color: var(--text2, #4A5568); }
+.bg-fase {
+  grid-area: fase; justify-self: end; white-space: nowrap;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .02em;
+  color: var(--fase, #64748B);
+  background: color-mix(in srgb, var(--fase, #64748B) 12%, #fff);
+  border: 1px solid color-mix(in srgb, var(--fase, #64748B) 30%, #fff);
+  border-radius: 999px; padding: 3px 10px;
+}
+.bg-vacio { padding: 14px 12px; font-size: 12.5px; color: var(--text3, #8A95A8); }
+
+@media (max-width: 720px) {
+  .bg-wrap { width: 100%; }
+}

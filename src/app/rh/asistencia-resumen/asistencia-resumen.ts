@@ -396,6 +396,19 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     };
   }
 
+  /**
+   * Exporta el reporte a PDF con la impresión del navegador (Guardar como PDF).
+   * Sin librería y 100% fiel: se marca el body para que el CSS de impresión
+   * esconda todo menos la tabla, y se restaura al terminar.
+   */
+  exportarPdf() {
+    const b = document.body;
+    b.classList.add('imprimiendo-reporte');
+    const limpiar = () => { b.classList.remove('imprimiendo-reporte'); window.removeEventListener('afterprint', limpiar); };
+    window.addEventListener('afterprint', limpiar);
+    setTimeout(() => window.print(), 60);   // deja pintar el DOM antes de imprimir
+  }
+
   /** Cabecera del reporte: "Asistencia del DD/MM al DD/MM". */
   get tituloReporte(): string {
     const f = (s: string) => { const d = new Date(s + 'T00:00:00'); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`; };

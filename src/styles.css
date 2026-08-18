@@ -163,3 +163,28 @@ h1, h2, h3, h4, h5 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(26, 47, 78, 0.14); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(26, 47, 78, 0.28); }
+
+/* =====================================================================
+   IMPRESIÓN DEL REPORTE DE ASISTENCIA (Exportar PDF)
+   Al pulsar "PDF" se pone la clase `imprimiendo-reporte` en <body> y se llama
+   window.print(): el navegador guarda como PDF. Aquí se esconde TODO el chrome
+   (barra, menú, filtros, semáforo) y se deja solo la tabla, calcada al papel.
+   ===================================================================== */
+body.imprimiendo-reporte .top-bar,
+body.imprimiendo-reporte .side-drawer,
+body.imprimiendo-reporte .menu-backdrop,
+body.imprimiendo-reporte .ar-bar,
+body.imprimiendo-reporte .ar-relojes,
+body.imprimiendo-reporte .ar-vista-switch,
+body.imprimiendo-reporte .rep-toggle,
+body.imprimiendo-reporte .rep-pdf { display: none !important; }
+
+@media print {
+  .top-bar, .side-drawer, .menu-backdrop,
+  .ar-bar, .ar-relojes, .ar-vista-switch, .rep-toggle, .rep-pdf { display: none !important; }
+  .app-content, .app-wrapper, body, html { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .rep { border: 0 !important; }
+  .rep-scroll { overflow: visible !important; }
+  .rep-tabla { font-size: 9px !important; }
+  @page { size: landscape; margin: 10mm; }
+}

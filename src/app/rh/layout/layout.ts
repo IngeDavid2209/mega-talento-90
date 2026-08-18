@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule, Router } from '@angular/router';
+import { BusquedaGlobalComponent } from '../ui/busqueda-global/busqueda-global';
 import { CandidateService } from '../../core/services/candidate';
 import { NotificacionesService, EstadoNotif } from '../../core/services/notificaciones.service';
 import { UpdateCheckerService } from '../../core/services/update-checker.service';
@@ -12,7 +13,7 @@ import { ToastService } from '../../core/services/toast.service';
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule],
+  imports: [CommonModule, RouterOutlet, RouterModule, BusquedaGlobalComponent],
   templateUrl: './layout.html',
   styleUrl: './layout.css'
 })

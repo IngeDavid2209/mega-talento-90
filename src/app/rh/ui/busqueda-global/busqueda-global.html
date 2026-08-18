@@ -1,0 +1,36 @@
+<div class="bg-wrap">
+  <div class="bg-box">
+    <svg class="bg-lupa" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" aria-hidden="true">
+      <circle cx="9" cy="9" r="6"></circle>
+      <path d="M14 14l4 4"></path>
+    </svg>
+    <input #caja type="text" class="bg-input" [(ngModel)]="q"
+           (input)="onInput()" (focus)="abierto = q.length > 1" (keydown)="onKey($event)"
+           placeholder="Buscar postulado por nombre o apellido…"
+           autocomplete="off" spellcheck="false" aria-label="Buscar postulado">
+    @if (q) {
+      <button type="button" class="bg-x" (click)="limpiar()" aria-label="Limpiar">✕</button>
+    }
+  </div>
+
+  @if (abierto && q.length > 1) {
+    <div class="bg-menu">
+      @if (resultados.length) {
+        @for (r of resultados; track r.id; let i = $index) {
+          <button type="button" class="bg-item" [class.on]="i === activo"
+                  (mouseenter)="activo = i" (click)="abrir(r)">
+            <span class="bg-item-nom">{{ r.nombre }}</span>
+            <span class="bg-item-meta">
+              @if (r.puesto) { <span class="bg-item-puesto">{{ r.puesto }}</span> }
+              @if (r.ciudad) { <span class="bg-item-ciudad">· {{ r.ciudad }}</span> }
+            </span>
+            <span class="bg-fase" [style.--fase]="r.color">{{ r.etapa }}</span>
+          </button>
+        }
+      } @else {
+        <div class="bg-vacio">Nadie con “{{ q }}”. Prueba con otra parte del nombre.</div>
+      }
+    </div>
+  }
+</div>

@@ -481,3 +481,5 @@
 .rep-subtotal .rep-ret { font-weight: 700; color: var(--text2); }
 .rep-total td { background: var(--surface2); font-weight: 800; text-align: right; color: var(--ink); }
 .rep-total .rep-ret { text-align: center; }
+
+.rep-acciones { display: flex; gap: 8px; flex: none; }
