@@ -63,7 +63,12 @@ export interface SemanaApi {
 }
 
 export interface PersonaAsistencia {
-  codigo: string; nombre: string; puesto: string; fotoUrl: string;
+  codigo: string; nombre: string;
+  /** Nombre completo del padrón de RH (para el reporte calcado). */
+  nombreCompleto: string;
+  /** Departamento del reporte (Compras, Finanzas, Promotoras…). null si no se ha asignado. */
+  departamento: string | null;
+  puesto: string; fotoUrl: string;
   registrado: boolean; activo: boolean | null;
   tipo: 'fijo' | 'rotativo' | 'sin_patron' | 'sin_datos';
   horario: string | null;             // su horario, deducido o confirmado

@@ -42,6 +42,11 @@ interface SemanaAsistencia {
 /** Un empleado con todo su periodo desglosado. */
 interface EmpleadoAsistencia {
   codigo: string; nombre: string; fotoUrl: string; puesto: string; registrado: boolean;
+  // ── Para el reporte calcado (vista tabla) ──
+  nombreCompleto: string;
+  departamento: string;
+  /** Día por fecha, para pintar las columnas del reporte sin buscar en las semanas. */
+  diasPorFecha: Map<string, DiaAsistencia>;
   // ── Su horario, que sale de SUS checadas (o de lo que RH confirmó) ──
   tipo: PersonaAsistencia['tipo'];
   horario: string; turnos: string; horarioConfirmado: boolean; costumbre: string;
@@ -316,6 +321,87 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return '';
   }
 
+  // ══ VISTA TABLA (reporte calcado al ReporteSemMD) ════════════════
+  //
+  // RH ya conoce el reporte semanal: filas por persona AGRUPADAS POR
+  // DEPARTAMENTO, siete columnas de día (jueves→miércoles), con la jornada
+  // arriba (entrada – salida) y la comida abajo, y los retardos a la derecha.
+  // Esta vista lo reproduce en pantalla desde los mismos datos.
+  vistaTabla = true;   // arranca en el formato que RH pidió
+
+  /** Las fechas del rango, en orden, como columnas del reporte. */
+  get columnasDia(): { fecha: string; dow: string; dia: string }[] {
+    if (!this.desde || !this.hasta) return [];
+    const cols: { fecha: string; dow: string; dia: string }[] = [];
+    const d = new Date(this.desde + 'T00:00:00');
+    const fin = new Date(this.hasta + 'T00:00:00');
+    // Tope de seguridad: el reporte es de una semana; si el rango es enorme, no
+    // se pinta una tabla de 200 columnas.
+    let guarda = 0;
+    while (d <= fin && guarda++ < 40) {
+      const dow = d.toLocaleDateString('es-MX', { weekday: 'short' }).replace('.', '');
+      cols.push({
+        fecha: aFechaLocal(d),
+        dow: dow.charAt(0).toUpperCase() + dow.slice(1),
+        dia: String(d.getDate()).padStart(2, '0'),
+      });
+      d.setDate(d.getDate() + 1);
+    }
+    return cols;
+  }
+
+  private readonly SIN_DEPTO = 'SIN DEPARTAMENTO';
+
+  /** La lista agrupada por departamento, cada grupo ordenado por código. */
+  get porDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
+    const grupos = new Map<string, EmpleadoAsistencia[]>();
+    for (const e of this.lista) {
+      const dep = e.departamento || this.SIN_DEPTO;
+      // Los códigos enrolados en el reloj que NO están en el padrón de RH y que
+      // además no marcaron en el periodo son ruido: no van al reporte. Los que
+      // sí marcaron se conservan (en 'SIN DEPARTAMENTO') para que nada se esconda.
+      if (dep === this.SIN_DEPTO && e.diasPorFecha.size === 0) continue;
+      if (!grupos.has(dep)) grupos.set(dep, []);
+      grupos.get(dep)!.push(e);
+    }
+    const numOrden = (c: string) => { const n = parseInt(c, 10); return Number.isFinite(n) ? n : 1e9; };
+    const rangoDepto = (d: string) => (d === this.SIN_DEPTO ? 1 : 0);   // el catch-all, al final
+    return [...grupos.entries()]
+      .sort((a, b) => rangoDepto(a[0]) - rangoDepto(b[0]) || a[0].localeCompare(b[0], 'es'))
+      .map(([departamento, empleados]) => ({
+        departamento,
+        empleados: empleados.sort((a, b) => numOrden(a.codigo) - numOrden(b.codigo) || a.codigo.localeCompare(b.codigo)),
+        retardos: empleados.reduce((s, e) => s + e.diasConRetardo, 0),
+      }));
+  }
+
+  /** El total de retardos del reporte (pie de página): cuadra con lo mostrado. */
+  get totalRetardos(): number {
+    return this.porDepartamento.reduce((s, g) => s + g.retardos, 0);
+  }
+
+  /** La celda de un día: jornada (entrada–salida) arriba y comida abajo. */
+  celda(e: EmpleadoAsistencia, fecha: string): { jornada: string; comida: string; retardo: boolean; falta: boolean } {
+    const d = e.diasPorFecha.get(fecha);
+    if (!d) return { jornada: '', comida: '', retardo: false, falta: false };
+    if (d.estadoDia === 'descanso') return { jornada: '—', comida: '', retardo: false, falta: false };
+    const ent = d.entrada && d.entrada !== '—' ? d.entrada : '0';
+    const sal = d.salida && d.salida !== '—' ? d.salida : '0';
+    const com = d.comida && d.comida !== '—' ? d.comida.replace(/\s*[–-]\s*/, ' - ') : '';
+    return {
+      jornada: `${ent} - ${sal}`,
+      comida: com,
+      retardo: d.retardoMin > 0,
+      falta: d.falta,
+    };
+  }
+
+  /** Cabecera del reporte: "Asistencia del DD/MM al DD/MM". */
+  get tituloReporte(): string {
+    const f = (s: string) => { const d = new Date(s + 'T00:00:00'); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`; };
+    return this.desde && this.hasta ? `Asistencia del ${f(this.desde)} al ${f(this.hasta)}` : '';
+  }
+
   /** "40 s", "12 min", "2 h 30 m" — para redactar los motivos. */
   private duracion(seg: number | null): string {
     if (seg == null) return 'un rato';
@@ -462,9 +548,16 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       }))
     }));
 
+    // Índice día-por-fecha para pintar las columnas del reporte de un vistazo.
+    const diasPorFecha = new Map<string, DiaAsistencia>();
+    for (const s of semanas) for (const d of s.dias) diasPorFecha.set(d.fecha, d);
+
     return {
       codigo: p.codigo,
       nombre: p.nombre || '(sin registrar)',
+      nombreCompleto: p.nombreCompleto || p.nombre || '(sin registrar)',
+      departamento: p.departamento || 'SIN DEPARTAMENTO',
+      diasPorFecha,
       fotoUrl: p.fotoUrl,
       puesto: p.puesto,
       registrado: p.registrado,

@@ -84,6 +84,8 @@ export interface DiaVista extends hd.DiaMedido {
 export interface PersonaAsistencia {
   codigo: string;
   nombre: string;
+  nombreCompleto: string;
+  departamento: string | null;
   puesto: string;
   fotoUrl: string;
   registrado: boolean;          // está en `empleados`
@@ -214,7 +216,7 @@ async function contexto(sucursalId: string) {
   // de alta" — cambiaríamos un ruido por otro. Se traen para poder ponerle
   // nombre a su código, y se saltan más abajo, al armar la lista de personas.
   const { rows: emps } = await pool.query(
-    `SELECT codigo_checador, nombre, puesto, foto_url, activo, es_promotora
+    `SELECT codigo_checador, nombre, nombre_completo, departamento, puesto, foto_url, activo, es_promotora
        FROM empleados WHERE sucursal_id = $1`,
     [sucursalId]
   );
@@ -499,6 +501,10 @@ export async function asistenciaPersonas(
     personas.push({
       codigo: cod,
       nombre: (emp && emp.nombre) || datos?.nombreReloj || cod,
+      // Para el reporte calcado: nombre completo y departamento vienen del padrón
+      // de RH (sembrado de los reportes). Si no hay, cae al nombre del reloj.
+      nombreCompleto: (emp && emp.nombre_completo) || (emp && emp.nombre) || datos?.nombreReloj || cod,
+      departamento: (emp && emp.departamento) || null,
       puesto: (emp && emp.puesto) || '',
       fotoUrl: (emp && emp.foto_url) || '',
       registrado: !!emp,
@@ -550,7 +556,7 @@ export async function asistenciaPersonas(
     sucursalId, desde, hasta,
     desdeHorario, ventanaHorarioDias: VENTANA_HORARIO_DIAS,
     bolsaSemanalMin: hd.BOLSA_SEMANAL_MIN,
-    corteSemana: 'miércoles a martes',
+    corteSemana: 'jueves a miércoles',
     diasExTrabajador: DIAS_EX,
     resumen: {
       personas: personas.length,

@@ -54,7 +54,11 @@
 // ── Constantes de la regla (los umbrales entran por parámetro) ──
 export const BOLSA_SEMANAL_MIN = 15;   // minutos de tolerancia acumulada por semana
 export const PASO_REDONDEO_MIN = 30;   // los horarios de la empresa son en hora o media
-export const DIA_INICIO_SEMANA = 3;    // 0=domingo … 3=MIÉRCOLES (corte de la empresa)
+// 0=domingo … 4=JUEVES. La semana de nómina corre JUEVES→MIÉRCOLES, igual que el
+// ReporteSemMD.rpt que RH ya usa (columnas JUE VIE SÁB DOM LUN MAR MIÉ). Antes
+// era 3 (miércoles); se alineó el 18/08/2026 para que el sistema y el papel den
+// el mismo acumulado.
+export const DIA_INICIO_SEMANA = 4;
 /**
  * Dos lecturas separadas por menos de esto son la MISMA marca: el lector leyó el
  * dedo dos veces. Importa más de lo que parece: sin colapsarlas, un día en el
@@ -168,12 +172,12 @@ export function percentil(valores: number[], p: number): number | null {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Semana laboral. La empresa corta en MIÉRCOLES. Se mantiene igual al portal
-// (`(getDay()-3+7)%7`) a propósito: si aquí la semana empezara en lunes, el
-// mismo trabajador tendría dos acumulados distintos según qué pantalla se abra.
+// Semana laboral. La empresa corta en JUEVES (la semana va jueves→miércoles,
+// como el reporte de RH). Se mantiene una sola definición para que el mismo
+// trabajador no tenga dos acumulados distintos según qué pantalla se abra.
 // ──────────────────────────────────────────────────────────────────
 
-/** El MIÉRCOLES de la semana a la que pertenece la fecha, 'yyyy-MM-dd'. */
+/** El JUEVES (inicio) de la semana a la que pertenece la fecha, 'yyyy-MM-dd'. */
 export function inicioSemana(fecha: string, diaInicio = DIA_INICIO_SEMANA): string {
   const d = new Date(`${fecha}T12:00:00Z`);   // mediodía UTC: ningún huso corre el día
   const atras = (d.getUTCDay() - diaInicio + 7) % 7;

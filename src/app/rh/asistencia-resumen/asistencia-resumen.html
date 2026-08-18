@@ -165,7 +165,75 @@
         —el botón <b>Todo</b> ajusta el rango a lo que esta plaza tiene registrado—.
       }
     </div>
+  } @else if (vistaTabla) {
+    <!-- ══ REPORTE CALCADO (tabla semanal por departamento) ══════════════
+         Reproduce el ReporteSemMD que RH ya usa: filas por persona agrupadas
+         por departamento, columnas de día con la jornada arriba (entrada–salida)
+         y la comida abajo, retardos por persona, subtotal por depto y total. -->
+    <div class="rep">
+      <div class="rep-head">
+        <div>
+          <h3 class="rep-titulo">{{ nombreSucursal(sucursalFiltro) }}</h3>
+          <p class="rep-sub">{{ tituloReporte }}</p>
+        </div>
+        <button type="button" class="ar-btn ar-btn-ghost rep-toggle" (click)="vistaTabla = false"
+                title="Cambiar a la vista de tarjetas">Ver tarjetas</button>
+      </div>
+
+      <div class="rep-scroll">
+        <table class="rep-tabla">
+          <thead>
+            <tr>
+              <th class="rep-clv">Clv</th>
+              <th class="rep-nom">Nombre</th>
+              @for (c of columnasDia; track c.fecha) {
+                <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
+              }
+              <th class="rep-ret">Retardos</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of porDepartamento; track g.departamento) {
+              <tr class="rep-depto">
+                <td [attr.colspan]="columnasDia.length + 3">
+                  {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
+                </td>
+              </tr>
+              @for (e of g.empleados; track e.codigo) {
+                <tr class="rep-fila">
+                  <td class="rep-clv">{{ e.codigo }}</td>
+                  <td class="rep-nom" [title]="e.nombreCompleto">{{ e.nombreCompleto }}</td>
+                  @for (c of columnasDia; track c.fecha) {
+                    <td class="rep-celda"
+                        [class.rep-falta]="celda(e, c.fecha).falta"
+                        [class.rep-tarde]="celda(e, c.fecha).retardo">
+                      <span class="rep-jornada">{{ celda(e, c.fecha).jornada }}</span>
+                      <span class="rep-comida">{{ celda(e, c.fecha).comida }}</span>
+                    </td>
+                  }
+                  <td class="rep-ret">{{ e.diasConRetardo || '' }}</td>
+                </tr>
+              }
+              <tr class="rep-subtotal">
+                <td [attr.colspan]="columnasDia.length + 2"></td>
+                <td class="rep-ret">{{ g.retardos || 0 }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="rep-total">
+              <td [attr.colspan]="columnasDia.length + 2">Total retardos</td>
+              <td class="rep-ret">{{ totalRetardos }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
   } @else {
+    <div class="ar-vista-switch">
+      <button type="button" class="ar-btn ar-btn-ghost" (click)="vistaTabla = true"
+              title="Cambiar al reporte semanal">Ver reporte</button>
+    </div>
     <!-- KPIs -->
     <div class="ar-kpis">
       <div class="ar-kpi">
