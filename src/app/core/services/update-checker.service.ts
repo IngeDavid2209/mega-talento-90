@@ -34,11 +34,18 @@ export class UpdateCheckerService {
     // Si no hay bundle hasheado (modo dev), no hay nada que verificar
     if (!this.bundleInicial) return;
 
-    this.intervalo = setInterval(() => this.verificar(), 90000);
+    // Cada 60 s. El usuario no tiene que hacer NADA: cuando subimos una versión
+    // nueva, en menos de un minuto la app se recarga sola a la versión buena.
+    this.intervalo = setInterval(() => this.verificar(), 60000);
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') this.verificar();
-    });
+    // Y además se revisa en cuanto el usuario "vuelve" a la app, que es el
+    // momento típico en celular (cambiar de app y regresar, desbloquear, abrir
+    // el acceso directo) — así casi nunca llega a esperar los 60 s:
+    const alVolver = () => { if (document.visibilityState === 'visible') this.verificar(); };
+    document.addEventListener('visibilitychange', alVolver);
+    window.addEventListener('focus', () => this.verificar());
+    window.addEventListener('pageshow', () => this.verificar());   // regreso desde bfcache
+    window.addEventListener('online', () => this.verificar());     // al recuperar internet
   }
 
   detener(): void {
