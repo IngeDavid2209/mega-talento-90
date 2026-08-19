@@ -86,6 +86,8 @@ export interface PersonaAsistencia {
   nombre: string;
   nombreCompleto: string;
   departamento: string | null;
+  /** Media jornada (~4 h deducidas): se agrupa aparte en el reporte. */
+  esPracticante: boolean;
   puesto: string;
   fotoUrl: string;
   registrado: boolean;          // está en `empleados`
@@ -498,8 +500,21 @@ export async function asistenciaPersonas(
     const bloqueantes = marcas.filter((m) => m.gravedad === 'alta');
     const diasEvaluados = re?.diasEvaluados ?? 0;
 
+    // ── ¿PRACTICANTE? ──
+    // Media jornada: el turno DEDUCIDO (salida − entrada) ronda las 4 h. Se usa
+    // el horario deducido, no el día seleccionado, así que funciona hasta en
+    // "Hoy" (se saca del historial de la persona). Umbral generoso (2 h a 5 h20)
+    // para cubrir practicantes de 4 h y de 5 h sin marcar de más a un turno
+    // completo con salida temprana ocasional.
+    const entMin = ho.entrada ? hd.aMinutos(ho.entrada) : null;
+    const salMin = ho.salida ? hd.aMinutos(ho.salida) : null;
+    let jornadaMin: number | null = entMin != null && salMin != null ? salMin - entMin : null;
+    if (jornadaMin != null && jornadaMin < 0) jornadaMin += 24 * 60;   // por si cruza medianoche
+    const esPracticante = jornadaMin != null && jornadaMin >= 120 && jornadaMin <= 320;
+
     personas.push({
       codigo: cod,
+      esPracticante,
       nombre: (emp && emp.nombre) || datos?.nombreReloj || cod,
       // Para el reporte calcado: nombre completo y departamento vienen del padrón
       // de RH (sembrado de los reportes). Si no hay, cae al nombre del reloj.

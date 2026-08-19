@@ -45,6 +45,7 @@ interface EmpleadoAsistencia {
   // ── Para el reporte calcado (vista tabla) ──
   nombreCompleto: string;
   departamento: string;
+  esPracticante: boolean;
   /** Día por fecha, para pintar las columnas del reporte sin buscar en las semanas. */
   diasPorFecha: Map<string, DiaAsistencia>;
   // ── Su horario, que sale de SUS checadas (o de lo que RH confirmó) ──
@@ -351,12 +352,17 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   private readonly SIN_DEPTO = 'SIN DEPARTAMENTO';
+  private readonly PRACTICANTES = 'PRACTICANTES';
 
   /** La lista agrupada por departamento, cada grupo ordenado por código. */
   get porDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
     const grupos = new Map<string, EmpleadoAsistencia[]>();
     for (const e of this.lista) {
-      const dep = e.departamento || this.SIN_DEPTO;
+      // Los practicantes (media jornada ~4 h, o ya marcados como tal en el
+      // padrón) se sacan de su departamento y van a su propia sección.
+      const dep = (e.esPracticante || e.departamento === this.PRACTICANTES)
+        ? this.PRACTICANTES
+        : (e.departamento || this.SIN_DEPTO);
       // Los códigos enrolados en el reloj que NO están en el padrón de RH y que
       // además no marcaron en el periodo son ruido: no van al reporte. Los que
       // sí marcaron se conservan (en 'SIN DEPARTAMENTO') para que nada se esconda.
@@ -365,7 +371,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       grupos.get(dep)!.push(e);
     }
     const numOrden = (c: string) => { const n = parseInt(c, 10); return Number.isFinite(n) ? n : 1e9; };
-    const rangoDepto = (d: string) => (d === this.SIN_DEPTO ? 1 : 0);   // el catch-all, al final
+    // PRACTICANTES y SIN DEPARTAMENTO van al final (en ese orden).
+    const rangoDepto = (d: string) => (d === this.SIN_DEPTO ? 2 : d === this.PRACTICANTES ? 1 : 0);
     return [...grupos.entries()]
       .sort((a, b) => rangoDepto(a[0]) - rangoDepto(b[0]) || a[0].localeCompare(b[0], 'es'))
       .map(([departamento, empleados]) => ({
@@ -570,6 +577,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       nombre: p.nombre || '(sin registrar)',
       nombreCompleto: p.nombreCompleto || p.nombre || '(sin registrar)',
       departamento: p.departamento || 'SIN DEPARTAMENTO',
+      esPracticante: !!p.esPracticante,
       diasPorFecha,
       fotoUrl: p.fotoUrl,
       puesto: p.puesto,

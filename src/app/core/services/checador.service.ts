@@ -68,6 +68,8 @@ export interface PersonaAsistencia {
   nombreCompleto: string;
   /** Departamento del reporte (Compras, Finanzas, Promotoras…). null si no se ha asignado. */
   departamento: string | null;
+  /** Media jornada (~4 h): se agrupa en la sección PRACTICANTES del reporte. */
+  esPracticante: boolean;
   puesto: string; fotoUrl: string;
   registrado: boolean; activo: boolean | null;
   tipo: 'fijo' | 'rotativo' | 'sin_patron' | 'sin_datos';
