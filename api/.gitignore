@@ -8,6 +8,11 @@ dist/
 # config.json lleva el token de ingesta y la contraseña del Postgres del
 # proveedor. NUNCA se versiona: el ejemplo sin secretos es config.ejemplo.json.
 agente/config.json
+# Y sus RESPALDOS. El 18/08/2026 un "config.json.bak-hr" se colo a un commit
+# con la contrasena real del Postgres de RH: la regla de arriba no cubria los
+# sufijos, y un git add -A lo barrio sin que nadie lo notara.
+agente/config.json.*
+agente/config.*.bak*
 # La cola local (SQLite) es estado de ESA máquina, no del proyecto.
 agente/cola.db
 agente/cola.db-wal
