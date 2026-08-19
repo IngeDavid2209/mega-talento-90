@@ -9,7 +9,17 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="icon" type="image/png" href="https://static.wixstatic.com/media/fd397e_0fd82a1ecec84a118ceeb603b493f25a~mv2.png">
+  <meta name="apple-mobile-web-app-title" content="Mega Talento">
+  <meta name="application-name" content="Mega Talento">
+
+  <!-- Ícono al agregar a la pantalla de inicio.
+       Android/Chrome lo toman del manifest; iOS del apple-touch-icon. Se
+       generan del logo sobre fondo navy en public/icons (ver el script que los
+       arma). Antes no había ninguno y por eso salía sin logo. -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 </head>
 <body>
   <!-- ¡Aquí es donde Angular va a inyectar tu formulario! -->
