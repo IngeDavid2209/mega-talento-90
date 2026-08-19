@@ -1,5 +1,7 @@
-/* Buscador global de postulados — vive en la barra superior. */
-.bg-wrap { position: relative; width: min(420px, 46vw); }
+/* Buscador global de postulados — vive en la barra superior.
+   Flexible: crece hasta 420px en escritorio y se encoge sin desbordar en
+   celular (min-width:0 permite que el flex lo achique). */
+.bg-wrap { position: relative; flex: 1 1 200px; min-width: 0; max-width: 420px; }
 
 .bg-box {
   display: flex; align-items: center; gap: 8px;
@@ -49,6 +51,8 @@
 }
 .bg-vacio { padding: 14px 12px; font-size: 12.5px; color: var(--text3, #8A95A8); }
 
-@media (max-width: 720px) {
-  .bg-wrap { width: 100%; }
+/* El desplegable de resultados se ancla al viewport en móvil para que no lo
+   corte el borde de la barra. */
+@media (max-width: 560px) {
+  .bg-menu { position: fixed; left: 8px; right: 8px; top: 62px; }
 }

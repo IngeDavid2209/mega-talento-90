@@ -38,6 +38,7 @@
   display: flex;
   align-items: center;
   gap: 22px;
+  min-width: 0;          /* deja que la marca se recorte y el buscador tenga aire */
 }
 
 .brand-section {
@@ -81,6 +82,9 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  flex: 1 1 auto;        /* el buscador crece aquí */
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .env-badge {
@@ -581,8 +585,16 @@
 /* CONTENT */
 .content-area {
   flex: 1;
+  /* min-width:0 deja que el contenido se ENCOJA dentro del flex en vez de
+     estirar toda la app; sin esto, una tabla ancha empuja la página entera
+     hacia los lados y el header se descuadra. */
+  min-width: 0;
   background-color: var(--bg);
   overflow-y: auto;
+  /* Cuando algo es genuinamente más ancho que la pantalla (tablas de datos con
+     muchas columnas), el scroll horizontal se queda DENTRO del área de
+     contenido: la barra superior y el menú no se mueven. */
+  overflow-x: auto;
   position: relative;
 }
 
@@ -595,6 +607,15 @@
   .env-badge { font-size: 9.5px; padding: 4px 9px; }
   .brand-section { padding-left: 14px; }
   .side-drawer { width: 260px; left: -270px; }
+}
+@media (max-width: 560px) {
+  /* Se va a usar mucho en celular: el buscador manda. Se deja solo el logo y
+     se le da todo el espacio a la búsqueda. */
+  .brand-text { display: none; }
+  .env-badge { display: none; }
+  .left-section { gap: 10px; flex: none; }
+  .brand-section { border-left: none; padding-left: 6px; }
+  .top-bar { gap: 8px; }
 }
 @media (max-width: 380px) {
   .brand-section { border-left: none; padding-left: 4px; }

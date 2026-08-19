@@ -188,3 +188,26 @@ body.imprimiendo-reporte .rep-pdf { display: none !important; }
   .rep-tabla { font-size: 9px !important; }
   @page { size: landscape; margin: 10mm; }
 }
+
+/* =====================================================================
+   BASE RESPONSIVA GLOBAL (18/08/2026)
+   Red de seguridad para que la app se comporte en pantallas chicas sin tener
+   que retocar cada componente. Las reglas finas viven en cada CSS; esto es el
+   piso común.
+   ===================================================================== */
+
+/* Nada fuerza scroll horizontal de TODA la página: el header y el menú quedan
+   fijos y solo el contenido ancho (tablas de datos) hace scroll dentro de su
+   área. Ver .content-area en layout.css. */
+html, body { max-width: 100%; }
+
+/* Multimedia nunca desborda su contenedor. */
+img, svg, video, canvas { max-width: 100%; }
+img, video { height: auto; }
+
+/* Las tablas anchas (min-width fijo) hacen scroll dentro del área de contenido
+   —no rompen la página— gracias a .content-area{overflow-x:auto}. No se les
+   pone display:block porque descuadraría la alineación de columnas. */
+
+/* Campos de formulario e inputs no se salen del ancho disponible. */
+input, select, textarea, button { max-width: 100%; }
