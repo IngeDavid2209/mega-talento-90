@@ -5,12 +5,15 @@
 .app-wrapper {
   display: flex;
   flex-direction: column;
-  /* En cascada: 100vh (viejo) → 100dvh (viewport dinámico) → var del innerHeight
-     real (index.html). La última que el navegador entienda gana. Esto evita que
-     el shell nazca descuadrado al abrir desde el acceso directo del celular. */
+  /* 100dvh = "viewport dinámico": se ajusta SOLO y SUAVE cuando el navegador
+     móvil muestra/oculta su barra al hacer scroll. Con 100vh (o recalculando
+     el alto por JS en cada resize) el shell brincaba y "todo se movía". El
+     100vh queda de respaldo para navegadores muy viejos. */
   height: 100vh;
   height: 100dvh;
-  height: var(--app-vh, 100dvh);
+  /* Contiene el movimiento LATERAL: nada del back-office empuja la página de
+     lado. Las tablas anchas siguen con su propio scroll dentro de .content-area. */
+  overflow-x: hidden;
   background-color: var(--bg);
   position: relative;
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -147,7 +150,6 @@
   width: 280px;
   height: 100vh;
   height: 100dvh;
-  height: var(--app-vh, 100dvh);
   background-color: var(--ink);
   color: #fff;
   z-index: 1002;
