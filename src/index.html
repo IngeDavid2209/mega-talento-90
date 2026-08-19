@@ -14,5 +14,27 @@
 <body>
   <!-- ¡Aquí es donde Angular va a inyectar tu formulario! -->
   <app-root></app-root>
+
+  <!-- ══ ALTO REAL DE LA PANTALLA (fix del acceso directo en celular) ══
+       El shell mide su alto con `100vh`. Al abrir la app desde el ACCESO
+       DIRECTO del celular (modo standalone / web-clip), el navegador reporta
+       mal ese `100vh` en el primer pintado: el layout sale descuadrado y solo
+       se compone al refrescar a mano.
+       Aquí se fija `--app-vh` con el alto REAL (window.innerHeight) al cargar,
+       al rotar y CADA VEZ que se abre el acceso directo (`pageshow`, que
+       dispara también al restaurar desde la caché de ida y vuelta). El CSS usa
+       var(--app-vh) con respaldo a 100dvh/100vh, así el shell siempre nace con
+       la medida correcta. Va inline para correr antes de que pinte Angular. -->
+  <script>
+    (function () {
+      function alto() {
+        document.documentElement.style.setProperty('--app-vh', window.innerHeight + 'px');
+      }
+      alto();
+      addEventListener('resize', alto, { passive: true });
+      addEventListener('orientationchange', alto, { passive: true });
+      addEventListener('pageshow', alto);
+    })();
+  </script>
 </body>
 </html>
