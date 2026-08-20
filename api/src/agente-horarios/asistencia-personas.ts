@@ -291,6 +291,12 @@ function detalleDia(marcasCrudas: string[]): { comida: string; netasMin: number 
 export async function asistenciaPersonas(
   { sucursalId, desde, hasta }: { sucursalId: string; desde: string; hasta: string }
 ): Promise<AsistenciaPersonas> {
+  // En un checador de COMIDA la gente solo marca su desayuno/comida (un rato
+  // corto), NO una jornada. Ahí "salida − entrada" ronda las 4 h y confundiría
+  // a cualquiera de sistemas/oficina con un practicante. La detección de
+  // practicante NO aplica en esos relojes.
+  const esRelojDeComida = /comida|desayuno/i.test(sucursalId);
+
   // La ventana del HORARIO nunca es más corta que la del rango (ver
   // VENTANA_HORARIO_DIAS): si RH pide "Hoy", el horario sale de su último mes.
   const desdeHorario = [desde, menosDias(hasta, VENTANA_HORARIO_DIAS - 1)]
@@ -510,7 +516,8 @@ export async function asistenciaPersonas(
     const salMin = ho.salida ? hd.aMinutos(ho.salida) : null;
     let jornadaMin: number | null = entMin != null && salMin != null ? salMin - entMin : null;
     if (jornadaMin != null && jornadaMin < 0) jornadaMin += 24 * 60;   // por si cruza medianoche
-    const esPracticante = jornadaMin != null && jornadaMin >= 120 && jornadaMin <= 320;
+    const esPracticante = !esRelojDeComida
+      && jornadaMin != null && jornadaMin >= 120 && jornadaMin <= 320;
 
     personas.push({
       codigo: cod,
