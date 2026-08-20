@@ -139,6 +139,180 @@
     </div>
   }
 
+  <!-- ══ TOLERANCIA REBASADA ══════════════════════════════════════════
+       La bolsa de 15 min por semana ya se aplicaba, pero para saber a quién se
+       le acabó había que abrir la tarjeta de cada persona y recorrer sus semanas
+       una por una. Este apartado responde la pregunta de frente: quién se pasó,
+       en qué semana y con qué días.
+
+       Ojo con dos cosas que aquí se dicen a propósito:
+        · Quien tiene el número bloqueado por una marca alta NO entra en la lista
+          principal. Un retardo medido contra un horario que RH todavía no
+          confirma no puede encabezar una lista con la que se descuenta.
+        · Una semana que el periodo corta a la mitad se marca "partida": un
+          acumulado de 3 días leído como si fuera de 7 es un descuento mal
+          firmado. -->
+  @if (!cargando && lista.length) {
+    <div class="tol" [attr.data-estado]="rebasados.length ? 'rebasada' : 'limpia'">
+      <button type="button" class="tol-head" (click)="toggleTolerancia()"
+              [attr.aria-expanded]="tolAbierta">
+        <span class="tol-dot" aria-hidden="true"></span>
+        <span class="tol-titulo">Tolerancia rebasada</span>
+        <span class="tol-resumen">{{ resumenTolerancia }}</span>
+        @if (rebasadosBloqueados.length) {
+          <span class="tol-aviso"
+                title="También se pasaron de los minutos, pero su horario todavía no se puede dar por bueno. Se listan abajo, aparte: el pendiente es de RH, no de la persona.">
+            {{ rebasadosBloqueados.length }} por confirmar
+          </span>
+        }
+        <svg class="tol-chev" [class.abierto]="tolAbierta" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 6l4 4 4-4"/>
+        </svg>
+      </button>
+
+      @if (tolAbierta) {
+        <div class="tol-cuerpo">
+          <!-- La regla, dicha una vez y a la vista: sin esto el número parece
+               salir del horario configurado de la sucursal. -->
+          <p class="tol-nota">
+            Cada semana ({{ datos?.corteSemana }}) trae <b>{{ bolsaSemanal }} minutos</b> de tolerancia.
+            El horario contra el que se mide es siempre de <b>hora en punto o media hora</b>, deducido de
+            las propias checadas de la persona: quien entra 8:32 y 8:36 tiene horario de <b>8:30</b>,
+            no de 8:00. Los minutos de más se van <b>sumando día por día</b> y aquí aparece quien
+            <b>ya se pasó de los {{ bolsaSemanal }}</b> — se cobra solo el excedente, no el acumulado.
+          </p>
+
+          @if (!rebasados.length) {
+            <p class="tol-vacio">
+              Nadie agotó su tolerancia en este periodo. Los minutos sueltos que hubo
+              cupieron en los {{ bolsaSemanal }} de su semana.
+            </p>
+          } @else {
+            <ul class="tol-lista">
+              @for (r of rebasados; track r.emp.codigo) {
+                <li class="tol-item" [class.abierto]="tolDetalle === r.emp.codigo">
+                  <button type="button" class="tol-fila" (click)="toggleTolDetalle(r.emp.codigo)"
+                          [attr.aria-expanded]="tolDetalle === r.emp.codigo">
+                    <span class="ar-avatar tol-av">
+                      @if (r.emp.fotoUrl) { <img [src]="r.emp.fotoUrl" [alt]="r.emp.nombre"> }
+                      @else { <span>{{ iniciales(r.emp.nombre) }}</span> }
+                    </span>
+                    <span class="tol-id">
+                      <span class="tol-nom">{{ r.emp.nombreCompleto }}</span>
+                      <span class="tol-sub">
+                        #{{ r.emp.codigo }} · {{ r.emp.departamento }}
+                        @if (r.emp.tipo === 'rotativo') {
+                          · rota {{ r.emp.turnos }}
+                        } @else if (r.emp.horario !== '—') {
+                          · entra {{ r.emp.horario }}@if (!r.emp.horarioConfirmado) { <em> (deducido)</em> }
+                        }
+                      </span>
+                    </span>
+                    <span class="tol-semanas">
+                      {{ r.semanas.length }} semana{{ r.semanas.length > 1 ? 's' : '' }}
+                    </span>
+                    <span class="tol-min">+{{ r.excedenteTotal }}<small> min</small></span>
+                    <svg class="tol-chev tol-chev-sm" [class.abierto]="tolDetalle === r.emp.codigo" viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M4 6l4 4 4-4"/>
+                    </svg>
+                  </button>
+
+                  @if (tolDetalle === r.emp.codigo) {
+                    <div class="tol-desglose">
+                      @for (s of r.semanas; track s.inicio) {
+                        <div class="tol-sem">
+                          <div class="tol-sem-head">
+                            <span class="tol-sem-lbl">{{ s.label }}</span>
+                            @if (s.parcial) {
+                              <span class="tol-parcial-chip"
+                                    title="Esta semana no cabe completa en el periodo elegido, así que su acumulado va incompleto. Amplía las fechas para verla entera.">
+                                semana partida
+                              </span>
+                            }
+                            <span class="tol-sem-cuentas">
+                              {{ s.atrasoMin }} min acumulados − {{ s.absorbidoMin }} de tolerancia =
+                              <b>{{ s.excedenteMin }} min de más</b>
+                            </span>
+                          </div>
+                          <table class="tol-tabla">
+                            <thead>
+                              <tr>
+                                <th>Día</th><th>Entró</th><th>Su hora</th>
+                                <th class="tol-num">Minutos</th><th class="tol-num">Se cobran</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (d of s.dias; track d.fecha) {
+                                <tr [class.tol-dia-cobra]="d.contado > 0">
+                                  <td>{{ d.diaLabel }}</td>
+                                  <td class="tol-hora">{{ d.entrada }}</td>
+                                  <td class="tol-hora tol-ref">{{ d.referencia }}</td>
+                                  <td class="tol-num">+{{ d.atrasoMin }}</td>
+                                  <td class="tol-num">{{ d.contado > 0 ? '+' + d.contado : '—' }}</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                      <button type="button" class="ar-btn ar-btn-ghost tol-vertodo"
+                              (click)="abrirDesdeTolerancia(r)">
+                        Ver todo su periodo y justificar días
+                      </button>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          }
+
+          <!-- Los que van al filo: avisarles todavía cambia algo. -->
+          @if (alFilo.length) {
+            <p class="tol-filo">
+              <b>{{ alFilo.length }}</b> van al filo sin haber rebasado:
+              @for (f of alFilo; track f.emp.codigo; let last = $last) {
+                <span class="tol-filo-uno" [title]="f.label">{{ f.emp.nombre }} ({{ f.restante }} min libres)</span>{{ last ? '' : ' · ' }}
+              }
+            </p>
+          }
+
+          <!-- Rebasaron, pero su número no se puede firmar todavía. No se
+               esconden: el pendiente es de RH, y esconderlo lo vuelve eterno. -->
+          @if (rebasadosBloqueados.length) {
+            <div class="tol-bloq">
+              <button type="button" class="tol-bloq-head"
+                      (click)="tolIncluirBloqueados = !tolIncluirBloqueados">
+                <b>{{ rebasadosBloqueados.length }}</b> también se pasaron, pero su número
+                todavía no se puede usar
+                <svg class="tol-chev tol-chev-sm" [class.abierto]="tolIncluirBloqueados" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4 6l4 4 4-4"/>
+                </svg>
+              </button>
+              @if (tolIncluirBloqueados) {
+                <ul class="tol-bloq-lista">
+                  @for (r of rebasadosBloqueados; track r.emp.codigo) {
+                    <li>
+                      <span class="tol-bloq-nom">{{ r.emp.nombreCompleto }}</span>
+                      <span class="tol-bloq-min">+{{ r.excedenteTotal }} min</span>
+                      <span class="tol-bloq-por">{{ motivoNoUsable(r.emp) || r.emp.bloqueadoPor.join(' · ') }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+
+          <div class="tol-pie">
+            <button type="button" class="ar-btn ar-btn-ghost" (click)="exportarTolerancia()"
+                    title="Una fila por semana rebasada, con los días que la formaron.">
+              Exportar a Excel
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
   @if (cargando) {
     <div class="ar-empty">Cargando asistencia…</div>
   } @else if (!lista.length) {

@@ -176,13 +176,14 @@ body.imprimiendo-reporte .side-drawer,
 body.imprimiendo-reporte .menu-backdrop,
 body.imprimiendo-reporte .ar-bar,
 body.imprimiendo-reporte .ar-relojes,
+body.imprimiendo-reporte .tol,
 body.imprimiendo-reporte .ar-vista-switch,
 body.imprimiendo-reporte .rep-toggle,
 body.imprimiendo-reporte .rep-pdf { display: none !important; }
 
 @media print {
   .top-bar, .side-drawer, .menu-backdrop,
-  .ar-bar, .ar-relojes, .ar-vista-switch, .rep-toggle, .rep-pdf { display: none !important; }
+  .ar-bar, .ar-relojes, .tol, .ar-vista-switch, .rep-toggle, .rep-pdf { display: none !important; }
   .app-content, .app-wrapper, body, html { background: #fff !important; margin: 0 !important; padding: 0 !important; }
   .rep { border: 0 !important; }
   .rep-scroll { overflow: visible !important; }

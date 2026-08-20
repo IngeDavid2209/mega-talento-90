@@ -483,3 +483,130 @@
 .rep-total .rep-ret { text-align: center; }
 
 .rep-acciones { display: flex; gap: 8px; flex: none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOLERANCIA REBASADA
+
+   Misma franja plegable que el semáforo de relojes, para que se lea como
+   parte de la misma pantalla y no como un tablero aparte. El borde
+   izquierdo es la señal periférica: rojo si alguien se pasó, verde si la
+   semana salió limpia. Se ve sin tener que leer.
+   ═══════════════════════════════════════════════════════════════════ */
+.tol {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+  margin-bottom: 14px; overflow: hidden;
+}
+.tol[data-estado='rebasada'] { border-left: 3px solid var(--red); }
+.tol[data-estado='limpia'] { border-left: 3px solid var(--green); }
+
+.tol-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 10px 14px; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink);
+}
+.tol-head:hover { background: var(--surface2); }
+.tol-titulo { font-size: 12.5px; font-weight: 800; letter-spacing: .02em; }
+.tol-resumen { font-size: 12.5px; color: var(--text2); }
+.tol-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--green); }
+.tol[data-estado='rebasada'] .tol-dot { background: var(--red); }
+.tol-aviso {
+  font-size: 11px; font-weight: 700; color: var(--amber-text); background: var(--amber-bg);
+  border-radius: 999px; padding: 2px 9px;
+}
+.tol-chev {
+  margin-left: auto; width: 16px; height: 16px; fill: none; stroke: var(--text2);
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s;
+}
+.tol-chev.abierto { transform: rotate(180deg); }
+.tol-chev-sm { width: 14px; height: 14px; }
+
+.tol-cuerpo { border-top: 1px solid var(--border); padding: 12px 14px 14px; }
+
+.tol-nota {
+  margin: 0 0 12px; font-size: 12px; line-height: 1.55; color: var(--text2);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
+}
+.tol-nota b { color: var(--ink); }
+
+.tol-vacio { margin: 0; font-size: 12.5px; color: var(--text2); }
+
+/* ── La lista de quien se pasó ── */
+.tol-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tol-item { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.tol-item.abierto { border-color: rgba(161, 38, 38, 0.28); }
+
+.tol-fila {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 9px 12px; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink);
+}
+.tol-fila:hover { background: var(--surface2); }
+.tol-av { width: 32px; height: 32px; font-size: 12px; flex: none; }
+.tol-id { min-width: 0; flex: 1; }
+.tol-nom {
+  display: block; font-size: 13.5px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tol-sub { display: block; font-size: 11px; color: var(--text3); }
+.tol-sub em { font-style: normal; color: var(--text3); }
+.tol-semanas { font-size: 11.5px; color: var(--text2); flex: none; }
+.tol-min {
+  font-size: 15px; font-weight: 800; color: var(--red-text); background: var(--red-bg);
+  border-radius: 8px; padding: 3px 10px; flex: none; font-variant-numeric: tabular-nums;
+}
+.tol-min small { font-size: 10.5px; font-weight: 700; }
+
+/* ── El desglose: semana por semana, día por día ── */
+.tol-desglose { border-top: 1px solid var(--border); background: var(--surface2); padding: 10px 12px 12px; }
+.tol-sem + .tol-sem { margin-top: 12px; }
+.tol-sem-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tol-sem-lbl { font-size: 12px; font-weight: 800; color: var(--ink); }
+.tol-sem-cuentas { font-size: 11.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
+.tol-sem-cuentas b { color: var(--red-text); }
+.tol-parcial-chip {
+  font-size: 10.5px; font-weight: 700; color: var(--amber-text); background: var(--amber-bg);
+  border-radius: 999px; padding: 2px 8px;
+}
+
+.tol-tabla { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; overflow: hidden; }
+.tol-tabla th {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--text3); text-align: left; padding: 5px 9px; border-bottom: 1px solid var(--border);
+}
+.tol-tabla td { font-size: 12px; color: var(--ink); padding: 5px 9px; border-bottom: 1px solid var(--border); }
+.tol-tabla tr:last-child td { border-bottom: 0; }
+.tol-num { text-align: right; font-variant-numeric: tabular-nums; }
+.tol-hora { font-variant-numeric: tabular-nums; font-weight: 700; }
+.tol-ref { font-weight: 500; color: var(--text2); }
+.tol-dia-cobra td { background: var(--red-bg); }
+.tol-dia-cobra td.tol-num:last-child { font-weight: 800; color: var(--red-text); }
+
+.tol-vertodo { margin-top: 10px; }
+
+/* ── Los que van al filo y los que no se pueden firmar ── */
+.tol-filo { margin: 12px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--text2); }
+.tol-filo b { color: var(--amber-text); }
+.tol-filo-uno { color: var(--ink); font-weight: 600; }
+
+.tol-bloq { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.tol-bloq-head {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+  font: inherit; font-size: 11.5px; color: var(--text2);
+}
+.tol-bloq-head b { color: var(--ink); }
+.tol-bloq-head .tol-chev { margin-left: 0; }
+.tol-bloq-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
+.tol-bloq-lista li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 11.5px; }
+.tol-bloq-nom { font-weight: 700; color: var(--ink); }
+.tol-bloq-min { color: var(--text2); font-variant-numeric: tabular-nums; }
+.tol-bloq-por { color: var(--text3); }
+
+.tol-pie { margin-top: 12px; display: flex; justify-content: flex-end; }
+
+@media (max-width: 640px) {
+  .tol-fila { flex-wrap: wrap; }
+  .tol-semanas { order: 3; }
+  .tol-min { order: 2; margin-left: auto; }
+  .tol-tabla th:nth-child(3), .tol-tabla td:nth-child(3) { display: none; }
+}

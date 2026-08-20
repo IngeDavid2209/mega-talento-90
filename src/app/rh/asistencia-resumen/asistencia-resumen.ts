@@ -65,6 +65,38 @@ interface EmpleadoAsistencia {
 }
 
 /**
+ * ══ TOLERANCIA REBASADA ══════════════════════════════════════════
+ *
+ * Una semana en la que la bolsa de 15 min NO alcanzó, y la persona que la trae.
+ * No se calcula nada nuevo: es la misma respuesta de la API leída de otra
+ * forma. El minuto que sale aquí es el mismo que ya salía en el detalle.
+ */
+interface SemanaRebasada {
+  inicio: string; label: string;
+  /** Atraso crudo de la semana: lo que se acumuló día por día. */
+  atrasoMin: number;
+  /** Lo que absorbió la bolsa (tope: los 15 min de la semana). */
+  absorbidoMin: number;
+  /** El excedente. ESTO es lo que rebasa la tolerancia. */
+  excedenteMin: number;
+  /**
+   * La semana no cabe completa en el periodo elegido, así que su acumulado va
+   * a medias. Se dice, porque un acumulado partido se lee como si fuera el de
+   * la semana entera.
+   */
+  parcial: boolean;
+  /** Los días que aportaron minutos, para poder señalar cuáles fueron. */
+  dias: { fecha: string; diaLabel: string; entrada: string; referencia: string; atrasoMin: number; contado: number }[];
+}
+/** Una persona que rebasó la bolsa en al menos una semana del periodo. */
+interface Rebasado {
+  emp: EmpleadoAsistencia;
+  semanas: SemanaRebasada[];
+  /** Suma del excedente de todas sus semanas rebasadas (= su retardo real). */
+  excedenteTotal: number;
+}
+
+/**
  * Vista consolidada de asistencia: se elige sucursal y rango, y se muestra a
  * todos los empleados con su desglose por semana.
  *
@@ -514,7 +546,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** Ajusta el rango a los últimos 30 días CON datos de la sucursal, luego carga. */
   async ajustarRangoYCargar() {
-    if (!this.sucursalFiltro) { this.lista = []; return; }
+    if (!this.sucursalFiltro) { this.lista = []; this.computarTolerancia(); return; }
     try {
       const r = await this.checador.getRangoChecadas(this.sucursalFiltro);
       if (r.max) {
@@ -529,15 +561,20 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   async cargar(silencioso = false) {
-    if (!this.sucursalFiltro || !this.desde || !this.hasta) { this.lista = []; return; }
+    if (!this.sucursalFiltro || !this.desde || !this.hasta) { this.lista = []; this.computarTolerancia(); return; }
     if (!silencioso) this.cargando = true;
     try {
       this.datos = await this.checador.getAsistencia(this.sucursalFiltro, this.desde, this.hasta);
       this.lista = this.datos.personas.map(p => this.aVista(p));
       this.computarGraficas();
+      this.computarTolerancia();
     } catch (e) {
       console.error('Error al cargar asistencia:', e);
-      if (!silencioso) { this.toast.error('No se pudieron cargar la asistencia.'); this.lista = []; this.datos = null; }
+      if (!silencioso) {
+        this.toast.error('No se pudieron cargar la asistencia.');
+        this.lista = []; this.datos = null;
+        this.computarTolerancia();   // si no, queda el apartado lleno sin datos detrás
+      }
     } finally {
       if (!silencioso) this.cargando = false;
     }
@@ -715,6 +752,167 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       .sort((a, b) => b[1] - a[1])
       .map(([c, n]) => `${n} ${this.ETIQUETA_MARCA[c] || c}`)
       .join(' · ');
+  }
+
+  // ══ TOLERANCIA REBASADA (la bolsa de 15 min por semana) ══════════
+  //
+  // La bolsa ya se aplicaba: el atraso de cada día se absorbe de los 15 min que
+  // trae la semana y solo cuenta el excedente. Lo que faltaba era poder VER a
+  // quién ya se le acabó, sin abrir la tarjeta de cada persona y recorrer sus
+  // semanas una por una —en una plaza de 40 personas con cuatro semanas en
+  // pantalla, eso son 160 aperturas para responder una pregunta de sí o no—.
+  //
+  // Aquí no se recalcula nada. Es la MISMA respuesta de la API, leída al revés:
+  // en vez de "esta persona, sus semanas", se pregunta "estas semanas, quién las
+  // rebasó". Si el número de este apartado y el del detalle no coincidieran,
+  // sería un error de lectura, no dos reglas distintas.
+  //
+  // Dos cosas que este apartado NO hace, a propósito:
+  //  · No mete a quien tiene el número bloqueado por una marca alta. Un retardo
+  //    medido contra un horario que RH todavía no confirma no puede encabezar
+  //    una lista que se usa para descontar. Se cuentan aparte, no se esconden.
+  //  · No inventa la semana que falta. Si el periodo elegido corta la semana a
+  //    la mitad, se marca "semana partida": un acumulado de 3 días se lee como
+  //    si fuera de 7 y así se firman descuentos que no van.
+
+  /** El apartado arranca abierto cuando hay a quién mirar. */
+  tolAbierta = true;
+  /** Código de la persona cuyo desglose de semanas está desplegado. */
+  tolDetalle = '';
+  /** Muestra también a los rebasados cuyo número está bloqueado por una marca. */
+  tolIncluirBloqueados = false;
+
+  /**
+   * Las tres listas se calculan UNA vez al cargar, no en getters.
+   *
+   * Como getters se veían más limpios, pero el `@for` del template los llamaba
+   * en cada ciclo de detección de cambios —y este componente se refresca solo
+   * cada minuto y tiene un modal encima—: recorrer 40 personas × sus semanas
+   * varias veces por movimiento del ratón, para un dato que solo cambia cuando
+   * llega una respuesta nueva de la API.
+   */
+  rebasados: Rebasado[] = [];
+  rebasadosBloqueados: Rebasado[] = [];
+  alFilo: { emp: EmpleadoAsistencia; restante: number; label: string }[] = [];
+
+  /** Rearma las tres listas desde `lista`. Se llama al terminar de cargar. */
+  private computarTolerancia() {
+    this.rebasados = this.armarRebasados(this.lista.filter(e => e.usable));
+    // Rebasaron, pero su número no se puede usar todavía (horario por confirmar,
+    // una sola marca, fuera del padrón…). Van aparte porque el pendiente es de
+    // RH, no de la persona.
+    this.rebasadosBloqueados = this.armarRebasados(this.lista.filter(e => !e.usable));
+    this.alFilo = this.computarAlFilo();
+  }
+
+  private armarRebasados(gente: EmpleadoAsistencia[]): Rebasado[] {
+    const salida: Rebasado[] = [];
+    for (const emp of gente) {
+      const semanas = emp.semanas
+        .filter(s => s.acumulado > 0)
+        .map(s => this.aSemanaRebasada(s))
+        .sort((a, b) => b.excedenteMin - a.excedenteMin);
+      if (!semanas.length) continue;
+      // Ya vienen de peor a menos peor: la primera semana es la que duele.
+      salida.push({ emp, semanas, excedenteTotal: semanas.reduce((t, s) => t + s.excedenteMin, 0) });
+    }
+    return salida.sort((a, b) =>
+      b.excedenteTotal - a.excedenteTotal ||
+      b.semanas.length - a.semanas.length ||
+      a.emp.nombreCompleto.localeCompare(b.emp.nombreCompleto, 'es'));
+  }
+
+  private aSemanaRebasada(s: SemanaAsistencia): SemanaRebasada {
+    const fin = new Date(s.inicio + 'T00:00:00');
+    fin.setDate(fin.getDate() + 6);
+    return {
+      inicio: s.inicio,
+      label: s.label,
+      atrasoMin: s.atrasoMin,
+      absorbidoMin: Math.max(0, s.atrasoMin - s.acumulado),
+      excedenteMin: s.acumulado,
+      parcial: s.inicio < this.desde || aFechaLocal(fin) > this.hasta,
+      dias: s.dias
+        .filter(d => d.atrasoMin > 0)
+        .map(d => ({
+          fecha: d.fecha, diaLabel: d.diaLabel,
+          entrada: d.entrada, referencia: d.referencia,
+          atrasoMin: d.atrasoMin, contado: d.retardoMin,
+        })),
+    };
+  }
+
+  /**
+   * Van al filo: en su última semana del periodo ya gastaron casi toda la bolsa
+   * y todavía no la rebasan. Es el aviso que sirve —cuando alguien ya está en
+   * esta lista, avisarle todavía cambia algo—.
+   */
+  private computarAlFilo(): { emp: EmpleadoAsistencia; restante: number; label: string }[] {
+    const filo: { emp: EmpleadoAsistencia; restante: number; label: string }[] = [];
+    for (const e of this.lista) {
+      if (!e.usable || e.acumuladoTotal > 0) continue;   // los que ya rebasaron van arriba
+      const ult = e.semanas[e.semanas.length - 1];
+      if (!ult) continue;
+      const gastado = this.bolsaSemanal - ult.bolsaRestante;
+      if (gastado > 0 && gastado >= this.bolsaSemanal - 3) {
+        filo.push({ emp: e, restante: ult.bolsaRestante, label: ult.label });
+      }
+    }
+    return filo.sort((a, b) => a.restante - b.restante ||
+      a.emp.nombreCompleto.localeCompare(b.emp.nombreCompleto, 'es'));
+  }
+
+  /** Minutos rebasados en total (solo los utilizables): el número del encabezado. */
+  get excedenteTotalRebasado(): number {
+    return this.rebasados.reduce((t, r) => t + r.excedenteTotal, 0);
+  }
+
+  /** Resumen de una línea para el encabezado del apartado. */
+  get resumenTolerancia(): string {
+    const n = this.rebasados.length;
+    if (!n) return 'nadie rebasó la tolerancia en este periodo';
+    const semanas = this.rebasados.reduce((t, r) => t + r.semanas.length, 0);
+    const partes = [`${n} persona${n > 1 ? 's' : ''}`,
+                    `${semanas} semana${semanas > 1 ? 's' : ''}`,
+                    `${this.excedenteTotalRebasado} min de más`];
+    return partes.join(' · ');
+  }
+
+  toggleTolerancia() { this.tolAbierta = !this.tolAbierta; }
+  toggleTolDetalle(codigo: string) { this.tolDetalle = this.tolDetalle === codigo ? '' : codigo; }
+
+  /** Abre la tarjeta/detalle completo de la persona desde este apartado. */
+  abrirDesdeTolerancia(r: Rebasado) { this.abrir(r.emp); }
+
+  /** Exporta el apartado tal cual se ve: una fila por semana rebasada. */
+  exportarTolerancia() {
+    const filas: any[] = [];
+    const volcar = (r: Rebasado, utilizable: string) => {
+      for (const s of r.semanas) {
+        filas.push({
+          'Clv': r.emp.codigo,
+          'Nombre': r.emp.nombreCompleto,
+          'Departamento': r.emp.departamento,
+          'Su horario': r.emp.tipo === 'rotativo' ? `Rota ${r.emp.turnos}` : r.emp.horario,
+          'Semana': s.label,
+          'Semana completa en el periodo': s.parcial ? 'No — partida' : 'Sí',
+          'Tolerancia de la semana (min)': this.bolsaSemanal,
+          'Atraso acumulado (min)': s.atrasoMin,
+          'Absorbido por la tolerancia (min)': s.absorbidoMin,
+          'Rebasado (min)': s.excedenteMin,
+          'Días que aportaron': s.dias.map(d => `${d.diaLabel} ${d.entrada} (+${d.atrasoMin})`).join(' · '),
+          'Número utilizable': utilizable,
+        });
+      }
+    };
+    for (const r of this.rebasados) volcar(r, 'Sí');
+    for (const r of this.rebasadosBloqueados) volcar(r, `No — ${r.emp.bloqueadoPor.join(', ')}`);
+
+    if (!filas.length) { this.toast.alerta('Nadie rebasó la tolerancia en este periodo.'); return; }
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(filas), 'Tolerancia rebasada');
+    const suc = this.nombreSucursal(this.sucursalFiltro).replace(/\s+/g, '_');
+    XLSX.writeFile(libro, `Tolerancia_rebasada_${suc}_${this.desde}_a_${this.hasta}.xlsx`);
   }
 
   // Detalle en modal: al abrir, carga las revisiones (justificación/estado).
