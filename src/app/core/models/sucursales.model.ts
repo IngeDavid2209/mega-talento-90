@@ -98,7 +98,13 @@ export const CENTROS_INTERNOS: Sucursal[] = [
   // nombre propio en vez de adivinarle una plaza: verlo sin saber de quién es
   // deja el pendiente a la vista; meterlo bajo una plaza inventada lo escondería
   // dentro de datos que sí se dan por buenos.
-  { id: 'reloj-196', ciudad: 'Reloj .196', direccion: 'Sin identificar', mapsUrl: '' }
+  { id: 'reloj-196', ciudad: 'Reloj .196', direccion: 'Sin identificar', mapsUrl: '' },
+
+  // Sucursal PH (20/08/2026). Su reloj (192.168.10.2) se volvió alcanzable desde
+  // el corporativo, así que ya baja asistencia. Va aquí —no en SUCURSALES
+  // públicas— porque todavía no tenemos su dirección para el portal de empleos;
+  // en cuanto RH la dé, se puede mover.
+  { id: 'sucursal-ph', ciudad: 'Sucursal PH', direccion: '', mapsUrl: '' }
 ];
 
 /**
