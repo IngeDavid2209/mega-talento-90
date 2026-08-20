@@ -872,6 +872,59 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return this.rebasados.reduce((t, r) => t + r.semanas.length, 0);
   }
 
+  // ══ FALTAS NOTIFICABLES (regla de descanso) ══════════════════════
+  //
+  // Regla de RH (20/08/2026): las TIENDAS descansan SOLO el domingo. Faltar en
+  // domingo está permitido; faltar cualquier otro día se notifica. Oficinas
+  // (corporativo, su comida, el reloj .196) y CEDIS quedan FUERA de esta regla.
+  private readonly SIN_REGLA_FALTAS = new Set(['corporativo', 'corporativo-comida', 'cedis', 'reloj-196']);
+
+  /** ¿La sucursal actual entra en la regla de faltas de tienda? */
+  get aplicaReglaFaltas(): boolean {
+    return !!this.sucursalFiltro && !this.SIN_REGLA_FALTAS.has(this.sucursalFiltro);
+  }
+
+  /** ¿La fecha 'yyyy-MM-dd' cae en domingo? (mediodía local, sin líos de huso). */
+  private esDomingo(fecha: string): boolean {
+    return new Date(fecha + 'T12:00:00').getDay() === 0;
+  }
+
+  /**
+   * Quién faltó en un día que NO es domingo — eso es lo notificable. Una fila
+   * por persona con sus días de falta (fuera de domingo), ordenada de más a
+   * menos faltas.
+   */
+  get faltasNotificables(): { emp: EmpleadoAsistencia; dias: { fecha: string; label: string }[] }[] {
+    if (!this.aplicaReglaFaltas) return [];
+    const salida: { emp: EmpleadoAsistencia; dias: { fecha: string; label: string }[] }[] = [];
+    for (const e of this.lista) {
+      const dias: { fecha: string; label: string }[] = [];
+      for (const s of e.semanas) for (const d of s.dias) {
+        if (d.estadoDia === 'falta' && !this.esDomingo(d.fecha)) {
+          dias.push({ fecha: d.fecha, label: d.diaLabel });
+        }
+      }
+      if (dias.length) salida.push({ emp: e, dias });
+    }
+    return salida.sort((a, b) => b.dias.length - a.dias.length);
+  }
+
+  get totalFaltasNotificables(): number {
+    return this.faltasNotificables.reduce((t, x) => t + x.dias.length, 0);
+  }
+
+  /** Cuántas de esas personas tienen MÁS DE UNA falta (el caso más grave). */
+  get faltasMasDeUna(): number {
+    return this.faltasNotificables.filter(x => x.dias.length > 1).length;
+  }
+
+  faltasAbierta = true;
+  toggleFaltas() { this.faltasAbierta = !this.faltasAbierta; }
+  /** Los días de falta de una persona, como "Lun 18, Mar 19" para la tabla. */
+  diasFaltaTexto(f: { dias: { fecha: string; label: string }[] }): string {
+    return f.dias.map(d => d.label).join(' · ');
+  }
+
   /** Resumen de una línea para el encabezado del apartado. */
   get resumenTolerancia(): string {
     const n = this.rebasados.length;

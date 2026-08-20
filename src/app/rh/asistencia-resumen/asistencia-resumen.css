@@ -635,3 +635,30 @@
 .tolt tfoot td { padding: 8px 10px; border-top: 2px solid var(--border-med); font-weight: 800; color: var(--ink); }
 .tolt-pie { margin: 8px 2px 0; font-size: 11.5px; color: var(--text3); }
 .tolt-pie b { color: var(--amber-text); }
+
+/* ===== Faltas fuera de domingo (regla de descanso de tienda) ===== */
+.falt {
+  border: 1px solid var(--border); border-left: 3px solid var(--amber);
+  border-radius: 12px; background: var(--surface); margin-bottom: 14px; overflow: hidden;
+}
+.falt[data-grave='si'] { border-left-color: var(--red); }
+.falt-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 10px 14px; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink);
+}
+.falt-head:hover { background: var(--surface2); }
+.falt-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--amber); }
+.falt[data-grave='si'] .falt-dot { background: var(--red); }
+.falt-titulo { font-size: 12.5px; font-weight: 800; letter-spacing: .02em; }
+.falt-resumen { font-size: 12.5px; color: var(--text2); }
+.falt-aviso {
+  font-size: 11px; font-weight: 700; color: var(--red-text); background: var(--red-bg);
+  border-radius: 999px; padding: 2px 9px;
+}
+.falt-chev { margin-left: auto; width: 16px; height: 16px; fill: none; stroke: var(--text2); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.falt-chev.abierto { transform: rotate(180deg); }
+.falt-nota { margin: 0; padding: 8px 14px 10px; font-size: 12px; color: var(--text2); border-top: 1px solid var(--surface2); }
+.falt-nota b { color: var(--ink); font-weight: 800; }
+.falt-dias { color: var(--text2); }
+.falt-grave .tolt-min { color: var(--red-text); }
