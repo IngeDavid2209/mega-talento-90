@@ -10,6 +10,7 @@ import {
 import { aFechaLocal } from '../../core/models/checador.model';
 import { CENTROS_CON_RELOJ, centroChecadorPorId, tieneReloj } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthSession } from '../../core/services/auth-session';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
 /** Un día del empleado, ya medido por la API contra SU horario. */
@@ -96,6 +97,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   private checador = inject(ChecadorService);
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
+  private auth = inject(AuthSession);
+
+  /** El semáforo de relojes es solo para el admin (lo pidió RH: 20/08/2026). */
+  get esAdmin(): boolean { return this.auth.getUsuario()?.rol === 'admin'; }
 
   /** Si se pasa desde fuera, manda la sucursal (y se oculta el selector propio). */
   @Input() sucursalIdExterna?: string;
@@ -201,6 +206,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** Estado de los relojes. Si falla, se calla: nunca debe tumbar la pantalla. */
   private async cargarRelojes() {
+    // Solo el admin ve el semáforo de relojes: para el resto ni se consulta.
+    if (!this.esAdmin) { this.relojes = []; return; }
     try {
       this.relojes = await this.checador.getEstadoRelojes();
       // Se abre sola la primera vez que hay algo que ver, y no se vuelve a

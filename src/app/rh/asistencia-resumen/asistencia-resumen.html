@@ -83,7 +83,7 @@
        Ojo con lo que NO significa: un reloj mudo no quiere decir que la gente
        faltó. Es falta de DATO. Por eso abajo se marca el resumen en vez de
        contar faltas. -->
-  @if (relojes.length) {
+  @if (esAdmin && relojes.length) {
     <div class="ar-relojes" [attr.data-estado]="peorSemaforo">
       <button type="button" class="ar-relojes-head" (click)="toggleRelojes()"
               [attr.aria-expanded]="relojesAbierto">
