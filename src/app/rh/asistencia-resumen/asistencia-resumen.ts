@@ -867,6 +867,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return this.rebasados.reduce((t, r) => t + r.excedenteTotal, 0);
   }
 
+  /** Suma de semanas rebasadas (para el pie de la tabla plana). */
+  get totalSemanasRebasadas(): number {
+    return this.rebasados.reduce((t, r) => t + r.semanas.length, 0);
+  }
+
   /** Resumen de una línea para el encabezado del apartado. */
   get resumenTolerancia(): string {
     const n = this.rebasados.length;

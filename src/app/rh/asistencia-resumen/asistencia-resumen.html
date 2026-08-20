@@ -188,82 +188,52 @@
               cupieron en los {{ bolsaSemanal }} de su semana.
             </p>
           } @else {
-            <ul class="tol-lista">
-              @for (r of rebasados; track r.emp.codigo) {
-                <li class="tol-item" [class.abierto]="tolDetalle === r.emp.codigo">
-                  <button type="button" class="tol-fila" (click)="toggleTolDetalle(r.emp.codigo)"
-                          [attr.aria-expanded]="tolDetalle === r.emp.codigo">
-                    <span class="ar-avatar tol-av">
-                      @if (r.emp.fotoUrl) { <img [src]="r.emp.fotoUrl" [alt]="r.emp.nombre"> }
-                      @else { <span>{{ iniciales(r.emp.nombre) }}</span> }
-                    </span>
-                    <span class="tol-id">
-                      <span class="tol-nom">{{ r.emp.nombreCompleto }}</span>
-                      <span class="tol-sub">
-                        #{{ r.emp.codigo }} · {{ r.emp.departamento }}
-                        @if (r.emp.tipo === 'rotativo') {
-                          · rota {{ r.emp.turnos }}
-                        } @else if (r.emp.horario !== '—') {
-                          · entra {{ r.emp.horario }}@if (!r.emp.horarioConfirmado) { <em> (deducido)</em> }
-                        }
-                      </span>
-                    </span>
-                    <span class="tol-semanas">
-                      {{ r.semanas.length }} semana{{ r.semanas.length > 1 ? 's' : '' }}
-                    </span>
-                    <span class="tol-min">+{{ r.excedenteTotal }}<small> min</small></span>
-                    <svg class="tol-chev tol-chev-sm" [class.abierto]="tolDetalle === r.emp.codigo" viewBox="0 0 16 16" aria-hidden="true">
-                      <path d="M4 6l4 4 4-4"/>
-                    </svg>
-                  </button>
-
-                  @if (tolDetalle === r.emp.codigo) {
-                    <div class="tol-desglose">
-                      @for (s of r.semanas; track s.inicio) {
-                        <div class="tol-sem">
-                          <div class="tol-sem-head">
-                            <span class="tol-sem-lbl">{{ s.label }}</span>
-                            @if (s.parcial) {
-                              <span class="tol-parcial-chip"
-                                    title="Esta semana no cabe completa en el periodo elegido, así que su acumulado va incompleto. Amplía las fechas para verla entera.">
-                                semana partida
-                              </span>
-                            }
-                            <span class="tol-sem-cuentas">
-                              {{ s.atrasoMin }} min acumulados − {{ s.absorbidoMin }} de tolerancia =
-                              <b>{{ s.excedenteMin }} min de más</b>
-                            </span>
-                          </div>
-                          <table class="tol-tabla">
-                            <thead>
-                              <tr>
-                                <th>Día</th><th>Entró</th><th>Su hora</th>
-                                <th class="tol-num">Minutos</th><th class="tol-num">Se cobran</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (d of s.dias; track d.fecha) {
-                                <tr [class.tol-dia-cobra]="d.contado > 0">
-                                  <td>{{ d.diaLabel }}</td>
-                                  <td class="tol-hora">{{ d.entrada }}</td>
-                                  <td class="tol-hora tol-ref">{{ d.referencia }}</td>
-                                  <td class="tol-num">+{{ d.atrasoMin }}</td>
-                                  <td class="tol-num">{{ d.contado > 0 ? '+' + d.contado : '—' }}</td>
-                                </tr>
-                              }
-                            </tbody>
-                          </table>
-                        </div>
-                      }
-                      <button type="button" class="ar-btn ar-btn-ghost tol-vertodo"
-                              (click)="abrirDesdeTolerancia(r)">
-                        Ver todo su periodo y justificar días
-                      </button>
-                    </div>
+            <!-- Tabla plana: todo a la vista, ordenada del que más se pasó al
+                 que menos. Un clic en la fila abre el desglose de esa persona
+                 (semanas/días) para justificar. -->
+            <div class="tolt-scroll">
+              <table class="tolt">
+                <thead>
+                  <tr>
+                    <th class="tolt-clv">Clv</th>
+                    <th class="tolt-nom">Nombre</th>
+                    <th>Departamento</th>
+                    <th>Entra</th>
+                    <th class="tolt-num">Semanas</th>
+                    <th class="tolt-num">Min de más</th>
+                    <th class="tolt-ver-h"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of rebasados; track r.emp.codigo) {
+                    <tr class="tolt-fila" (click)="abrirDesdeTolerancia(r)"
+                        title="Ver su desglose por semana y justificar días">
+                      <td class="tolt-clv">{{ r.emp.codigo }}</td>
+                      <td class="tolt-nom">{{ r.emp.nombreCompleto }}</td>
+                      <td class="tolt-dep">{{ r.emp.departamento }}</td>
+                      <td class="tolt-hora">
+                        @if (r.emp.tipo === 'rotativo') { rota }
+                        @else if (r.emp.horario !== '—') {
+                          {{ r.emp.horario }}@if (!r.emp.horarioConfirmado) { <em class="tolt-ded" title="Horario deducido de sus checadas, aún sin confirmar por RH">*</em> }
+                        } @else { — }
+                      </td>
+                      <td class="tolt-num">{{ r.semanas.length }}</td>
+                      <td class="tolt-num tolt-min">+{{ r.excedenteTotal }}</td>
+                      <td class="tolt-ver">Ver ›</td>
+                    </tr>
                   }
-                </li>
-              }
-            </ul>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="4">{{ rebasados.length }} personas</td>
+                    <td class="tolt-num">{{ totalSemanasRebasadas }}</td>
+                    <td class="tolt-num tolt-min">+{{ excedenteTotalRebasado }}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p class="tolt-pie"><b>*</b> horario deducido (sin confirmar) · toca una fila para ver el detalle y justificar</p>
           }
 
           <!-- Los que van al filo: avisarles todavía cambia algo. -->

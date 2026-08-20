@@ -610,3 +610,28 @@
   .tol-min { order: 2; margin-left: auto; }
   .tol-tabla th:nth-child(3), .tol-tabla td:nth-child(3) { display: none; }
 }
+
+/* ===== Tolerancia rebasada: tabla plana (todo a la vista) ===== */
+.tolt-scroll { overflow-x: auto; margin-top: 4px; }
+.tolt { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tolt thead th {
+  text-align: left; font-size: 10.5px; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--text3); padding: 6px 10px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.tolt-num { text-align: right; font-variant-numeric: tabular-nums; }
+.tolt-ver-h { width: 40px; }
+.tolt-fila { cursor: pointer; border-bottom: 1px solid var(--surface2); transition: background .12s; }
+.tolt-fila:hover { background: var(--surface2); }
+.tolt td { padding: 7px 10px; color: var(--ink); vertical-align: middle; }
+.tolt-clv { color: var(--text3); font-variant-numeric: tabular-nums; width: 48px; }
+.tolt-nom { font-weight: 700; }
+.tolt-dep { color: var(--text2); }
+.tolt-hora { color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tolt-ded { color: var(--amber-text); font-style: normal; font-weight: 800; }
+.tolt-min { font-weight: 800; color: var(--red-text); }
+.tolt-ver { text-align: right; color: var(--text3); font-weight: 700; white-space: nowrap; }
+.tolt-fila:hover .tolt-ver { color: var(--brand); }
+.tolt tfoot td { padding: 8px 10px; border-top: 2px solid var(--border-med); font-weight: 800; color: var(--ink); }
+.tolt-pie { margin: 8px 2px 0; font-size: 11.5px; color: var(--text3); }
+.tolt-pie b { color: var(--amber-text); }
