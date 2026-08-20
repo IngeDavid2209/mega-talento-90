@@ -6,6 +6,7 @@ import {
   ChecadorService, ResultadoImportacion,
   PersonaAsistencia, SemanaApi, DiaApi
 } from '../../core/services/checador.service';
+import { VistaAsistencia, ConteosPendientes } from '../asistencia-resumen/asistencia-resumen';
 import {
   AreaChecador, HorarioArea, Empleado,
   TIPOS_CHECADA, DIAS_SEMANA, aFechaLocal
@@ -17,7 +18,7 @@ import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
-type Tab = 'checadas' | 'horarios' | 'areas' | 'empleados' | 'promotoras';
+type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'horarios' | 'areas' | 'empleados' | 'promotoras';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -106,6 +107,37 @@ export class HorariosComponent implements OnInit, OnDestroy {
   cambiarTab(t: Tab) {
     this.tabActiva = t;
   }
+
+  // ══ LAS TRES VISTAS DE ASISTENCIA ════════════════════════════════
+  //
+  // Checadas, Tolerancia y Faltas son PESTAÑAS distintas pero el MISMO
+  // componente: `<app-asistencia-resumen>` se queda montado en las tres y solo
+  // cambia su `vista`. Si cada pestaña tuviera su propia instancia, saltar entre
+  // ellas volvería a pedir la asistencia a la API y perdería el periodo elegido.
+  //
+  // Antes tolerancia y faltas eran dos franjas plegables encima del reporte:
+  // había que abrirlas para ver algo y empujaban el reporte —lo que RH mira
+  // todos los días— fuera de la pantalla.
+
+  /** Las pestañas que pinta el componente de asistencia. */
+  private readonly TABS_ASISTENCIA: Tab[] = ['checadas', 'tolerancia', 'faltas'];
+
+  get esTabAsistencia(): boolean {
+    return this.TABS_ASISTENCIA.includes(this.tabActiva);
+  }
+
+  /** La vista que se le pasa al componente (fuera de sus pestañas, 'checadas'). */
+  get vistaAsistencia(): VistaAsistencia {
+    return this.esTabAsistencia ? (this.tabActiva as VistaAsistencia) : 'checadas';
+  }
+
+  /**
+   * Los contadores de las pestañas, que los reporta el propio componente al
+   * terminar de calcular. Sin ellos, la pestaña se ve igual con 14 personas
+   * pendientes que con cero y hay que entrar para saberlo.
+   */
+  conteos: ConteosPendientes = { rebasados: 0, faltas: 0 };
+  onConteos(c: ConteosPendientes) { this.conteos = c; }
 
   // ===================== Listados filtrados por sucursal =====================
 

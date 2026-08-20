@@ -21,6 +21,20 @@
   <!-- PESTAÑAS -->
   <nav class="hz-tabs">
     <button [class.active]="tabActiva === 'checadas'" (click)="cambiarTab('checadas')">Checadas</button>
+    <!-- Tolerancia y faltas eran dos franjas plegables encima del reporte:
+         había que abrirlas para ver algo y empujaban el reporte —lo que RH mira
+         todos los días— fuera de la pantalla. Aquí son pestañas, con su contador
+         a la vista para no tener que entrar a saber si hay algo. -->
+    <button [class.active]="tabActiva === 'tolerancia'" (click)="cambiarTab('tolerancia')"
+            title="Quién rebasó los 15 minutos de tolerancia de su semana.">
+      Tolerancia
+      @if (conteos.rebasados) { <span class="hz-tab-num hz-tab-alerta">{{ conteos.rebasados }}</span> }
+    </button>
+    <button [class.active]="tabActiva === 'faltas'" (click)="cambiarTab('faltas')"
+            title="Quién faltó en un día que no es domingo (regla de tienda).">
+      Faltas
+      @if (conteos.faltas) { <span class="hz-tab-num hz-tab-alerta">{{ conteos.faltas }}</span> }
+    </button>
     <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
     <button [class.active]="tabActiva === 'promotoras'" (click)="cambiarTab('promotoras')">
       Promotoras
@@ -28,8 +42,12 @@
     </button>
   </nav>
 
-  <!-- ============================ CHECADAS ============================ -->
-  @if (tabActiva === 'checadas') {
+  <!-- ============ CHECADAS · TOLERANCIA · FALTAS ============
+       Las tres pestañas son el MISMO componente con otra `vista`. La condición
+       cubre las tres a propósito: así Angular no lo desmonta al cambiar de
+       pestaña y se conservan el periodo elegido y la respuesta ya cargada
+       —saltar entre vistas no vuelve a pegarle a la API—. -->
+  @if (esTabAsistencia) {
     <section class="hz-panel">
       <!-- Dashboard de asistencia: barra unificada (fechas + importar/exportar) + KPIs + lista -->
       <app-asistencia-resumen
@@ -38,6 +56,8 @@
         [permitirImportar]="true"
         [importando]="importando"
         [recargarToken]="recargaAsistencia"
+        [vista]="vistaAsistencia"
+        (conteos)="onConteos($event)"
         (archivo)="onArchivoSeleccionado($event)">
       </app-asistencia-resumen>
     </section>

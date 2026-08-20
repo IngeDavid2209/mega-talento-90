@@ -139,217 +139,6 @@
     </div>
   }
 
-  <!-- ══ TOLERANCIA REBASADA ══════════════════════════════════════════
-       La bolsa de 15 min por semana ya se aplicaba, pero para saber a quién se
-       le acabó había que abrir la tarjeta de cada persona y recorrer sus semanas
-       una por una. Este apartado responde la pregunta de frente: quién se pasó,
-       en qué semana y con qué días.
-
-       Ojo con dos cosas que aquí se dicen a propósito:
-        · Quien tiene el número bloqueado por una marca alta NO entra en la lista
-          principal. Un retardo medido contra un horario que RH todavía no
-          confirma no puede encabezar una lista con la que se descuenta.
-        · Una semana que el periodo corta a la mitad se marca "partida": un
-          acumulado de 3 días leído como si fuera de 7 es un descuento mal
-          firmado. -->
-  @if (!cargando && lista.length) {
-    <div class="tol" [attr.data-estado]="rebasados.length ? 'rebasada' : 'limpia'">
-      <button type="button" class="tol-head" (click)="toggleTolerancia()"
-              [attr.aria-expanded]="tolAbierta">
-        <span class="tol-dot" aria-hidden="true"></span>
-        <span class="tol-titulo">Tolerancia rebasada</span>
-        <span class="tol-resumen">{{ resumenTolerancia }}</span>
-        @if (rebasadosBloqueados.length) {
-          <span class="tol-aviso"
-                title="También se pasaron de los minutos, pero su horario todavía no se puede dar por bueno. Se listan abajo, aparte: el pendiente es de RH, no de la persona.">
-            {{ rebasadosBloqueados.length }} por confirmar
-          </span>
-        }
-        <svg class="tol-chev" [class.abierto]="tolAbierta" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M4 6l4 4 4-4"/>
-        </svg>
-      </button>
-
-      @if (tolAbierta) {
-        <div class="tol-cuerpo">
-          <!-- La regla, dicha una vez y a la vista: sin esto el número parece
-               salir del horario configurado de la sucursal. -->
-          <p class="tol-nota">
-            Cada semana ({{ datos?.corteSemana }}) trae <b>{{ bolsaSemanal }} minutos</b> de tolerancia.
-            El horario contra el que se mide es siempre de <b>hora en punto o media hora</b>, deducido de
-            las propias checadas de la persona: quien entra 8:32 y 8:36 tiene horario de <b>8:30</b>,
-            no de 8:00. Los minutos de más se van <b>sumando día por día</b> y aquí aparece quien
-            <b>ya se pasó de los {{ bolsaSemanal }}</b> — se cobra solo el excedente, no el acumulado.
-          </p>
-
-          @if (!rebasados.length) {
-            <p class="tol-vacio">
-              Nadie agotó su tolerancia en este periodo. Los minutos sueltos que hubo
-              cupieron en los {{ bolsaSemanal }} de su semana.
-            </p>
-          } @else {
-            <!-- Tabla plana: todo a la vista, ordenada del que más se pasó al
-                 que menos. Un clic en la fila abre el desglose de esa persona
-                 (semanas/días) para justificar. -->
-            <div class="tolt-scroll">
-              <table class="tolt">
-                <thead>
-                  <tr>
-                    <th class="tolt-clv">Clv</th>
-                    <th class="tolt-nom">Nombre</th>
-                    <th>Departamento</th>
-                    <th>Entra</th>
-                    <th class="tolt-num">Semanas</th>
-                    <th class="tolt-num">Min de más</th>
-                    <th class="tolt-ver-h"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (r of rebasados; track r.emp.codigo) {
-                    <tr class="tolt-fila" (click)="abrirDesdeTolerancia(r)"
-                        title="Ver su desglose por semana y justificar días">
-                      <td class="tolt-clv">{{ r.emp.codigo }}</td>
-                      <td class="tolt-nom">{{ r.emp.nombreCompleto }}</td>
-                      <td class="tolt-dep">{{ r.emp.departamento }}</td>
-                      <td class="tolt-hora">
-                        @if (r.emp.tipo === 'rotativo') { rota }
-                        @else if (r.emp.horario !== '—') {
-                          {{ r.emp.horario }}@if (!r.emp.horarioConfirmado) { <em class="tolt-ded" title="Horario deducido de sus checadas, aún sin confirmar por RH">*</em> }
-                        } @else { — }
-                      </td>
-                      <td class="tolt-num">{{ r.semanas.length }}</td>
-                      <td class="tolt-num tolt-min">+{{ r.excedenteTotal }}</td>
-                      <td class="tolt-ver">Ver ›</td>
-                    </tr>
-                  }
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="4">{{ rebasados.length }} personas</td>
-                    <td class="tolt-num">{{ totalSemanasRebasadas }}</td>
-                    <td class="tolt-num tolt-min">+{{ excedenteTotalRebasado }}</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <p class="tolt-pie"><b>*</b> horario deducido (sin confirmar) · toca una fila para ver el detalle y justificar</p>
-          }
-
-          <!-- Los que van al filo: avisarles todavía cambia algo. -->
-          @if (alFilo.length) {
-            <p class="tol-filo">
-              <b>{{ alFilo.length }}</b> van al filo sin haber rebasado:
-              @for (f of alFilo; track f.emp.codigo; let last = $last) {
-                <span class="tol-filo-uno" [title]="f.label">{{ f.emp.nombre }} ({{ f.restante }} min libres)</span>{{ last ? '' : ' · ' }}
-              }
-            </p>
-          }
-
-          <!-- Rebasaron, pero su número no se puede firmar todavía. No se
-               esconden: el pendiente es de RH, y esconderlo lo vuelve eterno. -->
-          @if (rebasadosBloqueados.length) {
-            <div class="tol-bloq">
-              <button type="button" class="tol-bloq-head"
-                      (click)="tolIncluirBloqueados = !tolIncluirBloqueados">
-                <b>{{ rebasadosBloqueados.length }}</b> también se pasaron, pero su número
-                todavía no se puede usar
-                <svg class="tol-chev tol-chev-sm" [class.abierto]="tolIncluirBloqueados" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M4 6l4 4 4-4"/>
-                </svg>
-              </button>
-              @if (tolIncluirBloqueados) {
-                <ul class="tol-bloq-lista">
-                  @for (r of rebasadosBloqueados; track r.emp.codigo) {
-                    <li>
-                      <span class="tol-bloq-nom">{{ r.emp.nombreCompleto }}</span>
-                      <span class="tol-bloq-min">+{{ r.excedenteTotal }} min</span>
-                      <span class="tol-bloq-por">{{ motivoNoUsable(r.emp) || r.emp.bloqueadoPor.join(' · ') }}</span>
-                    </li>
-                  }
-                </ul>
-              }
-            </div>
-          }
-
-          <div class="tol-pie">
-            <button type="button" class="ar-btn ar-btn-ghost" (click)="exportarTolerancia()"
-                    title="Una fila por semana rebasada, con los días que la formaron.">
-              Exportar a Excel
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- ══ FALTAS NOTIFICABLES ══════════════════════════════════════════
-       Regla de RH: en TIENDA el único descanso permitido es el domingo. Faltar
-       en domingo está bien; faltar cualquier otro día se marca aquí para que RH
-       lo revise. Oficinas (corporativo/comida/.196) y CEDIS no entran. -->
-  @if (!cargando && aplicaReglaFaltas && faltasNotificables.length) {
-    <div class="falt" [attr.data-grave]="faltasMasDeUna ? 'si' : 'no'">
-      <button type="button" class="falt-head" (click)="toggleFaltas()"
-              [attr.aria-expanded]="faltasAbierta">
-        <span class="falt-dot" aria-hidden="true"></span>
-        <span class="falt-titulo">Faltas fuera de domingo</span>
-        <span class="falt-resumen">
-          {{ faltasNotificables.length }} persona{{ faltasNotificables.length > 1 ? 's' : '' }} ·
-          {{ totalFaltasNotificables }} falta{{ totalFaltasNotificables > 1 ? 's' : '' }}
-        </span>
-        @if (faltasMasDeUna) {
-          <span class="falt-aviso" title="Personas con más de una falta fuera de domingo.">
-            {{ faltasMasDeUna }} con más de una
-          </span>
-        }
-        <svg class="falt-chev" [class.abierto]="faltasAbierta" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M4 6l4 4 4-4"/>
-        </svg>
-      </button>
-
-      @if (faltasAbierta) {
-        <p class="falt-nota">
-          En esta plaza el descanso permitido es el <b>domingo</b>. Aquí está quien faltó en
-          <b>otro día</b>. El domingo no cuenta como falta.
-        </p>
-        <div class="tolt-scroll">
-          <table class="tolt">
-            <thead>
-              <tr>
-                <th class="tolt-clv">Clv</th>
-                <th class="tolt-nom">Nombre</th>
-                <th>Departamento</th>
-                <th class="tolt-num">Faltas</th>
-                <th>Días (fuera de domingo)</th>
-                <th class="tolt-ver-h"></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (f of faltasNotificables; track f.emp.codigo) {
-                <tr class="tolt-fila" [class.falt-grave]="f.dias.length > 1"
-                    (click)="abrir(f.emp)" title="Ver su detalle y justificar">
-                  <td class="tolt-clv">{{ f.emp.codigo }}</td>
-                  <td class="tolt-nom">{{ f.emp.nombreCompleto }}</td>
-                  <td class="tolt-dep">{{ f.emp.departamento }}</td>
-                  <td class="tolt-num tolt-min">{{ f.dias.length }}</td>
-                  <td class="falt-dias">{{ diasFaltaTexto(f) }}</td>
-                  <td class="tolt-ver">Ver ›</td>
-                </tr>
-              }
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3">{{ faltasNotificables.length }} personas</td>
-                <td class="tolt-num tolt-min">{{ totalFaltasNotificables }}</td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      }
-    </div>
-  }
-
   @if (cargando) {
     <div class="ar-empty">Cargando asistencia…</div>
   } @else if (!lista.length) {
@@ -376,6 +165,221 @@
         —el botón <b>Todo</b> ajusta el rango a lo que esta plaza tiene registrado—.
       }
     </div>
+  } @else if (vista === 'tolerancia') {
+    <!-- ══ TOLERANCIA REBASADA (su propia pestaña) ══════════════════════
+         Vivía como franja plegable encima del reporte, junto con la de faltas:
+         dos bandas apiladas que había que abrir para ver algo y que empujaban el
+         reporte —lo que RH mira todos los días— hacia abajo de la pantalla.
+         Ahora cada una es una pestaña: se entra a propósito y se ve completa.
+
+         Ojo con dos cosas que aquí se dicen a propósito:
+          · Quien tiene el número bloqueado por una marca alta NO entra en la
+            tabla principal. Un retardo medido contra un horario que RH todavía
+            no confirma no puede encabezar una lista con la que se descuenta.
+          · Se mide sobre el periodo elegido: una semana que el rango corta a la
+            mitad acumula a medias. -->
+    <div class="tol" [attr.data-estado]="rebasados.length ? 'rebasada' : 'limpia'">
+      <div class="tol-head tol-head-fija">
+        <span class="tol-dot" aria-hidden="true"></span>
+        <span class="tol-titulo">Tolerancia rebasada</span>
+        <span class="tol-resumen">{{ resumenTolerancia }}</span>
+        @if (rebasadosBloqueados.length) {
+          <span class="tol-aviso"
+                title="También se pasaron de los minutos, pero su horario todavía no se puede dar por bueno. Se listan abajo, aparte: el pendiente es de RH, no de la persona.">
+            {{ rebasadosBloqueados.length }} por confirmar
+          </span>
+        }
+      </div>
+
+      <div class="tol-cuerpo">
+        <!-- La regla, dicha una vez y a la vista: sin esto el número parece
+             salir del horario configurado de la sucursal. -->
+        <p class="tol-nota">
+          Cada semana ({{ datos?.corteSemana }}) trae <b>{{ bolsaSemanal }} minutos</b> de tolerancia.
+          El horario contra el que se mide es siempre de <b>hora en punto o media hora</b>, deducido de
+          las propias checadas de la persona: quien entra 8:32 y 8:36 tiene horario de <b>8:30</b>,
+          no de 8:00. Los minutos de más se van <b>sumando día por día</b> y aquí aparece quien
+          <b>ya se pasó de los {{ bolsaSemanal }}</b> — se cobra solo el excedente, no el acumulado.
+        </p>
+
+        @if (!rebasados.length) {
+          <p class="tol-vacio">
+            Nadie agotó su tolerancia en este periodo. Los minutos sueltos que hubo
+            cupieron en los {{ bolsaSemanal }} de su semana.
+          </p>
+        } @else {
+          <!-- Tabla plana: todo a la vista, ordenada del que más se pasó al
+               que menos. Un clic en la fila abre el desglose de esa persona
+               (semanas/días) para justificar. -->
+          <div class="tolt-scroll">
+            <table class="tolt">
+              <thead>
+                <tr>
+                  <th class="tolt-clv">Clv</th>
+                  <th class="tolt-nom">Nombre</th>
+                  <th>Departamento</th>
+                  <th>Entra</th>
+                  <th class="tolt-num">Semanas</th>
+                  <th class="tolt-num">Min de más</th>
+                  <th class="tolt-ver-h"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of rebasados; track r.emp.codigo) {
+                  <tr class="tolt-fila" (click)="abrirDesdeTolerancia(r)"
+                      title="Ver su desglose por semana y justificar días">
+                    <td class="tolt-clv">{{ r.emp.codigo }}</td>
+                    <td class="tolt-nom">{{ r.emp.nombreCompleto }}</td>
+                    <td class="tolt-dep">{{ r.emp.departamento }}</td>
+                    <td class="tolt-hora">
+                      @if (r.emp.tipo === 'rotativo') { rota }
+                      @else if (r.emp.horario !== '—') {
+                        {{ r.emp.horario }}@if (!r.emp.horarioConfirmado) { <em class="tolt-ded" title="Horario deducido de sus checadas, aún sin confirmar por RH">*</em> }
+                      } @else { — }
+                    </td>
+                    <td class="tolt-num">{{ r.semanas.length }}</td>
+                    <td class="tolt-num tolt-min">+{{ r.excedenteTotal }}</td>
+                    <td class="tolt-ver">Ver ›</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="4">{{ rebasados.length }} personas</td>
+                  <td class="tolt-num">{{ totalSemanasRebasadas }}</td>
+                  <td class="tolt-num tolt-min">+{{ excedenteTotalRebasado }}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p class="tolt-pie"><b>*</b> horario deducido (sin confirmar) · toca una fila para ver el detalle y justificar</p>
+        }
+
+        <!-- Los que van al filo: avisarles todavía cambia algo. -->
+        @if (alFilo.length) {
+          <p class="tol-filo">
+            <b>{{ alFilo.length }}</b> van al filo sin haber rebasado:
+            @for (f of alFilo; track f.emp.codigo; let last = $last) {
+              <span class="tol-filo-uno" [title]="f.label">{{ f.emp.nombre }} ({{ f.restante }} min libres)</span>{{ last ? '' : ' · ' }}
+            }
+          </p>
+        }
+
+        <!-- Rebasaron, pero su número no se puede firmar todavía. No se
+             esconden: el pendiente es de RH, y esconderlo lo vuelve eterno. -->
+        @if (rebasadosBloqueados.length) {
+          <div class="tol-bloq">
+            <button type="button" class="tol-bloq-head"
+                    (click)="tolIncluirBloqueados = !tolIncluirBloqueados">
+              <b>{{ rebasadosBloqueados.length }}</b> también se pasaron, pero su número
+              todavía no se puede usar
+              <svg class="tol-chev tol-chev-sm" [class.abierto]="tolIncluirBloqueados" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 6l4 4 4-4"/>
+              </svg>
+            </button>
+            @if (tolIncluirBloqueados) {
+              <ul class="tol-bloq-lista">
+                @for (r of rebasadosBloqueados; track r.emp.codigo) {
+                  <li>
+                    <span class="tol-bloq-nom">{{ r.emp.nombreCompleto }}</span>
+                    <span class="tol-bloq-min">+{{ r.excedenteTotal }} min</span>
+                    <span class="tol-bloq-por">{{ motivoNoUsable(r.emp) || r.emp.bloqueadoPor.join(' · ') }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <div class="tol-pie">
+          <button type="button" class="ar-btn ar-btn-ghost" (click)="exportarTolerancia()"
+                  title="Una fila por semana rebasada, con los días que la formaron.">
+            Exportar a Excel
+          </button>
+        </div>
+      </div>
+    </div>
+  } @else if (vista === 'faltas') {
+    <!-- ══ FALTAS FUERA DE DOMINGO (su propia pestaña) ══════════════════
+         Regla de RH: en TIENDA el único descanso permitido es el domingo.
+         Faltar en domingo está bien; faltar cualquier otro día se marca aquí
+         para que RH lo revise. Oficinas (corporativo/comida/.196) y CEDIS no
+         entran, y la pestaña lo dice en vez de quedarse vacía: "sin faltas" y
+         "esta plaza no se mide así" son dos cosas distintas. -->
+    @if (!aplicaReglaFaltas) {
+      <div class="ar-empty">
+        <b>Esta plaza no se mide con la regla de tienda.</b><br>
+        El descanso en domingo aplica a las tiendas; corporativo, su comedor y CEDIS
+        manejan sus propios descansos, así que aquí no hay nada que notificar.
+      </div>
+    } @else {
+      <div class="falt" [attr.data-grave]="faltasMasDeUna ? 'si' : 'no'">
+        <div class="falt-head falt-head-fija">
+          <span class="falt-dot" aria-hidden="true"></span>
+          <span class="falt-titulo">Faltas fuera de domingo</span>
+          <span class="falt-resumen">
+            @if (faltasNotificables.length) {
+              {{ faltasNotificables.length }} persona{{ faltasNotificables.length > 1 ? 's' : '' }} ·
+              {{ totalFaltasNotificables }} falta{{ totalFaltasNotificables > 1 ? 's' : '' }}
+            } @else {
+              sin faltas fuera de domingo en este periodo
+            }
+          </span>
+          @if (faltasMasDeUna) {
+            <span class="falt-aviso" title="Personas con más de una falta fuera de domingo.">
+              {{ faltasMasDeUna }} con más de una
+            </span>
+          }
+        </div>
+
+        <p class="falt-nota">
+          En esta plaza el descanso permitido es el <b>domingo</b>. Aquí está quien faltó en
+          <b>otro día</b>. El domingo no cuenta como falta.
+        </p>
+
+        @if (!faltasNotificables.length) {
+          <p class="tol-vacio falt-vacio">
+            Nadie faltó fuera de domingo del {{ desde }} al {{ hasta }}.
+          </p>
+        } @else {
+          <div class="tolt-scroll">
+            <table class="tolt">
+              <thead>
+                <tr>
+                  <th class="tolt-clv">Clv</th>
+                  <th class="tolt-nom">Nombre</th>
+                  <th>Departamento</th>
+                  <th class="tolt-num">Faltas</th>
+                  <th>Días (fuera de domingo)</th>
+                  <th class="tolt-ver-h"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (f of faltasNotificables; track f.emp.codigo) {
+                  <tr class="tolt-fila" [class.falt-grave]="f.dias.length > 1"
+                      (click)="abrir(f.emp)" title="Ver su detalle y justificar">
+                    <td class="tolt-clv">{{ f.emp.codigo }}</td>
+                    <td class="tolt-nom">{{ f.emp.nombreCompleto }}</td>
+                    <td class="tolt-dep">{{ f.emp.departamento }}</td>
+                    <td class="tolt-num tolt-min">{{ f.dias.length }}</td>
+                    <td class="falt-dias">{{ diasFaltaTexto(f) }}</td>
+                    <td class="tolt-ver">Ver ›</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3">{{ faltasNotificables.length }} personas</td>
+                  <td class="tolt-num tolt-min">{{ totalFaltasNotificables }}</td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
+      </div>
+    }
   } @else if (vistaTabla) {
     <!-- ══ REPORTE CALCADO (tabla semanal por departamento) ══════════════
          Reproduce el ReporteSemMD que RH ya usa: filas por persona agrupadas

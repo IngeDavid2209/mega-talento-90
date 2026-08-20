@@ -559,6 +559,15 @@
 }
 .hz-tabs button.active .hz-tab-num { background: rgba(255, 255, 255, .22); color: #fff; }
 
+/* El contador de un pendiente no es un dato neutro: una pestaña con 14
+   personas que rebasaron no puede verse igual que una en cero. Se pinta con
+   el rojo de la casa, y tambien en la pestaña activa —ahi el fondo es blanco
+   y la regla de arriba dejaba el numero en blanco sobre blanco—. */
+.hz-tab-num.hz-tab-alerta,
+.hz-tabs button.active .hz-tab-num.hz-tab-alerta {
+  background: var(--red-bg); color: var(--red-text);
+}
+
 /* Se distinguen de un vistazo del personal de planta. */
 .hz-emp-card.hz-promo { border-left: 3px solid var(--gold, #D99B00); }
 

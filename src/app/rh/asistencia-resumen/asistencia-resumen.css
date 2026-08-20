@@ -656,9 +656,16 @@
   font-size: 11px; font-weight: 700; color: var(--red-text); background: var(--red-bg);
   border-radius: 999px; padding: 2px 9px;
 }
-.falt-chev { margin-left: auto; width: 16px; height: 16px; fill: none; stroke: var(--text2); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
-.falt-chev.abierto { transform: rotate(180deg); }
 .falt-nota { margin: 0; padding: 8px 14px 10px; font-size: 12px; color: var(--text2); border-top: 1px solid var(--surface2); }
 .falt-nota b { color: var(--ink); font-weight: 800; }
 .falt-dias { color: var(--text2); }
 .falt-grave .tolt-min { color: var(--red-text); }
+
+/* ===== En su propia pestaña, el encabezado es un titulo, no un boton =====
+   Tolerancia y faltas eran franjas plegables encima del reporte. Ya no hay
+   nada que plegar: se conserva la misma barra —para que la vista se reconozca
+   de un golpe— pero sin cursor de clic ni realce al pasar el raton, que
+   prometian una interaccion que ya no existe. */
+.tol-head-fija, .falt-head-fija { cursor: default; }
+.tol-head-fija:hover, .falt-head-fija:hover { background: none; }
+.falt-vacio { padding: 0 14px 14px; }

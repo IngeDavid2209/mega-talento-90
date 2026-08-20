@@ -40,6 +40,15 @@ interface SemanaAsistencia {
   excedido: boolean;           // se agotó la bolsa
   dias: DiaAsistencia[];
 }
+/** Qué pinta el componente. Lo manda la página con sus pestañas. */
+export type VistaAsistencia = 'checadas' | 'tolerancia' | 'faltas';
+
+/** Una persona con sus faltas fuera de domingo (la regla de tienda). */
+interface FaltaNotificable { emp: EmpleadoAsistencia; dias: { fecha: string; label: string }[]; }
+
+/** Cuánta gente hay en cada pendiente, para los contadores de las pestañas. */
+export interface ConteosPendientes { rebasados: number; faltas: number; }
+
 /** Un empleado con todo su periodo desglosado. */
 interface EmpleadoAsistencia {
   codigo: string; nombre: string; fotoUrl: string; puesto: string; registrado: boolean;
@@ -144,8 +153,28 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   @Input() importando = false;
   /** Cambiar este número fuerza una recarga (p. ej. tras una importación). */
   @Input() recargarToken = 0;
+  /**
+   * QUÉ SE PINTA. La eligen las pestañas de la página, no este componente.
+   *
+   * Tolerancia y faltas vivían como franjas plegables encima del reporte: dos
+   * bandas apiladas que había que abrir para ver algo y que empujaban el
+   * reporte —lo que RH mira todos los días— fuera de la pantalla. Ahora cada
+   * una es una pestaña y se entra a propósito.
+   *
+   * Es un Input y no un estado propio para que el componente NO se desmonte al
+   * cambiar de pestaña: la barra de filtros, el periodo y la respuesta ya
+   * cargada se conservan, y saltar entre las tres vistas no vuelve a pegarle a
+   * la API.
+   */
+  @Input() vista: VistaAsistencia = 'checadas';
   /** Emite el evento del <input file> para que el padre procese el archivo. */
   @Output() archivo = new EventEmitter<Event>();
+  /**
+   * Cuánta gente hay en cada pendiente, para los contadores de las pestañas.
+   * Sin esto, la pestaña de tolerancia se ve igual con 14 personas que con
+   * cero y hay que entrar para saberlo.
+   */
+  @Output() conteos = new EventEmitter<ConteosPendientes>();
 
   SUCURSALES = CENTROS_CON_RELOJ;
 
@@ -775,10 +804,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   //    la mitad, se marca "semana partida": un acumulado de 3 días se lee como
   //    si fuera de 7 y así se firman descuentos que no van.
 
-  /** El apartado arranca abierto cuando hay a quién mirar. */
-  tolAbierta = true;
-  /** Código de la persona cuyo desglose de semanas está desplegado. */
-  tolDetalle = '';
   /** Muestra también a los rebasados cuyo número está bloqueado por una marca. */
   tolIncluirBloqueados = false;
 
@@ -795,7 +820,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   rebasadosBloqueados: Rebasado[] = [];
   alFilo: { emp: EmpleadoAsistencia; restante: number; label: string }[] = [];
 
-  /** Rearma las tres listas desde `lista`. Se llama al terminar de cargar. */
+  /** Lo último que se le avisó al padre, para no repetir el aviso. */
+  private ultimosConteos: ConteosPendientes = { rebasados: 0, faltas: 0 };
+
+  /** Rearma las listas de pendientes desde `lista`. Se llama al terminar de cargar. */
   private computarTolerancia() {
     this.rebasados = this.armarRebasados(this.lista.filter(e => e.usable));
     // Rebasaron, pero su número no se puede usar todavía (horario por confirmar,
@@ -803,6 +831,19 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     // RH, no de la persona.
     this.rebasadosBloqueados = this.armarRebasados(this.lista.filter(e => !e.usable));
     this.alFilo = this.computarAlFilo();
+    this.faltasNotificables = this.computarFaltasNotificables();
+    // Las pestañas de la página traen el contador: se les avisa desde aquí,
+    // que es el único lugar donde estos números cambian.
+    //
+    // Solo cuando CAMBIAN, por dos razones: el refresco silencioso corre cada
+    // minuto y no tiene por qué mover la vista del padre si nada se movió, y
+    // avisar de un cero durante el primer ciclo de detección de cambios saca el
+    // ExpressionChangedAfterItHasBeenChecked de modo desarrollo.
+    const c = { rebasados: this.rebasados.length, faltas: this.faltasNotificables.length };
+    if (c.rebasados !== this.ultimosConteos.rebasados || c.faltas !== this.ultimosConteos.faltas) {
+      this.ultimosConteos = c;
+      this.conteos.emit(c);
+    }
   }
 
   private armarRebasados(gente: EmpleadoAsistencia[]): Rebasado[] {
@@ -894,9 +935,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * por persona con sus días de falta (fuera de domingo), ordenada de más a
    * menos faltas.
    */
-  get faltasNotificables(): { emp: EmpleadoAsistencia; dias: { fecha: string; label: string }[] }[] {
+  faltasNotificables: FaltaNotificable[] = [];
+
+  private computarFaltasNotificables(): FaltaNotificable[] {
     if (!this.aplicaReglaFaltas) return [];
-    const salida: { emp: EmpleadoAsistencia; dias: { fecha: string; label: string }[] }[] = [];
+    const salida: FaltaNotificable[] = [];
     for (const e of this.lista) {
       const dias: { fecha: string; label: string }[] = [];
       for (const s of e.semanas) for (const d of s.dias) {
@@ -918,8 +961,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return this.faltasNotificables.filter(x => x.dias.length > 1).length;
   }
 
-  faltasAbierta = true;
-  toggleFaltas() { this.faltasAbierta = !this.faltasAbierta; }
   /** Los días de falta de una persona, como "Lun 18, Mar 19" para la tabla. */
   diasFaltaTexto(f: { dias: { fecha: string; label: string }[] }): string {
     return f.dias.map(d => d.label).join(' · ');
@@ -936,8 +977,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return partes.join(' · ');
   }
 
-  toggleTolerancia() { this.tolAbierta = !this.tolAbierta; }
-  toggleTolDetalle(codigo: string) { this.tolDetalle = this.tolDetalle === codigo ? '' : codigo; }
 
   /** Abre la tarjeta/detalle completo de la persona desde este apartado. */
   abrirDesdeTolerancia(r: Rebasado) { this.abrir(r.emp); }
