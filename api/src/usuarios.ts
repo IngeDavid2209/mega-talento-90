@@ -71,6 +71,15 @@ usuariosRouter.post('/', async (req: Request, res: Response) => {
     return res.json(mapUsuario(rows[0]));
   } catch (e: any) {
     if (e?.code === '23505') return res.status(409).json({ error: 'Ese usuario o correo ya existe.' });
+    // 23514 = la fila no pasó un CHECK. Aquí solo puede ser el rol, y decirlo
+    // ahorra la depuración a ciegas que costó este caso: el alta fallaba y la
+    // pantalla solo ofrecía "verifica los datos", sin mencionar el rol.
+    if (e?.code === '23514') {
+      return res.status(400).json({
+        error: `El rol "${req.body?.rol}" no está permitido en la base todavía. ` +
+               'Hay que agregarlo al CHECK de usuarios.role (ver api/db/schema-portal.sql).',
+      });
+    }
     return fallo(res, e, 'Error al crear usuario.');
   }
 });

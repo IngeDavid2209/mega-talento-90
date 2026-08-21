@@ -197,3 +197,28 @@ CREATE TABLE IF NOT EXISTS requisiciones (
 CREATE INDEX IF NOT EXISTS idx_requis_estado   ON requisiciones (estado);
 CREATE INDEX IF NOT EXISTS idx_requis_fecha    ON requisiciones (fecha_requerida);
 CREATE INDEX IF NOT EXISTS idx_requis_sucursal ON requisiciones (sucursal_id);
+
+-- ---------------------------------------------------------------------
+-- EL ROL DE PROMOTORÍA TIENE QUE CABER EN EL CHECK (21/08/2026).
+--
+-- `public.usuarios` trae un CHECK sobre `role` que enumera los valores
+-- permitidos. Al agregar el rol de Promotoría, el alta de usuarios empezó a
+-- fallar con 23514 y la pantalla solo decía "Verifica los datos e intenta de
+-- nuevo": el mensaje no mencionaba el rol, así que no había por dónde empezar.
+--
+-- Ojo con esta tabla: la base está COMPARTIDA con el otro sistema, y de ahí
+-- salen `evaluador` y `comprador`. La lista se AMPLÍA, nunca se recorta: quitar
+-- uno de esos dos dejaría al otro sistema sin poder dar de alta a su gente.
+--
+-- (Hay dos tablas `usuarios` en esta base: `public.usuarios`, que es la de este
+-- portal, y `eajd.usuarios`, del otro sistema, que ni tiene columna `role`. El
+-- ALTER va con el esquema escrito para no depender del search_path.)
+-- ---------------------------------------------------------------------
+ALTER TABLE public.usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check;
+ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_role_check
+  CHECK (role = ANY (ARRAY[
+    'admin', 'Administrador',      -- este portal
+    'Reclutador',                  -- este portal
+    'Promotoria',                  -- este portal (21/08/2026)
+    'evaluador', 'comprador'       -- el otro sistema, misma base
+  ]));

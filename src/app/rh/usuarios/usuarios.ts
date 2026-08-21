@@ -103,7 +103,15 @@ export class UsuariosComponent implements OnInit, OnDestroy {
       setTimeout(() => this.mensajeExito = '', 6000);
     } catch (error: any) {
       console.error('Error al crear usuario:', error);
-      this.mensajeError = this.traducirError(error?.code);
+      // El mensaje del servidor gana cuando existe. Se traducía SOLO por
+      // `error.code` —de la época de Firebase—, así que un rechazo de la base
+      // llegaba con una explicación clara y la pantalla la tiraba a la basura
+      // para poner "Verifica los datos e intenta de nuevo". Costó un rato de
+      // depuración averiguar que el rol nuevo no pasaba un CHECK.
+      const delServidor = error?.error?.error || error?.error?.message || error?.message;
+      this.mensajeError = (typeof delServidor === 'string' && delServidor.trim())
+        ? delServidor
+        : this.traducirError(error?.code);
     } finally {
       this.cargando = false;
     }
