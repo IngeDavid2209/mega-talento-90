@@ -86,10 +86,21 @@
         <span class="kpi-value">{{ kpiActivos }}</span>
         <span class="kpi-foot">En etapas intermedias</span>
       </div>
+      <!-- CUADRA CON LA DISTRIBUCIÓN DEL EMBUDO, A PROPÓSITO.
+
+           La tarjeta decía "Contratados del mes" y mostraba 4 mientras el embudo
+           marcaba 6 en la misma pantalla. Los dos números eran correctos y ahí
+           estaba el problema: la tarjeta contaba a quien tiene `hiredAt` DE ESTE
+           MES (4 de los 7 son de agosto) y el embudo cuenta a todos los que están
+           en la etapa. Dos cifras distintas para la misma palabra, una junto a la
+           otra, y nadie sabe cuál llevarse.
+
+           Ahora el número grande es el MISMO que el del embudo —sale del mismo
+           filtro por etapa— y el del mes baja al pie, que es donde no compite. -->
       <div class="kpi-card accent">
-        <span class="kpi-label">Contratados del mes</span>
-        <span class="kpi-value">{{ kpiContratadosMes }}</span>
-        <span class="kpi-foot">Cierre exitoso</span>
+        <span class="kpi-label">Contratados</span>
+        <span class="kpi-value">{{ kpiContratados }}</span>
+        <span class="kpi-foot">{{ kpiContratadosMes }} este mes · cierre exitoso</span>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Tiempo de Cobertura</span>
