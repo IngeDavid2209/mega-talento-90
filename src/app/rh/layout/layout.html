@@ -38,197 +38,221 @@
     </div>
 
     <div class="nav-scroll">
-      <!-- PANEL -->
-      <span class="nav-section">Panel</span>
-      <ul class="nav-list">
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/dashboard" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
-            <span class="nav-text">Panel de control</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/concentrado" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
-            <span class="nav-text">Concentrado de candidatos</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/kpi" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg></span>
-            <span class="nav-text">KPI del proceso</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/requisiciones" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></span>
-            <span class="nav-text">Requisiciones</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/permanencia" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></span>
-            <span class="nav-text">Permanencia 90 días</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/destacados" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-            <span class="nav-text">Candidatos destacados</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/en-riesgo" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-            <span class="nav-text">Candidatos en riesgo</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/ya-trabajaron" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>
-            <span class="nav-text">Ya trabajaron con nosotros</span>
-          </a>
-        </li>
-      </ul>
+      <!-- ══ MENÚ REDUCIDO ══════════════════════════════════════════════
+           Los roles acotados (hoy: Promotoría) NO ven el resto del portal.
 
-      <!-- PROCESO DE SELECCIÓN -->
-      <span class="nav-section">Proceso de selección</span>
-      <ul class="nav-list">
-        @for (etapa of ETAPAS; track etapa.id) {
-          <li (click)="isMenuOpen = false">
-            <a [routerLink]="['/app/etapa', etapa.id]" routerLinkActive="active">
-              <span class="nav-num" [style.background-color]="etapa.color">{{ etapa.icon }}</span>
-              <span class="nav-text">{{ etapa.title }}</span>
-              @if (conteos[etapa.id]) {
-                <span class="nav-count">{{ conteos[etapa.id] }}</span>
-              }
-            </a>
-          </li>
-        }
-        <li (click)="isMenuOpen = false">
-          <a [routerLink]="['/app/etapa', ID_ETAPAS.CONTRATADO]" routerLinkActive="active">
-            <span class="nav-num" [style.background-color]="ETAPA_CONTRATADO.color">{{ ETAPA_CONTRATADO.icon }}</span>
-            <span class="nav-text">{{ ETAPA_CONTRATADO.title }}</span>
-            @if (conteos[ID_ETAPAS.CONTRATADO]) {
-              <span class="nav-count">{{ conteos[ID_ETAPAS.CONTRATADO] }}</span>
-            }
-          </a>
-        </li>
-      </ul>
+           Al principio solo se escondía el renglón de Promotoría para los demás,
+           y en la primera prueba real salió el agujero: al usuario de Promotoría
+           le aparecía TODO —panel, candidatos, KPIs, usuarios—. Un permiso que
+           solo agrega no acota nada.
 
-      <!-- GESTIÓN -->
-      <span class="nav-section">Gestión</span>
-      <ul class="nav-list">
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/historial" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="12 7 12 12 15 14"/></svg></span>
-            <span class="nav-text">Historial</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/vacantes" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
-            <span class="nav-text">Vacantes</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/contactados" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
-            <span class="nav-text">Contacto WhatsApp</span>
-          </a>
-        </li>
-        <li>
-          <a routerLink="/app/cv-armados" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
-            <span class="nav-text">CV armados por el bot</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/horarios" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-            <span class="nav-text">Horarios y checadas</span>
-          </a>
-        </li>
-        <!-- Promotoría: sección aparte del personal de planta, y solo para quien
-             tenga el permiso. Si no lo tiene, el renglón no existe —y la ruta
-             tampoco lo deja pasar, así que la URL a mano no sirve—. -->
-        @if (puedePromotoria) {
+           Se pinta un menú aparte en vez de envolver los treinta renglones en su
+           propio permiso: así lo que se agregue mañana no aparece aquí por
+           descuido. Y la ruta padre lo respalda, para que la URL a mano tampoco
+           sirva. -->
+      @if (menuReducido) {
+        <span class="nav-section">Promotoría</span>
+        <ul class="nav-list">
           <li (click)="isMenuOpen = false">
             <a routerLink="/app/promotoras" routerLinkActive="active">
               <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
               <span class="nav-text">Promotoría</span>
             </a>
           </li>
-        }
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/agente-horarios" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>
-            <span class="nav-text">Agente de horarios (IA)</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/guia-evaluacion" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg></span>
-            <span class="nav-text">Guía de evaluación</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/resultados-evaluacion" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/></svg></span>
-            <span class="nav-text">Resultados de encuesta</span>
-          </a>
-        </li>
-        <li>
-          <a (click)="abrirPortal()" class="nav-external" style="cursor: pointer;">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
-            <span class="nav-text">Ver portal público</span>
-            <span class="nav-extbadge">Nueva pestaña</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/duplicados" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span>
-            <span class="nav-text">Duplicados</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/no-recontratables" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg></span>
-            <span class="nav-text">No recontratables</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/papelera" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>
-            <span class="nav-text">Papelera</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/app/usuarios" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-            <span class="nav-text">Gestión de usuarios</span>
-          </a>
-        </li>
-        <li (click)="isMenuOpen = false">
-          <a routerLink="/unete" routerLinkActive="active">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-            <span class="nav-text">Formulario público</span>
-          </a>
-        </li>
-      </ul>
+        </ul>
+      } @else {
+        <!-- PANEL -->
+        <span class="nav-section">Panel</span>
+        <ul class="nav-list">
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/dashboard" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
+              <span class="nav-text">Panel de control</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/concentrado" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+              <span class="nav-text">Concentrado de candidatos</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/kpi" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg></span>
+              <span class="nav-text">KPI del proceso</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/requisiciones" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></span>
+              <span class="nav-text">Requisiciones</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/permanencia" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></span>
+              <span class="nav-text">Permanencia 90 días</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/destacados" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+              <span class="nav-text">Candidatos destacados</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/en-riesgo" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+              <span class="nav-text">Candidatos en riesgo</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/ya-trabajaron" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>
+              <span class="nav-text">Ya trabajaron con nosotros</span>
+            </a>
+          </li>
+        </ul>
 
-      <div class="nav-divider"></div>
+        <!-- PROCESO DE SELECCIÓN -->
+        <span class="nav-section">Proceso de selección</span>
+        <ul class="nav-list">
+          @for (etapa of ETAPAS; track etapa.id) {
+            <li (click)="isMenuOpen = false">
+              <a [routerLink]="['/app/etapa', etapa.id]" routerLinkActive="active">
+                <span class="nav-num" [style.background-color]="etapa.color">{{ etapa.icon }}</span>
+                <span class="nav-text">{{ etapa.title }}</span>
+                @if (conteos[etapa.id]) {
+                  <span class="nav-count">{{ conteos[etapa.id] }}</span>
+                }
+              </a>
+            </li>
+          }
+          <li (click)="isMenuOpen = false">
+            <a [routerLink]="['/app/etapa', ID_ETAPAS.CONTRATADO]" routerLinkActive="active">
+              <span class="nav-num" [style.background-color]="ETAPA_CONTRATADO.color">{{ ETAPA_CONTRATADO.icon }}</span>
+              <span class="nav-text">{{ ETAPA_CONTRATADO.title }}</span>
+              @if (conteos[ID_ETAPAS.CONTRATADO]) {
+                <span class="nav-count">{{ conteos[ID_ETAPAS.CONTRATADO] }}</span>
+              }
+            </a>
+          </li>
+        </ul>
 
-      <!-- TOGGLE Capital Humano (modo anónimo) -->
-      <div class="nav-toggle" (click)="capitalHumano.toggle()" [class.active]="capitalHumano.activo()">
-        <div class="nav-toggle-text">
-          <span class="nav-toggle-title">Modo Capital Humano</span>
-          <span class="nav-toggle-desc">Oculta nombres en listas para evaluar sin sesgos</span>
+        <!-- GESTIÓN -->
+        <span class="nav-section">Gestión</span>
+        <ul class="nav-list">
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/historial" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="12 7 12 12 15 14"/></svg></span>
+              <span class="nav-text">Historial</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/vacantes" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
+              <span class="nav-text">Vacantes</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/contactados" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+              <span class="nav-text">Contacto WhatsApp</span>
+            </a>
+          </li>
+          <li>
+            <a routerLink="/app/cv-armados" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+              <span class="nav-text">CV armados por el bot</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/horarios" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+              <span class="nav-text">Horarios y checadas</span>
+            </a>
+          </li>
+          <!-- Promotoría: sección aparte del personal de planta, y solo para quien
+               tenga el permiso. Si no lo tiene, el renglón no existe —y la ruta
+               tampoco lo deja pasar, así que la URL a mano no sirve—. -->
+          @if (puedePromotoria) {
+            <li (click)="isMenuOpen = false">
+              <a routerLink="/app/promotoras" routerLinkActive="active">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <span class="nav-text">Promotoría</span>
+              </a>
+            </li>
+          }
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/agente-horarios" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>
+              <span class="nav-text">Agente de horarios (IA)</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/guia-evaluacion" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg></span>
+              <span class="nav-text">Guía de evaluación</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/resultados-evaluacion" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/></svg></span>
+              <span class="nav-text">Resultados de encuesta</span>
+            </a>
+          </li>
+          <li>
+            <a (click)="abrirPortal()" class="nav-external" style="cursor: pointer;">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+              <span class="nav-text">Ver portal público</span>
+              <span class="nav-extbadge">Nueva pestaña</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/duplicados" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span>
+              <span class="nav-text">Duplicados</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/no-recontratables" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg></span>
+              <span class="nav-text">No recontratables</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/papelera" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>
+              <span class="nav-text">Papelera</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/app/usuarios" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+              <span class="nav-text">Gestión de usuarios</span>
+            </a>
+          </li>
+          <li (click)="isMenuOpen = false">
+            <a routerLink="/unete" routerLinkActive="active">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+              <span class="nav-text">Formulario público</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-divider"></div>
+
+        <!-- TOGGLE Capital Humano (modo anónimo) -->
+        <div class="nav-toggle" (click)="capitalHumano.toggle()" [class.active]="capitalHumano.activo()">
+          <div class="nav-toggle-text">
+            <span class="nav-toggle-title">Modo Capital Humano</span>
+            <span class="nav-toggle-desc">Oculta nombres en listas para evaluar sin sesgos</span>
+          </div>
+          <div class="nav-toggle-switch" [class.on]="capitalHumano.activo()">
+            <span class="nav-toggle-knob"></span>
+          </div>
         </div>
-        <div class="nav-toggle-switch" [class.on]="capitalHumano.activo()">
-          <span class="nav-toggle-knob"></span>
-        </div>
-      </div>
+      }
 
       <ul class="nav-list">
         <li (click)="isMenuOpen = false">

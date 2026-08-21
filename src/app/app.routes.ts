@@ -13,7 +13,7 @@ import { EvaluacionLiderazgoComponent } from '../portal/evaluacion-liderazgo/eva
 import { EvaluacionAptitudesComponent } from '../portal/evaluacion-aptitudes/evaluacion-aptitudes';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
-import { rolGuard } from './core/guards/rol.guard';
+import { rolGuard, seccionUnicaGuard } from './core/guards/rol.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
 import { HistorialComponent } from './rh/historial/historial';
 import { VacantesComponent } from './rh/vacantes/vacantes';
@@ -40,6 +40,10 @@ export const routes: Routes = [
     path: 'app',
     component: LayoutComponent,
     canActivate: [authGuard], // <-- Nuestro "cadenero" validando la sesión en Firebase
+    // Y este encierra a los roles acotados en su sección. Va en el padre para
+    // que una ruta nueva quede cerrada por omisión para ellos, en vez de
+    // depender de que alguien se acuerde de ponerle su permiso.
+    canActivateChild: [seccionUnicaGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'concentrado', component: ConcentradoComponent },

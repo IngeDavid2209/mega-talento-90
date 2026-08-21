@@ -66,6 +66,27 @@ export class AuthSession {
     return (this.CAPACIDADES[this.rolCanonico()] || []).includes(capacidad);
   }
 
+  /**
+   * Roles ACOTADOS: los que no ven el resto del portal.
+   *
+   * Esconder el renglón de Promotoría para los demás no era suficiente, y salió
+   * en la primera prueba real: al usuario con rol de Promotoría le aparecía TODO
+   * el menú —panel, candidatos, KPIs, usuarios—, porque la única regla que había
+   * era la del renglón nuevo. Un permiso que solo agrega no acota nada.
+   *
+   * Se declara al revés: qué es lo ÚNICO que ve ese rol. Y solo se acota a los
+   * roles listados aquí, para no cambiarle la pantalla a nadie más: `admin` y
+   * `reclutador` siguen viendo lo mismo que antes.
+   */
+  private readonly SOLO_SECCION: Record<string, { capacidad: string; ruta: string }> = {
+    promotoria: { capacidad: 'promotoria', ruta: '/app/promotoras' },
+  };
+
+  /** La única sección de este rol, o null si ve el portal completo. */
+  soloSeccion(): { capacidad: string; ruta: string } | null {
+    return this.SOLO_SECCION[this.rolCanonico()] || null;
+  }
+
   getUsuario(): UsuarioSesion | null {
     try {
       const raw = localStorage.getItem(USUARIO_KEY);

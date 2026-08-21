@@ -39,6 +39,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
    */
   get puedePromotoria(): boolean { return this.auth.puede('promotoria'); }
 
+  /**
+   * ¿Este rol solo ve su sección? Entonces el menú va reducido.
+   *
+   * Al usuario de Promotoría le aparecía TODO el menú: la única regla era
+   * esconder el renglón nuevo para los demás, y eso no acota a nadie. En vez
+   * de envolver los treinta renglones en un permiso cada uno —y olvidar el
+   * treintaiuno— se pinta un menú aparte con lo que ese rol sí ve.
+   */
+  get menuReducido(): boolean { return this.auth.soloSeccion() !== null; }
+
   /** El cierre automático de seguimiento corre una sola vez por sesión. */
   private cierreEjecutado = false;
 

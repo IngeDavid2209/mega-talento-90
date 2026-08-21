@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
 import { AuthSession } from '../services/auth-session';
 
 /**
@@ -29,3 +29,30 @@ export function rolGuard(capacidad: string): CanActivateFn {
     return false;
   };
 }
+
+/**
+ * Encierra a los roles ACOTADOS en su sección.
+ *
+ * Va en la ruta PADRE (`/app`) y no en cada hija: son treinta rutas y poner el
+ * permiso en cada una es garantizar que a la treintaiuna se le olvide. Aquí
+ * cualquier ruta nueva queda cerrada por omisión para esos roles, que es el
+ * comportamiento que uno quiere de un permiso.
+ *
+ * Para los roles NO acotados (admin, reclutador) esto no hace nada: devuelve
+ * true y ya. No se les cambia lo que veían.
+ */
+export const seccionUnicaGuard: CanActivateChildFn = (ruta) => {
+  const auth = inject(AuthSession);
+  const router = inject(Router);
+  const solo = auth.soloSeccion();
+  if (!solo) return true;
+
+  // La ruta permitida se compara por su primer segmento: así `/app/promotoras`
+  // y cualquier cosa debajo de ella pasan, y el resto no.
+  const permitido = solo.ruta.split('/').filter(Boolean).pop();
+  const pedido = ruta.url[0]?.path;
+  if (pedido === permitido) return true;
+
+  router.navigate([solo.ruta]);
+  return false;
+};
