@@ -32,7 +32,8 @@ export interface MarcaAsistencia {
   turnosActuales?: (string | null)[];
 }
 
-export type EstadoDiaApi = 'a_tiempo' | 'absorbido' | 'retardo' | 'falta' | 'descanso' | 'marca_faltante';
+/** `justificado` = falta que RH aprobó con justificante y ya NO cuenta. */
+export type EstadoDiaApi = 'a_tiempo' | 'absorbido' | 'retardo' | 'falta' | 'descanso' | 'marca_faltante' | 'justificado';
 
 export interface DiaApi {
   fecha: string;
@@ -50,6 +51,8 @@ export interface DiaApi {
   bolsaDespues: number;
   atipico?: boolean;
   marcas?: number;
+  /** Con qué se justificó, cuando el día quedó en `justificado`. */
+  justificacion?: string;
 }
 
 export interface SemanaApi {
@@ -91,6 +94,8 @@ export interface PersonaAsistencia {
   diasConRetardo: number;
   diasEvaluados: number;
   faltas: number;
+  /** Faltas que RH justificó y por eso NO están contadas en `faltas`. */
+  faltasJustificadas: number;
   diasNoMedibles: number;             // días de una sola marca
   diasAtipicos: number;
   horasTrabajadas: number;
@@ -119,7 +124,7 @@ export interface AsistenciaPersonas {
     exTrabajadores: number; fueraDelPadron: number;
     retardoRealMin: number; retardoRealUsableMin: number;
     atrasoBrutoMin: number; absorbidoMin: number;
-    faltas: number; diasNoMedibles: number; horasTrabajadas: number;
+    faltas: number; faltasJustificadas: number; diasNoMedibles: number; horasTrabajadas: number;
   };
   personas: PersonaAsistencia[];
 }
@@ -432,6 +437,21 @@ export class ChecadorService {
   async getRevisiones(sucursalId: string, codigo: string, desde: string, hasta: string): Promise<RevisionDia[]> {
     return this.api.get<RevisionDia[]>('/checador/revision', { sucursalId, codigo, desde, hasta });
   }
+  /**
+   * Justifica un RANGO completo de días (vacaciones, incapacidad larga).
+   *
+   * Existe porque capturar unas vacaciones día por día son siete u ocho
+   * guardados para UNA decisión, y a la tercera persona nadie lo hace. El estado
+   * llega como `aprobada`: quien captura el periodo ya lo autorizó, y solo lo
+   * aprobado deja de contar como falta.
+   */
+  async guardarRevisionRango(datos: {
+    sucursalId: string; empleadoCodigo: string; desde: string; hasta: string;
+    justificacion: string; estado?: EstadoRevision;
+  }): Promise<{ dias: number; revisiones: RevisionDia[] }> {
+    return this.api.put('/checador/revision/rango', { estado: 'aprobada', ...datos });
+  }
+
   /** Guarda (upsert) la revisión de un día. */
   async guardarRevision(r: RevisionDia): Promise<RevisionDia> {
     return this.api.put<RevisionDia>('/checador/revision', r);

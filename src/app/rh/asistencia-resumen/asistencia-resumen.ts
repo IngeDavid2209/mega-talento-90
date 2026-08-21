@@ -27,6 +27,8 @@ interface DiaAsistencia {
   falta: boolean;
   /** Día de UNA sola marca: no se sabe si es entrada o salida, no es medible. */
   noMedible: boolean;
+  /** Falta que RH ya justificó: no cuenta y se pinta distinto. */
+  justificado: boolean;
   atipico: boolean;
   justificacion: string;       // capturada por RH (se guarda en la base)
   estado: EstadoRevision;      // verificación: pendiente/verificada/aprobada/rechazada
@@ -65,7 +67,7 @@ interface EmpleadoAsistencia {
   acumuladoTotal: number;      // retardo real del periodo
   atrasoBrutoMin: number; absorbidoMin: number;
   semanasExcedidas: number; diasConRetardo: number; diasRegistrados: number;
-  faltas: number; noMedibles: number; atipicos: number;
+  faltas: number; faltasJustificadas: number; noMedibles: number; atipicos: number;
   horasTrabajadas: number; presupuesto: number;
   pctATiempo: number | null;
   // ── Por qué el número puede no servir ──
@@ -192,7 +194,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     { v: 'aprobada', l: 'Aprobada' },
     { v: 'rechazada', l: 'Rechazada' }
   ];
-  JUSTIFICACIONES = ['Cita Médica', 'Tráfico', 'Personal', 'Permiso', 'Incapacidad', 'No Registrada'];
+  // Ojo con el orden y con cuáles EXCUSAN: vacaciones, permiso e incapacidad
+  // borran la falta (cuando se aprueban); tráfico o cita médica explican un
+  // retardo pero el día se queda contado. La lista de las que excusan vive en
+  // la API (JUSTIFICAN_AUSENCIA), que es quien decide.
+  JUSTIFICACIONES = ['Vacaciones', 'Incapacidad', 'Permiso', 'Cita Médica', 'Tráfico', 'Personal', 'No Registrada'];
 
   /** Atajos de periodo de la barra de filtros. */
   /**
@@ -538,6 +544,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const d = e.diasPorFecha.get(fecha);
     if (!d) return { jornada: '', comida: '', retardo: false, falta: false };
     if (d.estadoDia === 'descanso') return { jornada: '—', comida: '', retardo: false, falta: false };
+    // El día justificado se marca como tal en el papel: dejarlo en blanco lo
+    // haría indistinguible de un día sin dato, y en rojo sería una falta que RH
+    // ya perdonó.
+    if (d.justificado) return { jornada: 'JUST.', comida: '', retardo: false, falta: false };
     const ent = d.entrada && d.entrada !== '—' ? d.entrada : '0';
     const sal = d.salida && d.salida !== '—' ? d.salida : '0';
     const com = d.comida && d.comida !== '—' ? d.comida.replace(/\s*[–-]\s*/, ' - ') : '';
@@ -881,6 +891,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         estadoDia: d.estado,
         falta: d.estado === 'falta',
         noMedible: d.estado === 'marca_faltante',
+        justificado: d.estado === 'justificado',
         atipico: !!d.atipico,
         justificacion: '',
         estado: 'pendiente' as EstadoRevision
@@ -913,6 +924,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       diasConRetardo: p.diasConRetardo,
       diasRegistrados: p.diasEvaluados,
       faltas: p.faltas,
+      faltasJustificadas: p.faltasJustificadas ?? 0,
       noMedibles: p.diasNoMedibles,
       atipicos: p.diasAtipicos,
       horasTrabajadas: p.horasTrabajadas,
@@ -938,6 +950,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         semMap.get(s.inicio)!.min += s.acumulado;
         for (const d of s.dias) {
           if (d.estadoDia === 'descanso') continue;      // su día de descanso no es un dato
+          // Un día justificado tampoco: no es falta (RH lo aprobó) ni asistencia
+          // (no vino). Contarlo en cualquiera de los dos lados miente.
+          if (d.justificado) continue;
           if (d.falta) dist.falta++;
           else if (d.noMedible) dist.noMedible++;        // ni a tiempo ni tarde: no se sabe
           else if (d.retardoMin > 0) dist.retardo++;
@@ -1271,7 +1286,53 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       }
     } catch (err) { console.warn('No se pudieron cargar las revisiones:', err); }
   }
-  cerrar() { this.detalle = null; }
+  cerrar() { this.detalle = null; this.vacDesde = ''; this.vacHasta = ''; }
+
+  // ══ VACACIONES Y OTROS JUSTIFICANTES DE VARIOS DÍAS ══════════════
+  //
+  // Antes solo se podía justificar UN día a la vez, desde la tabla del detalle.
+  // Para unas vacaciones eso son siete u ocho guardados para una sola decisión,
+  // y a la tercera persona nadie lo hace.
+  //
+  // Y hasta ahora el justificante no servía de nada: se guardaba, pero el
+  // cálculo no lo leía y la falta seguía contada. Ya se corrigió en la API: un
+  // día con justificante APROBADO de ausencia deja de ser falta.
+  vacDesde = '';
+  vacHasta = '';
+  vacMotivo = 'Vacaciones';
+  guardandoVac = false;
+
+  /** Los días que abarcaría el periodo, para decirlo antes de guardar. */
+  get vacDias(): number {
+    if (!this.vacDesde || !this.vacHasta || this.vacHasta < this.vacDesde) return 0;
+    const a = Date.parse(this.vacDesde + 'T12:00:00');
+    const b = Date.parse(this.vacHasta + 'T12:00:00');
+    return Math.round((b - a) / 86400000) + 1;
+  }
+
+  async guardarVacaciones() {
+    if (!this.detalle || !this.vacDias || this.guardandoVac) return;
+    this.guardandoVac = true;
+    try {
+      const r = await this.checador.guardarRevisionRango({
+        sucursalId: this.sucursalFiltro,
+        empleadoCodigo: this.detalle.codigo,
+        desde: this.vacDesde, hasta: this.vacHasta,
+        justificacion: this.vacMotivo,
+      });
+      this.toast.exito(`${r.dias} día(s) justificados como ${this.vacMotivo}. Dejan de contar como falta.`);
+      this.vacDesde = this.vacHasta = '';
+      // Se recarga para que el cambio se vea en los números, no solo en la nota:
+      // es justo lo que antes no pasaba.
+      await this.cargar();
+      this.detalle = this.lista.find(e => e.codigo === r.revisiones[0]?.empleadoCodigo) || null;
+    } catch (e) {
+      console.error(e);
+      this.toast.error('No se pudieron guardar los días.');
+    } finally {
+      this.guardandoVac = false;
+    }
+  }
 
   /** Guarda (upsert) la justificación/estado de un día. */
   async guardarRevisionDia(d: DiaAsistencia) {
@@ -1359,6 +1420,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       case 'falta': return 'Falta';
       case 'descanso': return 'Descanso';
       case 'marca_faltante': return 'Marca faltante (no medible)';
+      case 'justificado': return 'Justificado (no cuenta)';
       case 'retardo': return 'Retardo';
       case 'absorbido': return 'Dentro de la tolerancia';
       default: return 'A tiempo';

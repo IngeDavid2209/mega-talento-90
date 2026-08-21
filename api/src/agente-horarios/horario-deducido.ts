@@ -518,7 +518,14 @@ export function deducirHorario(dias: DiaCrudo[], opciones: OpcionesHorario = {})
 // 2 y 3) BOLSA SEMANAL Y RETARDO REAL = SOLO EL EXCEDENTE.
 // ──────────────────────────────────────────────────────────────────
 
-export type EstadoDia = 'a_tiempo' | 'absorbido' | 'retardo' | 'falta' | 'descanso' | 'marca_faltante';
+/**
+ * `justificado` es una falta que RH APROBÓ con un justificante (vacaciones,
+ * incapacidad, permiso). No lo pone este módulo —aquí no se sabe nada de
+ * justificantes—: lo aplica `asistencia-personas.ts` al cruzar los días con
+ * `asistencia_revision`. Vive en el tipo para que nadie tenga que inventarse
+ * un séptimo estado por su cuenta.
+ */
+export type EstadoDia = 'a_tiempo' | 'absorbido' | 'retardo' | 'falta' | 'descanso' | 'marca_faltante' | 'justificado';
 
 export interface DiaMedido {
   fecha: string;

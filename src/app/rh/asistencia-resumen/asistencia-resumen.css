@@ -723,3 +723,26 @@
   padding: 1px 7px; margin-left: 8px; cursor: pointer; vertical-align: middle;
 }
 .rep-solo-fila:hover { background: var(--surface2); color: var(--ink); }
+
+/* ===== Justificar un periodo (vacaciones, incapacidad, permiso) =====
+   Antes solo se podía justificar un día a la vez, desde la tabla del detalle:
+   para unas vacaciones eran ocho guardados para una sola decisión. */
+.ar-vac {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface2);
+  padding: 10px 12px; margin-bottom: 14px;
+}
+.ar-vac-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.ar-vac-head b { font-size: 12.5px; color: var(--ink); }
+.ar-vac-head span { font-size: 11.5px; color: var(--text2); }
+.ar-vac-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.ar-vac-form label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--text3);
+}
+.ar-vac-form input, .ar-vac-form select {
+  border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px;
+  font: inherit; font-size: 13px; color: var(--ink); background: var(--surface);
+  text-transform: none; letter-spacing: 0;
+}
+.ar-vac-nota { margin: 8px 0 0; font-size: 11.5px; color: var(--text2); }

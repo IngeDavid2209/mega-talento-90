@@ -79,6 +79,8 @@ export interface Marca {
 export interface DiaVista extends hd.DiaMedido {
   comida: string;         // 'HH:MM – HH:MM' o '—'
   horasNetas: string;     // 'Hh MMm' o '—'
+  /** Con qué lo justificó RH, cuando el día quedó en `justificado`. */
+  justificacion?: string;
 }
 
 export interface PersonaAsistencia {
@@ -112,6 +114,8 @@ export interface PersonaAsistencia {
   diasConRetardo: number;
   diasEvaluados: number;
   faltas: number;
+  /** Faltas que RH ya justificó y por eso NO se cuentan arriba. */
+  faltasJustificadas: number;
   diasNoMedibles: number;       // días de una sola marca
   diasAtipicos: number;
   horasTrabajadas: number;
@@ -160,6 +164,8 @@ export interface AsistenciaPersonas {
     atrasoBrutoMin: number;
     absorbidoMin: number;
     faltas: number;
+  /** Faltas que RH ya justificó y por eso NO se cuentan arriba. */
+  faltasJustificadas: number;
     diasNoMedibles: number;
     horasTrabajadas: number;
   };
@@ -327,6 +333,48 @@ function detalleDia(marcasCrudas: string[]): { comida: string; netasMin: number 
 // El cálculo
 // ──────────────────────────────────────────────────────────────────
 
+/**
+ * JUSTIFICANTES APROBADOS: (codigo → fechas excusadas).
+ *
+ * ══ HASTA HOY EL JUSTIFICANTE NO SERVÍA DE NADA ══
+ *
+ * `asistencia_revision` guardaba la justificación y su estado desde que se
+ * escribió la pantalla, pero NADIE la leía para calcular: este archivo ni la
+ * consultaba. O sea que RH podía anotar "vacaciones" en un día y la falta
+ * seguía ahí, contada en los KPIs y en la pestaña de Faltas. Era una nota al
+ * margen disfrazada de justificante.
+ *
+ * Se exige `estado = 'aprobada'`: escribir el texto no basta. 'pendiente' y
+ * 'verificada' son pasos intermedios, y que un día deje de contar es una
+ * decisión firmada, no un borrador.
+ *
+ * Y se exige que la justificación sea de las que EXCUSAN. "Tráfico" explica un
+ * retardo pero no borra el día; vacaciones, incapacidad y permiso sí: la
+ * persona no debía estar ahí.
+ */
+const JUSTIFICAN_AUSENCIA = ['vacaciones', 'incapacidad', 'permiso'];
+
+async function justificantes(
+  sucursalId: string, desde: string, hasta: string,
+): Promise<Map<string, Map<string, string>>> {
+  const { rows } = await pool.query<{ empleado_codigo: string; fecha: string; justificacion: string }>(
+    `SELECT empleado_codigo, fecha, justificacion
+       FROM asistencia_revision
+      WHERE sucursal_id = $1 AND fecha BETWEEN $2 AND $3
+        AND estado = 'aprobada' AND justificacion IS NOT NULL`,
+    [sucursalId, desde, hasta]);
+  const out = new Map<string, Map<string, string>>();
+  for (const r of rows) {
+    const texto = String(r.justificacion || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!JUSTIFICAN_AUSENCIA.some((j) => texto.includes(j))) continue;
+    const cod = String(r.empleado_codigo).trim();
+    if (!out.has(cod)) out.set(cod, new Map());
+    out.get(cod)!.set(r.fecha, r.justificacion);
+  }
+  return out;
+}
+
 export async function asistenciaPersonas(
   { sucursalId, desde, hasta }: { sucursalId: string; desde: string; hasta: string }
 ): Promise<AsistenciaPersonas> {
@@ -341,11 +389,12 @@ export async function asistenciaPersonas(
   const desdeHorario = [desde, menosDias(hasta, VENTANA_HORARIO_DIAS - 1)]
     .sort()[0];
 
-  const [filas, ctx, conf] = await Promise.all([
+  const [filas, ctx, conf, excusas] = await Promise.all([
     // Una sola lectura, la más ancha; el rango se recorta en memoria.
     diasPorPersona(sucursalId, desdeHorario, hasta),
     contexto(sucursalId),
     confirmados(sucursalId),
+    justificantes(sucursalId, desde, hasta),
   ]);
 
   // Días-persona, agrupados por código. `dias` es la historia (para deducir el
@@ -539,11 +588,27 @@ export async function asistenciaPersonas(
 
     // ── Semanas con la comida y las horas netas de cada día ──
     let minTrabajados = 0;
+    // Los días que RH ya justificó dejan de ser falta. Se descuentan aquí y no
+    // en horario-deducido a propósito: ese módulo es la REGLA (puro cálculo, sin
+    // base de datos) y el justificante es una DECISIÓN de RH. Mezclarlos haría
+    // que la regla dependiera de quién firmó qué.
+    const excusadas = excusas.get(cod) || new Map<string, string>();
+    let faltasJustificadas = 0;
     const semanas = (re?.semanas || []).map((s) => ({
       ...s,
       dias: s.dias.map((d): DiaVista => {
         const det = detalleDia(datos?.horas.get(d.fecha) || []);
         if (det.netasMin) minTrabajados += det.netasMin;
+        const justificacion = excusadas.get(d.fecha);
+        // Solo se excusa la FALTA. Un día con marcas ya se midió y su retardo
+        // no lo borra un justificante de ausencia: la persona sí vino.
+        if (justificacion && d.estado === 'falta') {
+          faltasJustificadas++;
+          return {
+            ...d, estado: 'justificado' as hd.EstadoDia, justificacion,
+            comida: det.comida, horasNetas: formatHoras(det.netasMin ?? 0),
+          };
+        }
         return { ...d, comida: det.comida, horasNetas: formatHoras(det.netasMin ?? 0) };
       }),
     }));
@@ -594,7 +659,9 @@ export async function asistenciaPersonas(
       absorbidoMin: re?.absorbidoMin ?? 0,
       diasConRetardo: re?.diasConRetardo ?? 0,
       diasEvaluados,
-      faltas: re?.faltas ?? 0,
+      // La falta justificada no cuenta: es el punto de todo esto.
+      faltas: Math.max(0, (re?.faltas ?? 0) - faltasJustificadas),
+      faltasJustificadas,
       diasNoMedibles: re?.marcasFaltantes ?? 0,
       diasAtipicos: re?.atipicos ?? 0,
       horasTrabajadas: Math.round(minTrabajados / 6) / 10,
@@ -644,6 +711,9 @@ export async function asistenciaPersonas(
       atrasoBrutoMin: personas.reduce((s, p) => s + p.atrasoBrutoMin, 0),
       absorbidoMin: personas.reduce((s, p) => s + p.absorbidoMin, 0),
       faltas: personas.reduce((s, p) => s + p.faltas, 0),
+      // Se reportan aparte: "3 faltas" con 5 justificadas no es lo mismo que
+      // "3 faltas" a secas, y el numero de arriba ya las descuenta.
+      faltasJustificadas: personas.reduce((s, p) => s + p.faltasJustificadas, 0),
       diasNoMedibles: personas.reduce((s, p) => s + p.diasNoMedibles, 0),
       horasTrabajadas: Math.round(personas.reduce((s, p) => s + p.horasTrabajadas, 0)),
     },

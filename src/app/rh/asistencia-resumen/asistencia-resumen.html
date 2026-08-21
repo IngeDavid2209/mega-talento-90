@@ -727,6 +727,39 @@
             }
           </ul>
         }
+        <!-- ══ JUSTIFICAR VARIOS DÍAS (vacaciones, incapacidad, permiso) ══
+             Antes solo se podía justificar UN día, desde la tabla de abajo: para
+             unas vacaciones eran ocho guardados para una sola decisión. Y peor,
+             el justificante no servía de nada —se guardaba y la falta seguía
+             contada—; eso ya se corrigió en la API. -->
+        <div class="ar-vac">
+          <div class="ar-vac-head">
+            <b>Justificar un periodo</b>
+            <span>Los días aprobados dejan de contar como falta.</span>
+          </div>
+          <div class="ar-vac-form">
+            <label>
+              Motivo
+              <select [(ngModel)]="vacMotivo">
+                <option value="Vacaciones">Vacaciones</option>
+                <option value="Incapacidad">Incapacidad</option>
+                <option value="Permiso">Permiso</option>
+              </select>
+            </label>
+            <label>Desde <input type="date" [(ngModel)]="vacDesde"></label>
+            <label>Hasta <input type="date" [(ngModel)]="vacHasta"></label>
+            <button type="button" class="ar-btn ar-btn-primary"
+                    [disabled]="!vacDias || guardandoVac" (click)="guardarVacaciones()">
+              {{ guardandoVac ? "Guardando…" : (vacDias ? "Justificar " + vacDias + " día(s)" : "Elige el periodo") }}
+            </button>
+          </div>
+          @if (detalle.faltasJustificadas) {
+            <p class="ar-vac-nota">
+              Ya tiene <b>{{ detalle.faltasJustificadas }}</b> día(s) justificados en este periodo.
+            </p>
+          }
+        </div>
+
         @if (!detalle.semanas.length) {
           <div class="ar-sin">Sin checadas en este periodo.</div>
         } @else {

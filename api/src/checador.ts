@@ -42,6 +42,9 @@ const mapChecada = (r: any) => ({
   empleadoNombre: r.empleado_nombre || undefined, fechaHora: r.fecha_hora,
   fecha: r.fecha, hora: r.hora, tipo: r.tipo ?? undefined, dedupKey: r.dedup_key
 });
+/** Fecha ISO corta, para no dejar que un texto libre llegue a la base. */
+const RE_FECHA_REV = /^\d{4}-\d{2}-\d{2}$/;
+
 const mapRevision = (r: any) => ({
   id: r.id, sucursalId: r.sucursal_id, empleadoCodigo: r.empleado_codigo,
   fecha: r.fecha, justificacion: r.justificacion || '', estado: r.estado || 'pendiente'
@@ -267,6 +270,52 @@ checadorRouter.get('/revision', async (req: Request, res: Response) => {
   } catch (e) { fallo(res, e, 'No se pudo leer la revisión.'); }
 });
 
+/**
+ * PUT /checador/revision/rango
+ * body: { sucursalId, empleadoCodigo, desde, hasta, justificacion, estado? }
+ *
+ * Justifica un RANGO de días de una vez. Nació para las vacaciones: capturarlas
+ * día por día son siete u ocho guardados para una sola decisión, y a la tercera
+ * persona nadie lo hace. Sirve igual para una incapacidad de dos semanas.
+ *
+ * El estado por omisión es `aprobada` y no `pendiente`: quien captura un periodo
+ * de vacaciones ya lo autorizó —no está anotando una duda—, y solo lo aprobado
+ * deja de contar como falta (ver JUSTIFICAN_AUSENCIA en asistencia-personas.ts).
+ *
+ * Se topa el rango a 120 días: un dedazo en el año (2062 en vez de 2026) escribiría
+ * decenas de miles de renglones antes de que alguien lo notara.
+ */
+checadorRouter.put('/revision/rango', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId, empleadoCodigo, desde, hasta, justificacion, estado } = req.body || {};
+    if (!sucursalId || !empleadoCodigo || !desde || !hasta || !justificacion) {
+      return res.status(400).json({ error: 'Faltan sucursalId, empleadoCodigo, desde, hasta o justificacion.' });
+    }
+    if (!RE_FECHA_REV.test(String(desde)) || !RE_FECHA_REV.test(String(hasta))) {
+      return res.status(400).json({ error: 'Las fechas deben venir como yyyy-MM-dd.' });
+    }
+    if (String(hasta) < String(desde)) {
+      return res.status(400).json({ error: 'La fecha final no puede ser anterior a la inicial.' });
+    }
+    const dias = Math.round(
+      (Date.parse(String(hasta) + 'T12:00:00Z') - Date.parse(String(desde) + 'T12:00:00Z')) / 86400000) + 1;
+    if (dias > 120) {
+      return res.status(400).json({ error: `El rango son ${dias} días y el tope es 120. Revisa las fechas.` });
+    }
+
+    // generate_series arma los días en la base: hacerlo aquí serían N viajes.
+    const { rows } = await pool.query(
+      `INSERT INTO asistencia_revision (sucursal_id, empleado_codigo, fecha, justificacion, estado, actualizado_en)
+       SELECT $1, $2, to_char(d, 'YYYY-MM-DD'), $4, $5, now()
+         FROM generate_series($3::date, $6::date, interval '1 day') AS d
+       ON CONFLICT (sucursal_id, empleado_codigo, fecha)
+         DO UPDATE SET justificacion=EXCLUDED.justificacion, estado=EXCLUDED.estado, actualizado_en=now()
+       RETURNING *`,
+      [sucursalId, empleadoCodigo, desde, justificacion, estado || 'aprobada', hasta]
+    );
+    res.json({ dias: rows.length, revisiones: rows.map(mapRevision) });
+  } catch (e) { fallo(res, e, 'No se pudo justificar el rango.'); }
+});
 // Upsert de la revisión de un día (justificación y/o estado).
 checadorRouter.put('/revision', async (req: Request, res: Response) => {
   try {
