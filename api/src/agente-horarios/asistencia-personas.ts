@@ -263,8 +263,28 @@ function formatHoras(min: number): string {
 
 /**
  * La comida y las horas netas de un día, a partir de sus marcas ya colapsadas.
- * Las marcas de en medio son la comida; las netas descuentan ese hueco. Si solo
- * hay dos marcas no hay comida que descontar y las netas son las brutas.
+ * La primera y la última marca son la jornada; las de en medio son salidas y
+ * regresos, y lo que se descuenta es el tiempo FUERA.
+ *
+ * ══ SE DESCUENTAN LOS HUECOS DE A PARES, NO DEL PRIMERO AL ÚLTIMO ══
+ *
+ * Antes se tomaba `medio[0] → medio[último]` como un solo bloque de comida. Con
+ * dos marcas de en medio da igual, y por eso nunca se notó: casi todas las
+ * plazas tienen un solo reloj y la gente marca cuatro veces al día.
+ *
+ * Pero en oficinas hay DOS descansos (desayuno y comida) y por lo tanto seis
+ * marcas. Medido con un día real de Fernanda —07:45, 10:07, 10:27, 15:17, 15:44,
+ * 18:00—, la regla vieja daba una "comida" de 5 h 37 min y 4 h 38 min
+ * trabajadas; los descansos reales suman 47 min y trabajó 9 h 28 min. Le
+ * descontaba media jornada por irse a desayunar.
+ *
+ * Salió al fundir el reloj de comida de oficinas dentro de corporativo (antes
+ * eran dos plazas y sus marcas nunca se veían juntas), pero el error no era de
+ * esa fusión: cualquier persona con seis marcas en un solo reloj ya lo tenía.
+ *
+ * Una marca de en medio SIN pareja no se descuenta: no se sabe si salió y no
+ * regresó o si el lector no leyó el regreso, y descontar hasta el final del día
+ * sería inventar. Se muestra para que se vea que está ahí.
  */
 function detalleDia(marcasCrudas: string[]): { comida: string; netasMin: number | null; brutasMin: number | null } {
   const mins = hd.colapsarDuplicadas(
@@ -273,15 +293,24 @@ function detalleDia(marcasCrudas: string[]): { comida: string; netasMin: number 
   if (mins.length < 2) return { comida: '—', netasMin: null, brutasMin: null };
   const brutas = mins[mins.length - 1] - mins[0];
   const medio = mins.slice(1, -1);
-  let comida = '—';
-  let netas = brutas;
-  if (medio.length >= 2) {
-    comida = `${hd.aHora(medio[0])} – ${hd.aHora(medio[medio.length - 1])}`;
-    netas = brutas - (medio[medio.length - 1] - medio[0]);
-  } else if (medio.length === 1) {
-    comida = hd.aHora(medio[0]) as string;
+
+  const tramos: string[] = [];
+  let fuera = 0;
+  for (let i = 0; i < medio.length; i += 2) {
+    if (i + 1 < medio.length) {
+      tramos.push(`${hd.aHora(medio[i])} – ${hd.aHora(medio[i + 1])}`);
+      fuera += medio[i + 1] - medio[i];
+    } else {
+      // Impar: la última salida no tiene regreso. Se enseña, no se descuenta.
+      tramos.push(hd.aHora(medio[i]) as string);
+    }
   }
-  return { comida, netasMin: Math.max(0, netas), brutasMin: brutas };
+
+  return {
+    comida: tramos.length ? tramos.join(' · ') : '—',
+    netasMin: Math.max(0, brutas - fuera),
+    brutasMin: brutas,
+  };
 }
 
 // ──────────────────────────────────────────────────────────────────

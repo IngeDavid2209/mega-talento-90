@@ -86,11 +86,23 @@ export const CENTROS_INTERNOS: Sucursal[] = [
   // su propio espacio de códigos: mezclarlos con una plaza existente es lo que
   // hace que una marca acabe en la persona equivocada.
   //
-  // 192.168.0.81 — la MISMA gente de corporativo con otra numeración (#11 es el
-  // #111 de allá). El patrón es +100, pero 4 de sus códigos apuntan a otra
-  // persona: el #8 es Claudia Mata y el #108 de corporativo es Viviana. Con
-  // plaza propia, cada marca queda con el nombre que el reloj mismo declara.
-  // Fundirlo con corporativo es el paso siguiente, vía `reloj_codigo_map`.
+  // 192.168.0.81 — YA FUNDIDO EN CORPORATIVO (21/08/2026).
+  //
+  // Era la MISMA gente de corporativo con otra numeración, y tuvo plaza propia
+  // un par de semanas para no revolver códigos: el patrón es +100 (#11 es el
+  // #111 de allá) pero DOS códigos están cruzados —#8 es Claudia Martínez, que
+  // en corporativo es #126, y #26 es Viviana Flores, que es #108—, así que
+  // aplicar el patrón les habría intercambiado las marcas.
+  //
+  // Ya hay traducción código→código en `reloj_codigo_map`, armada por NOMBRE y
+  // corroborada con el +100 (ver api/tools/fundir-reloj-comida.js): 41 de sus 48
+  // códigos, que son 4,328 de sus 4,336 marcas. Sus checadas ahora entran a
+  // corporativo, así que la comida sale en la misma fila que la jornada —que es
+  // como la pide el reporte de RH— y esta plaza ya no existe como sección.
+  //
+  // Se queda en el catálogo, no en el selector: los 8 marcajes que no se
+  // pudieron traducir (dos altas con nombre de pila suelto) siguen guardados con
+  // este id y el catálogo es lo que le pone nombre a un id histórico.
   { id: 'corporativo-comida', ciudad: 'Oficinas', direccion: 'Desayuno y comida', mapsUrl: '' },
 
   // 192.168.0.196 — 12 personas checando a diario y NO se sabe de qué plaza es;
@@ -139,6 +151,11 @@ export const CENTROS_SIN_RELOJ: string[] = [
   'la-piedad-centro',    // nunca ha tenido reloj ni padrón
   'morelia-figaredo',    // nunca ha tenido reloj ni padrón
   'santa-ana-pacueco',   // nunca ha tenido reloj ni padrón
+  // Su reloj sigue vivo, pero ya reporta DENTRO de corporativo (21/08/2026): la
+  // gente es la misma y tener dos secciones obligaba a mirar dos veces a la
+  // misma persona. No se borra del catálogo porque quedan 8 marcajes históricos
+  // con este id y hay que poder ponerles nombre.
+  'corporativo-comida',
   // MORELIA ABASTOS SALIÓ DE ESTA LISTA EL 20/08/2026.
   //
   // Llevaba aquí porque su reloj no contestaba —probado el 28/07, el 05/08 y el
@@ -161,9 +178,10 @@ export function tieneReloj(id: string): boolean {
 }
 
 /**
- * Lo que SÍ se ofrece en el checador: las nueve plazas que hoy tienen reloj y
- * devuelven datos (la novena es Morelia Abastos, que entró el 20/08/2026). Los
- * relojes registrados son doce, pero dos están en pausa
+ * Lo que SÍ se ofrece en el checador: las ocho plazas que hoy tienen reloj y
+ * devuelven datos. Morelia Abastos entró el 20/08/2026 y el reloj de comida de
+ * oficinas salió el 21/08/2026 —no porque muriera, sino porque ya reporta dentro
+ * de corporativo—. Los relojes registrados son doce, pero uno está en pausa
  * (el de comida de oficinas, con numeración propia sin traducir, y el que
  * todavía no se sabe de qué plaza es) y no corresponden a ninguna sucursal del
  * catálogo. Esos dos se vigilan desde el semáforo de relojes, no desde aquí.

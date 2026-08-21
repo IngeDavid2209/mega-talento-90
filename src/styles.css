@@ -166,25 +166,84 @@ h1, h2, h3, h4, h5 {
 ::-webkit-scrollbar-thumb:hover { background: rgba(26, 47, 78, 0.28); }
 
 /* =====================================================================
-   IMPRESIÓN DEL REPORTE DE ASISTENCIA (Exportar PDF)
+   IMPRESIÓN DEL REPORTE DE ASISTENCIA (botón "PDF")
+
    Al pulsar "PDF" se pone la clase `imprimiendo-reporte` en <body> y se llama
-   window.print(): el navegador guarda como PDF. Aquí se esconde TODO el chrome
-   (barra, menú, filtros, semáforo) y se deja solo la tabla, calcada al papel.
+   window.print(): el navegador guarda como PDF. Al papel debe ir SOLO la tabla.
+
+   ══ ERA UNA LISTA NEGRA, Y POR ESO SALÍA MEDIA PANTALLA IMPRESA ══
+
+   Antes se enumeraban los bloques a esconder (.top-bar, .ar-bar, .ar-relojes…).
+   Una lista negra hay que mantenerla al día en CADA cambio de interfaz, y nadie
+   se acuerda: el título de la página, el selector de sucursal y la fila de
+   pestañas nunca estuvieron en la lista, así que se imprimían. Al agregar las
+   pestañas de Tolerancia, Faltas y Cruces el problema creció.
+
+   Ahora es al revés: se esconde TODO y se muestra solo el reporte. Lo que se
+   agregue mañana queda fuera del papel por omisión, sin que nadie lo recuerde.
+
+   Se usan las dos herramientas a propósito:
+     · `visibility: hidden` en todo — es la red de seguridad, hereda hacia
+       abajo y no desarma el layout de la tabla mientras se imprime.
+     · `display: none` en el chrome conocido — porque lo invisible SIGUE
+       OCUPANDO SU LUGAR, y con solo visibility el reporte salía empujado a la
+       mitad de la hoja, después de un hueco del tamaño del encabezado.
    ===================================================================== */
+body.imprimiendo-reporte { background: #fff !important; }
+
+/* 1) Red de seguridad: nada es visible salvo el reporte. */
+body.imprimiendo-reporte * { visibility: hidden !important; }
+body.imprimiendo-reporte .rep,
+body.imprimiendo-reporte .rep * { visibility: visible !important; }
+/* Los botones del propio reporte (PDF / Ver tarjetas) no van al papel. */
+body.imprimiendo-reporte .rep-acciones,
+body.imprimiendo-reporte .rep-acciones * { visibility: hidden !important; }
+
+/* 2) El chrome conocido se saca del flujo para que no deje hueco arriba. */
 body.imprimiendo-reporte .top-bar,
 body.imprimiendo-reporte .side-drawer,
 body.imprimiendo-reporte .menu-backdrop,
+body.imprimiendo-reporte .hz-header,
+body.imprimiendo-reporte .hz-toolbar,
+body.imprimiendo-reporte .hz-tabs,
+body.imprimiendo-reporte .ar-head,
 body.imprimiendo-reporte .ar-bar,
 body.imprimiendo-reporte .ar-relojes,
 body.imprimiendo-reporte .tol,
+body.imprimiendo-reporte .falt,
+body.imprimiendo-reporte .cru,
 body.imprimiendo-reporte .ar-vista-switch,
-body.imprimiendo-reporte .rep-toggle,
-body.imprimiendo-reporte .rep-pdf { display: none !important; }
+body.imprimiendo-reporte .rep-acciones { display: none !important; }
 
+/* 3) Los contenedores no aportan nada al papel: sin marco, sin relleno. */
+body.imprimiendo-reporte .app-content,
+body.imprimiendo-reporte .app-wrapper,
+body.imprimiendo-reporte .content-area,
+body.imprimiendo-reporte .hz-page,
+body.imprimiendo-reporte .hz-panel,
+body.imprimiendo-reporte .ar-panel,
+body.imprimiendo-reporte .rep {
+  margin: 0 !important; padding: 0 !important; border: 0 !important;
+  border-radius: 0 !important; box-shadow: none !important; background: #fff !important;
+}
+/* La tabla ancha vive dentro de un contenedor con scroll: en papel no hay
+   scroll, y sin esto se imprime cortada por la derecha. */
+body.imprimiendo-reporte .rep-scroll { overflow: visible !important; }
+
+/* Ctrl+P directo (sin pasar por el botón) obedece las mismas reglas: quien
+   imprime la pantalla espera el reporte, no la pantalla. */
 @media print {
+  body * { visibility: hidden !important; }
+  .rep, .rep * { visibility: visible !important; }
+  .rep-acciones, .rep-acciones * { visibility: hidden !important; }
   .top-bar, .side-drawer, .menu-backdrop,
-  .ar-bar, .ar-relojes, .tol, .ar-vista-switch, .rep-toggle, .rep-pdf { display: none !important; }
-  .app-content, .app-wrapper, body, html { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .hz-header, .hz-toolbar, .hz-tabs,
+  .ar-head, .ar-bar, .ar-relojes, .tol, .falt, .cru,
+  .ar-vista-switch, .rep-acciones { display: none !important; }
+  .app-content, .app-wrapper, .content-area, .hz-page, .hz-panel, .ar-panel, body, html {
+    background: #fff !important; margin: 0 !important; padding: 0 !important;
+    border: 0 !important; box-shadow: none !important;
+  }
   .rep { border: 0 !important; }
   .rep-scroll { overflow: visible !important; }
   .rep-tabla { font-size: 9px !important; }
