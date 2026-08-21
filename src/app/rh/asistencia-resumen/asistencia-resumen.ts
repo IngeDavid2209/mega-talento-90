@@ -188,9 +188,21 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   JUSTIFICACIONES = ['Cita Médica', 'Tráfico', 'Personal', 'Permiso', 'Incapacidad', 'No Registrada'];
 
   /** Atajos de periodo de la barra de filtros. */
-  RANGOS: { d: number; l: string }[] = [
-    { d: 1, l: 'Hoy' },
-    { d: 7, l: '7 días' }
+  /**
+   * ATAJOS DE PERIODO, PEGADOS AL CORTE DE LA SEMANA.
+   *
+   * Antes había un atajo de "7 días" que hacía `hoy − 6`: si se picaba un
+   * viernes, el periodo salía viernes→viernes. Se veía como una semana y no lo
+   * era —la semana de nómina abre en jueves—, así que el acumulado de la bolsa
+   * salía cortado por delante y la tolerancia se leía sobre una semana que no
+   * existe en el reporte de RH.
+   *
+   * Ahora los atajos se alinean al MISMO corte con el que se acumula, y el día
+   * de corte lo dice la API (`diaInicioSemana`), no una copia local.
+   */
+  SEMANAS: { off: number; l: string }[] = [
+    { off: 0, l: 'Esta semana' },
+    { off: -1, l: 'Semana pasada' },
   ];
 
   /** Etiqueta corta de cada marca, para los chips de la tarjeta. */
@@ -555,22 +567,64 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   // solo donde tiene sentido: en la carga inicial y en el botón "Todo".
   onSucursalChange() { this.cargar(); }
 
-  /** Atajo de periodo: últimos N días naturales hasta hoy. */
-  aplicarRango(dias: number) {
-    const r = this.limitesRango(dias);
+  /** Solo el día de hoy. */
+  aplicarHoy() {
+    this.desde = this.hasta = aFechaLocal(new Date());
+    this.cargar();
+  }
+  get hoyActivo(): boolean {
+    const h = aFechaLocal(new Date());
+    return this.desde === h && this.hasta === h;
+  }
+
+  /** El día que abre la semana de nómina. Lo manda la API; 4 = jueves. */
+  private get diaCorte(): number {
+    return this.datos?.diaInicioSemana ?? 4;
+  }
+
+  /** Inicio de la semana de nómina que contiene a esa fecha. */
+  private inicioSemanaDe(f: Date): Date {
+    const atras = (f.getDay() - this.diaCorte + 7) % 7;
+    const d = new Date(f);
+    d.setDate(f.getDate() - atras);
+    return d;
+  }
+
+  /**
+   * Semana de nómina completa. `off` 0 es la de hoy, -1 la anterior.
+   *
+   * La semana en curso se corta en HOY, no en su jueves final: pedir hasta una
+   * fecha futura llenaría el reporte de columnas vacías que se leen como faltas.
+   */
+  private limitesSemana(off: number): { desde: string; hasta: string } {
+    const hoy = new Date();
+    const ini = this.inicioSemanaDe(hoy);
+    ini.setDate(ini.getDate() + off * 7);
+    const fin = new Date(ini);
+    fin.setDate(ini.getDate() + 6);
+    return { desde: aFechaLocal(ini), hasta: aFechaLocal(fin < hoy ? fin : hoy) };
+  }
+
+  aplicarSemana(off: number) {
+    const r = this.limitesSemana(off);
     this.desde = r.desde;
     this.hasta = r.hasta;
     this.cargar();
   }
-  rangoActivo(dias: number): boolean {
-    const r = this.limitesRango(dias);
+  semanaActiva(off: number): boolean {
+    const r = this.limitesSemana(off);
     return this.desde === r.desde && this.hasta === r.hasta;
   }
-  private limitesRango(dias: number): { desde: string; hasta: string } {
-    const hoy = new Date();
-    const ini = new Date(hoy);
-    ini.setDate(hoy.getDate() - (dias - 1));
-    return { desde: aFechaLocal(ini), hasta: aFechaLocal(hoy) };
+  /** "jue 20 ago → hoy": qué periodo trae ese atajo, sin tener que picarlo. */
+  etiquetaSemanaAtajo(off: number): string {
+    const r = this.limitesSemana(off);
+    const corta = (iso: string) => {
+      const d = new Date(iso + 'T00:00:00');
+      const dow = d.toLocaleDateString('es-MX', { weekday: 'short' }).replace('.', '');
+      return `${dow} ${d.getDate()} ${d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '')}`;
+    };
+    const hoy = aFechaLocal(new Date());
+    return `${corta(r.desde)} → ${r.hasta === hoy ? 'hoy' : corta(r.hasta)}`;
   }
 
   /** Ajusta el rango a los últimos 30 días CON datos de la sucursal, luego carga. */

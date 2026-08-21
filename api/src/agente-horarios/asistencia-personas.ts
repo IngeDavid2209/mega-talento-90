@@ -131,6 +131,16 @@ export interface AsistenciaPersonas {
   ventanaHorarioDias: number;
   bolsaSemanalMin: number;
   corteSemana: string;
+  /**
+   * El día en que ABRE la semana de nómina (0=domingo … 4=jueves).
+   *
+   * Se manda para que la pantalla pueda alinear su filtro al MISMO corte con
+   * el que se acumula la tolerancia. Sin este número el front no tenía de
+   * dónde sacarlo: su atajo de "7 días" hacía `hoy − 6`, así que la semana
+   * empezaba el día en que alguien picaba el botón —un viernes, si se picaba
+   * en viernes— y el acumulado salía cortado por delante.
+   */
+  diaInicioSemana: number;
   diasExTrabajador: number;
   resumen: {
     personas: number;
@@ -608,6 +618,7 @@ export async function asistenciaPersonas(
     desdeHorario, ventanaHorarioDias: VENTANA_HORARIO_DIAS,
     bolsaSemanalMin: hd.BOLSA_SEMANAL_MIN,
     corteSemana: 'jueves a miércoles',
+    diaInicioSemana: hd.DIA_INICIO_SEMANA,
     diasExTrabajador: DIAS_EX,
     resumen: {
       personas: personas.length,

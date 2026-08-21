@@ -33,9 +33,14 @@
     <div class="ar-field ar-field-chips">
       <label>Atajos</label>
       <div class="ar-chips" role="group" aria-label="Atajos de periodo">
-        @for (r of RANGOS; track r.d) {
-          <button type="button" class="ar-chip" [class.on]="rangoActivo(r.d)"
-                  (click)="aplicarRango(r.d)">{{ r.l }}</button>
+        <button type="button" class="ar-chip" [class.on]="hoyActivo" (click)="aplicarHoy()">Hoy</button>
+        <!-- Los atajos de semana van pegados al corte de nómina, no a `hoy − 7`:
+             el tooltip dice las fechas exactas para que no haya que picarlo
+             para saber qué trae. -->
+        @for (s of SEMANAS; track s.off) {
+          <button type="button" class="ar-chip" [class.on]="semanaActiva(s.off)"
+                  [title]="etiquetaSemanaAtajo(s.off)"
+                  (click)="aplicarSemana(s.off)">{{ s.l }}</button>
         }
       </div>
     </div>

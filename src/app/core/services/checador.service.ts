@@ -109,6 +109,8 @@ export interface AsistenciaPersonas {
   ventanaHorarioDias: number;
   bolsaSemanalMin: number;
   corteSemana: string;
+  /** Día en que ABRE la semana de nómina (0=domingo … 4=jueves). */
+  diaInicioSemana: number;
   diasExTrabajador: number;
   resumen: {
     personas: number; usables: number; conPendiente: number;
