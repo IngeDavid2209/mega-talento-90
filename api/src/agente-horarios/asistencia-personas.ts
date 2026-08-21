@@ -389,7 +389,13 @@ export async function asistenciaPersonas(
     // Las promotoras no se miden con esta vara: no son personal de piso y no
     // checan en el reloj de la sucursal, así que aparecían con falta todos los
     // días. Un tablero que grita todos los días deja de mirarse.
-    if (emp?.es_promotora) continue;
+    //
+    // Y quien está dado de baja del padrón tampoco: su ficha sigue existiendo
+    // —la repone la ingesta porque el reloj lo trae enrolado— pero ya no trabaja
+    // aquí, así que contarle faltas es inventar un pendiente. `activo === false`
+    // es una decisión de RH; `null` es un código del reloj sin ficha, y ese SÍ se
+    // mide: es alguien marcando sin estar en el padrón, justo lo que hay que ver.
+    if (emp && (emp.es_promotora || emp.activo === false)) continue;
     const datos = porCodigo.get(cod);
     const dias = datos?.dias || [];
     const turnosConf = conf.get(cod) || null;

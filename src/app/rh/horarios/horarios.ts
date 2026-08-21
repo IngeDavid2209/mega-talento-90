@@ -178,9 +178,53 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return this.empleadosDeSucursal.filter(e => e.esPromotora);
   }
 
-  /** Todos los de la sucursal, promotoras incluidas. */
+  // ══ LAS FICHAS DADAS DE BAJA NO SE VEN, PERO SIGUEN AHÍ ══════════
+  //
+  // El barrido del padrón (api/tools/depurar-padron.js) da de baja a quien no
+  // tiene checadas en tres meses y no aparece en el reporte semanal de RH. Eso
+  // pone `activo = false`, y hasta ahora el campo era decorativo: la ficha seguía
+  // ocupando lugar en la lista, así que la depuración no se notaba en la pantalla
+  // —que es donde RH la pidió—.
+  //
+  // No se filtran y ya: quedan detrás de una línea que dice cuántas son. Borrarlas
+  // de la vista sin dejar rastro es como se pierde la pista de una baja mal hecha,
+  // y ahí mismo está el botón para reactivar a quien no debía salir.
+  mostrarBajas = false;
+
+  /** Todos los de la sucursal, promotoras incluidas, SIN las dadas de baja. */
   private get empleadosDeSucursal(): Empleado[] {
+    return this.empleadosDeSucursalTodos.filter(e => this.mostrarBajas || e.activo !== false);
+  }
+
+  private get empleadosDeSucursalTodos(): Empleado[] {
     return this.empleados.filter(e => !this.sucursalFiltro || e.sucursalId === this.sucursalFiltro);
+  }
+
+  /** Cuántas fichas de esta plaza están dadas de baja. */
+  get bajasDeSucursal(): number {
+    return this.empleadosDeSucursalTodos.filter(e => e.activo === false).length;
+  }
+
+  /** Reactiva una ficha que no debía haber salido del padrón. */
+  async reactivar(e: Empleado) {
+    if (!e.id || this.moviendo) return;
+    const ok = await this.toast.confirmar({
+      titulo: 'Reactivar en el padrón',
+      mensaje: `¿Volver a poner a "${e.nombre}" como activo? Vuelve a contar en la asistencia.`,
+      textoConfirmar: 'Reactivar',
+    });
+    if (!ok) return;
+    this.moviendo = e.id;
+    try {
+      await this.checador.guardarEmpleado({ ...e, activo: true });
+      e.activo = true;
+      this.toast.exito(`${e.nombre} volvió al padrón.`);
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo reactivar. Intenta de nuevo.');
+    } finally {
+      this.moviendo = '';
+    }
   }
 
   /** Texto del buscador para pasar a alguien de planta a promotoras. */

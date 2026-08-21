@@ -601,3 +601,23 @@
 
 /* La leyenda del checkbox de promotora, dentro del modal de empleado. */
 .hz-check small { display: block; width: 100%; margin-top: 2px; font-size: 11.5px; color: var(--text2); }
+
+/* ===== Fichas dadas de baja =====
+   Se esconden de la lista pero no del todo: la cuenta y el botón para volver a
+   verlas evitan que una baja equivocada se pierda de vista. */
+.hz-bajas-tog {
+  margin-left: auto; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text2); border-radius: 999px; padding: 4px 11px;
+  font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;
+}
+.hz-bajas-tog:hover { background: var(--surface2); color: var(--ink); }
+
+.hz-emp-card { position: relative; }
+.hz-reactivar {
+  position: absolute; top: 8px; right: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  border-radius: 999px; padding: 3px 10px;
+  font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer;
+}
+.hz-reactivar:hover:not(:disabled) { background: var(--surface2); }
+.hz-reactivar:disabled { opacity: .5; cursor: default; }

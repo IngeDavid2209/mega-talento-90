@@ -48,6 +48,8 @@
 //   node tools/depurar-padron.js --reportes "C:/ruta/cotejo-docs" --baja
 //   node tools/depurar-padron.js --reportes "C:/ruta/cotejo-docs" --borrar
 //   ... --dias 120        (cambia la ventana de silencio)
+//   node tools/depurar-padron.js --sembrar respaldo-padron-2026-08-21.json
+//                          (pone la lápida a un barrido anterior, sin recotejar)
 //
 // ══ BORRAR NO SIRVE: LA FICHA REVIVE. USA --baja ══
 //
@@ -103,8 +105,13 @@ if (MODO === 'borrar' && !ARGS.includes('--si-de-verdad')) {
 // Un borrado de cientos de filas sin respaldo no se puede deshacer. Con el
 // respaldo, si manana aparece alguien que no debia salir, se vuelve a meter.
 const RESPALDO = valor('--respaldo');
+// Siembra la lápida desde un respaldo anterior. Sirve para las fichas que ya se
+// borraron antes de que existiera `padron_depurado`: van a volver (el reloj las
+// trae enroladas) y sin su renglón volverían ACTIVAS.
+const SEMBRAR = valor('--sembrar');
 
-if (!DIR_REPORTES) {
+// Sembrar una lapida no necesita cotejar nada: la decision ya se tomo.
+if (!DIR_REPORTES && !SEMBRAR) {
   console.error('Falta --reportes con la carpeta de los PDF del reporte semanal.');
   process.exit(1);
 }
@@ -152,7 +159,45 @@ function leerReportes(dir) {
 /** Fracción del padrón activo que debe traer un reporte para darlo por completo. */
 const COBERTURA_MIN = 0.6;
 
+/** Pone la lápida a una lista de fichas (idempotente). */
+async function ponerLapida(cliente, fichas, motivo) {
+  for (const f of fichas) {
+    await cliente.query(
+      `INSERT INTO padron_depurado (sucursal_id, codigo_checador, nombre, motivo)
+       VALUES ($1,$2,$3,$4)
+       ON CONFLICT (sucursal_id, codigo_checador) DO UPDATE
+          SET nombre = COALESCE(padron_depurado.nombre, EXCLUDED.nombre),
+              motivo = EXCLUDED.motivo`,
+      [f.sucursalId || f.suc, f.codigo || f.codigo_checador, f.nombre, motivo]);
+  }
+}
+
 (async () => {
+  // ── Siembra desde un respaldo y ya ──
+  if (SEMBRAR) {
+    const prev = JSON.parse(fs.readFileSync(SEMBRAR, 'utf8'));
+    const fichas = prev.fichas || [];
+    if (!fichas.length) throw new Error('el respaldo no trae fichas');
+    const cliente = await pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      await ponerLapida(cliente, fichas, `sembrado del respaldo ${path.basename(SEMBRAR)}`);
+      // Las que ya volvieron (la ingesta las repuso activas) se apagan de una vez.
+      const r = await cliente.query(
+        `UPDATE empleados e SET activo = FALSE
+           FROM padron_depurado d
+          WHERE e.sucursal_id = d.sucursal_id AND e.codigo_checador = d.codigo_checador
+            AND e.activo`);
+      await cliente.query('COMMIT');
+      console.log(`\n  ✅ ${fichas.length} lápidas puestas · ${r.rowCount} fichas que ya habían vuelto se apagaron.`);
+    } catch (e) {
+      await cliente.query('ROLLBACK');
+      console.error('\n  ❌ ROLLBACK:', e.message);
+      process.exitCode = 1;
+    } finally { cliente.release(); await pool.end(); }
+    return;
+  }
+
   const reportes = leerReportes(DIR_REPORTES);
   const nombresReporte = reportes.flatMap((r) => r.nombres);
   const claves = new Set(nombresReporte.map(clave).filter(Boolean));
@@ -302,6 +347,10 @@ const COBERTURA_MIN = 0.6;
   try {
     await cliente.query('BEGIN');
     const ids = sobran.map((e) => e.id);
+    // La lápida va SIEMPRE, en los dos modos: es lo que evita que el siguiente
+    // lote de la ingesta las reponga activas.
+    await ponerLapida(cliente, sobran,
+      `sin checadas en ${DIAS} días y sin aparecer en el reporte de la semana 33`);
     const r = MODO === 'borrar'
       ? await cliente.query('DELETE FROM empleados WHERE id = ANY($1::uuid[])', [ids])
       : await cliente.query('UPDATE empleados SET activo = FALSE WHERE id = ANY($1::uuid[])', [ids]);

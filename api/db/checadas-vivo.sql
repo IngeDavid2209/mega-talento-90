@@ -169,3 +169,34 @@ CREATE INDEX IF NOT EXISTS idx_checadas_serie ON checadas (serie_reloj, fecha);
 -- Este índice es solo para que ese descarte sea rápido:
 CREATE INDEX IF NOT EXISTS idx_checadas_dedup_contenido
   ON checadas (sucursal_id, empleado_codigo, fecha_hora);
+
+-- ---------------------------------------------------------------------
+-- PADRÓN DEPURADO — la lápida que evita que una ficha revida.
+--
+-- El 21/08/2026 se depuraron 503 fichas del padrón (gente sin checadas en tres
+-- meses y que no aparece en el reporte semanal de RH). Diez minutos después, las
+-- 10 de Zamora Catedral estaban de vuelta con `creado_en` de esa misma tarde.
+--
+-- No fue un error del barrido: el upsert de la ingesta las repone. Si la ficha
+-- existe, cada lote solo le repasa el nombre; si NO existe porque se borró, entra
+-- por el INSERT con `activo = true`. Y vuelve porque la persona sigue ENROLADA EN
+-- EL RELOJ, que manda su padrón completo en cada lote. Borrar de la base sin dar
+-- de baja en el equipo es discutir con el reloj, y el reloj tiene la última
+-- palabra.
+--
+-- Esta tabla es la respuesta: la ingesta puede seguir reponiendo la ficha —de
+-- hecho conviene, para que sus checadas tengan a quién colgarse— pero la repone
+-- INACTIVA. La lápida no bloquea el dato; le quita el estatus de activo.
+--
+-- Para revivir a alguien (recontratación, o una depuración equivocada) se borra
+-- su renglón de aquí y se pone activo=TRUE en su ficha. Las dos cosas, porque
+-- mientras la lápida esté puesta el siguiente lote la volvería a apagar.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS padron_depurado (
+  sucursal_id      TEXT NOT NULL,
+  codigo_checador  TEXT NOT NULL,
+  nombre           TEXT,                -- como se llamaba al depurarla, para auditar
+  motivo           TEXT,
+  depurado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (sucursal_id, codigo_checador)
+);

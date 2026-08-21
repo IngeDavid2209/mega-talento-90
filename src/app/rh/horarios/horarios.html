@@ -100,10 +100,23 @@
         <div class="hz-emp-cat">
           <span class="hz-emp-cat-title">{{ nombreSucursal(sucursalFiltro) }}</span>
           <span class="hz-emp-cat-count">{{ empleadosFiltrados.length }} empleado(s)</span>
+          <!-- Las bajas no desaparecen sin dejar rastro: se dice cuántas son y se
+               pueden ver, porque ahí mismo está el botón para reactivar a quien no
+               debía haber salido del padrón. -->
+          @if (bajasDeSucursal) {
+            <button type="button" class="hz-bajas-tog" (click)="mostrarBajas = !mostrarBajas">
+              {{ mostrarBajas ? 'Ocultar' : 'Ver' }} {{ bajasDeSucursal }} dada(s) de baja
+            </button>
+          }
         </div>
         <div class="hz-emp-cards">
           @for (e of empleadosFiltrados; track e.id) {
             <div class="hz-emp-card" [class.hz-inactivo]="!e.activo">
+              @if (e.activo === false) {
+                <button type="button" class="hz-reactivar" [disabled]="moviendo === e.id"
+                        title="Volver a contarlo en la asistencia"
+                        (click)="reactivar(e)">Reactivar</button>
+              }
               <div class="hz-emp-avatar">
                 @if (e.fotoUrl) {
                   <img [src]="e.fotoUrl" [alt]="e.nombre">

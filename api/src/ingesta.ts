@@ -211,8 +211,22 @@ export async function aplicarLote(lote: LoteEntrante): Promise<ResultadoLote> {
     const nom = String(u?.nombre ?? '').trim();
     if (!cod) continue;
     nombres.set(cod, nom || `Empleado ${cod}`);
+    // `activo` NO se pone en true a ciegas: si la ficha está en `padron_depurado`
+    // (RH la dio de baja del padrón) vuelve INACTIVA.
+    //
+    // Sin esto el borrado se deshacía solo. Medido el 21/08/2026: se depuraron 503
+    // fichas y diez minutos después las 10 de Zamora Catedral estaban de vuelta,
+    // con `creado_en` de esa tarde. La persona sigue enrolada en el reloj y el
+    // equipo manda su padrón completo en cada lote, así que el INSERT las reponía
+    // activas una y otra vez, sin error y sin que nadie se enterara.
+    //
+    // Se repone la ficha a propósito, en vez de saltarla: así sus checadas tienen
+    // a quién colgarse y queda el rastro. Lo que no recupera es el estatus.
     await pool.query(
-      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo) VALUES ($1,$2,$3,true)
+      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo)
+       SELECT $1, $2, $3, NOT EXISTS (
+                SELECT 1 FROM padron_depurado d
+                 WHERE d.sucursal_id = $1 AND d.codigo_checador = $2)
        ON CONFLICT (sucursal_id, codigo_checador) DO UPDATE
           SET nombre = CASE
                 WHEN empleados.nombre IS NULL
