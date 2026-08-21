@@ -394,7 +394,16 @@
       <div class="rep-head">
         <div>
           <h3 class="rep-titulo">{{ nombreSucursal(sucursalFiltro) }}</h3>
-          <p class="rep-sub">{{ tituloReporte }}</p>
+          <p class="rep-sub">
+            {{ tituloReporte }}
+            <!-- Un reporte parcial TIENE que decir que lo es: sin esto, el PDF de
+                 una sola sección se lee como la plaza completa y su total de
+                 retardos pasa por el de todos. Va en el subtítulo porque es lo
+                 único que viaja impreso. -->
+            @if (seleccionParcial) {
+              <span class="rep-parcial">· solo {{ etiquetaSeleccion }}</span>
+            }
+          </p>
         </div>
         <div class="rep-acciones">
           <button type="button" class="ar-btn ar-btn-primary rep-pdf" (click)="exportarPdf()"
@@ -406,6 +415,35 @@
                   title="Cambiar a la vista de tarjetas">Ver tarjetas</button>
         </div>
       </div>
+
+      <!-- Secciones: se apagan y se prenden, y los dos exports (PDF y Excel)
+           siguen lo que quedó encendido. "Solo esta" es el atajo real: lo que
+           RH pide es un archivo por sección, no una combinación. -->
+      @if (seccionesTodas.length > 1) {
+        <div class="rep-secciones">
+          <span class="rep-secciones-lbl">Secciones</span>
+          @for (g of seccionesTodas; track g.departamento) {
+            <span class="rep-sec" [class.off]="!seccionVisible(g.departamento)">
+              <button type="button" class="rep-sec-tog"
+                      [attr.aria-pressed]="seccionVisible(g.departamento)"
+                      [title]="seccionVisible(g.departamento) ? 'Quitar del reporte y de la exportación' : 'Volver a incluirla'"
+                      (click)="toggleSeccion(g.departamento)">
+                {{ g.departamento }}
+                <em class="rep-sec-n">{{ g.empleados.length }}</em>
+              </button>
+              <button type="button" class="rep-sec-solo" title="Dejar solo esta sección"
+                      (click)="soloEstaSeccion(g.departamento)">solo</button>
+            </span>
+          }
+          @if (seccionesOcultas.size) {
+            <button type="button" class="rep-sec-todas" (click)="todasLasSecciones()">Ver todas</button>
+          }
+        </div>
+      }
+
+      @if (!porDepartamento.length) {
+        <div class="ar-empty">Apagaste todas las secciones: no hay nada que mostrar ni que exportar.</div>
+      }
 
       <div class="rep-scroll">
         <table class="rep-tabla">
@@ -424,6 +462,10 @@
               <tr class="rep-depto">
                 <td [attr.colspan]="columnasDia.length + 3">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
+                  <!-- El atajo donde se está mirando: aislar esta sección sin
+                       subir a los chips. No va al papel (rep-solo-fila). -->
+                  <button type="button" class="rep-solo-fila" title="Dejar solo esta sección en el reporte y en la exportación"
+                          (click)="soloEstaSeccion(g.departamento)">solo esta</button>
                 </td>
               </tr>
               @for (e of g.empleados; track e.codigo) {

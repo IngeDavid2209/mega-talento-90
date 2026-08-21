@@ -213,7 +213,9 @@ body.imprimiendo-reporte .tol,
 body.imprimiendo-reporte .falt,
 body.imprimiendo-reporte .cru,
 body.imprimiendo-reporte .ar-vista-switch,
-body.imprimiendo-reporte .rep-acciones { display: none !important; }
+body.imprimiendo-reporte .rep-acciones,
+body.imprimiendo-reporte .rep-secciones,
+body.imprimiendo-reporte .rep-solo-fila { display: none !important; }
 
 /* 3) Los contenedores no aportan nada al papel: sin marco, sin relleno. */
 body.imprimiendo-reporte .app-content,
@@ -239,7 +241,7 @@ body.imprimiendo-reporte .rep-scroll { overflow: visible !important; }
   .top-bar, .side-drawer, .menu-backdrop,
   .hz-header, .hz-toolbar, .hz-tabs,
   .ar-head, .ar-bar, .ar-relojes, .tol, .falt, .cru,
-  .ar-vista-switch, .rep-acciones { display: none !important; }
+  .ar-vista-switch, .rep-acciones, .rep-secciones, .rep-solo-fila { display: none !important; }
   .app-content, .app-wrapper, .content-area, .hz-page, .hz-panel, .ar-panel, body, html {
     background: #fff !important; margin: 0 !important; padding: 0 !important;
     border: 0 !important; box-shadow: none !important;

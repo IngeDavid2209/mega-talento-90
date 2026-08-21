@@ -435,7 +435,66 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   private readonly PRACTICANTES = 'PRACTICANTES';
 
   /** La lista agrupada por departamento, cada grupo ordenado por código. */
+  // ══ EXPORTAR POR SECCIONES ══════════════════════════════════════
+  //
+  // RH no siempre necesita el reporte completo: pide "nada más practicantes"
+  // o "nada más los que no tienen departamento" para mandárselo a quien le
+  // toca. Antes había que exportar todo y borrar filas en Excel a mano.
+  //
+  // Se filtra la VISTA, no el export: así lo que se ve es lo que sale, en PDF
+  // y en Excel, y no hay dos caminos que puedan discrepar. El PDF sale de la
+  // pantalla (regla de impresión en styles.css), así que esconder una sección
+  // aquí ya la deja fuera del papel sin tocar una línea de CSS.
+  //
+  // Las secciones se guardan como OCULTAS y no como seleccionadas: si mañana
+  // aparece un departamento nuevo en el padrón, sale a la vista por omisión en
+  // vez de quedarse escondido sin que nadie se entere.
+  seccionesOcultas = new Set<string>();
+
+  /** Todas las secciones de la plaza, con o sin filtro. Para los chips. */
+  get seccionesTodas(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
+    return this.agruparPorDepartamento();
+  }
+
+  /** ¿Se está viendo un pedazo del reporte y no la plaza completa? */
+  get seleccionParcial(): boolean {
+    return this.seccionesOcultas.size > 0 && this.porDepartamento.length > 0;
+  }
+
+  /**
+   * Las secciones que SÍ van, escritas. Va en el subtítulo del reporte y en el
+   * nombre del Excel: un reporte parcial que no dice que lo es se lee como la
+   * plaza completa, y sus totales pasan por los de todos.
+   */
+  get etiquetaSeleccion(): string {
+    const vis = this.porDepartamento.map(g => g.departamento);
+    if (!this.seccionesOcultas.size) return '';
+    if (!vis.length) return 'ninguna sección seleccionada';
+    if (vis.length <= 3) return vis.join(' + ');
+    return `${vis.length} de ${this.seccionesTodas.length} secciones`;
+  }
+
+  seccionVisible(dep: string): boolean { return !this.seccionesOcultas.has(dep); }
+
+  toggleSeccion(dep: string) {
+    if (this.seccionesOcultas.has(dep)) this.seccionesOcultas.delete(dep);
+    else this.seccionesOcultas.add(dep);
+  }
+
+  /** Aísla una sección: el atajo para "solo practicantes" en un clic. */
+  soloEstaSeccion(dep: string) {
+    this.seccionesOcultas = new Set(
+      this.seccionesTodas.map(g => g.departamento).filter(d => d !== dep));
+  }
+
+  todasLasSecciones() { this.seccionesOcultas = new Set(); }
+
+  /** El reporte tal como se ve: solo las secciones encendidas. */
   get porDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
+    return this.agruparPorDepartamento().filter(g => !this.seccionesOcultas.has(g.departamento));
+  }
+
+  private agruparPorDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
     const grupos = new Map<string, EmpleadoAsistencia[]>();
     for (const e of this.lista) {
       // Los practicantes (media jornada ~4 h, o ya marcados como tal en el
@@ -1113,9 +1172,15 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get barMax(): number { return Math.max(1, ...this.semanasChart.map(s => s.min)); }
   barPct(min: number): number { return Math.round((min / this.barMax) * 100); }
 
+  /**
+   * Exporta a Excel LO QUE SE VE: si hay secciones apagadas, no van. Antes
+   * exportaba `this.lista` completa sin importar el filtro, así que el archivo y
+   * la pantalla decían cosas distintas.
+   */
   exportarExcel() {
     const filas: any[] = [];
-    for (const e of this.lista) {
+    const visibles = this.porDepartamento;
+    for (const g of visibles) for (const e of g.empleados) {
       for (const s of e.semanas) {
         for (const d of s.dias) {
           filas.push({
@@ -1131,16 +1196,28 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Estado': this.estadoTexto(d),
             // Se exporta a propósito: quien abra el Excel tiene que poder ver que
             // este renglón no es utilizable antes de sumarlo a nómina.
-            'Número utilizable': e.usable ? 'Sí' : `No — ${e.bloqueadoPor.join(', ')}`
+            'Número utilizable': e.usable ? 'Sí' : `No — ${e.bloqueadoPor.join(', ')}`,
+            // Va la sección en cada renglón: sin ella, dos exports parciales
+            // pegados en un mismo libro no se pueden volver a separar.
+            'Sección': g.departamento
           });
         }
       }
     }
-    if (!filas.length) { this.toast.alerta('No hay asistencia para exportar en este rango.'); return; }
+    if (!filas.length) {
+      this.toast.alerta(this.seleccionParcial
+        ? 'No hay asistencia en las secciones que dejaste encendidas.'
+        : 'No hay asistencia para exportar en este rango.');
+      return;
+    }
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(filas), 'Asistencia');
-    const suc = this.nombreSucursal(this.sucursalFiltro).replace(/\s+/g, '_');
-    XLSX.writeFile(libro, `Asistencia_${suc}_${this.desde}_a_${this.hasta}.xlsx`);
+    const limpia = (t: string) => t.replace(/[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]+/g, '_').replace(/^_|_$/g, '');
+    const suc = limpia(this.nombreSucursal(this.sucursalFiltro));
+    // El nombre del archivo lleva la sección cuando es una sola: es lo que
+    // evita que tres exports parciales acaben siendo tres archivos iguales.
+    const parte = visibles.length === 1 ? '_' + limpia(visibles[0].departamento) : '';
+    XLSX.writeFile(libro, `Asistencia_${suc}${parte}_${this.desde}_a_${this.hasta}.xlsx`);
   }
 
   /** Texto del estado de un día, para el Excel y el tooltip. */
