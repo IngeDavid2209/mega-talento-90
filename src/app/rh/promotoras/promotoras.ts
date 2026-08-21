@@ -7,6 +7,8 @@ import { CENTROS_CON_RELOJ, centroChecadorPorId } from '../../core/models/sucurs
 import { ToastService } from '../../core/services/toast.service';
 import { subirACloudinary } from '../../core/services/cloudinary';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
+import { AsistenciaResumenComponent, VistaAsistencia, ConteosPendientes }
+  from '../asistencia-resumen/asistencia-resumen';
 
 /**
  * PROMOTORÍA — su propia sección, fuera de Empleados.
@@ -39,7 +41,7 @@ import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 @Component({
   selector: 'app-promotoras',
   standalone: true,
-  imports: [CommonModule, FormsModule, SucursalSelectComponent],
+  imports: [CommonModule, FormsModule, SucursalSelectComponent, AsistenciaResumenComponent],
   templateUrl: './promotoras.html',
   // LA MISMA hoja de estilos que Horarios, no una copia.
   //
@@ -57,6 +59,17 @@ export class PromotorasComponent implements OnInit, OnDestroy {
 
   SUCURSALES = CENTROS_CON_RELOJ;
   sucursalFiltro = CENTROS_CON_RELOJ[0]?.id || '';
+
+  /**
+   * La pestaña abierta. Las tres primeras son el MISMO componente de asistencia
+   * que usa Horarios, con `soloPromotoras` puesto: misma regla, otra gente.
+   * `padron` es la lista para dar de alta y mover entre planta y promotoría.
+   */
+  tab: VistaAsistencia | 'padron' = 'checadas';
+
+  /** Contadores de las pestañas; los reporta el componente de asistencia. */
+  conteos: ConteosPendientes = { rebasados: 0, faltas: 0 };
+  onConteos(c: ConteosPendientes) { this.conteos = c; }
 
   empleados: Empleado[] = [];
   private unsub: any;

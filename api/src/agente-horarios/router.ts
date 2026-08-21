@@ -95,7 +95,7 @@ agenteHorariosRouter.get('/cruces', async (req: Request, res: Response) => {
 });
 agenteHorariosRouter.get('/asistencia', async (req: Request, res: Response) => {
   try {
-    const { sucursalId, desde, hasta } = req.query as any;
+    const { sucursalId, desde, hasta, soloPromotoras } = req.query as any;
     if (!sucursalId || !desde || !hasta) {
       return res.status(400).json({ error: 'Faltan sucursalId, desde y hasta.' });
     }
@@ -107,6 +107,10 @@ agenteHorariosRouter.get('/asistencia', async (req: Request, res: Response) => {
     }
     res.json(await asistenciaPersonas({
       sucursalId: String(sucursalId), desde: String(desde), hasta: String(hasta),
+      // `?soloPromotoras=1` devuelve la asistencia de las PROMOTORAS de esa
+      // plaza en vez de la del personal de planta. Es la misma regla con el
+      // filtro invertido, no otro cálculo.
+      soloPromotoras: soloPromotoras === '1' || soloPromotoras === 'true',
     }));
   } catch (e) {
     fallo(res, e, 'No se pudo calcular la asistencia.');

@@ -376,7 +376,8 @@ async function justificantes(
 }
 
 export async function asistenciaPersonas(
-  { sucursalId, desde, hasta }: { sucursalId: string; desde: string; hasta: string }
+  { sucursalId, desde, hasta, soloPromotoras = false }:
+    { sucursalId: string; desde: string; hasta: string; soloPromotoras?: boolean }
 ): Promise<AsistenciaPersonas> {
   // En un checador de COMIDA la gente solo marca su desayuno/comida (un rato
   // corto), NO una jornada. Ahí "salida − entrada" ronda las 4 h y confundiría
@@ -444,7 +445,20 @@ export async function asistenciaPersonas(
     // aquí, así que contarle faltas es inventar un pendiente. `activo === false`
     // es una decisión de RH; `null` es un código del reloj sin ficha, y ese SÍ se
     // mide: es alguien marcando sin estar en el padrón, justo lo que hay que ver.
-    if (emp && (emp.es_promotora || emp.activo === false)) continue;
+    // El MISMO cálculo, con el filtro al revés según a quién se esté mirando.
+    //
+    // Promotoría pidió su propia pantalla de asistencia, igual a la de planta
+    // pero con su gente. Copiar el cálculo para ellas habría dejado dos reglas
+    // que se separan en el primer ajuste; esto es un interruptor sobre el mismo
+    // recorrido: `soloPromotoras` cambia a QUIÉN se salta, y nada más.
+    //
+    // Ojo con el código SIN ficha (`emp` undefined): en la vista de planta SÍ se
+    // mide —es alguien marcando sin estar en el padrón, justo lo que hay que
+    // ver—, pero en la de promotoras no se puede saber si le toca, así que se
+    // salta. Meterlo ahí lo contaría dos veces entre las dos pantallas.
+    if (soloPromotoras) {
+      if (!emp || !emp.es_promotora || emp.activo === false) continue;
+    } else if (emp && (emp.es_promotora || emp.activo === false)) continue;
     const datos = porCodigo.get(cod);
     const dias = datos?.dias || [];
     const turnosConf = conf.get(cod) || null;

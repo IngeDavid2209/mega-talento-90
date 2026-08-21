@@ -468,8 +468,16 @@ export class ChecadorService {
    * Cada persona trae `usable` y `marcas`: si viene una marca de gravedad alta,
    * el número existe pero NO se puede llevar a nómina.
    */
-  async getAsistencia(sucursalId: string, desde: string, hasta: string): Promise<AsistenciaPersonas> {
-    return this.api.get<AsistenciaPersonas>('/checador/agente/asistencia', { sucursalId, desde, hasta });
+  /**
+   * `soloPromotoras` devuelve la asistencia de las PROMOTORAS de la plaza en vez
+   * de la del personal de planta. Es la MISMA regla con el filtro invertido —no
+   * otro cálculo—, y de ahí sale la pantalla de Promotoría.
+   */
+  async getAsistencia(
+    sucursalId: string, desde: string, hasta: string, soloPromotoras = false,
+  ): Promise<AsistenciaPersonas> {
+    return this.api.get<AsistenciaPersonas>('/checador/agente/asistencia',
+      soloPromotoras ? { sucursalId, desde, hasta, soloPromotoras: '1' } : { sucursalId, desde, hasta });
   }
 
   /**

@@ -176,6 +176,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * la API.
    */
   @Input() vista: VistaAsistencia = 'checadas';
+  /**
+   * Mide a las PROMOTORAS de la plaza en vez del personal de planta.
+   *
+   * Promotoría pidió su propia pantalla "igual a la de horarios y checadas pero
+   * con las promotoras". Es este mismo componente con el filtro invertido: una
+   * copia habría dejado dos pantallas que se separan en el primer ajuste.
+   */
+  @Input() soloPromotoras = false;
   /** Emite el evento del <input file> para que el padre procese el archivo. */
   @Output() archivo = new EventEmitter<Event>();
   /**
@@ -760,6 +768,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get porConfirmar(): number { return this.datos?.resumen.horarioAmbiguo ?? 0; }
   get bolsaSemanal(): number { return this.datos?.bolsaSemanalMin ?? 15; }
 
+  /** Cómo llamarle a la gente que se está midiendo, según la pantalla. */
+  get comoSeLlaman(): string { return this.soloPromotoras ? 'Promotoras' : 'Empleados'; }
+
   // Al cambiar de sucursal se CONSERVA el periodo elegido y solo se recarga.
   //
   // Antes se llamaba a `ajustarRangoYCargar()`, que reescribía las fechas a los
@@ -849,7 +860,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (!this.sucursalFiltro || !this.desde || !this.hasta) { this.lista = []; this.computarTolerancia(); return; }
     if (!silencioso) this.cargando = true;
     try {
-      this.datos = await this.checador.getAsistencia(this.sucursalFiltro, this.desde, this.hasta);
+      this.datos = await this.checador.getAsistencia(
+        this.sucursalFiltro, this.desde, this.hasta, this.soloPromotoras);
       this.lista = this.datos.personas.map(p => this.aVista(p));
       this.computarGraficas();
       this.computarTolerancia();
