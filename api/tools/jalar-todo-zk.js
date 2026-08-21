@@ -186,7 +186,13 @@ async function escribirDirecto(suc, filas, usuarios, serie) {
     const grupo = filas.slice(i, i + 200);
     const vals = [], params = [];
     grupo.forEach((c, j) => {
-      const b = j * 10;
+      // PASO 9, NO 10. Cada fila aporta NUEVE parametros y la decima columna
+      // (`recibido_en`) la pone `now()`, que no lleva parametro. Con paso 10 la
+      // numeracion se desalinea a partir de la segunda fila y Postgres corta con
+      // "could not determine data type of parameter $10": el modo --directo llevaba
+      // roto desde que se agregaron `serie_reloj` y `recibido_en` (03c976b) y no se
+      // habia notado porque la ruta normal es la ingesta por API.
+      const b = j * 9;
       vals.push(`($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7},$${b+8},$${b+9},now())`);
       // dedup_key con SERIE cuando se conoce: sin ella, los dos relojes de
       // corporativo (.80 entrada/salida y .81 comida) se comen las checadas uno

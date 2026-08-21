@@ -86,14 +86,42 @@ function fmt(d) {
 // Se lee con CMD_OPTIONS_RRQ '~SerialNumber'. Se saca por expresión regular del
 // buffer completo y no por offset fijo, porque el offset cambia entre firmwares
 // y un offset equivocado devuelve basura que PARECE una serie.
+//
+// EL TERMINADOR NO SIEMPRE ES EL MISMO, Y ESO ROMPE LA IDENTIDAD.
+//
+// Medido el 20/08/2026 contra 192.168.30.253 (Morelia Abastos), tres lecturas
+// seguidas en la MISMA sesion devolvieron el mismo numero con DOS cierres
+// distintos: dos veces terminado en NUL y una vez terminado en '='. La clase
+// del parseo se traga ese '=' y la serie sale de 14 caracteres una vez de cada
+// tres.
+//
+// No es cosmetico: serieCoincide() exige MISMA LONGITUD, asi que la lectura
+// sucia no empata con la del padron y el equipo pasa por "esta IP ya no es ese
+// reloj" —justo la alarma que existe para que las marcas de una plaza no entren
+// bajo otra—. Y si la sucia es la que queda GUARDADA en `relojes`, falla al
+// reves: el agente reporta la limpia y la ingesta la rechaza por serie
+// desconocida. Paso el 20/08/2026 al registrar este reloj.
+//
+// Las series son alfanumericas (CEZU201060011, 3266161700253), asi que se
+// recorta lo que no sea letra o digito en los extremos.
 // ──────────────────────────────────────────────────────────────────
 async function leerSerie(zk) {
   const buf = await zk.executeCmd(COMMANDS.CMD_OPTIONS_RRQ, '~SerialNumber');
   const txt = Buffer.isBuffer(buf) ? buf.toString('ascii') : String(buf || '');
   const m = /~SerialNumber\s*=\s*([^\0\r\n]*)/i.exec(txt);
-  const serie = (m ? m[1] : '').trim();
+  const serie = limpiarSerie(m ? m[1] : '');
   if (!serie) throw new Error('el reloj no devolvió número de serie');
   return serie;
+}
+
+/** Quita terminadores y espacios de los extremos de una serie leida del equipo. */
+function limpiarSerie(s) {
+  const t = String(s || '').trim();
+  let i = 0, j = t.length;
+  const alnum = (c) => /[A-Za-z0-9]/.test(c);
+  while (i < j && !alnum(t[i])) i++;
+  while (j > i && !alnum(t[j - 1])) j--;
+  return t.slice(i, j);
 }
 
 /**
@@ -343,7 +371,7 @@ function normalizarUsuarios(users) {
 
 module.exports = {
   motivo, esInalcanzable, fmt, pad, serieCoincide,
-  conectar, cerrar, leerSerie, leerHoraReloj, autenticar, claveComunicacion,
+  conectar, cerrar, leerSerie, limpiarSerie, leerHoraReloj, autenticar, claveComunicacion,
   leerVerificado, normalizarChecadas, normalizarUsuarios,
   PUERTO_DEFAULT, INTENTOS_DEFAULT, PAUSA_MS_DEFAULT,
 };

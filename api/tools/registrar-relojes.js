@@ -26,7 +26,7 @@
 
 try { require('dotenv').config(); } catch { /* dotenv opcional */ }
 const { Pool } = require('pg');
-const { conectar, cerrar, leerSerie, motivo, PUERTO_DEFAULT } = require('./lectura-verificada');
+const { conectar, cerrar, leerSerie, limpiarSerie, motivo, PUERTO_DEFAULT } = require('./lectura-verificada');
 
 const ARGS = process.argv.slice(2);
 const DRY_RUN = ARGS.includes('--dry-run');
@@ -73,21 +73,41 @@ async function upsert(fila) {
   );
 }
 
-/** Al aparecer la serie real, la fila provisional de esa IP sobra. */
-async function jubilarProvisional(ip, serieReal) {
-  const prov = seriePendiente(ip);
-  if (prov === serieReal) return false;
-  const { rows } = await pool.query('SELECT serie FROM relojes WHERE serie=$1', [prov]);
-  if (!rows.length) return false;
+/**
+ * Retira las filas que son ESTE MISMO reloj escrito de otra forma.
+ *
+ * Son dos casos:
+ *   1. La provisional `SIN-SERIE:<ip>` que se creo cuando el equipo no
+ *      contestaba. Al aparecer su serie real, sobra.
+ *   2. Una fila de la MISMA IP cuya serie es la real con basura en los
+ *      extremos. Paso el 20/08/2026 con Morelia Abastos: el equipo cierra el
+ *      `~SerialNumber` unas veces con NUL y otras con '=', y el registro quedo
+ *      guardado como `3266161700253=`. Con la serie sucia en el padron, el
+ *      agente reporta la limpia y la ingesta la rechaza por serie desconocida:
+ *      la plaza no baja nada y no sale ningun error. Ya se corrigio la lectura
+ *      (ver `limpiarSerie` en lectura-verificada.js); esto limpia lo que quedo
+ *      guardado antes de la correccion.
+ *
+ * En los dos casos el latido se muda a la fila buena antes de borrar: es el
+ * unico registro de cuando se le vio por ultima vez.
+ */
+async function jubilarDuplicadas(ip, serieReal) {
+  const { rows } = await pool.query(
+    'SELECT serie FROM relojes WHERE (ip=$1 OR serie=$2) AND serie <> $3', [ip, seriePendiente(ip), serieReal]);
+  // Solo las que SON este reloj: la provisional de su IP, o la misma serie con
+  // basura. Una fila de otro equipo que comparta IP no se toca desde aqui.
+  const sobran = rows.map((r) => r.serie).filter((x) =>
+    x === seriePendiente(ip) || limpiarSerie(x) === serieReal);
+  if (!sobran.length) return false;
   if (DRY_RUN) return true;
-  // El latido de la fila provisional se mueve a la buena antes de borrarla: es
-  // el único registro de cuándo se le vio por última vez.
-  await pool.query(
-    `INSERT INTO relojes_estado (serie, ultima_senal, ultima_checada, ip_vista)
-     SELECT $2, ultima_senal, ultima_checada, ip_vista FROM relojes_estado WHERE serie=$1
-     ON CONFLICT (serie) DO NOTHING`, [prov, serieReal]
-  );
-  await pool.query('DELETE FROM relojes WHERE serie=$1', [prov]);   // cascada borra su estado
+  for (const sobra of sobran) {
+    await pool.query(
+      `INSERT INTO relojes_estado (serie, ultima_senal, ultima_checada, ip_vista)
+       SELECT $2, ultima_senal, ultima_checada, ip_vista FROM relojes_estado WHERE serie=$1
+       ON CONFLICT (serie) DO NOTHING`, [sobra, serieReal]
+    );
+    await pool.query('DELETE FROM relojes WHERE serie=$1', [sobra]);   // cascada borra su estado
+  }
   return true;
 }
 
@@ -108,7 +128,7 @@ async function jubilarProvisional(ip, serieReal) {
     finally { await cerrar(zk); }
 
     if (serie) {
-      const jubilado = await jubilarProvisional(t.ip, serie);
+      const jubilado = await jubilarDuplicadas(t.ip, serie);
       await upsert({
         serie, suc: t.suc, alias, ip: t.ip, pendiente: t.pendiente === true,
         nota: t.nota, modo: 'agente',
@@ -116,7 +136,7 @@ async function jubilarProvisional(ip, serieReal) {
       conSerie++;
       console.log(`  ✅ ${t.suc.padEnd(26)} ${t.ip.padEnd(16)} serie ${serie}` +
                   (t.pendiente ? '  ⏸ en pausa' : '') +
-                  (jubilado ? '  (se retiró su fila provisional)' : ''));
+                  (jubilado ? '  (se retiró una fila repetida de este mismo reloj)' : ''));
     } else {
       const serieProv = seriePendiente(t.ip);
       const { rows } = DRY_RUN ? { rows: [] } : await pool.query(

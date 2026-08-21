@@ -139,7 +139,20 @@ export const CENTROS_SIN_RELOJ: string[] = [
   'la-piedad-centro',    // nunca ha tenido reloj ni padrón
   'morelia-figaredo',    // nunca ha tenido reloj ni padrón
   'santa-ana-pacueco',   // nunca ha tenido reloj ni padrón
-  'morelia-abastos',     // el equipo no responde en el 4370 (probado 28/07, 05/08 y 17/08)
+  // MORELIA ABASTOS SALIÓ DE ESTA LISTA EL 20/08/2026.
+  //
+  // Llevaba aquí porque su reloj no contestaba —probado el 28/07, el 05/08 y el
+  // 17/08—. El 20/08 sí contestó: la subred 192.168.30.x ya tiene ruta desde el
+  // corporativo y el equipo (192.168.30.253, serie 3266161700253) entregó su log
+  // completo: 22,888 checadas del 02/01/2026 a la fecha, ~100 marcas diarias.
+  //
+  // Se confirmó que es SUYO por código, no por nombre: 58 de los 60 códigos de su
+  // padrón existen en el reloj y 44 comparten nombre, contra 0-4% en las otras once
+  // plazas. El cotejo por nombre completo daba cero y engañaba —la base guarda
+  // 'GARCIA TAPIA LUCIA' y el reloj 'Luciagarciatapia'—.
+  //
+  // Lección para la próxima: 'no responde' caduca. Estas tres de arriba habría que
+  // volver a probarlas cuando cambie la red, no darlas por muertas para siempre.
 ];
 
 /** ¿De esta plaza hay que esperar checadas, o no tiene reloj instalado? */
@@ -148,8 +161,9 @@ export function tieneReloj(id: string): boolean {
 }
 
 /**
- * Lo que SÍ se ofrece en el checador: las ocho plazas que hoy tienen reloj y
- * devuelven datos. Los relojes registrados son diez, pero dos están en pausa
+ * Lo que SÍ se ofrece en el checador: las nueve plazas que hoy tienen reloj y
+ * devuelven datos (la novena es Morelia Abastos, que entró el 20/08/2026). Los
+ * relojes registrados son doce, pero dos están en pausa
  * (el de comida de oficinas, con numeración propia sin traducir, y el que
  * todavía no se sabe de qué plaza es) y no corresponden a ninguna sucursal del
  * catálogo. Esos dos se vigilan desde el semáforo de relojes, no desde aquí.

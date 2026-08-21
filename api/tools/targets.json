@@ -1,5 +1,5 @@
 [
-  { "//BARRIDO": "El 05/08/2026 se barrieron COMPLETAS, direccion por direccion (254 cada una), las 13 subredes de la lista de puertas de enlace: 0, 10, 20, 30, 32, 40, 42, 44, 50, 52, 54, 60, 70 y 90. Resultado: 10 relojes en total. Cada plaza tiene UNO solo; las oficinas tienen tres (.80 entrada/salida, .81 comida, .196 sin identificar) y CEDIS uno (.153). En 10.x, 20.x, 30.x, 52.x, 60.x, 70.x y 90.x NO hay ningun reloj, asi que ni Morelia Abastos ni 'Sucursal PH' son alcanzables desde la red del corporativo: su dato solo puede entrar corriendo el agente DENTRO de esas plazas.",
+  { "//BARRIDO": "El 05/08/2026 se barrieron COMPLETAS, direccion por direccion (254 cada una), las 13 subredes de la lista de puertas de enlace: 0, 10, 20, 30, 32, 40, 42, 44, 50, 52, 54, 60, 70 y 90. Resultado: 10 relojes en total. Cada plaza tiene UNO solo; las oficinas tienen tres (.80 entrada/salida, .81 comida, .196 sin identificar) y CEDIS uno (.153). En 10.x, 20.x, 52.x, 60.x, 70.x y 90.x NO hay ningun reloj. CORREGIDO EL 20/08/2026: en 30.x SI hay uno y SI es alcanzable —192.168.30.253 responde completo, con ruta de 3 saltos (192.168.0.254 -> 172.16.2.2 -> destino)—. El barrido del 05/08 no lo vio porque en ese momento no habia ruta a esa subred; ahora la hay. Moraleja: 'no responde' caduca, y el padron tiene que volver a probarse cuando cambie la red.",
 
     "//": "PADRON DE RELOJES, verificado contra la base el 05/08/2026. Cada IP se",
     "//2": "confirmo leyendo el padron DEL RELOJ y comparandolo con el de la",
@@ -40,8 +40,11 @@
   { "ip": "192.168.10.2", "suc": "SUCURSAL-PH", "pendiente": true,
     "nota": "PENDIENTE, NO RESPONDE en el puerto 4370. Ya se habia probado el 28/07 con el mismo resultado. Falta saber que plaza es 'PH' y cual es su IP real." },
 
-  { "ip": "192.168.50.253", "suc": "morelia-abastos", "pendiente": true,
-    "nota": "PENDIENTE, NO RESPONDE. En la lista anterior figuraba como 192.168.30.253 y tampoco respondia. Esta plaza NUNCA se ha importado: es trabajo de campo (equipo apagado, sin cable, o IP distinta)." },
+  { "ip": "192.168.30.253", "suc": "morelia-abastos", "serie": "3266161700253",
+    "nota": "Morelia Abastos. RESUELTO EL 20/08/2026 tras meses en pendiente: el equipo responde completo (373 usuarios, 22,886 checadas del 02/01/2026 a la fecha, ~100 marcas diarias, desfase de hora -40s). Verificado POR CODIGO, no por nombre: 58 de los 60 codigos del padron existen en el reloj y 44 comparten nombre (73%), contra 0-4% en las once plazas restantes. El cotejo por nombre completo daba 0 y era ENGANOSO —la base guarda el nombre formal ('GARCIA TAPIA LUCIA') y el reloj el de uso ('Luciagarciatapia')—; pares como #7 GARCIA ZURITA MANUEL DI STEFANO / Manuelgarciaz, #69 PICENO LOZA AIDE CRISTINA / Aidepizeno y #80 LA ROSA ALEJANDRA / Alelarosa no dejan lugar a duda. Sus 'nombres de marca' (Delicias, Hersheys, Canels, Totis) tambien estan en el padron de la plaza: son promotoras nombradas por la marca que atienden." },
+
+  { "ip": "192.168.50.253", "suc": "morelia-abastos", "pendiente": true, "duplicado": true,
+    "nota": "PENDIENTE, NO RESPONDE, y probablemente NO EXISTE. Es la IP que la lista nueva daba para Morelia Abastos; su reloj real resulto ser 192.168.30.253 (la de la lista ANTERIOR), confirmada el 20/08/2026. Se deja anotada para que nadie vuelva a perseguirla creyendo que falta un equipo." },
 
   { "ip": "192.168.80.79", "suc": "SIN-IDENTIFICAR", "pendiente": true,
     "nota": "PENDIENTE, ya no viene en la lista nueva. Respondia con datos al dia y sus 7 usuarios (Sistemas, Rubio, LicOmar, Lizbeth, Alejandro, Cristobal, Dionisio) no coincidian con ningun padron. Se deja anotado por si reaparece." }
