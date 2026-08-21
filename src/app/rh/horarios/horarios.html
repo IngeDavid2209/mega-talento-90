@@ -9,6 +9,10 @@
   </header>
 
   <!-- BARRA: sucursal (compartida) -->
+  <!-- En Cruces se esconde: esa vista mira TODAS las plazas, y dejar el
+       selector puesto haría leer la lista como si fuera de la plaza elegida
+       y estuviera incompleta. -->
+  @if (tabActiva !== 'cruces') {
   <div class="hz-toolbar">
     <div class="hz-field">
       <label>Sucursal</label>
@@ -17,6 +21,7 @@
       </app-sucursal-select>
     </div>
   </div>
+  }
 
   <!-- PESTAÑAS -->
   <nav class="hz-tabs">
@@ -34,6 +39,11 @@
             title="Quién faltó en un día que no es domingo (regla de tienda).">
       Faltas
       @if (conteos.faltas) { <span class="hz-tab-num hz-tab-alerta">{{ conteos.faltas }}</span> }
+    </button>
+    <button [class.active]="tabActiva === 'cruces'" (click)="cambiarTab('cruces')"
+            title="Quién checó en el reloj de otra plaza. Mira todas las plazas a la vez.">
+      Cruces
+      @if (totalCruces) { <span class="hz-tab-num hz-tab-alerta">{{ totalCruces }}</span> }
     </button>
     <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
     <button [class.active]="tabActiva === 'promotoras'" (click)="cambiarTab('promotoras')">
@@ -60,6 +70,13 @@
         (conteos)="onConteos($event)"
         (archivo)="onArchivoSeleccionado($event)">
       </app-asistencia-resumen>
+    </section>
+  }
+
+  <!-- ====================== CRUCES ENTRE PLAZAS ====================== -->
+  @if (tabActiva === 'cruces') {
+    <section class="hz-panel">
+      <app-cruces-plazas (total)="onTotalCruces($event)"></app-cruces-plazas>
     </section>
   }
 

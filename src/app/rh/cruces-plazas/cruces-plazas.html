@@ -1,0 +1,151 @@
+<section class="cru">
+  <!-- Esta pestaña ignora el selector de sucursal de la página, y hay que decirlo:
+       si no, se lee como si mostrara la plaza elegida y estuviera incompleta. -->
+  <div class="cru-bar">
+    <div class="cru-field">
+      <label>Periodo</label>
+      <div class="cru-periodo">
+        <input type="date" [(ngModel)]="desde" (change)="cargar()" aria-label="Desde">
+        <span class="cru-periodo-sep" aria-hidden="true">→</span>
+        <input type="date" [(ngModel)]="hasta" (change)="cargar()" aria-label="Hasta">
+      </div>
+    </div>
+    <div class="cru-field">
+      <label>Atajos</label>
+      <div class="cru-chips" role="group" aria-label="Atajos de periodo">
+        <button type="button" class="cru-chip" (click)="aplicarRango(7)">7 días</button>
+        <button type="button" class="cru-chip" (click)="aplicarRango(30)">30 días</button>
+        <button type="button" class="cru-chip" (click)="aplicarRango(90)">90 días</button>
+      </div>
+    </div>
+    <div class="cru-acciones">
+      <span class="cru-todas" title="El cruce solo existe comparando una plaza contra otra, así que esta vista no depende de la sucursal elegida arriba.">
+        todas las plazas
+      </span>
+      <button type="button" class="cru-btn" (click)="exportar()" [disabled]="!visibles.length">
+        Exportar a Excel
+      </button>
+    </div>
+  </div>
+
+  <p class="cru-nota">
+    Se sigue a cada persona por su <b>nombre</b>, no por su código: los códigos se repiten entre
+    plazas —el #17 de Morelia Madero y el #17 de Abastos son personas distintas—, así que una marca
+    en el reloj ajeno entra como si fuera del homónimo de allá y <b>por código es invisible</b>.
+    Los dos relojes de oficinas (jornada y comida) cuentan como <b>una sola sede</b>: cruzarse
+    entre ellos es lo normal, no un hallazgo.
+  </p>
+
+  @if (cargando) {
+    <div class="cru-empty">Buscando cruces entre plazas…</div>
+  } @else if (error) {
+    <div class="cru-empty cru-error">{{ error }}</div>
+  } @else if (!datos) {
+    <div class="cru-empty">Elige un periodo para revisar.</div>
+  } @else {
+    <!-- El universo revisado, para que el cero signifique algo. Sin esta línea,
+         "0 casos" se lee igual que "no se revisó nada". -->
+    <p class="cru-universo">
+      <b>{{ datos.enDosSedes }}</b> personas están dadas de alta en dos sedes distintas
+      (es lo único que puede producir un cruce). De ellas,
+      <b>{{ datos.resumen.personas }}</b> tuvieron marcas en dos sedes el mismo día,
+      en <b>{{ datos.resumen.dias }}</b> días del periodo.
+    </p>
+
+    <div class="cru-filtros" role="group" aria-label="Clases de caso">
+      @for (c of CLASES; track c.v) {
+        <button type="button" class="cru-f" [class.on]="filtro[c.v]" [attr.data-clase]="c.v"
+                [title]="c.ayuda" (click)="toggleFiltro(c.v)">
+          <span class="cru-f-dot" aria-hidden="true"></span>
+          {{ c.l }}
+          <span class="cru-f-n">{{ cuenta(c.v) }}</span>
+        </button>
+      }
+    </div>
+
+    @if (!visibles.length) {
+      <div class="cru-empty">
+        @if (datos.resumen.personas) {
+          Los casos que hay están en clases apagadas. Enciende alguna arriba para verlos.
+        } @else {
+          Nadie checó en la plaza de otro del {{ desde }} al {{ hasta }}.
+        }
+      </div>
+    } @else {
+      <ul class="cru-lista">
+        @for (p of visibles; track p.clave) {
+          <li class="cru-item" [attr.data-clase]="p.clase" [class.abierto]="abierta === p.clave">
+            <button type="button" class="cru-fila" (click)="toggleAbierta(p.clave)"
+                    [attr.aria-expanded]="abierta === p.clave">
+              <span class="cru-clase">{{ etiquetaClase(p.clase) }}</span>
+              <span class="cru-id">
+                <span class="cru-nom">{{ p.nombre }}</span>
+                <span class="cru-sub">{{ altasTexto(p) }}</span>
+              </span>
+              <span class="cru-nums">
+                <b>{{ p.diasCruzados }}</b> día{{ p.diasCruzados === 1 ? '' : 's' }}
+                @if (p.traslapes) { <em class="cru-grave">· {{ p.traslapes }} encimados</em> }
+                @if (p.marcasAjenas) { <em>· {{ p.marcasAjenas }} en plaza ajena</em> }
+              </span>
+              <span class="cru-ultimo">último: {{ etiquetaDia(p.ultimoDia) }}</span>
+              <svg class="cru-chev" [class.abierto]="abierta === p.clave" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 6l4 4 4-4"/>
+              </svg>
+            </button>
+
+            @if (abierta === p.clave) {
+              <div class="cru-detalle">
+                <p class="cru-porque">{{ ayudaClase(p.clase) }}</p>
+
+                <!-- Una promotora sin marcar es la causa más común de un falso
+                     positivo aquí, y se arregla en un clic desde la pestaña
+                     Promotoras. Decirlo convierte el hallazgo en una acción. -->
+                @if (!p.esPromotora && (p.clase === 'jornada_partida' || p.clase === 'sueltas')) {
+                  <p class="cru-tip">
+                    Si esta persona anda entre plazas por su puesto, márcala como <b>promotora</b>
+                    en la pestaña Promotoras: sus cruces pasan a la clase de rutas y dejan de
+                    aparecer aquí.
+                  </p>
+                }
+
+                <table class="cru-tabla">
+                  <thead>
+                    <tr>
+                      <th>Día</th>
+                      <th>Dónde estuvo, y a qué hora</th>
+                      <th>Entre una y otra</th>
+                      <th>Lectura</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (d of p.dias; track d.fecha) {
+                      <tr [attr.data-clase]="d.clase">
+                        <td class="cru-dia">{{ etiquetaDia(d.fecha) }}</td>
+                        <td class="cru-estancias">
+                          @for (e of d.estancias; track e.sucursalId + e.codigo) {
+                            <span class="cru-est" [class.instante]="esInstante(e.marcas)">
+                              <b>{{ nombreSucursal(e.sucursalId) }}</b>
+                              <span class="cru-horas">
+                                @if (esInstante(e.marcas)) {
+                                  {{ e.primera }} <em title="Una sola marca: es un instante, no una estancia. No prueba cuánto tiempo estuvo.">(1 marca)</em>
+                                } @else {
+                                  {{ e.primera }}→{{ e.ultima }} <em>({{ e.marcas }})</em>
+                                }
+                              </span>
+                            </span>
+                          }
+                        </td>
+                        <td class="cru-hueco" [class.grave]="(d.huecoMin ?? 0) < 0">{{ huecoTexto(d) }}</td>
+                        <td class="cru-lectura">{{ etiquetaClase(d.clase) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

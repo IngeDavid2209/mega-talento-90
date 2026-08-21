@@ -7,6 +7,7 @@ import {
   PersonaAsistencia, SemanaApi, DiaApi
 } from '../../core/services/checador.service';
 import { VistaAsistencia, ConteosPendientes } from '../asistencia-resumen/asistencia-resumen';
+import { CrucesPlazasComponent } from '../cruces-plazas/cruces-plazas';
 import {
   AreaChecador, HorarioArea, Empleado,
   TIPOS_CHECADA, DIAS_SEMANA, aFechaLocal
@@ -18,7 +19,7 @@ import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
-type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'horarios' | 'areas' | 'empleados' | 'promotoras';
+type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'promotoras';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -37,7 +38,7 @@ interface DetalleEmpleado {
 @Component({
   selector: 'app-horarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent],
+  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent],
   templateUrl: './horarios.html',
   styleUrl: './horarios.css'
 })
@@ -138,6 +139,17 @@ export class HorariosComponent implements OnInit, OnDestroy {
    */
   conteos: ConteosPendientes = { rebasados: 0, faltas: 0 };
   onConteos(c: ConteosPendientes) { this.conteos = c; }
+
+  /**
+   * CRUCES ENTRE PLAZAS: la única pestaña que NO depende de la sucursal.
+   *
+   * Un cruce solo existe comparando una plaza contra otra, así que filtrar por
+   * una sola no tiene sentido —y dejar el selector puesto haría creer que la
+   * lista es de esa plaza y que está incompleta—. Por eso la barra de sucursal
+   * se esconde en esta pestaña.
+   */
+  totalCruces = 0;
+  onTotalCruces(n: number) { this.totalCruces = n; }
 
   // ===================== Listados filtrados por sucursal =====================
 

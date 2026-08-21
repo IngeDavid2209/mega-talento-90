@@ -9,6 +9,7 @@ import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
 import { estadoCorredor, correrUnaVez } from './corredor';
 import { asistenciaPersonas } from './asistencia-personas';
+import { crucesEntrePlazas } from './cruces-plazas';
 
 /** Umbral de ex-trabajador, el mismo que usa el corredor (ver corredor.ts). */
 const DIAS_EX = Math.max(0, parseInt(process.env.AGENTE_DIAS_EX || '21', 10) || 21);
@@ -68,6 +69,30 @@ const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
  * si esa marca era su entrada). Cada persona viene con `usable` y `marcas`: el
  * número existe, pero no siempre se puede usar.
  */
+/**
+ * GET /checador/agente/cruces?desde&hasta
+ *
+ * Quien checo en la plaza de OTRO. A diferencia de /asistencia, esta mira
+ * TODAS las plazas a la vez: el cruce solo existe comparando una contra otra,
+ * y no se puede ver desde una sola —de hecho por codigo no se ve nunca, porque
+ * los codigos se repiten entre plazas y la marca entra como si fuera del
+ * homonimo de alla—. La regla y el porque estan en cruces-plazas.ts.
+ */
+agenteHorariosRouter.get('/cruces', async (req: Request, res: Response) => {
+  try {
+    const { desde, hasta } = req.query as any;
+    if (!desde || !hasta) return res.status(400).json({ error: 'Faltan desde y hasta.' });
+    if (!RE_FECHA.test(String(desde)) || !RE_FECHA.test(String(hasta))) {
+      return res.status(400).json({ error: 'Las fechas deben venir como yyyy-MM-dd.' });
+    }
+    if (String(hasta) < String(desde)) {
+      return res.status(400).json({ error: 'hasta no puede ser anterior a desde.' });
+    }
+    res.json(await crucesEntrePlazas({ desde: String(desde), hasta: String(hasta) }));
+  } catch (e) {
+    fallo(res, e, 'No se pudieron calcular los cruces entre plazas.');
+  }
+});
 agenteHorariosRouter.get('/asistencia', async (req: Request, res: Response) => {
   try {
     const { sucursalId, desde, hasta } = req.query as any;

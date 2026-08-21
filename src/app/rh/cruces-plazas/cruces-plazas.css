@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CRUCES ENTRE PLAZAS
+
+   Mismo lenguaje visual que las otras vistas del módulo (barra de filtros
+   arriba, nota de la regla, lista plegable). El color lo pone la CLASE del
+   caso, no la persona: es lo primero que hay que leer, porque de eso depende
+   si el caso se justifica o se investiga.
+   ═══════════════════════════════════════════════════════════════════ */
+.cru { display: block; }
+
+/* ── Barra ── */
+.cru-bar {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(26, 47, 78, 0.04);
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.cru-field label {
+  display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--text3); margin-bottom: 5px;
+}
+.cru-periodo { display: flex; align-items: center; gap: 6px; }
+.cru-periodo input {
+  border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px;
+  font: inherit; font-size: 13px; color: var(--ink); background: var(--surface);
+}
+.cru-periodo-sep { color: var(--text3); font-size: 12px; }
+.cru-chips { display: flex; gap: 6px; }
+.cru-chip {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12px;
+  font-weight: 700; cursor: pointer;
+}
+.cru-chip:hover { color: var(--ink); background: var(--surface2); }
+
+.cru-acciones { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.cru-todas {
+  font-size: 11px; font-weight: 700; color: var(--navy-text, var(--ink));
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 11px; cursor: help;
+}
+.cru-btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 12.5px;
+  font-weight: 700; cursor: pointer;
+}
+.cru-btn:hover:not(:disabled) { background: var(--surface2); }
+.cru-btn:disabled { opacity: .5; cursor: default; }
+
+/* ── Textos de contexto ── */
+.cru-nota {
+  margin: 0 0 12px; font-size: 12px; line-height: 1.55; color: var(--text2);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 12px;
+}
+.cru-nota b { color: var(--ink); }
+.cru-universo { margin: 0 0 10px; font-size: 12.5px; color: var(--text2); }
+.cru-universo b { color: var(--ink); }
+
+.cru-empty {
+  border: 1px dashed var(--border); border-radius: 12px; padding: 22px 16px;
+  text-align: center; font-size: 13px; color: var(--text2); background: var(--surface);
+}
+.cru-error { color: var(--red-text); border-color: rgba(161, 38, 38, .3); background: var(--red-bg); }
+
+/* ── Filtros por clase ── */
+.cru-filtros { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.cru-f {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text3);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12px;
+  font-weight: 700; cursor: pointer;
+}
+.cru-f-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+.cru-f-n {
+  font-size: 11px; background: var(--surface2); color: var(--text2);
+  border-radius: 999px; padding: 0 6px;
+}
+.cru-f.on { color: var(--ink); border-color: rgba(26, 47, 78, .28); }
+.cru-f.on[data-clase='traslape'] .cru-f-dot { background: var(--red); }
+.cru-f.on[data-clase='marca_ajena'] .cru-f-dot { background: var(--amber); }
+.cru-f.on[data-clase='jornada_partida'] .cru-f-dot { background: var(--gold); }
+.cru-f.on[data-clase='sueltas'] .cru-f-dot { background: var(--slate, #64748b); }
+.cru-f.on[data-clase='ruta_promotora'] .cru-f-dot { background: var(--green); }
+
+/* ── La lista ── */
+.cru-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cru-item {
+  border: 1px solid var(--border); border-left: 3px solid #cbd5e1;
+  border-radius: 10px; background: var(--surface); overflow: hidden;
+}
+.cru-item[data-clase='traslape'] { border-left-color: var(--red); }
+.cru-item[data-clase='marca_ajena'] { border-left-color: var(--amber); }
+.cru-item[data-clase='jornada_partida'] { border-left-color: var(--gold); }
+.cru-item[data-clase='ruta_promotora'] { border-left-color: var(--green); }
+
+.cru-fila {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: none; border: 0; padding: 10px 12px; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink);
+}
+.cru-fila:hover { background: var(--surface2); }
+.cru-clase {
+  flex: none; width: 150px; font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .03em; color: var(--text3);
+}
+.cru-item[data-clase='traslape'] .cru-clase { color: var(--red-text); }
+.cru-item[data-clase='marca_ajena'] .cru-clase { color: var(--amber-text); }
+
+.cru-id { flex: 1; min-width: 0; }
+.cru-nom {
+  display: block; font-size: 13.5px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cru-sub { display: block; font-size: 11px; color: var(--text3); }
+.cru-nums { flex: none; font-size: 12px; color: var(--text2); }
+.cru-nums b { color: var(--ink); }
+.cru-nums em { font-style: normal; }
+.cru-nums .cru-grave { color: var(--red-text); font-weight: 700; }
+.cru-ultimo { flex: none; font-size: 11px; color: var(--text3); }
+.cru-chev {
+  flex: none; width: 16px; height: 16px; fill: none; stroke: var(--text2);
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s;
+}
+.cru-chev.abierto { transform: rotate(180deg); }
+
+/* ── Detalle por día ── */
+.cru-detalle { border-top: 1px solid var(--border); background: var(--surface2); padding: 10px 12px 12px; }
+.cru-porque { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--text2); }
+.cru-tip {
+  margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; color: var(--amber-text);
+  background: var(--amber-bg); border-radius: 8px; padding: 7px 10px;
+}
+.cru-tip b { font-weight: 800; }
+
+.cru-tabla { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; overflow: hidden; }
+.cru-tabla th {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--text3); text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--border);
+}
+.cru-tabla td { font-size: 12px; color: var(--ink); padding: 6px 9px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.cru-tabla tr:last-child td { border-bottom: 0; }
+.cru-tabla tr[data-clase='traslape'] td { background: var(--red-bg); }
+.cru-tabla tr[data-clase='marca_ajena'] td { background: var(--amber-bg); }
+
+.cru-dia { white-space: nowrap; font-weight: 700; }
+.cru-estancias { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.cru-est { display: inline-flex; flex-direction: column; }
+.cru-est b { font-size: 11.5px; font-weight: 700; }
+.cru-horas { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text2); }
+.cru-horas em { font-style: normal; font-size: 10.5px; color: var(--text3); }
+/* Un instante no se pinta como una estancia: se marca punteado para que no se
+   lea como una jornada que no existe. */
+.cru-est.instante .cru-horas { border-bottom: 1px dotted var(--text3); }
+.cru-hueco { white-space: nowrap; color: var(--text2); }
+.cru-hueco.grave { color: var(--red-text); font-weight: 700; }
+.cru-lectura { font-size: 11.5px; color: var(--text3); white-space: nowrap; }
+
+@media (max-width: 860px) {
+  .cru-clase { width: auto; }
+  .cru-fila { flex-wrap: wrap; }
+  .cru-ultimo { order: 5; }
+  .cru-tabla th:nth-child(4), .cru-tabla td:nth-child(4) { display: none; }
+}

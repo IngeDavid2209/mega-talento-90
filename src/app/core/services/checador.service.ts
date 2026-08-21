@@ -122,6 +122,61 @@ export interface AsistenciaPersonas {
   personas: PersonaAsistencia[];
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+// CRUCES ENTRE PLAZAS — quién checó en el reloj de otra
+//
+// Es el único dato de este servicio que NO va por sucursal, y no es un
+// descuido: el cruce solo existe comparando una plaza contra otra. Peor aún,
+// por CÓDIGO es invisible —los códigos se repiten entre plazas, así que la
+// marca de alguien en el reloj ajeno entra limpiamente como si fuera del
+// homónimo de allá—. La llave es el nombre, y la regla vive en
+// `api/src/agente-horarios/cruces-plazas.ts`.
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * - `traslape`        → dos jornadas reales encimadas: nadie está en dos plazas a la vez.
+ * - `marca_ajena`     → una marca suelta en la plaza ajena, a media jornada propia.
+ * - `jornada_partida` → cubrió dos tiendas y su día quedó cortado en dos.
+ * - `ruta_promotora`  → su trabajo es andar entre plazas.
+ * - `sueltas`         → dos presencias sin relación aparente.
+ */
+export type ClaseCruce = 'traslape' | 'marca_ajena' | 'jornada_partida' | 'ruta_promotora' | 'sueltas';
+
+export interface EstanciaCruce {
+  sucursalId: string; codigo: string;
+  primera: string; ultima: string; marcas: number;
+}
+export interface DiaCruce {
+  fecha: string;
+  estancias: EstanciaCruce[];
+  clase: ClaseCruce;
+  /** Minutos entre una estancia y la siguiente. Negativo = se enciman. */
+  huecoMin: number | null;
+}
+export interface AltaPersona { sucursalId: string; codigo: string; nombre: string; esPromotora: boolean; }
+export interface PersonaCruce {
+  nombre: string;
+  clave: string;
+  esPromotora: boolean;
+  altas: AltaPersona[];
+  clase: ClaseCruce;
+  dias: DiaCruce[];
+  diasCruzados: number;
+  traslapes: number;
+  marcasAjenas: number;
+  ultimoDia: string;
+}
+export interface CrucesPlazas {
+  desde: string; hasta: string;
+  /** De alta en dos sedes, con o sin cruce de marcas: el universo revisado. */
+  enDosSedes: number;
+  personas: PersonaCruce[];
+  resumen: {
+    personas: number; dias: number; traslapes: number;
+    marcasAjenas: number; jornadasPartidas: number; rutas: number;
+  };
+}
 // ══════════════════════════════════════════════════════════════════
 // SEMÁFORO DE RELOJES
 //
@@ -393,6 +448,14 @@ export class ChecadorService {
    */
   async getAsistencia(sucursalId: string, desde: string, hasta: string): Promise<AsistenciaPersonas> {
     return this.api.get<AsistenciaPersonas>('/checador/agente/asistencia', { sucursalId, desde, hasta });
+  }
+
+  /**
+   * Quién checó en la plaza de otro, en el periodo. Mira TODAS las plazas a la
+   * vez: por eso no lleva sucursalId.
+   */
+  async getCruces(desde: string, hasta: string): Promise<CrucesPlazas> {
+    return this.api.get<CrucesPlazas>('/checador/agente/cruces', { desde, hasta });
   }
 
   // ===================== SEMÁFORO DE RELOJES =====================
