@@ -196,6 +196,11 @@ export class PromotorasComponent implements OnInit, OnDestroy {
     return s.direccion ? `${s.ciudad} · ${s.direccion.split(',')[0]}` : s.ciudad;
   }
 
+  /** Cuántas promotoras de esta plaza siguen sin nombre formal. */
+  get sinNombreFormal(): number {
+    return this.promotoras.filter(e => !(e.nombreCompleto || '').trim()).length;
+  }
+
   /** El nombre formal si lo hay; si no, el apodo del reloj. */
   nombreDe(e: Empleado): string {
     return (e.nombreCompleto || '').trim() || e.nombre;

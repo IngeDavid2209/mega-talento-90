@@ -10,10 +10,7 @@
     <div>
       <h1>Promotoría</h1>
       <p class="hz-sub">
-        Personal de marca: anda en calle o en punto de venta. Aquí se mide con las mismas
-        reglas que el personal de planta —horario deducido de sus propias checadas, bolsa de
-        tolerancia por semana— pero por separado, para que no se mezclen sus números con los
-        de piso.
+        Personal de marca, medido aparte del personal de piso: mismas reglas, sus propios números.
       </p>
     </div>
   </header>
@@ -77,9 +74,24 @@
           ya registrado, o da de alta una nueva.
         </div>
       } @else {
-        <div class="hz-emp-cat">
-          <span class="hz-emp-cat-count">{{ promotoras.length }} promotora(s)</span>
-          <span class="hz-emp-cat-count">{{ totalPromotoras }} en todas las plazas</span>
+        <div class="hz-resumen">
+          <span class="hz-resumen-dato">
+            <b class="hz-resumen-num">{{ promotoras.length }}</b>
+            <span class="hz-resumen-lbl">en esta plaza</span>
+          </span>
+          <span class="hz-resumen-dato">
+            <b class="hz-resumen-num">{{ totalPromotoras }}</b>
+            <span class="hz-resumen-lbl">en toda la empresa</span>
+          </span>
+          <!-- El hueco se dice, no se supone: son las fichas que salen con el
+               apodo del reloj porque nadie les ha puesto su nombre formal. -->
+          @if (sinNombreFormal) {
+            <span class="hz-resumen-dato alerta"
+                  title="Se muestran con el apodo del reloj. Se completa al editar cada ficha.">
+              <b class="hz-resumen-num">{{ sinNombreFormal }}</b>
+              <span class="hz-resumen-lbl">sin nombre formal</span>
+            </span>
+          }
         </div>
 
         <div class="hz-tabla-scroll">
@@ -108,8 +120,14 @@
                   <!-- Muchas están enroladas por su MARCA y no por su nombre
                        ("TANIA DELICIAS", "Canels"): ese apodo es el que manda el
                        equipo, y quien coteja contra el checador lo necesita. -->
-                  <td class="hz-t-reloj">{{ apodoDistinto(e) ? e.nombre : '' }}</td>
-                  <td class="hz-t-puesto">{{ e.puesto || '' }}</td>
+                  <td class="hz-t-reloj">
+                    @if (apodoDistinto(e)) { {{ e.nombre }} }
+                    @else { <span class="hz-t-vacio">—</span> }
+                  </td>
+                  <td class="hz-t-puesto">
+                    @if (e.puesto) { <span class="hz-marca">{{ e.puesto }}</span> }
+                    @else { <span class="hz-t-vacio">—</span> }
+                  </td>
                   <td class="hz-t-acciones">
                     <button class="hz-link" (click)="editar(e)">Editar</button>
                     <button class="hz-link" (click)="marcar(e, false)" [disabled]="moviendo === e.id"
@@ -127,7 +145,7 @@
       <!-- Pasar a alguien que ya está dado de alta como personal de planta -->
       <div class="hz-promo-add">
         <h3>Agregar desde el personal ya registrado</h3>
-        <p class="hz-hint">
+        <p class="hz-nota">
           Busca a la persona y pásala a Promotoría. No se borra ni se da de baja:
           solo deja de medirse con la asistencia de piso.
         </p>

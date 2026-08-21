@@ -666,3 +666,38 @@
   .hz-tabla th:nth-child(4), .hz-tabla td:nth-child(4),
   .hz-tabla th:nth-child(5), .hz-tabla td:nth-child(5) { display: none; }
 }
+
+/* ===== Resumen de una línea, arriba de una tabla =====
+   Tres datos sueltos en texto plano no se leen como resumen: se leen como
+   sobras. Van en fichas sobrias del mismo tono de la app, y el número pesa más
+   que su etiqueta porque el número es lo que se viene a ver. */
+.hz-resumen { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.hz-resumen-dato {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 11px;
+}
+.hz-resumen-num { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hz-resumen-lbl { font-size: 11px; color: var(--text3); }
+.hz-resumen-dato.alerta { background: var(--amber-bg); border-color: rgba(162, 98, 9, .22); }
+.hz-resumen-dato.alerta .hz-resumen-num { color: var(--amber-text); }
+
+/* La MARCA de una promotora no es un puesto cualquiera: es su identidad —así la
+   nombra el reloj y así la pide RH—. Va en dorado, que es el acento de la casa,
+   sin gritar. */
+.hz-marca {
+  display: inline-block; font-size: 11.5px; font-weight: 700;
+  color: #8A5A00; background: var(--gold-bg);
+  border-radius: 999px; padding: 2px 9px; white-space: nowrap;
+}
+
+/* Una celda vacía deja un hueco que se lee como error de la pantalla. El guion
+   dice "aquí no hay nada que poner", que es distinto. */
+.hz-t-vacio { color: var(--text3); }
+
+/* ===== Dos voces distintas, que se confundian en una =====
+   `.hz-hint` es ambar y sirve para OJO CON ESTO —el codigo del reloj, una regla
+   que muerde—. Se estaba usando tambien para explicar como se usa una pantalla,
+   y entonces la unica cosa amarilla de la vista era una instruccion de manual:
+   grita mas que cualquier dato. Las explicaciones van aqui, en voz baja. */
+.hz-nota { margin: 0 0 10px; font-size: 12.5px; line-height: 1.55; color: var(--text2); }

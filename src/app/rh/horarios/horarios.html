@@ -149,8 +149,14 @@
                   <!-- El del reloj tiene su columna: es con el que la persona
                        aparece en el equipo, y quien coteja contra el checador lo
                        necesita. Vacía cuando dice lo mismo que el formal. -->
-                  <td class="hz-t-reloj">{{ apodoDistinto(e) ? e.nombre : '' }}</td>
-                  <td class="hz-t-puesto">{{ e.puesto || '' }}</td>
+                  <td class="hz-t-reloj">
+                    @if (apodoDistinto(e)) { {{ e.nombre }} }
+                    @else { <span class="hz-t-vacio">—</span> }
+                  </td>
+                  <td class="hz-t-puesto">
+                    @if (e.puesto) { {{ e.puesto }} }
+                    @else { <span class="hz-t-vacio">—</span> }
+                  </td>
                   <td class="hz-t-acciones">
                     <button class="hz-link" (click)="abrirDetalleEmp(e)"
                             title="Su horario, su retardo real y el detalle día por día">Asistencia</button>
