@@ -1,68 +1,79 @@
-<div class="pro-page">
-  <header class="pro-header">
+<!-- Mismas clases `hz-*` que Horarios y checadas, a propósito: la hoja de
+     estilos es LA MISMA (ver styleUrls en promotoras.ts). Esta pantalla tenía su
+     propio juego de clases y se veía distinta —otro tono, otros espacios, otra
+     tabla— aunque hace lo mismo. Dos apariencias para el mismo trabajo se
+     desincronizan en el primer ajuste que se le haga a una. -->
+<div class="hz-page">
+
+  <!-- ENCABEZADO -->
+  <header class="hz-header">
     <div>
       <h1>Promotoría</h1>
-      <p class="pro-sub">
-        Personal de marca: anda en calle o en punto de venta y <strong>no checa en el reloj</strong> de
-        la sucursal. Por eso no cuenta en la asistencia de piso —medida con esa vara salía con falta
-        todos los días—. Sigue dada de alta y sus checadas se guardan igual, por si algún día marca.
+      <p class="hz-sub">
+        Personal de marca: anda en calle o en punto de venta y no checa en el reloj de la
+        sucursal, así que no cuenta en la asistencia de piso. Sigue dada de alta y sus
+        checadas se guardan igual, por si algún día marca.
       </p>
     </div>
-    <span class="pro-total">{{ totalPromotoras }} en total</span>
   </header>
 
-  <div class="pro-toolbar">
-    <div class="pro-field">
+  <!-- BARRA: sucursal -->
+  <div class="hz-toolbar">
+    <div class="hz-field">
       <label>Sucursal</label>
       <app-sucursal-select [value]="sucursalFiltro" (valueChange)="sucursalFiltro = $event">
       </app-sucursal-select>
     </div>
-    <button class="pro-btn pro-btn-primary" (click)="nueva()">+ Nueva promotora</button>
   </div>
 
-  <section class="pro-panel">
-    <div class="pro-panel-head">
-      <h2>{{ nombreSucursal(sucursalFiltro) }}</h2>
-      <span class="pro-count">{{ promotoras.length }} promotora(s)</span>
+  <section class="hz-panel">
+    <div class="hz-panel-head">
+      <h2>Promotoras de {{ nombreSucursal(sucursalFiltro) }}</h2>
+      <button class="hz-btn hz-btn-primary" (click)="nueva()">+ Nueva promotora</button>
     </div>
 
     @if (!promotoras.length) {
-      <div class="pro-empty">
+      <div class="hz-empty">
         Todavía no hay promotoras en esta sucursal. Agrégalas abajo desde el personal
         ya registrado, o da de alta una nueva.
       </div>
     } @else {
-      <!-- Tabla y no tarjetas: con el nombre completo, una tarjeta angosta lo
-           cortaba a la mitad, y la plaza se repetía en cada una cuando la
-           pantalla ya está filtrada a una sola. -->
-      <div class="pro-scroll">
-        <table class="pro-tabla">
+      <div class="hz-emp-cat">
+        <span class="hz-emp-cat-count">{{ promotoras.length }} promotora(s)</span>
+        <span class="hz-emp-cat-count">{{ totalPromotoras }} en todas las plazas</span>
+      </div>
+
+      <div class="hz-tabla-scroll">
+        <table class="hz-tabla">
           <thead>
             <tr>
-              <th class="pro-t-foto"></th>
-              <th class="pro-t-cod">Cód.</th>
+              <th class="hz-t-foto"></th>
+              <th class="hz-t-cod">Cód.</th>
               <th>Nombre</th>
-              <th class="pro-t-reloj">En el reloj</th>
+              <th class="hz-t-reloj">En el reloj</th>
               <th>Marca / puesto</th>
-              <th class="pro-t-acc"></th>
+              <th class="hz-t-acciones"></th>
             </tr>
           </thead>
           <tbody>
             @for (e of promotoras; track e.id) {
               <tr>
-                <td class="pro-t-foto">
-                  <div class="pro-avatar">
+                <td class="hz-t-foto">
+                  <div class="hz-emp-avatar hz-avatar-sm">
                     @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="nombreDe(e)"> }
                     @else { <span>{{ iniciales(nombreDe(e)) }}</span> }
                   </div>
                 </td>
-                <td class="pro-t-cod">{{ e.codigoChecador }}</td>
-                <td class="pro-t-nom">{{ nombreDe(e) }}</td>
-                <td class="pro-t-reloj">{{ apodoDistinto(e) ? e.nombre : '' }}</td>
-                <td class="pro-t-puesto">{{ e.puesto || '' }}</td>
-                <td class="pro-t-acc">
-                  <button class="pro-link" (click)="editar(e)">Editar</button>
-                  <button class="pro-link" (click)="marcar(e, false)" [disabled]="moviendo === e.id"
+                <td class="hz-t-cod">{{ e.codigoChecador }}</td>
+                <td class="hz-t-nom">{{ nombreDe(e) }}</td>
+                <!-- Muchas están enroladas en el reloj por su MARCA y no por su
+                     nombre ("TANIA DELICIAS", "Canels"): ese apodo es el que manda
+                     el equipo, y quien coteja contra el checador lo necesita. -->
+                <td class="hz-t-reloj">{{ apodoDistinto(e) ? e.nombre : '' }}</td>
+                <td class="hz-t-puesto">{{ e.puesto || '' }}</td>
+                <td class="hz-t-acciones">
+                  <button class="hz-link" (click)="editar(e)">Editar</button>
+                  <button class="hz-link" (click)="marcar(e, false)" [disabled]="moviendo === e.id"
                           title="Vuelve a contar en la asistencia de la sucursal">
                     {{ moviendo === e.id ? 'Moviendo…' : 'Pasar a planta' }}
                   </button>
@@ -73,49 +84,47 @@
         </table>
       </div>
     }
-  </section>
 
-  <!-- Pasar a alguien que ya está dado de alta como personal de planta -->
-  <section class="pro-panel">
-    <div class="pro-panel-head">
-      <h2>Agregar desde el personal ya registrado</h2>
+    <!-- Pasar a alguien que ya está dado de alta como personal de planta -->
+    <div class="hz-promo-add">
+      <h3>Agregar desde el personal ya registrado</h3>
+      <p class="hz-hint">
+        Busca a la persona y pásala a Promotoría. No se borra ni se da de baja:
+        solo deja de medirse con la asistencia de piso.
+      </p>
+      <input class="hz-input" type="search" [(ngModel)]="buscar"
+             placeholder="Buscar por nombre, código o puesto…">
+
+      @if (!candidatas.length) {
+        <div class="hz-empty">
+          @if (buscar) { Nadie de planta coincide con "{{ buscar }}". }
+          @else { No hay personal de planta en esta sucursal. }
+        </div>
+      } @else {
+        <ul class="hz-promo-lista">
+          @for (e of candidatas; track e.id) {
+            <li>
+              <span class="hz-promo-nombre">{{ nombreDe(e) }}</span>
+              <span class="hz-promo-meta">
+                Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }
+              </span>
+              <button class="hz-btn hz-btn-sec" (click)="marcar(e, true)" [disabled]="moviendo === e.id">
+                {{ moviendo === e.id ? 'Moviendo…' : 'Es promotora' }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
     </div>
-    <p class="pro-hint">
-      Busca a la persona y pásala a Promotoría. No se borra ni se da de baja:
-      solo deja de medirse con la asistencia de piso.
-    </p>
-    <input class="pro-input" type="search" [(ngModel)]="buscar"
-           placeholder="Buscar por nombre, código o puesto…">
-
-    @if (!candidatas.length) {
-      <div class="pro-empty">
-        @if (buscar) { Nadie de planta coincide con "{{ buscar }}". }
-        @else { No hay personal de planta en esta sucursal. }
-      </div>
-    } @else {
-      <ul class="pro-lista">
-        @for (e of candidatas; track e.id) {
-          <li>
-            <span class="pro-lista-nom">{{ nombreDe(e) }}</span>
-            <span class="pro-lista-meta">
-              Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }
-            </span>
-            <button class="pro-btn pro-btn-sec" (click)="marcar(e, true)" [disabled]="moviendo === e.id">
-              {{ moviendo === e.id ? 'Moviendo…' : 'Es promotora' }}
-            </button>
-          </li>
-        }
-      </ul>
-    }
   </section>
 
   <!-- ===== Modal de alta / edición ===== -->
   @if (edit) {
-    <div class="pro-overlay" (click)="cerrar()"></div>
-    <div class="pro-modal" role="dialog" aria-modal="true">
+    <div class="hz-modal-overlay" (click)="cerrar()"></div>
+    <div class="hz-modal" role="dialog" aria-modal="true">
       <h3>{{ edit.id ? 'Editar promotora' : 'Nueva promotora' }}</h3>
 
-      <div class="pro-field-b">
+      <div class="hz-field">
         <label>Sucursal</label>
         <select [(ngModel)]="edit.sucursalId">
           @for (s of SUCURSALES; track s.id) {
@@ -123,52 +132,51 @@
           }
         </select>
       </div>
-      <div class="pro-row">
-        <div class="pro-field-b">
+      <div class="hz-row">
+        <div class="hz-field">
           <label>Código del reloj</label>
           <input type="text" [(ngModel)]="edit.codigoChecador" placeholder="Ej. 29">
         </div>
-        <div class="pro-field-b">
+        <div class="hz-field">
           <label>Marca / puesto <small>(opcional)</small></label>
           <input type="text" [(ngModel)]="edit.puesto" placeholder="Ej. Delicias">
         </div>
       </div>
-      <div class="pro-field-b">
-        <label>Nombre completo</label>
+      <div class="hz-field">
+        <label>Nombre completo <small>(el del reporte de RH)</small></label>
         <input type="text" [(ngModel)]="edit.nombreCompleto" placeholder="Ej. TANIA JAZMIN PEREZ">
       </div>
-      <!-- Muchas están enroladas en el reloj por su MARCA y no por su nombre
-           ("TANIA DELICIAS", "Canels"). Ese apodo es el que manda el equipo, así
-           que se guarda aparte en vez de corregirlo. -->
-      <div class="pro-field-b">
+      <div class="hz-field">
         <label>Nombre en el reloj <small>(como viene enrolada en el equipo)</small></label>
         <input type="text" [(ngModel)]="edit.nombre" placeholder="Ej. TANIA DELICIAS">
       </div>
 
-      <div class="pro-field-b">
+      <div class="hz-field">
         <label>Foto <small>(opcional)</small></label>
-        <div class="pro-foto">
-          <div class="pro-avatar pro-avatar-lg">
+        <div class="hz-foto-edit">
+          <div class="hz-emp-avatar hz-avatar-lg">
             @if (edit.fotoUrl) { <img [src]="edit.fotoUrl" [alt]="nombreDe(edit)"> }
             @else { <span>{{ iniciales(nombreDe(edit)) }}</span> }
           </div>
-          <label class="pro-btn pro-btn-sec" [class.pro-disabled]="subiendoFoto">
-            {{ subiendoFoto ? 'Subiendo…' : (edit.fotoUrl ? 'Cambiar foto' : 'Subir foto') }}
-            <input type="file" hidden accept="image/*" (change)="onFoto($event)" [disabled]="subiendoFoto">
-          </label>
-          @if (edit.fotoUrl) {
-            <button type="button" class="pro-link pro-danger" (click)="edit.fotoUrl = ''">Quitar</button>
-          }
+          <div class="hz-foto-edit-actions">
+            <label class="hz-btn hz-btn-ghost" [class.hz-disabled]="subiendoFoto">
+              {{ subiendoFoto ? 'Subiendo…' : (edit.fotoUrl ? 'Cambiar foto' : 'Subir foto') }}
+              <input type="file" hidden accept="image/*" (change)="onFoto($event)" [disabled]="subiendoFoto">
+            </label>
+            @if (edit.fotoUrl) {
+              <button type="button" class="hz-link hz-danger" (click)="edit.fotoUrl = ''">Quitar</button>
+            }
+          </div>
         </div>
       </div>
 
-      <label class="pro-check">
+      <label class="hz-check">
         <input type="checkbox" [(ngModel)]="edit.activo"> Activa en el padrón
       </label>
 
-      <div class="pro-modal-acc">
-        <button class="pro-btn pro-btn-sec" (click)="cerrar()">Cancelar</button>
-        <button class="pro-btn pro-btn-primary" (click)="guardar()">Guardar</button>
+      <div class="hz-modal-actions">
+        <button class="hz-btn hz-btn-ghost" (click)="cerrar()">Cancelar</button>
+        <button class="hz-btn hz-btn-primary" (click)="guardar()">Guardar</button>
       </div>
     </div>
   }

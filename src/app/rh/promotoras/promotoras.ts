@@ -41,7 +41,14 @@ import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
   standalone: true,
   imports: [CommonModule, FormsModule, SucursalSelectComponent],
   templateUrl: './promotoras.html',
-  styleUrl: './promotoras.css'
+  // LA MISMA hoja de estilos que Horarios, no una copia.
+  //
+  // Esta pantalla nacio con su propio juego de clases (`pro-*`) y se veia
+  // distinta aunque hace lo mismo: otro tono, otros espacios, otra tabla. RH lo
+  // dijo de frente. Copiar el CSS habria arreglado el hoy y roto el mañana —dos
+  // hojas para la misma apariencia se desincronizan en el primer ajuste—, asi que
+  // se reusa la de Horarios y el marcado usa sus mismas clases `hz-*`.
+  styleUrl: '../horarios/horarios.css'
 })
 export class PromotorasComponent implements OnInit, OnDestroy {
   private checador = inject(ChecadorService);
