@@ -621,3 +621,11 @@
 }
 .hz-reactivar:hover:not(:disabled) { background: var(--surface2); }
 .hz-reactivar:disabled { opacity: .5; cursor: default; }
+
+/* El apodo del reloj, bajo el nombre formal: es con el que la persona aparece
+   en el equipo, y quien coteja contra el checador lo necesita. */
+.hz-emp-card-apodo { font-size: 11px; color: var(--text3); }
+.hz-emp-cat-falta {
+  font-size: 11px; font-weight: 700; color: var(--amber-text);
+  background: var(--amber-bg); border-radius: 999px; padding: 2px 9px; cursor: help;
+}

@@ -62,7 +62,17 @@ export interface Empleado {
   id?: string;
   sucursalId: string;
   codigoChecador: string;
+  /** El apodo con el que está enrolada en el reloj: "Luciagarciatapia". */
   nombre: string;
+  /**
+   * El nombre FORMAL, el del reporte semanal de RH: "GARCIA TAPIA LUCIA".
+   *
+   * Va aparte de `nombre` a propósito: el del reloj sirve para reconocer a la
+   * persona en el equipo, no para un documento que se firma. Cuando existe, es el
+   * que se muestra. Puede venir vacío —la fuente son los reportes semanales y no
+   * todas las plazas los tienen completos—, y entonces se cae al del reloj.
+   */
+  nombreCompleto?: string;
   puesto?: string;
   fotoUrl?: string;
   activo: boolean;

@@ -237,7 +237,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const base = this.empleadosFiltrados;
     if (!q) return base.slice(0, 12);
     return base.filter(e =>
-      `${e.nombre} ${e.codigoChecador} ${e.puesto || ''}`.toLowerCase().includes(q)
+      `${e.nombre} ${e.nombreCompleto || ''} ${e.codigoChecador} ${e.puesto || ''}`.toLowerCase().includes(q)
     ).slice(0, 12);
   }
 
@@ -582,6 +582,32 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const e = this.empleados.find(x =>
       x.sucursalId === this.sucursalFiltro && String(x.codigoChecador).trim() === String(codigo).trim());
     return e?.fotoUrl || '';
+  }
+
+  /**
+   * Cómo se llama esta persona en pantalla: el nombre formal si lo hay.
+   *
+   * La lista mostraba `nombre`, que es el apodo del reloj —"Paula", "Dayan",
+   * "Luciagarciatapia"—. Sirve para identificarla en el equipo, no para una
+   * pantalla de RH. El formal viene de los reportes semanales; hoy lo tienen 366
+   * de 518 fichas activas, así que la caída al apodo no es un caso raro.
+   */
+  nombreDe(e: Empleado): string {
+    return (e.nombreCompleto || '').trim() || e.nombre;
+  }
+
+  /** ¿Vale la pena enseñar también el del reloj? Solo si dice otra cosa. */
+  apodoDistinto(e: Empleado): boolean {
+    const formal = (e.nombreCompleto || '').trim();
+    if (!formal || !e.nombre) return false;
+    const pega = (t: string) => t.toLowerCase().normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+    return pega(formal) !== pega(e.nombre);
+  }
+
+  /** Cuántas fichas de la plaza siguen sin nombre formal. */
+  get sinNombreFormal(): number {
+    return this.empleadosFiltrados.filter(e => !(e.nombreCompleto || '').trim()).length;
   }
 
   /** Iniciales para el avatar cuando el empleado no tiene foto. */

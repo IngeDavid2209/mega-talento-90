@@ -100,6 +100,12 @@
         <div class="hz-emp-cat">
           <span class="hz-emp-cat-title">{{ nombreSucursal(sucursalFiltro) }}</span>
           <span class="hz-emp-cat-count">{{ empleadosFiltrados.length }} empleado(s)</span>
+          @if (sinNombreFormal) {
+            <span class="hz-emp-cat-falta"
+                  title="Se muestran con el apodo del reloj porque no traen nombre formal. Se completa al editar cada ficha.">
+              {{ sinNombreFormal }} sin nombre formal
+            </span>
+          }
           <!-- Las bajas no desaparecen sin dejar rastro: se dice cuántas son y se
                pueden ver, porque ahí mismo está el botón para reactivar a quien no
                debía haber salido del padrón. -->
@@ -119,13 +125,19 @@
               }
               <div class="hz-emp-avatar">
                 @if (e.fotoUrl) {
-                  <img [src]="e.fotoUrl" [alt]="e.nombre">
+                  <img [src]="e.fotoUrl" [alt]="nombreDe(e)">
                 } @else {
-                  <span>{{ iniciales(e.nombre) }}</span>
+                  <span>{{ iniciales(nombreDe(e)) }}</span>
                 }
               </div>
               <div class="hz-emp-info">
-                <div class="hz-emp-card-nombre">{{ e.nombre }}</div>
+                <div class="hz-emp-card-nombre">{{ nombreDe(e) }}</div>
+                <!-- El del reloj se conserva a la vista cuando dice otra cosa: es
+                     con ese con el que la persona aparece en el equipo, y quien
+                     coteja contra el checador lo necesita. -->
+                @if (apodoDistinto(e)) {
+                  <div class="hz-emp-card-apodo">en el reloj: {{ e.nombre }}</div>
+                }
                 <div class="hz-emp-card-suc">{{ nombreSucursal(e.sucursalId) }}</div>
                 <div class="hz-emp-card-meta">
                   Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }
@@ -177,11 +189,17 @@
           @for (e of promotoras; track e.id) {
             <div class="hz-emp-card hz-promo" [class.hz-inactivo]="!e.activo">
               <div class="hz-emp-avatar">
-                @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="e.nombre"> }
-                @else { <span>{{ iniciales(e.nombre) }}</span> }
+                @if (e.fotoUrl) { <img [src]="e.fotoUrl" [alt]="nombreDe(e)"> }
+                @else { <span>{{ iniciales(nombreDe(e)) }}</span> }
               </div>
               <div class="hz-emp-info">
-                <div class="hz-emp-card-nombre">{{ e.nombre }}</div>
+                <div class="hz-emp-card-nombre">{{ nombreDe(e) }}</div>
+                <!-- El del reloj se conserva a la vista cuando dice otra cosa: es
+                     con ese con el que la persona aparece en el equipo, y quien
+                     coteja contra el checador lo necesita. -->
+                @if (apodoDistinto(e)) {
+                  <div class="hz-emp-card-apodo">en el reloj: {{ e.nombre }}</div>
+                }
                 <div class="hz-emp-card-suc">{{ nombreSucursal(e.sucursalId) }}</div>
                 <div class="hz-emp-card-meta">
                   Cód. {{ e.codigoChecador }}@if (e.puesto) { · {{ e.puesto }} }
@@ -360,9 +378,18 @@
           <input type="text" [(ngModel)]="empleadoEdit.puesto" placeholder="Ej. Cajero">
         </div>
       </div>
+      <!-- Eran dos nombres con una sola casilla, y la etiqueta mentía: decía
+           "Nombre completo" pero guardaba en `nombre`, que es el apodo del reloj.
+           Aquí es donde RH completa las fichas que todavía no traen nombre formal,
+           sin esperar otro reporte semanal. -->
       <div class="hz-field">
-        <label>Nombre completo</label>
-        <input type="text" [(ngModel)]="empleadoEdit.nombre" placeholder="Nombre del empleado">
+        <label>Nombre completo <small>(el del reporte de RH)</small></label>
+        <input type="text" [(ngModel)]="empleadoEdit.nombreCompleto"
+               placeholder="Ej. GARCIA TAPIA LUCIA">
+      </div>
+      <div class="hz-field">
+        <label>Nombre en el reloj <small>(como viene enrolada en el equipo)</small></label>
+        <input type="text" [(ngModel)]="empleadoEdit.nombre" placeholder="Ej. Luciagarciatapia">
       </div>
 
       <div class="hz-field">
