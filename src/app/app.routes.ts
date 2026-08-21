@@ -13,6 +13,7 @@ import { EvaluacionLiderazgoComponent } from '../portal/evaluacion-liderazgo/eva
 import { EvaluacionAptitudesComponent } from '../portal/evaluacion-aptitudes/evaluacion-aptitudes';
 import { LoginComponent } from './rh/login/login';
 import { authGuard } from './core/guards/auth.guard';
+import { rolGuard } from './core/guards/rol.guard';
 import { UsuariosComponent } from './rh/usuarios/usuarios';
 import { HistorialComponent } from './rh/historial/historial';
 import { VacantesComponent } from './rh/vacantes/vacantes';
@@ -26,6 +27,7 @@ import { ReingresosComponent } from './rh/reingresos/reingresos';
 import { GuiaEvaluacionComponent } from './rh/guia-evaluacion/guia-evaluacion';
 import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/resultados-evaluacion';
 import { HorariosComponent } from './rh/horarios/horarios';
+import { PromotorasComponent } from './rh/promotoras/promotoras';
 import { AgenteHorariosComponent } from './rh/agente-horarios/agente-horarios';
 import { KpiComponent } from './rh/kpi/kpi';
 import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
@@ -57,6 +59,14 @@ export const routes: Routes = [
       { path: 'guia-evaluacion', component: GuiaEvaluacionComponent },
       { path: 'resultados-evaluacion', component: ResultadosEvaluacionComponent },
       { path: 'horarios', component: HorariosComponent },
+      // Promotoría vive aparte del personal de planta y se reparte a mano: la
+      // ve el administrador y quien tenga el rol de Promotoría. El cadenero
+      // evita que escribir la URL alcance para entrar.
+      {
+        path: 'promotoras',
+        component: PromotorasComponent,
+        canActivate: [rolGuard('promotoria')],
+      },
       { path: 'agente-horarios', component: AgenteHorariosComponent },
       { path: 'no-recontratables', component: NoRecontratablesComponent }, // lista negra + alerta de reingresos
       { path: 'papelera',   component: PapeleraComponent },

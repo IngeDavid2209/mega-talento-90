@@ -140,8 +140,15 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   private toast = inject(ToastService);
   private auth = inject(AuthSession);
 
-  /** El semáforo de relojes es solo para el admin (lo pidió RH: 20/08/2026). */
-  get esAdmin(): boolean { return this.auth.getUsuario()?.rol === 'admin'; }
+  /**
+   * El semáforo de relojes es solo para el admin (lo pidió RH: 20/08/2026).
+   *
+   * Comparaba `rol === 'admin'` contra la cadena cruda, y la base guarda dos
+   * escrituras del mismo rol: 6 de los 8 administradores tienen `Administrador`
+   * y para ellos esto daba false — el semáforo no se le veía a casi nadie. Ahora
+   * la decisión la toma `AuthSession`, que normaliza.
+   */
+  get esAdmin(): boolean { return this.auth.puede('relojes'); }
 
   /** Si se pasa desde fuera, manda la sucursal (y se oculta el selector propio). */
   @Input() sucursalIdExterna?: string;

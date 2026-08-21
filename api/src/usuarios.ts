@@ -31,8 +31,21 @@ function fallo(res: Response, e: any, msg: string) {
   return res.status(500).json({ error: msg });
 }
 
-const normalizaRol = (rol: string) =>
-  rol === 'admin' ? 'Administrador' : (rol === 'reclutador' ? 'Reclutador' : (rol || 'Reclutador'));
+/**
+ * Guarda el rol con su nombre para mostrar. Ojo con esto: la tabla trae DOS
+ * escrituras del mismo rol —`admin` en los usuarios sembrados a mano y
+ * `Administrador` en los creados por aquí—, así que NADIE debe comparar
+ * `rol === 'admin'` contra el valor crudo. El front lo normaliza al leer
+ * (AuthSession.rolCanonico). Se conserva el formato de siempre para no tocar
+ * las ocho filas que ya existen.
+ */
+const normalizaRol = (rol: string) => {
+  const r = (rol || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (r.startsWith('admin')) return 'Administrador';
+  if (r.startsWith('promotor')) return 'Promotoria';
+  if (r.startsWith('reclut')) return 'Reclutador';
+  return rol || 'Reclutador';
+};
 
 usuariosRouter.get('/', async (_req: Request, res: Response) => {
   try {

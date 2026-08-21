@@ -19,7 +19,7 @@ import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 
-type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'promotoras';
+type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -174,9 +174,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return this.empleadosDeSucursal.filter(e => !e.esPromotora);
   }
 
-  get promotoras(): Empleado[] {
-    return this.empleadosDeSucursal.filter(e => e.esPromotora);
-  }
 
   // ══ LAS FICHAS DADAS DE BAJA NO SE VEN, PERO SIGUEN AHÍ ══════════
   //
@@ -227,41 +224,12 @@ export class HorariosComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Texto del buscador para pasar a alguien de planta a promotoras. */
-  buscarParaPromotora = '';
+  /** Se usa para deshabilitar el botón de la ficha que se está guardando. */
   moviendo = '';
 
-  /** Candidatos a promotora: los de planta de esta sucursal que empatan la búsqueda. */
-  get candidatosAPromotora(): Empleado[] {
-    const q = this.buscarParaPromotora.trim().toLowerCase();
-    const base = this.empleadosFiltrados;
-    if (!q) return base.slice(0, 12);
-    return base.filter(e =>
-      `${e.nombre} ${e.nombreCompleto || ''} ${e.codigoChecador} ${e.puesto || ''}`.toLowerCase().includes(q)
-    ).slice(0, 12);
-  }
-
-  /** Mueve a alguien entre planta y promotoras. Es un campo, no un borrado. */
-  async marcarPromotora(e: Empleado, esPromotora: boolean) {
-    if (!e.id || this.moviendo) return;
-    this.moviendo = e.id;
-    try {
-      await this.checador.guardarEmpleado({ ...e, esPromotora });
-      // La lista se refresca sola por el sondeo, pero se refleja al instante
-      // para que el clic no se sienta perdido.
-      e.esPromotora = esPromotora;
-      this.toast.exito(esPromotora
-        ? `${e.nombre} pasó a Promotoras y ya no cuenta en la asistencia de piso.`
-        : `${e.nombre} volvió a personal de planta.`);
-      this.buscarParaPromotora = '';
-    } catch (err) {
-      console.error(err);
-      this.toast.error('No se pudo mover a la persona. Intenta de nuevo.');
-    } finally {
-      this.moviendo = '';
-    }
-  }
-
+  // El buscador de candidatas y `marcarPromotora` se fueron a
+  // src/app/rh/promotoras/: esta pantalla es del personal de PLANTA, y tener
+  // aquí la puerta a promotoría era justo lo que RH pidió separar.
   /** Áreas de una sucursal (para los selects de los modales). */
   areasDeSucursal(sucursalId: string): AreaChecador[] {
     return this.areas.filter(a => a.sucursalId === sucursalId);

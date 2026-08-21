@@ -46,6 +46,7 @@
             <label>Rol en el sistema</label>
             <select [(ngModel)]="nuevoUsuario.rol" name="rol">
               <option value="reclutador">Reclutador / RH</option>
+              <option value="promotoria">Promotoría <!-- solo la sección de promotoras --></option>
               <option value="admin">Administrador general</option>
             </select>
           </div>
@@ -174,6 +175,7 @@
         <label>Rol</label>
         <select [(ngModel)]="edicion.rol">
           <option value="reclutador">Reclutador / RH</option>
+          <option value="promotoria">Promotoría</option>
           <option value="admin">Administrador general</option>
         </select>
       </div>

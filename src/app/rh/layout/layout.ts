@@ -9,6 +9,7 @@ import { CapitalHumanoService } from '../../core/services/capital-humano.service
 import { ETAPAS, ETAPA_CONTRATADO, ID_ETAPAS, FLUJO_LINEAL } from '../../core/models/proceso.model';
 import { debeCerrarseSeguimiento } from '../../core/models/seguimiento.model';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthSession } from '../../core/services/auth-session';
 
 @Component({
   selector: 'app-layout',
@@ -27,6 +28,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Público para que el template lea el signal activo() del modo Capital Humano
   capitalHumano = inject(CapitalHumanoService);
   private toast = inject(ToastService);
+  private auth = inject(AuthSession);
+
+  /**
+   * ¿Se le muestra Promotoría a este usuario?
+   *
+   * Es el primer renglón del menú que se reparte a mano. La decisión no se
+   * toma aquí: `AuthSession` tiene el mapa de qué puede cada rol, para que un
+   * permiso no acabe escrito de tres formas distintas en tres pantallas.
+   */
+  get puedePromotoria(): boolean { return this.auth.puede('promotoria'); }
 
   /** El cierre automático de seguimiento corre una sola vez por sesión. */
   private cierreEjecutado = false;

@@ -629,3 +629,40 @@
   font-size: 11px; font-weight: 700; color: var(--amber-text);
   background: var(--amber-bg); border-radius: 999px; padding: 2px 9px; cursor: help;
 }
+
+/* ===== Tabla de empleados =====
+   Reemplaza la rejilla de tarjetas: con el nombre completo, una tarjeta de
+   250 px lo cortaba a la mitad y repetía la plaza en cada una. */
+.hz-tabla-scroll { overflow-x: auto; }
+.hz-tabla {
+  width: 100%; border-collapse: collapse; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.hz-tabla th {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text3); text-align: left; padding: 8px 10px;
+  border-bottom: 1px solid var(--border); background: var(--surface2);
+  white-space: nowrap;
+}
+.hz-tabla td {
+  font-size: 13px; color: var(--ink); padding: 7px 10px;
+  border-bottom: 1px solid var(--border); vertical-align: middle;
+}
+.hz-tabla tbody tr:last-child td { border-bottom: 0; }
+.hz-tabla tbody tr:hover td { background: var(--surface2); }
+.hz-tabla tr.hz-inactivo td { opacity: .55; }
+
+.hz-t-foto { width: 34px; padding-right: 0 !important; }
+.hz-avatar-sm { width: 28px; height: 28px; font-size: 10.5px; }
+.hz-t-cod { width: 54px; font-variant-numeric: tabular-nums; color: var(--text2); }
+.hz-t-nom { font-weight: 600; }
+/* El apodo del reloj no compite con el nombre formal: mismo renglón, otro peso. */
+.hz-t-reloj { color: var(--text3); font-size: 12px; white-space: nowrap; }
+.hz-t-puesto { color: var(--text2); font-size: 12.5px; }
+.hz-t-acciones { width: 1%; white-space: nowrap; text-align: right; }
+.hz-t-acciones .hz-link { margin-left: 10px; }
+
+@media (max-width: 720px) {
+  .hz-tabla th:nth-child(4), .hz-tabla td:nth-child(4),
+  .hz-tabla th:nth-child(5), .hz-tabla td:nth-child(5) { display: none; }
+}
