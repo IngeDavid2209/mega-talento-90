@@ -36,6 +36,8 @@
     "@angular/router": "^20.3.0",
     "@tailwindcss/postcss": "^4.2.4",
     "firebase": "^12.12.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "xlsx": "^0.18.5",

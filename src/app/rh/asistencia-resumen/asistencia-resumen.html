@@ -407,9 +407,10 @@
         </div>
         <div class="rep-acciones">
           <button type="button" class="ar-btn ar-btn-primary rep-pdf" (click)="exportarPdf()"
-                  title="Guardar el reporte como PDF (igual al de papel)">
+                  [disabled]="generandoPdf"
+                  title="Descargar el reporte en PDF (una hoja por semana, con plaza y periodo en cada hoja)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8m0 0L5.2 7.7M8 10.5l2.8-2.8M2.5 10v2A1.5 1.5 0 0 0 4 13.5h8a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
-            PDF
+            {{ generandoPdf ? 'Armando…' : 'Descargar PDF' }}
           </button>
           <button type="button" class="ar-btn ar-btn-ghost rep-toggle" (click)="vistaTabla = false"
                   title="Cambiar a la vista de tarjetas">Ver tarjetas</button>

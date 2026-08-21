@@ -547,12 +547,138 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * Sin librería y 100% fiel: se marca el body para que el CSS de impresión
    * esconda todo menos la tabla, y se restaura al terminar.
    */
-  exportarPdf() {
-    const b = document.body;
-    b.classList.add('imprimiendo-reporte');
-    const limpiar = () => { b.classList.remove('imprimiendo-reporte'); window.removeEventListener('afterprint', limpiar); };
-    window.addEventListener('afterprint', limpiar);
-    setTimeout(() => window.print(), 60);   // deja pintar el DOM antes de imprimir
+  /** Se pone en true mientras se arma el PDF: el botón no debe verse muerto. */
+  generandoPdf = false;
+
+  /**
+   * DESCARGA el reporte en PDF. No abre el diálogo de impresión.
+   *
+   * ══ POR QUÉ YA NO SE USA window.print() ══
+   *
+   * Antes el botón marcaba el <body> y llamaba a `window.print()`. Eso NO
+   * descarga nada: abre el diálogo del navegador y deja el trabajo a quien lo
+   * abrió —elegir "Guardar como PDF", quitar el encabezado con la URL y la
+   * fecha, poner el nombre del archivo—. Para un botón que dice "PDF" es
+   * cuatro pasos de más, y el archivo sale distinto según quién lo guarde.
+   *
+   * Ahora el PDF se arma aquí y se descarga con su nombre. De paso se arreglan
+   * tres cosas que la impresión del navegador hacía mal y no se podían tocar
+   * desde el CSS:
+   *
+   *   · Una fila podía cortarse a la mitad entre dos hojas. `autoTable` pagina
+   *     por fila, así que eso ya no pasa.
+   *   · La hoja 2 en adelante no decía de qué plaza ni de qué periodo era. Si
+   *     alguien separaba las hojas, no había forma de saberlo. Ahora cada hoja
+   *     lleva plaza, periodo y "Hoja N de M".
+   *   · Un departamento podía quedar con su encabezado al pie de una hoja y su
+   *     gente en la siguiente.
+   *
+   * La librería se carga SOLO al picar el botón (`import()` dinámico): pesa más
+   * que toda la pantalla de asistencia junta y no tiene por qué viajar en la
+   * carga inicial de quien nunca exporta.
+   */
+  async exportarPdf() {
+    const grupos = this.porDepartamento;
+    if (!grupos.length) {
+      this.toast.alerta(this.seleccionParcial
+        ? 'No hay nada que exportar en las secciones que dejaste encendidas.'
+        : 'No hay asistencia para exportar en este rango.');
+      return;
+    }
+    const dias = this.columnasDia;
+    // El reporte está pensado para UNA semana. Con un mes en pantalla salen 30
+    // columnas y el papel las encoge hasta que no se leen: más vale decirlo que
+    // entregar un PDF ilegible.
+    if (dias.length > 14) {
+      this.toast.alerta(`El periodo trae ${dias.length} días y el reporte cabe bien hasta 14. ` +
+        'Usa el atajo de Esta semana o Semana pasada para que se lea.');
+    }
+
+    this.generandoPdf = true;
+    try {
+      const [{ default: JsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
+
+      const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+      const ancho = doc.internal.pageSize.getWidth();
+
+      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Retardos']];
+      const body: any[] = [];
+      for (const g of grupos) {
+        body.push([{
+          content: `${g.departamento}  (${g.empleados.length})`,
+          colSpan: dias.length + 3,
+          styles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
+        }]);
+        for (const e of g.empleados) {
+          const celdas = dias.map(c => {
+            const cel = this.celda(e, c.fecha);
+            return {
+              content: [cel.jornada, cel.comida].filter(Boolean).join('\n'),
+              // Falta y retardo se marcan como en pantalla: el PDF se firma, y
+              // un día en rojo tiene que verse igual en los dos lados.
+              styles: cel.falta ? { fillColor: [248, 230, 230], textColor: [107, 20, 20] }
+                : cel.retardo ? { textColor: [161, 38, 38], fontStyle: 'bold' as const }
+                : {},
+            };
+          });
+          body.push([e.codigo, e.nombreCompleto, ...celdas, e.diasConRetardo || '']);
+        }
+        body.push([{
+          content: '', colSpan: dias.length + 2, styles: { fillColor: [255, 255, 255] },
+        }, { content: String(g.retardos || 0), styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
+      }
+
+      // Medido con 105 personas y 7 columnas: a 7.5 pt con relleno de 1 mm el
+      // reporte salia en SEIS hojas, contra las tres de la version impresa. El
+      // renglon lleva dos lineas (jornada y comida), asi que la altura manda. A
+      // 6 pt con relleno de 0.5 baja a cuatro, que es la densidad de siempre.
+      const tam = dias.length > 10 ? 5 : dias.length > 7 ? 5.5 : 6;
+      autoTable(doc, {
+        head,
+        body,
+        foot: [[{ content: 'Total retardos', colSpan: dias.length + 2, styles: { halign: 'right' as const } },
+                { content: String(this.totalRetardos), styles: { halign: 'right' as const } }]],
+        startY: 20,
+        margin: { top: 20, left: 8, right: 8, bottom: 12 },
+        styles: { fontSize: tam, cellPadding: 0.5, lineColor: [214, 222, 235], lineWidth: 0.1, valign: 'middle' },
+        headStyles: { fillColor: [26, 47, 78], textColor: 255, fontSize: tam, halign: 'center' },
+        footStyles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 11, halign: 'center' },
+          1: { cellWidth: dias.length > 10 ? 38 : 46 },
+          [dias.length + 2]: { cellWidth: 15, halign: 'center' },
+        },
+        // Una fila nunca se parte, y un encabezado de departamento no se queda
+        // solo al pie de la hoja.
+        rowPageBreak: 'avoid',
+        theme: 'grid',
+      });
+
+      // El encabezado se estampa AL FINAL, cuando ya se sabe cuántas hojas son:
+      // "Hoja 2 de 3" no se puede escribir mientras se dibuja la 2.
+      const total = doc.getNumberOfPages();
+      const parcial = this.seleccionParcial ? ` · solo ${this.etiquetaSeleccion}` : '';
+      for (let i = 1; i <= total; i++) {
+        doc.setPage(i);
+        doc.setFontSize(11); doc.setTextColor(26, 47, 78);
+        doc.text(this.nombreSucursal(this.sucursalFiltro), 8, 10);
+        doc.setFontSize(8); doc.setTextColor(90, 105, 130);
+        doc.text(this.tituloReporte + parcial, 8, 15);
+        doc.text(`Hoja ${i} de ${total}`, ancho - 8, 10, { align: 'right' });
+      }
+
+      const limpiaTxt = (t: string) => t.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const parte = grupos.length === 1 ? '_' + limpiaTxt(grupos[0].departamento) : '';
+      doc.save(`Asistencia_${limpiaTxt(this.nombreSucursal(this.sucursalFiltro))}${parte}_${this.desde}_a_${this.hasta}.pdf`);
+    } catch (e) {
+      console.error('Error al generar el PDF:', e);
+      this.toast.error('No se pudo generar el PDF.');
+    } finally {
+      this.generandoPdf = false;
+    }
   }
 
   /** Cabecera del reporte: "Asistencia del DD/MM al DD/MM". */
