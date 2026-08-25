@@ -38,6 +38,89 @@ const TAM_LOTE = 500;
  */
 const MARGEN_MS = 36 * 60 * 60 * 1000;   // 36 h
 
+/**
+ * Tope para UN comando del reloj. Menos que `pollSeg` (30 s) a propósito: si el
+ * vigía pudiera tardar más que su propio intervalo, las vueltas se encimarían.
+ */
+const LIMITE_COMANDO_MS = 15000;
+
+/** Tope para el adiós cortés. Ver `soltarSocket`. */
+const LIMITE_CIERRE_MS = 5000;
+
+/**
+ * Tope para abrir sesión. Más holgado que un comando suelto: `conectar` incluye
+ * el TCP connect (que puede tardar lo suyo hasta un equipo apagado), el saludo y,
+ * si el reloj lo pide, la autenticación.
+ */
+const LIMITE_CONEXION_MS = 45000;
+
+/**
+ * Tope para una lectura verificada completa. Muy holgado porque `leerVerificado`
+ * reintenta por dentro y baja el log entero; lo que se corta con esto no es una
+ * lectura lenta, es una colgada. Sigue muy por debajo de `backfillMin` (60 min),
+ * así que nunca se encima con la siguiente vuelta.
+ */
+const LIMITE_BACKFILL_MS = 10 * 60 * 1000;
+
+/**
+ * Cada cuánto se le recuerda a la nube que este reloj sigue vivo. Por debajo de
+ * los 10 min con los que el semáforo pone amarillo, para que un reloj sano se
+ * vea verde de forma sostenida y el amarillo vuelva a ser una señal.
+ */
+const LATIDO_MS = 5 * 60 * 1000;
+
+/**
+ * ══ POR QUÉ TODO COMANDO AL RELOJ LLEVA TOPE DE TIEMPO ══
+ *
+ * node-zklib promete un timeout y NO lo cumple. `zklibtcp.writeMessage` arma su
+ * temporizador DENTRO del callback de `socket.write` (zklibtcp.js:96):
+ *
+ *     this.socket.write(msg, null, async (err) => {
+ *       if (err) { reject(err) }
+ *       else if (this.timeout) { timer = await setTimeout(...) }
+ *     });
+ *
+ * Cuando el socket queda medio abierto —el otro extremo dejó de contestar pero
+ * nunca mandó FIN ni RST, que es lo que pasa al caerse el enlace de una plaza—
+ * ese callback no corre nunca: el temporizador no se arma y la promesa NUNCA se
+ * resuelve. Y `createSocket` llama a `socket.setTimeout()` sin poner escucha del
+ * evento 'timeout' (zklibtcp.js:44), así que Node tampoco destruye el socket.
+ *
+ * Eso costó cuatro relojes mudos el 24/08/2026 (CEDIS, 192.168.0.196 y
+ * Oficinas·comida a las 19:12; 8-Esquinas a las 20:03). El vigía se quedó en el
+ * `await`, `fallosKeepalive` no subió, no hubo reconexión y no salió latido. El
+ * proceso seguía vivo y los otros seis relojes trabajando, así que ni el
+ * servicio ni el log delataban nada: el portal simplemente los dio por mudos 18
+ * horas después.
+ *
+ * `Promise.race` NO cancela a la perdedora: el `await` original sigue colgado y
+ * el socket sigue inservible. Por eso quien atrapa el vencimiento tiene que
+ * destruir el socket (`destruirSocket`), o el siguiente comando se cuelga igual.
+ */
+function conLimite(promesa, ms, queEs) {
+  // La promesa colgada rechaza tarde —al destruirse el socket— y para entonces
+  // ya nadie la escucha. Sin este catch, cada vencimiento dejaría una
+  // `unhandledRejection` en el log.
+  promesa.catch(() => {});
+  let t;
+  return Promise.race([
+    promesa,
+    new Promise((_, rechaza) => {
+      t = setTimeout(() => rechaza(new Error(`${queEs} no contestó en ${Math.round(ms / 1000)} s`)), ms);
+    }),
+  ]).finally(() => clearTimeout(t));
+}
+
+/**
+ * Cierre a la mala. `cerrar()` es cortés: le manda CMD_EXIT al reloj, y ese
+ * comando viaja por el MISMO socket que puede estar colgado. Cuando el socket ya
+ * no contesta, lo único que sirve es tirarlo.
+ */
+function destruirSocket(zk) {
+  try { zk && zk.zklibTcp && zk.zklibTcp.socket && zk.zklibTcp.socket.destroy(); }
+  catch { /* ya no estaba */ }
+}
+
 class RelojJob {
   constructor(reloj, deps) {
     this.reloj = { ...reloj };            // { serie, ip, puerto, commKey, sucursalId, alias }
@@ -49,6 +132,7 @@ class RelojJob {
     this.zk = null;
     this.corriendo = false;
     this.ocupado = false;                 // mutex: stream y backfill no conviven
+    this.vigilando = false;               // una vuelta del vigía a la vez
     this.fallosKeepalive = 0;
     this.timers = {};
     this.ultimoError = null;
@@ -82,7 +166,17 @@ class RelojJob {
   async soltarSocket() {
     const zk = this.zk;
     this.zk = null;
-    if (zk) await cerrar(zk);
+    if (!zk) return;
+    // El adiós va por el socket que quizá esté colgado. Sin tope, SOLTAR el
+    // socket colgaba a `reconectar()` con el mutex `ocupado` tomado — y el reloj
+    // quedaba mudo exactamente por la razón que se estaba tratando de arreglar.
+    try {
+      await conLimite(cerrar(zk), LIMITE_CIERRE_MS, 'el cierre de sesión');
+    } catch (e) {
+      this.log(`cierre forzado: ${motivo(e)}`);
+    } finally {
+      destruirSocket(zk);
+    }
   }
 
   // ── Conexión + stream en vivo ────────────────────────────────────
@@ -107,12 +201,22 @@ class RelojJob {
       }
       if (ubicacion.cambio) this.reloj.ip = ubicacion.ip;
 
-      this.zk = await conectar(this.reloj.ip, {
+      // El tope va por fuera igual que en el vigía: el saludo también viaja por
+      // `writeMessage`, y `timeoutMs` es la promesa incumplida de node-zklib.
+      // Un `conectar` colgado aquí deja tomado el mutex `ocupado` para siempre,
+      // que es peor que un vigía colgado: ya ni el reintento vuelve a entrar.
+      const conexion = conectar(this.reloj.ip, {
         puerto: this.reloj.puerto, commKey: this.reloj.commKey, timeoutMs: 20000,
       });
+      // Si el saludo vence, la conexión todavía puede completarse DESPUÉS y
+      // dejar una sesión abierta contra el equipo. Un ZK acepta UNA sola: ese
+      // socket huérfano nos cerraría la puerta a nosotros mismos en el siguiente
+      // intento. Se tira en cuanto aparezca, si ya no es el que estamos usando.
+      conexion.then((zk) => { if (this.zk !== zk) destruirSocket(zk); }, () => {});
+      this.zk = await conLimite(conexion, LIMITE_CONEXION_MS, 'el saludo al reloj');
 
       try {
-        this.infoReloj = await this.zk.getInfo();
+        this.infoReloj = await conLimite(this.zk.getInfo(), LIMITE_COMANDO_MS, 'getInfo de arranque');
         // Punto de partida del detector: lo que el reloj tiene AHORA se da por
         // "visto". A partir de aquí, cada checada nueva hace crecer este número
         // y eso es lo que dispara la lectura. Lo que haya cambiado mientras el
@@ -170,9 +274,15 @@ class RelojJob {
    */
   async vigilar() {
     if (!this.zk || this.ocupado) return;
+    // Reentrada: con el tope de 15 s una vuelta no debería alcanzar a la
+    // siguiente, pero el `await` de abajo puede irse a un backfill largo y el
+    // intervalo sigue disparando. Dos vigías encimados sobre el mismo socket es
+    // justo lo que un ZK no tolera.
+    if (this.vigilando) return;
+    this.vigilando = true;
     let info;
     try {
-      info = await this.zk.getInfo();
+      info = await conLimite(this.zk.getInfo(), LIMITE_COMANDO_MS, 'el vigía');
       const sano = info && Number.isFinite(info.logCounts) &&
                    info.logCounts >= 0 && info.logCounts < 10_000_000 &&
                    Number.isFinite(info.userCounts) && info.userCounts < 100_000;
@@ -182,13 +292,44 @@ class RelojJob {
     } catch (e) {
       this.fallosKeepalive++;
       this.log(`vigía ${this.fallosKeepalive}/2: ${motivo(e)}`);
-      if (this.fallosKeepalive >= 2) await this.reconectar('sesión perdida');
+      // Un vencimiento deja el socket inservible: la promesa de node-zklib sigue
+      // colgada y cualquier comando que se mande después se cuelga igual. Se
+      // reconecta de inmediato, sin esperar al segundo fallo.
+      if (this.fallosKeepalive >= 2 || /no contestó en/.test(motivo(e))) {
+        // `reconectar` toma el mutex `ocupado` de forma síncrona, así que no
+        // hace falta soltar `vigilando` antes: ninguna vuelta se cuela.
+        await this.reconectar('sesión perdida');
+      }
       return;
+    } finally {
+      this.vigilando = false;
     }
 
     if (this.conteoVisto != null && info.logCounts > this.conteoVisto) {
       this.log(`+${info.logCounts - this.conteoVisto} checada(s) nueva(s) — bajando…`);
       await this.backfill('movimiento nuevo');
+      return;
+    }
+
+    // ══ LATIDO PERIÓDICO ════════════════════════════════════════════
+    //
+    // Antes el latido solo salía al reconectar o al hacer backfill, y el
+    // backfill es CADA HORA. Un reloj sano donde nadie checa —media mañana en
+    // una plaza chica— pasaba cincuenta minutos de cada sesenta marcado como
+    // "con retraso" en el portal, porque el semáforo pone amarillo a los 10 min
+    // sin señal. Con la franja en amarillo casi siempre, el amarillo dejó de
+    // querer decir algo y nadie volvió a mirarla.
+    //
+    // Ahora que el vigía ya está aquí cada 30 s preguntándole al reloj, mandar
+    // el latido cuesta una petición chica cada 5 min. Sirve para tres cosas: el
+    // verde vuelve a significar verde, un reloj trabado se ve en 10 min en vez
+    // de en 2 h, y el vigilante global de index.js tiene señal fresca con la
+    // cual medir.
+    if (this.enviador.callado(this.reloj.serie) >= LATIDO_MS) {
+      await this.enviador.latido(this.reloj.serie, {
+        ip: this.reloj.ip,
+        infoReloj: { logCounts: info.logCounts, userCounts: info.userCounts },
+      });
     }
   }
 
@@ -304,10 +445,19 @@ class RelojJob {
       await this.soltarSocket();
 
       this.log(`backfill (${porque}): leyendo el log completo…`);
-      const lectura = await leerVerificado(this.reloj.ip, {
-        puerto: this.reloj.puerto, commKey: this.reloj.commKey,
-        log: (m) => this.log(m.trim()),
-      });
+      // También lleva tope, y por lo mismo: `leerVerificado` abre su propio
+      // socket y pasa por el mismo `writeMessage` que puede no resolver nunca.
+      // Colgarse AQUÍ es lo más caro de todo — se queda con el mutex `ocupado`,
+      // así que el vigía deja de mirar el reloj y el reintento no vuelve a
+      // entrar. El tope es holgado a propósito: el backfill de 8-Esquinas son
+      // ~50 mil registros y se ha visto tardar más de un minuto.
+      const lectura = await conLimite(
+        leerVerificado(this.reloj.ip, {
+          puerto: this.reloj.puerto, commKey: this.reloj.commKey,
+          log: (m) => this.log(m.trim()),
+        }),
+        LIMITE_BACKFILL_MS, 'la lectura verificada'
+      );
 
       if (lectura.serie && !serieCoincide(this.reloj.serie, lectura.serie)) {
         throw new Error(`ESTA IP YA NO ES ESTE RELOJ: esperaba ${this.reloj.serie} y contesta ` +

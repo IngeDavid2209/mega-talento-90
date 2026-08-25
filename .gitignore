@@ -42,3 +42,6 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 .vercel
+
+# Ajustes locales de Claude Code: son de ESTA maquina, no del proyecto.
+.claude/settings.local.json

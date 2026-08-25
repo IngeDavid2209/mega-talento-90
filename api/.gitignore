@@ -28,3 +28,6 @@ agente/daemon/
 
 # Datos derivados de los reportes: llevan nombres de empleados.
 tools/reportes-sem33.json
+# Copia local del padron (index.js): estado de ESA maquina, y trae la
+# comm_key de cada reloj. No se versiona, igual que config.json.
+agente/padron.json

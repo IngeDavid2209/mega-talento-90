@@ -141,10 +141,63 @@ de hoy**. Un día sin dato no es una falta.
 | Sale "hora corrida" | el reloj tiene la hora mal | **se corrige en el equipo**, no en el sistema |
 | El servicio se queda en "Deteniendo" para siempre | `stopparentfirst` truthy en el XML | ver abajo |
 | Todo verde pero faltan checadas | el proveedor no las ha bajado | revisar su sistema en `192.168.0.245` |
+| Un reloj recién dado de alta nunca entra | ya no pasa: el padrón se relee cada 30 min | busca `padrón: ALTA de` en el log |
 
 **"Hora corrida" no es cosmético.** Si un reloj va 3 minutos atrasado, la
 tolerancia del horario se aplica sobre una hora que no es, y RH ve retardos que
 no existen. Al 17/08/2026, 8-Esquinas iba **−221 s** (≈3.7 min).
+
+---
+
+## Lo que se arregló el 25/08/2026
+
+Ese día el portal amaneció con los doce relojes en rojo. No fue una causa, fueron
+tres, y las tres estaban en el agente. Vale la pena entenderlas porque desde
+afuera se veían **exactamente igual**: relojes rojos y ni una línea de error en
+ningún lado.
+
+**1 · Un reloj colgado quedaba mudo para siempre.** `node-zklib` promete un
+timeout y no lo cumple: arma su temporizador dentro del callback de
+`socket.write`, que con un socket medio abierto no se ejecuta nunca. La promesa
+no se resolvía, el vigía se quedaba en el `await`, no subía el contador de
+fallos, no reconectaba y no salía latido — con los demás relojes trabajando
+normal. Así se callaron cuatro el 24/08 (tres a las 19:12, 8-Esquinas a las
+20:03). Ahora **todo comando al reloj lleva tope de tiempo** y, al vencer, se
+destruye el socket: `cerrar()` no sirve, porque el adiós viaja por el mismo
+socket colgado.
+
+**2 · Un parpadeo de red al arrancar mataba el servicio.** Si la API no
+contestaba, el agente hacía `process.exit(1)` en 20 milisegundos. Con
+`maxRestarts: 3`, tres salidas así se consumían en menos de un segundo y
+node-windows **se rendía para siempre**. Ahora el agente no se sale: arranca con
+la copia local del padrón (`padron.json`) y sigue leyendo los relojes, que están
+en la LAN y no necesitan nube — lo leído espera en la cola. Y `maxRestarts`
+subió a 60.
+
+**3 · Un reloj nuevo no entraba hasta que alguien reiniciara el servicio.** El
+padrón se leía UNA vez, al arrancar. `padronMin` existía en el config y solo lo
+usaba el camino `origen: 'hr'`. Sucursal PH (20/08) y Morelia Abastos (21/08) se
+dieron de alta verificadas y alcanzables, con 69 y 82 empleados esperando, y el
+agente nunca se enteró de que existían: cinco días en rojo que no eran culpa de
+los equipos ni de la red. Ahora el padrón se relee cada `padronMin`, y las altas,
+bajas y pausas entran solas.
+
+**Y dos cosas que hacen visible lo que antes no lo era:**
+
+- **Latido cada 5 min por reloj.** Antes solo salía al reconectar y en el
+  backfill —o sea, cada hora—, así que un reloj sano donde nadie checaba pasaba
+  cincuenta minutos de cada sesenta en amarillo. Con la franja casi siempre
+  amarilla, el amarillo dejó de querer decir algo. Ahora verde es verde, y un
+  reloj trabado se nota en 10 minutos en vez de en 2 horas.
+- **Vigilante global** (`vigilanciaMin`, 30 min). Media hora sin que la API
+  acepte una sola petición y el agente se sale a propósito para que Windows lo
+  levante. Un proceso vivo que ya no entrega nada era el peor caso: el servicio
+  decía "Running", el log no escribía nada, y nadie tenía por qué reiniciarlo.
+
+> **Al copiar el agente a otra PC**, ojo con `better-sqlite3`: es un módulo
+> nativo, y si esa máquina tiene otra versión de Node que la que compiló el
+> binario, `require` falla con `NODE_MODULE_VERSION`. Se arregla con
+> `npm rebuild better-sqlite3` dentro de `api\agente`.
 
 ---
 

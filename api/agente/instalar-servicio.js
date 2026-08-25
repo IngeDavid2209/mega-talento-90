@@ -62,12 +62,28 @@ const servicio = new Service({
                'Debe correr en una PC de la misma red que los relojes.',
   script: path.join(__dirname, 'index.js'),
   nodeOptions: [],
-  // Reinicio automático: si el proceso muere, vuelve en 5 s y hasta 3 veces por
-  // minuto. Sin esto, un error a las 3 de la mañana deja a la plaza sin datos
-  // hasta que alguien lo note al día siguiente.
+  // Reinicio automático: si el proceso muere, vuelve en 5 s. Sin esto, un error
+  // a las 3 de la mañana deja a la plaza sin datos hasta que alguien lo note al
+  // día siguiente.
   wait: 5,
   grow: 0.25,
-  maxRestarts: 3,
+
+  // ══ POR QUÉ 60 Y NO 3 ══════════════════════════════════════════════
+  //
+  // `maxRestarts` es cuántas veces node-windows reintenta dentro de una ventana
+  // de 60 s ANTES DE RENDIRSE PARA SIEMPRE (lib/wrapper.js). Con 3, cualquier
+  // fallo que durara más de unos segundos al arrancar —la PC prende y todavía no
+  // hay DNS, el switch tarda en dar enlace, Railway reiniciando— gastaba los
+  // tres intentos en menos de un minuto y el servicio quedaba "Detenido" hasta
+  // que un humano lo notara. Que es justo lo que este módulo lleva meses
+  // tratando de que no vuelva a pasar.
+  //
+  // El riesgo que `maxRestarts` bajo pretende cubrir —dar vueltas reiniciando un
+  // proceso que no puede arrancar— ya no aplica: `padronConEspera` no se sale
+  // cuando la API no contesta, arranca con la copia local del padrón y sigue
+  // recogiendo checadas a la cola. Hoy el agente solo se sale si de verdad no
+  // puede trabajar, y en ese caso insistir es lo correcto.
+  maxRestarts: 60,
 
   // ══ POR QUÉ SE PASA logOnAs EXPLÍCITO ══════════════════════════════
   //

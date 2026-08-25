@@ -29,6 +29,23 @@ class Enviador {
     this.log = log || console.log;
     this.host = os.hostname();
     this.espera = 0;      // índice del backoff actual
+
+    // ══ LA ÚLTIMA VEZ QUE LA NUBE NOS CONTESTÓ ══════════════════════
+    //
+    // No es estadística: es lo que deja ver que el agente está TRABADO. Un
+    // proceso vivo que ya no le entrega nada a la API se ve, desde la PC,
+    // exactamente igual que uno sano — el servicio dice "Running" y el log no
+    // escribe una sola línea de error. Del otro lado se ve como diez relojes
+    // mudos y RH suponiendo faltas. Lo mira el vigilante global de index.js.
+    this.ultimoOk = Date.now();
+
+    // Cuándo salió el último latido de cada reloj, para no repetirlo de más.
+    this.ultimoLatido = new Map();
+  }
+
+  /** ¿Hace cuánto que este reloj no le dice nada a la nube? */
+  callado(serie) {
+    return Date.now() - (this.ultimoLatido.get(serie) || 0);
   }
 
   get cabeceras() {
@@ -45,6 +62,11 @@ class Enviador {
       const txt = await res.text();
       let json = null;
       try { json = txt ? JSON.parse(txt) : null; } catch { /* no era JSON */ }
+      // Cuenta como contacto cualquier respuesta que no sea una falla del
+      // servidor. Un 409 o un 401 son desacuerdos, no incomunicación: el
+      // vigilante global busca al agente TRABADO, y reiniciarlo no arregla ni
+      // un token equivocado ni un reloj sin dar de alta.
+      if (res.status < 500) this.ultimoOk = Date.now();
       return { res, json, txt };
     } finally { clearTimeout(t); }
   }
@@ -73,6 +95,10 @@ class Enviador {
       method: 'POST', body: JSON.stringify(cuerpo),
     }, 120000);
 
+    // La API guarda `ultima_senal` con CUALQUIER lote que reciba, así que un
+    // envío vale como latido y no hace falta mandar otro detrás.
+    if (res.status < 500) this.ultimoLatido.set(lote.serie, Date.now());
+
     if (res.ok) { this.espera = 0; return { ...json, aplicado: true }; }
     if (res.status === 202) { this.espera = 0; return { ...json, aplicado: false, pausado: true }; }
     if (res.status === 409) {
@@ -94,6 +120,7 @@ class Enviador {
         method: 'POST',
         body: JSON.stringify({ serie, agenteVersion: `agente ${VERSION}`, agenteHost: this.host, ...extra }),
       }, 15000);
+      this.ultimoLatido.set(serie, Date.now());
     } catch (e) {
       // Un latido perdido no se reintenta: el siguiente sale en minutos y
       // encolarlos solo taparía el problema real.
