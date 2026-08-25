@@ -110,6 +110,18 @@ export interface ResultadoLote {
 const RE_FECHA_HORA = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})$/;
 
 /**
+ * La zona en la que marcan los relojes. Los equipos mandan hora de pared, sin
+ * offset, y la API corre en UTC: sin esto, convertir una a `timestamptz` la
+ * corre seis horas. Es un nombre de zona y no `-06:00` a propósito — Postgres
+ * trae la base de datos de zonas y aplicaría el cambio solo si México volviera
+ * a tener horario de verano.
+ *
+ * Todas las plazas están en Michoacán. El día que haya uno en otra zona, esto
+ * tiene que pasar a ser una columna de `relojes`, no seguir siendo constante.
+ */
+const ZONA_RELOJES = 'America/Mexico_City';
+
+/**
  * Normaliza y filtra el lote: descarta lo que no se puede usar en vez de
  * insertarlo mal. Una checada con código vacío o con fecha del año 2000 (los
  * relojes sin hora configurada graban 2000-01-01) no es un dato: es basura que
@@ -346,7 +358,7 @@ async function tocarEstado(
        (serie, ultima_senal, ultima_checada, ultimo_backfill, ip_vista,
         logs_en_reloj, logs_en_base, desfase_reloj_seg, ultimo_error, agente_version, agente_host,
         origen_visto)
-     VALUES ($1, now(), $2, $3, $4, $5, $6, $7, NULL, $8, $9, $10)
+     VALUES ($1, now(), ($2::timestamp AT TIME ZONE '${ZONA_RELOJES}'), $3, $4, $5, $6, $7, NULL, $8, $9, $10)
      ON CONFLICT (serie) DO UPDATE SET
        origen_visto   = COALESCE(EXCLUDED.origen_visto, relojes_estado.origen_visto),
        ultima_senal   = now(),
@@ -361,7 +373,27 @@ async function tocarEstado(
        agente_host     = COALESCE(EXCLUDED.agente_host, relojes_estado.agente_host)`,
     [
       serie,
-      ultima?.fechaHora ? new Date(ultima.fechaHora) : null,
+      // ══ SE MANDA LA HORA DE PARED, NO UN Date ══════════════════════
+      //
+      // Aquí estaba `new Date(ultima.fechaHora)`, y `fechaHora` es siempre
+      // `YYYY-MM-DDTHH:mm:ss` SIN offset (`RE_FECHA_HORA` está anclado, así que
+      // nunca trae zona): es la hora que marca el reloj de la plaza. Node
+      // resuelve una cadena así con la zona del PROCESO, y la API corre en
+      // Railway con TZ=UTC — así que las 08:17 de 8-Esquinas se guardaban como
+      // 08:17Z, o sea las 02:17 de la mañana en Michoacán.
+      //
+      // La franja de relojes del portal mostraba entonces una "última checada"
+      // seis horas más vieja que la real, justo en la pantalla cuyo trabajo es
+      // decir qué tan atrasada va la asistencia. La asistencia en sí NUNCA se
+      // vio afectada: en `checadas`, `fecha`, `hora` y `fecha_hora` son TEXT y
+      // guardan la hora de pared tal cual. Por eso el error pasó desapercibido
+      // tanto tiempo — solo se notaba en una columna que nadie cotejaba.
+      //
+      // Se arma desde `fecha` y `hora` (los que `normalizar` ya validó y los
+      // mismos que van a `checadas`) y se deja que Postgres haga la conversión:
+      // sabe de zonas horarias y sobreviviría a que México reinstaurara el
+      // horario de verano, cosa que un `-06:00` a mano no.
+      ultima?.fecha && ultima?.hora ? `${ultima.fecha} ${ultima.hora}` : null,
       lote.completa ? new Date() : null,
       lote.ip || null,
       typeof info.logCounts === 'number' ? info.logCounts : null,
