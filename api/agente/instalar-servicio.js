@@ -18,6 +18,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 // Sin acentos ni signos raros A PROPÓSITO. node-windows deriva el id del
 // servicio de aquí (`name.replace(/[^\w]/gi,'')`) y además usa el nombre para
@@ -130,12 +131,47 @@ const ID = NOMBRE.replace(/[^\w]/gi, '').toLowerCase();
 const XML = path.join(__dirname, 'daemon', `${ID}.xml`);
 
 /**
- * REVISA EL XML QUE QUEDÓ, en vez de confiar en que "instalar" dijo que sí.
+ * Lo que Windows REALMENTE registró, que no siempre es lo que dice el XML.
+ *
+ * `sc qc` devuelve la cuenta con la que arranca el servicio (SERVICE_START_NAME)
+ * y `sc query` si está corriendo. Se prefiere esto al XML porque el XML es lo
+ * que winsw PIDIÓ y esto es lo que Windows CONCEDIÓ — y en la cuenta,
+ * justamente, no coinciden. Si el servicio no existe, devuelve null.
+ */
+function estadoReal() {
+  try {
+    const qc = execSync(`sc qc "${ID}.exe"`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const cuenta = (/SERVICE_START_NAME\s*:\s*(.+)/.exec(qc)?.[1] || '').trim();
+    let estado = '';
+    try {
+      const q = execSync(`sc query "${ID}.exe"`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      estado = (/STATE\s*:\s*\d+\s+(\w+)/.exec(q)?.[1] || '').trim();
+    } catch { /* existe pero no se pudo consultar el estado */ }
+    return { cuenta, estado };
+  } catch { return null; }
+}
+
+/**
+ * REVISA LO QUE QUEDÓ, en vez de confiar en que "instalar" dijo que sí.
  *
  * `servicio.start()` avisa que arrancó aunque el servicio se haya caído medio
  * segundo después: node-windows solo lanza el comando, no comprueba el estado.
  * Así fue como la primera instalación quedó en "Detenido, arranque automático,
  * cero logs" mientras la consola decía "▶️ Servicio arrancado".
+ *
+ * ══ POR QUÉ SE LE PREGUNTA A WINDOWS Y NO SOLO AL XML ══
+ *
+ * Esto antes daba por rota cualquier instalación cuyo XML tuviera el nombre de
+ * la PC en `<domain>`, y mandaba a reinstalar. Dos problemas: reinstalar
+ * **reproduce** el mismo XML —node-windows ignora el `logOnAs` que se le pasa y
+ * vuelve a escribir el nombre del equipo—, y sobre todo **la premisa era
+ * falsa**. El 25/08/2026 se instaló aquí con `<domain>LAPSISTEMASA</domain>` y
+ * Windows registró `SERVICE_START_NAME: LocalSystem`, con el servicio Running:
+ * winsw no usa el dominio cuando la cuenta es `LocalSystem`.
+ *
+ * O sea que el aviso mandaba a perseguir un problema inexistente, en la
+ * pantalla cuyo único trabajo es decir si el servicio va a levantar. Ahora se
+ * consulta la cuenta de verdad (`sc qc`) y solo se reporta si ESA está mal.
  */
 function revisar() {
   if (!fs.existsSync(XML)) {
@@ -145,12 +181,17 @@ function revisar() {
   const xml = fs.readFileSync(XML, 'utf8');
   const problemas = [];
 
-  const dominio = /<domain>([^<]*)<\/domain>/.exec(xml)?.[1] || '';
-  const cuenta = /<user>([^<]*)<\/user>/.exec(xml)?.[1] || '';
-  if (cuenta === 'LocalSystem' && dominio && dominio.toUpperCase() !== 'NT AUTHORITY') {
+  // Las cuentas de sistema que SÍ sirven. Windows acepta `LocalSystem` a secas
+  // como sinónimo de `NT AUTHORITY\LocalSystem`.
+  const CUENTAS_OK = ['localsystem', 'nt authority\\localsystem',
+                      'nt authority\\localservice', 'nt authority\\networkservice'];
+  const real = estadoReal();
+  if (real && real.cuenta && !CUENTAS_OK.includes(real.cuenta.toLowerCase())) {
     problemas.push(
-      `la cuenta quedó como "${dominio}\\${cuenta}", que no existe — tiene que ser "NT AUTHORITY\\LocalSystem". ` +
-      'El servicio se instala y nunca arranca, sin dejar log.');
+      `Windows lo va a arrancar como "${real.cuenta}". Si esa cuenta no existe o no tiene ` +
+      'permisos, el servicio se instala y nunca arranca, sin dejar log. Tiene que ser ' +
+      '"LocalSystem". Se corrige sin reinstalar:\n' +
+      `       sc config "${ID}.exe" obj= "LocalSystem"`);
   }
   if (/<argument>undefined<\/argument>/.test(xml)) {
     problemas.push('hay un argumento literal "undefined" en el XML.');
@@ -165,12 +206,18 @@ function revisar() {
 
   console.log(`\nServicio: ${NOMBRE}`);
   console.log(`  XML:    ${XML}`);
-  console.log(`  Cuenta: ${dominio}\\${cuenta}`);
+  console.log(`  Cuenta: ${real ? real.cuenta : '(no está registrado en Windows)'}`);
+  if (real && real.estado) console.log(`  Estado: ${real.estado}`);
   if (!problemas.length) {
     console.log('  ✅ La configuración se ve bien.');
-    console.log('\n  Comprueba que de verdad esté corriendo:');
-    console.log(`     powershell "Get-Service ${ID}.exe | Select Name,Status"`);
-    console.log('  Debe decir Running. Si dice Stopped, mira el log de winsw en daemon\\.');
+    // Y ahora la pregunta que de verdad importa, ya contestada y no delegada al
+    // que lee: node-windows canta "arrancado" sin comprobar nada.
+    if (real && real.estado === 'RUNNING') {
+      console.log('  ✅ Y está corriendo.');
+    } else {
+      console.log(`\n  ⚠ Pero Windows lo reporta como ${(real && real.estado) || 'no instalado'}, no RUNNING.`);
+      console.log('    Mira el log de winsw en daemon\\, y el del agente en logs\\.');
+    }
     return true;
   }
   console.log('  ❌ Problemas:');

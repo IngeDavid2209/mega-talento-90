@@ -43,6 +43,19 @@ Así que el agente lee de la base del proveedor, que ya tiene el dato al segundo
 y lo empuja a la API. **La PC ya no necesita el `DATABASE_URL` de producción**:
 solo `apiUrl` + `token`.
 
+> ⚠️ **Todo lo de arriba describe el modo `origen: "hr"`, que YA NO ES EL QUE
+> CORRE.** El `config.json` de hoy dice `"origen": "relojes"`: el agente le habla
+> a los equipos directo por TCP 4370, sin pasar por `192.168.0.245`. Y funciona
+> — el 25/08/2026 se leyeron los **doce** relojes desde `LapSistemasA`, incluidos
+> los dos que nunca se habían bajado (Morelia Abastos, 23,331 registros;
+> Sucursal PH, 30,145).
+>
+> El `CMD_ACK_UNAUTH` de arriba no era un "no": era el reloj **pidiendo
+> autenticación**. `conectar()` (en `tools/lectura-verificada.js`) la contesta
+> con la clave de comunicación, que en los doce equipos es `0`. El diagrama y el
+> párrafo se quedaron sin actualizar. Se dejan porque explican por qué existe el
+> camino `hr` en el código, pero **no describen la instalación actual**.
+
 ---
 
 ## Instalación (una sola vez, en esa PC)
@@ -93,17 +106,31 @@ solo `apiUrl` + `token`.
 Listo. Arranca solo con la PC, **sobrevive al cierre de sesión**, y si el proceso
 muere Windows lo levanta otra vez.
 
-> **Si el servicio queda "Detenido" con arranque automático y sin ningún log**,
-> casi siempre es la cuenta. `node-windows` escribe en el XML de winsw el nombre
-> de la PC como dominio (`DAVID-CISNEROS\LocalSystem`), una cuenta que no
-> existe; el inicio de sesión falla antes de que winsw alcance a crear su log.
-> Ya está corregido en `instalar-servicio.js` (se fuerza
-> `NT AUTHORITY\LocalSystem`), pero si alguien instaló el servicio con una
-> versión vieja del script hay que **quitarlo y volverlo a instalar**:
+> **El `<domain>` del XML con el nombre de la PC NO es un problema.** Aquí
+> decía que `node-windows` escribe `TUPC\LocalSystem`, que esa cuenta no existe
+> y que por eso el servicio quedaba "Detenido sin log". **Es falso**, y costó
+> tiempo persiguiéndolo: el 25/08/2026 se instaló con
+> `<domain>LAPSISTEMASA</domain>` y Windows registró `SERVICE_START_NAME:
+> LocalSystem`, con el servicio corriendo. winsw no usa el dominio cuando la
+> cuenta es `LocalSystem`. El `logOnAs` que se le pasa a node-windows tampoco
+> sirve —lo ignora—, así que reinstalar reproduce el mismo XML y no arregla
+> nada.
+>
+> Lo que sí hay que mirar es lo que Windows concedió, no lo que winsw pidió.
+> `node instalar-servicio.js revisar` ya lo consulta con `sc qc` y dice la
+> cuenta real y el estado real. Si de verdad quedara una cuenta mala, se
+> corrige sin reinstalar:
 > ```
-> node instalar-servicio.js quitar
-> node instalar-servicio.js instalar
+> sc config "megatalentoagentedechecadas.exe" obj= "LocalSystem"
 > ```
+
+> **Dónde corre hoy (25/08/2026).** El agente está instalado como servicio en
+> **`LapSistemasA`**, no en `David-Cisneros`. Se movió ahí porque esa laptop
+> alcanza los doce relojes en el 4370 y la otra PC no estaba disponible.
+> **Es un arreglo temporal**: es una laptop, se cierra, se suspende y se va de
+> la red del corporativo, y cuando eso pase los relojes dejan de recogerse. Hay
+> que moverlo a una máquina que no se mueva. La ventaja es que ahora, cuando
+> pase, se ve en el semáforo del portal en 10 minutos en vez de en silencio.
 
 > El `.bat` viejo (`jalar-en-vivo.bat`) dependía de que alguien dejara una
 > ventana abierta, y la tarea programada se moría al cerrar sesión. Así se
