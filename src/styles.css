@@ -274,3 +274,10 @@ img, video { height: auto; }
 
 /* Campos de formulario e inputs no se salen del ancho disponible. */
 input, select, textarea, button { max-width: 100%; }
+
+/* Pines del mapa de presencia (/app/mapa). Leaflet los inyecta fuera del
+   componente, asi que su estilo tiene que ser global. */
+.pin { display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: rgba(30, 58, 95, .88); color: #fff; font-weight: 700; border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(16, 24, 40, .3); }
+.pin-mudo { background: rgba(180, 35, 24, .88); }

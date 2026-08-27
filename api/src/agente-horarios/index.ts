@@ -14,3 +14,5 @@ export { arrancarCorredor, correrUnaVez, estadoCorredor, ventanas } from './corr
 // horario configurado de la sucursal, que está mal en casi todas las plazas.
 export * as horarioDeducido from './horario-deducido';
 export { asistenciaPersonas } from './asistencia-personas';
+// Quién está en cada plaza ahora mismo: el mapa en vivo.
+export { presenciaAhora } from './presencia';

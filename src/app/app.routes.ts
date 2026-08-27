@@ -29,6 +29,7 @@ import { ResultadosEvaluacionComponent } from './rh/resultados-evaluacion/result
 import { HorariosComponent } from './rh/horarios/horarios';
 import { PromotorasComponent } from './rh/promotoras/promotoras';
 import { AgenteHorariosComponent } from './rh/agente-horarios/agente-horarios';
+import { MapaPresenciaComponent } from './rh/mapa-presencia/mapa-presencia';
 import { KpiComponent } from './rh/kpi/kpi';
 import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
 import { PermanenciaComponent } from './rh/permanencia/permanencia';
@@ -72,6 +73,8 @@ export const routes: Routes = [
         canActivate: [rolGuard('promotoria')],
       },
       { path: 'agente-horarios', component: AgenteHorariosComponent },
+      // El mapa en vivo: quien esta en cada plaza ahora mismo.
+      { path: 'mapa', component: MapaPresenciaComponent },
       { path: 'no-recontratables', component: NoRecontratablesComponent }, // lista negra + alerta de reingresos
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },

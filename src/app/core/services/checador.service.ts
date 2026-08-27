@@ -182,6 +182,32 @@ export interface PersonaCruce {
   marcasAjenas: number;
   ultimoDia: string;
 }
+// ── Mapa en vivo: quién está en cada plaza ───────────────────────────
+// Lo calcula `api/src/agente-horarios/presencia.ts`, que es donde está
+// explicado por qué "marcas impares" no basta para contestarlo bien.
+export type EstadoPresencia = 'dentro' | 'salio' | 'sin_salida';
+export interface PersonaPresente {
+  codigo: string; nombre: string;
+  desde: string; ultima: string; marcas: number;
+  estado: EstadoPresencia;
+  /** Su hora habitual de salida, deducida de sus propias semanas. */
+  salidaHabitual: string | null;
+  esPromotora: boolean;
+}
+export interface PlazaPresencia {
+  sucursalId: string;
+  dentro: number; salieron: number; sinSalida: number;
+  segundosSinSenal: number | null;
+  /** El reloj lleva rato mudo: el conteo es de la última vez que reportó. */
+  relojMudo: boolean;
+  personas: PersonaPresente[];
+}
+export interface Presencia {
+  fecha: string; hora: string;
+  totalDentro: number; totalSinSalida: number;
+  plazas: PlazaPresencia[];
+}
+
 export interface CrucesPlazas {
   desde: string; hasta: string;
   /** De alta en dos sedes, con o sin cruce de marcas: el universo revisado. */
@@ -494,6 +520,11 @@ export class ChecadorService {
    */
   async getCruces(desde: string, hasta: string): Promise<CrucesPlazas> {
     return this.api.get<CrucesPlazas>('/checador/agente/cruces', { desde, hasta });
+  }
+
+  /** Quién está en cada plaza AHORA. Alimenta el mapa en vivo. */
+  presencia() {
+    return this.api.get<Presencia>('/checador/agente/presencia');
   }
 
   // ===================== SEMÁFORO DE RELOJES =====================

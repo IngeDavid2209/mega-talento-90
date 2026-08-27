@@ -10,6 +10,20 @@ export interface Sucursal {
   ciudad: string;    // ciudad/municipio (para el filtro del formulario público)
   direccion: string; // dirección completa (es lo que se muestra como ubicación)
   mapsUrl: string;   // enlace a Google Maps
+  /**
+   * Coordenadas para el mapa en vivo (`/rh/mapa`). OPCIONALES a propósito.
+   *
+   * Una plaza sin `lat`/`lng` NO se pinta: sale en la lista de "sin ubicación"
+   * al lado del mapa, con su gente y todo. Es deliberado — un pin en el lugar
+   * equivocado se ve igual de convincente que uno correcto, y este módulo ya
+   * tiene bastante historia de números que parecían buenos y no lo eran.
+   *
+   * Se sacan de Google Maps: clic derecho sobre el punto → copiar coordenadas.
+   * Van en grados decimales, latitud primero (Michoacán ronda 19-20 de latitud
+   * y -101 a -102 de longitud).
+   */
+  lat?: number;
+  lng?: number;
 }
 
 /** Arma una URL de búsqueda en Google Maps a partir de la dirección. */

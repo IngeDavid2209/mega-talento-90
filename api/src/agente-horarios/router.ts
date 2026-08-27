@@ -9,6 +9,7 @@ import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
 import { estadoCorredor, correrUnaVez } from './corredor';
 import { asistenciaPersonas } from './asistencia-personas';
+import { presenciaAhora } from './presencia';
 import { crucesEntrePlazas } from './cruces-plazas';
 
 /** Umbral de ex-trabajador, el mismo que usa el corredor (ver corredor.ts). */
@@ -128,6 +129,19 @@ agenteHorariosRouter.get('/estado', async (_req: Request, res: Response) => {
     res.json(await estadoCorredor());
   } catch (e) {
     fallo(res, e, 'No se pudo leer el estado del agente.');
+  }
+});
+
+/**
+ * GET /checador/agente/presencia
+ * Quién está en cada plaza AHORA. Es lo que alimenta el mapa en vivo.
+ * Sin parámetros: mira las doce plazas a la vez, como la vista de cruces.
+ */
+agenteHorariosRouter.get('/presencia', async (_req: Request, res: Response) => {
+  try {
+    res.json(await presenciaAhora());
+  } catch (e) {
+    fallo(res, e, 'No se pudo leer quién está en cada plaza.');
   }
 });
 

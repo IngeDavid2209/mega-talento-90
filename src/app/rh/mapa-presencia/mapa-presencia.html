@@ -1,0 +1,119 @@
+<div class="mp-wrap">
+  <header class="mp-head">
+    <div>
+      <h1>¿Dónde está cada quien?</h1>
+      <p class="mp-sub">
+        Quién entró y no ha salido, según el reloj de cada plaza. Se refresca solo cada minuto.
+      </p>
+    </div>
+    @if (datos) {
+      <div class="mp-totales">
+        <div class="mp-kpi">
+          <strong>{{ datos.totalDentro }}</strong>
+          <span>dentro</span>
+        </div>
+        @if (datos.totalSinSalida) {
+          <div class="mp-kpi mp-kpi-aviso"
+               title="Marcaron entrada, ya pasó su hora habitual de salida y no hay marca de salida. No se cuentan como presentes.">
+            <strong>{{ datos.totalSinSalida }}</strong>
+            <span>sin salida registrada</span>
+          </div>
+        }
+        <div class="mp-hora">al corte de las {{ datos.hora }}</div>
+      </div>
+    }
+  </header>
+
+  @if (cargando && !datos) {
+    <p class="mp-cargando">Leyendo los relojes…</p>
+  }
+  @if (error) {
+    <div class="mp-error">
+      <p>{{ error }}</p>
+      <button (click)="cargar()">Reintentar</button>
+    </div>
+  }
+
+  @if (datos) {
+    <div class="mp-cuerpo">
+      <!-- El mapa solo existe si hay al menos una plaza con coordenadas. Sin
+           ellas la pantalla sigue siendo útil: la lista de la derecha trae lo
+           mismo. -->
+      @if (conUbicacion.length) {
+        <div id="mapa-presencia" class="mp-mapa"></div>
+      } @else {
+        <div class="mp-sin-mapa">
+          <p><strong>Todavía no hay ninguna plaza con coordenadas.</strong></p>
+          <p>
+            El mapa aparece en cuanto se capture <code>lat</code> y <code>lng</code> de al menos una,
+            en <code>src/app/core/models/sucursales.model.ts</code>. Se sacan de Google Maps con
+            clic derecho sobre el punto → copiar coordenadas.
+          </p>
+          <p class="mp-nota">
+            No se colocan a ojo a propósito: un pin en el lugar equivocado se ve igual de
+            convincente que uno correcto.
+          </p>
+        </div>
+      }
+
+      <aside class="mp-lista">
+        @for (p of datos.plazas; track p.sucursalId) {
+          <div class="mp-plaza" [id]="'plaza-' + p.sucursalId"
+               [class.abierta]="abierta === p.sucursalId"
+               [class.sin-ubicacion]="!coords(p.sucursalId)">
+            <button class="mp-plaza-head" (click)="alternar(p.sucursalId)">
+              <span class="mp-conteo" [class.mudo]="p.relojMudo">{{ p.dentro }}</span>
+              <span class="mp-nombre">
+                {{ nombre(p.sucursalId) }}
+                @if (!coords(p.sucursalId)) {
+                  <small class="mp-badge" title="No se pinta en el mapa porque no tiene coordenadas capturadas.">sin ubicación</small>
+                }
+                @if (p.relojMudo) {
+                  <small class="mp-badge mp-badge-mudo"
+                         [title]="'El reloj lleva ' + (minutosSinSenal(p) ?? '?') + ' min sin reportar: este número es de la última vez que se supo de él.'">
+                    reloj mudo
+                  </small>
+                }
+              </span>
+              <span class="mp-detalle">
+                {{ p.salieron }} salieron@if (p.sinSalida) {, {{ p.sinSalida }} sin salida}
+              </span>
+            </button>
+
+            @if (abierta === p.sucursalId) {
+              <table class="mp-gente">
+                <thead>
+                  <tr><th>Persona</th><th>Entró</th><th>Última</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  @for (g of p.personas; track g.codigo) {
+                    <tr [class.fuera]="g.estado === 'salio'" [class.pendiente]="g.estado === 'sin_salida'">
+                      <td>
+                        {{ g.nombre }}
+                        @if (g.esPromotora) { <small class="mp-badge">promotora</small> }
+                      </td>
+                      <td class="mp-mono">{{ g.desde }}</td>
+                      <td class="mp-mono">{{ g.ultima }}</td>
+                      <td>
+                        @switch (g.estado) {
+                          @case ('dentro') { <span class="mp-estado dentro">Dentro</span> }
+                          @case ('salio') { <span class="mp-estado salio">Salió</span> }
+                          @default {
+                            <span class="mp-estado pendiente"
+                                  [title]="'Su salida habitual es ' + (g.salidaHabitual || '—') + ' y no hay marca de salida.'">
+                              Sin salida
+                            </span>
+                          }
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</div>
