@@ -34,3 +34,6 @@ agente/padron.json
 
 # Respaldos previos a una migracion de datos: llevan nombres de empleados.
 tools/respaldo-*.json
+
+# Analisis derivados de checadas: llevan nombres de empleados.
+tools/analisis-*.csv
