@@ -86,7 +86,7 @@ export const CENTROS_INTERNOS: Sucursal[] = [
   // su propio espacio de códigos: mezclarlos con una plaza existente es lo que
   // hace que una marca acabe en la persona equivocada.
   //
-  // 192.168.0.81 — YA FUNDIDO EN CORPORATIVO (21/08/2026).
+  // 192.168.0.81 — FUNDIDO EN CORPORATIVO EL 26/08/2026.
   //
   // Era la MISMA gente de corporativo con otra numeración, y tuvo plaza propia
   // un par de semanas para no revolver códigos: el patrón es +100 (#11 es el
@@ -94,15 +94,37 @@ export const CENTROS_INTERNOS: Sucursal[] = [
   // en corporativo es #126, y #26 es Viviana Flores, que es #108—, así que
   // aplicar el patrón les habría intercambiado las marcas.
   //
-  // Ya hay traducción código→código en `reloj_codigo_map`, armada por NOMBRE y
+  // La traducción código→código vive en `reloj_codigo_map`, armada por NOMBRE y
   // corroborada con el +100 (ver api/tools/fundir-reloj-comida.js): 41 de sus 48
-  // códigos, que son 4,328 de sus 4,336 marcas. Sus checadas ahora entran a
+  // códigos, que son 4,722 de sus 4,730 marcas. Sus checadas entran a
   // corporativo, así que la comida sale en la misma fila que la jornada —que es
   // como la pide el reporte de RH— y esta plaza ya no existe como sección.
   //
+  // ⚠️ ESTE BLOQUE DECÍA "YA FUNDIDO (21/08/2026)" Y NO ERA CIERTO. La fusión no
+  // se había corrido: `reloj_codigo_map` estaba VACÍA y el reloj seguía
+  // apuntando a `corporativo-comida`. Como el id sí se había sacado del selector
+  // —abajo, en CENTROS_SIN_RELOJ— sus marcas se siguieron recogiendo cinco días
+  // cayendo en un id que ninguna pantalla mostraba: 4,730 marcas escondidas, ~96
+  // al día, no las "8 históricas" que decía aquí. Se corrió de verdad el
+  // 26/08/2026 y los números de arriba están verificados contra la base.
+  //
+  // La lección: un comentario que describe un estado de la BASE no es
+  // documentación, es una afirmación que puede ser falsa. Si vuelve a hacer
+  // falta comprobarlo:
+  //     SELECT count(*) FROM reloj_codigo_map WHERE serie='CLXK233460626';
+  //
   // Se queda en el catálogo, no en el selector: los 8 marcajes que no se
-  // pudieron traducir (dos altas con nombre de pila suelto) siguen guardados con
-  // este id y el catálogo es lo que le pone nombre a un id histórico.
+  // pudieron traducir (Andrea #25 y Dayan #34, altas con nombre de pila suelto)
+  // siguen guardados con este id y el catálogo es lo que le pone nombre a un id
+  // histórico.
+  //
+  // PENDIENTE DE RH: 7 códigos sin traducir (#25 Andrea, #29 López Guillermo,
+  // #33 Montse, #34 Dayan, #42 Danna, #43 Víctor, #48 Nery). Ahora que el reloj
+  // reporta a corporativo, si esas personas vuelven a checar sus marcas llegarán
+  // con el código crudo y les abrirán ficha aparte en corporativo. Ninguno de
+  // los 7 choca hoy con un código existente allá (comprobado), pero corporativo
+  // numera desde el 1: una alta futura podría tomar el #33 y entonces sí se le
+  // atribuirían a la persona equivocada. Se cierra completando su traducción.
   { id: 'corporativo-comida', ciudad: 'Oficinas', direccion: 'Desayuno y comida', mapsUrl: '' },
 
   // 192.168.0.196 — 12 personas checando a diario y NO se sabe de qué plaza es;
@@ -151,10 +173,15 @@ export const CENTROS_SIN_RELOJ: string[] = [
   'la-piedad-centro',    // nunca ha tenido reloj ni padrón
   'morelia-figaredo',    // nunca ha tenido reloj ni padrón
   'santa-ana-pacueco',   // nunca ha tenido reloj ni padrón
-  // Su reloj sigue vivo, pero ya reporta DENTRO de corporativo (21/08/2026): la
-  // gente es la misma y tener dos secciones obligaba a mirar dos veces a la
+  // Su reloj sigue vivo, pero reporta DENTRO de corporativo desde el 26/08/2026:
+  // la gente es la misma y tener dos secciones obligaba a mirar dos veces a la
   // misma persona. No se borra del catálogo porque quedan 8 marcajes históricos
   // con este id y hay que poder ponerles nombre.
+  //
+  // OJO AL SACAR UN ID DE AQUÍ: esta línea se puso el 21/08 dando por hecha una
+  // fusión que no se había ejecutado, y durante cinco días el reloj siguió
+  // mandando ~96 marcas diarias a un id que ya no tenía sección donde salir. No
+  // basta con que la fusión esté escrita: hay que comprobar que corrió.
   'corporativo-comida',
   // MORELIA ABASTOS SALIÓ DE ESTA LISTA EL 20/08/2026.
   //
