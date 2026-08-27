@@ -208,12 +208,30 @@ class RelojJob {
       const conexion = conectar(this.reloj.ip, {
         puerto: this.reloj.puerto, commKey: this.reloj.commKey, timeoutMs: 20000,
       });
-      // Si el saludo vence, la conexión todavía puede completarse DESPUÉS y
-      // dejar una sesión abierta contra el equipo. Un ZK acepta UNA sola: ese
-      // socket huérfano nos cerraría la puerta a nosotros mismos en el siguiente
-      // intento. Se tira en cuanto aparezca, si ya no es el que estamos usando.
-      conexion.then((zk) => { if (this.zk !== zk) destruirSocket(zk); }, () => {});
-      this.zk = await conLimite(conexion, LIMITE_CONEXION_MS, 'el saludo al reloj');
+      try {
+        this.zk = await conLimite(conexion, LIMITE_CONEXION_MS, 'el saludo al reloj');
+      } catch (e) {
+        // ══ EL DESTRUCTOR VA SOLO EN EL CAMINO DE FALLO ══════════════
+        //
+        // Si el saludo vence, la conexión todavía puede completarse DESPUÉS y
+        // dejar una sesión abierta contra el equipo. Un ZK acepta UNA sola, así
+        // que ese socket huérfano nos cerraría la puerta a nosotros mismos.
+        //
+        // La versión anterior enganchaba aquí un `.then` que comparaba
+        // `this.zk !== zk` para decidir si tirarlo, y estaba MAL: ese handler se
+        // encola antes que la reanudación del `await`, así que corría cuando
+        // `this.zk` todavía era null y daba "no es la mía" SIEMPRE. Resultado:
+        // destruía la sesión que se acababa de abrir bien. El 27/08/2026 eso
+        // tenía a los doce relojes reconectando ~1,000 veces al día y el camino
+        // en vivo MUERTO —cero detecciones del vigía en toda la jornada—; la
+        // asistencia solo entraba por el backfill horario y la pantalla iba
+        // hasta una hora atrás. Verde en el semáforo, y atrasada.
+        //
+        // Colgarlo del `catch` quita el problema de raíz: aquí solo se llega
+        // cuando de verdad no nos quedamos con la sesión.
+        conexion.then((tardio) => destruirSocket(tardio), () => {});
+        throw e;
+      }
 
       try {
         this.infoReloj = await conLimite(this.zk.getInfo(), LIMITE_COMANDO_MS, 'getInfo de arranque');
