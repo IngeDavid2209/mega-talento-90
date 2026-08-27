@@ -17,6 +17,10 @@ import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 interface DiaAsistencia {
   fecha: string; diaLabel: string;
   entrada: string; comida: string; salida: string; horasNetas: string;
+  /** Duración de la pausa de la mañana, en minutos (null si ese día no hubo). */
+  desayunoMin: number | null;
+  /** Minutos por encima del tope (25 en corporativo, 30 en las demás). */
+  desayunoExcesoMin: number | null;
   /** El retardo REAL: lo que excedió la bolsa semanal. */
   retardoMin: number;
   /** Minutos crudos de atraso y cuánto absorbió la bolsa (para poder auditarlo). */
@@ -896,6 +900,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         comida: d.comida || '—',
         salida: d.salida || '—',
         horasNetas: d.horasNetas || '—',
+        desayunoMin: d.desayunoMin ?? null,
+        desayunoExcesoMin: d.desayunoExcesoMin ?? null,
         retardoMin: d.retardoRealMin,
         atrasoMin: d.atrasoMin,
         absorbidoMin: d.absorbidoMin,
@@ -1394,7 +1400,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Su horario': e.horario, 'Tipo': e.tipo,
             'Horario confirmado por RH': e.horarioConfirmado ? 'Sí' : 'No',
             'Semana': s.label, 'Fecha': d.fecha, 'Día': d.diaLabel,
-            'Entrada': d.entrada, 'Comida': d.comida, 'Salida': d.salida, 'Horas netas': d.horasNetas,
+            'Entrada': d.entrada,
+            'Desayuno (min)': d.desayunoMin ?? '',
+            'Desayuno excedido (min)': d.desayunoExcesoMin || '',
+            'Comida': d.comida, 'Salida': d.salida, 'Horas netas': d.horasNetas,
             'Medido contra': d.referencia,
             'Atraso bruto (min)': d.atrasoMin,
             'Absorbido por la bolsa (min)': d.absorbidoMin,

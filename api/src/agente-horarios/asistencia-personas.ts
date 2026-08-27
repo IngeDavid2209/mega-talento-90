@@ -1,5 +1,12 @@
 import { pool } from '../db';
 import * as hd from './horario-deducido';
+import { cargarConfig } from './config';
+
+/** 'HH:mm' → minutos desde medianoche. */
+function minutosDeHHMM(hhmm: string | null | undefined): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm ?? '').trim());
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
 
 /**
  * ASISTENCIA POR PERSONA, con las reglas del horario deducido.
@@ -81,6 +88,14 @@ export interface DiaVista extends hd.DiaMedido {
   horasNetas: string;     // 'Hh MMm' o '—'
   /** Con qué lo justificó RH, cuando el día quedó en `justificado`. */
   justificacion?: string;
+  /** Minutos que duró el desayuno, o null si ese día no hubo. */
+  desayunoMin?: number | null;
+  /**
+   * Minutos por encima del tope. Se manda SIEMPRE que haya exceso, aunque no
+   * llegue al umbral de alerta: el umbral decide qué molesta al jefe, no qué ve
+   * RH. Un exceso de 3 min no merece alerta y sí merece verse.
+   */
+  desayunoExcesoMin?: number | null;
 }
 
 export interface PersonaAsistencia {
@@ -119,6 +134,10 @@ export interface PersonaAsistencia {
   diasNoMedibles: number;       // días de una sola marca
   diasAtipicos: number;
   horasTrabajadas: number;
+  /** Minutos de desayuno por encima del tope, sumados en el periodo. */
+  desayunoExcesoMin: number;
+  /** En cuántos días se pasó (aunque fuera por poco). */
+  diasDesayunoExcedido: number;
   pctATiempo: number | null;
   semanas: Array<hd.SemanaMedida & { dias: DiaVista[] }>;
   marcas: Marca[];
@@ -168,6 +187,9 @@ export interface AsistenciaPersonas {
   faltasJustificadas: number;
     diasNoMedibles: number;
     horasTrabajadas: number;
+    /** Minutos de desayuno por encima del tope, sumados en toda la plaza. */
+    desayunoExcesoMin: number;
+    diasDesayunoExcedido: number;
   };
   personas: PersonaAsistencia[];
 }
@@ -302,20 +324,46 @@ function formatHoras(min: number): string {
  * regresó o si el lector no leyó el regreso, y descontar hasta el final del día
  * sería inventar. Se muestra para que se vea que está ahí.
  */
-function detalleDia(marcasCrudas: string[]): { comida: string; netasMin: number | null; brutasMin: number | null } {
+interface DetalleDia {
+  comida: string;
+  netasMin: number | null;
+  brutasMin: number | null;
+  desayunoMin: number | null;
+  desayunoExcesoMin: number | null;
+}
+
+function detalleDia(
+  marcasCrudas: string[],
+  desayuno?: { topeMin: number; hastaMin: number; maxPlausibleMin: number }
+): DetalleDia {
+  const vacio: DetalleDia = {
+    comida: '—', netasMin: null, brutasMin: null, desayunoMin: null, desayunoExcesoMin: null,
+  };
   const mins = hd.colapsarDuplicadas(
     marcasCrudas.map((x) => hd.aMinutos(x)).filter((x): x is number => x !== null)
   );
-  if (mins.length < 2) return { comida: '—', netasMin: null, brutasMin: null };
+  if (mins.length < 2) return vacio;
   const brutas = mins[mins.length - 1] - mins[0];
   const medio = mins.slice(1, -1);
 
   const tramos: string[] = [];
   let fuera = 0;
+  // El desayuno es la PRIMERA pausa emparejada que empieza antes del corte. Se
+  // identifica igual que en reglas.ts::reglaDesayunoExcedido — si estas dos
+  // dejaran de coincidir, la pantalla y la alerta dirían cosas distintas del
+  // mismo día, que es la peor forma de perder la confianza en un reporte.
+  let desayunoMin: number | null = null;
   for (let i = 0; i < medio.length; i += 2) {
     if (i + 1 < medio.length) {
       tramos.push(`${hd.aHora(medio[i])} – ${hd.aHora(medio[i + 1])}`);
       fuera += medio[i + 1] - medio[i];
+      if (desayuno && desayunoMin == null && medio[i] < desayuno.hastaMin) {
+        const dur = medio[i + 1] - medio[i];
+        // El mismo techo que en reglas.ts: si no es creíble como desayuno, no se
+        // reporta como tal. Si aquí se mostrara y allá no, la pantalla acusaría
+        // de algo que la alerta no sostiene.
+        if (dur <= desayuno.maxPlausibleMin) desayunoMin = dur;
+      }
     } else {
       // Impar: la última salida no tiene regreso. Se enseña, no se descuenta.
       tramos.push(hd.aHora(medio[i]) as string);
@@ -326,6 +374,9 @@ function detalleDia(marcasCrudas: string[]): { comida: string; netasMin: number 
     comida: tramos.length ? tramos.join(' · ') : '—',
     netasMin: Math.max(0, brutas - fuera),
     brutasMin: brutas,
+    desayunoMin,
+    desayunoExcesoMin:
+      desayuno && desayunoMin != null ? Math.max(0, desayunoMin - desayuno.topeMin) : null,
   };
 }
 
@@ -384,6 +435,18 @@ export async function asistenciaPersonas(
   // a cualquiera de sistemas/oficina con un practicante. La detección de
   // practicante NO aplica en esos relojes.
   const esRelojDeComida = /comida|desayuno/i.test(sucursalId);
+
+  // El tope de desayuno sale de la MISMA config que usa el detector de alertas
+  // (corporativo 25, el resto 30). Duplicarlo aquí con un número a mano haría
+  // que la pantalla y la alerta discreparan en cuanto RH ajustara uno de los dos.
+  const cfg = await cargarConfig(sucursalId);
+  const desayunoCfg = cfg.reglasActivas?.desayuno_excedido && cfg.desayunoTopeMin > 0
+    ? {
+        topeMin: cfg.desayunoTopeMin,
+        hastaMin: minutosDeHHMM(cfg.desayunoHastaHora) ?? 13 * 60,
+        maxPlausibleMin: cfg.desayunoMaxPlausibleMin,
+      }
+    : undefined;
 
   // La ventana del HORARIO nunca es más corta que la del rango (ver
   // VENTANA_HORARIO_DIAS): si RH pide "Hoy", el horario sale de su último mes.
@@ -608,22 +671,28 @@ export async function asistenciaPersonas(
     // que la regla dependiera de quién firmó qué.
     const excusadas = excusas.get(cod) || new Map<string, string>();
     let faltasJustificadas = 0;
+    let desayunoExcesoMin = 0;
+    let diasDesayunoExcedido = 0;
     const semanas = (re?.semanas || []).map((s) => ({
       ...s,
       dias: s.dias.map((d): DiaVista => {
-        const det = detalleDia(datos?.horas.get(d.fecha) || []);
+        const det = detalleDia(datos?.horas.get(d.fecha) || [], desayunoCfg);
         if (det.netasMin) minTrabajados += det.netasMin;
+        if (det.desayunoExcesoMin) { desayunoExcesoMin += det.desayunoExcesoMin; diasDesayunoExcedido++; }
         const justificacion = excusadas.get(d.fecha);
         // Solo se excusa la FALTA. Un día con marcas ya se midió y su retardo
         // no lo borra un justificante de ausencia: la persona sí vino.
+        const extra = {
+          comida: det.comida,
+          horasNetas: formatHoras(det.netasMin ?? 0),
+          desayunoMin: det.desayunoMin,
+          desayunoExcesoMin: det.desayunoExcesoMin,
+        };
         if (justificacion && d.estado === 'falta') {
           faltasJustificadas++;
-          return {
-            ...d, estado: 'justificado' as hd.EstadoDia, justificacion,
-            comida: det.comida, horasNetas: formatHoras(det.netasMin ?? 0),
-          };
+          return { ...d, estado: 'justificado' as hd.EstadoDia, justificacion, ...extra };
         }
-        return { ...d, comida: det.comida, horasNetas: formatHoras(det.netasMin ?? 0) };
+        return { ...d, ...extra };
       }),
     }));
 
@@ -679,6 +748,8 @@ export async function asistenciaPersonas(
       diasNoMedibles: re?.marcasFaltantes ?? 0,
       diasAtipicos: re?.atipicos ?? 0,
       horasTrabajadas: Math.round(minTrabajados / 6) / 10,
+      desayunoExcesoMin,
+      diasDesayunoExcedido,
       // Sobre los días que SÍ se pudieron evaluar: si no hay ninguno, no es 0%,
       // es que no hay respuesta (null). Un 0% falso parece el peor empleado.
       pctATiempo: diasEvaluados ? Math.round(((diasEvaluados - (re?.diasConRetardo ?? 0)) / diasEvaluados) * 100) : null,
@@ -730,6 +801,8 @@ export async function asistenciaPersonas(
       faltasJustificadas: personas.reduce((s, p) => s + p.faltasJustificadas, 0),
       diasNoMedibles: personas.reduce((s, p) => s + p.diasNoMedibles, 0),
       horasTrabajadas: Math.round(personas.reduce((s, p) => s + p.horasTrabajadas, 0)),
+      desayunoExcesoMin: personas.reduce((s, p) => s + p.desayunoExcesoMin, 0),
+      diasDesayunoExcedido: personas.reduce((s, p) => s + p.diasDesayunoExcedido, 0),
     },
     personas,
   };

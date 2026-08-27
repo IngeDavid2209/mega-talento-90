@@ -11,7 +11,8 @@ export type Regla =
   | 'multiples_entradas'
   | 'entrada_sin_salida'
   | 'salida_sin_entrada'
-  | 'fuera_de_turno';
+  | 'fuera_de_turno'
+  | 'desayuno_excedido';
 
 export type Severidad = 'baja' | 'media' | 'alta';
 
@@ -37,6 +38,47 @@ export interface ReglaConfig {
   faltaSoloConActividadEnRango: boolean;
   /** Regla 3: "entrada sin salida" solo se marca en días ya cerrados (fecha < hoy). */
   soloDiasCerrados: boolean;
+
+  // ── Regla 6: DESAYUNO EXCEDIDO ────────────────────────────────────
+  //
+  // Política de RH (27/08/2026): 25 min en corporativo, 30 en las demás plazas.
+  // El tope vive aquí y no en código porque `asistencia_config` ya permite
+  // override por sucursal, que es justo lo que hace falta: corporativo lleva su
+  // propia fila con 25.
+  /** Minutos permitidos de desayuno. */
+  desayunoTopeMin: number;
+  /**
+   * A partir de cuántos minutos de EXCESO se genera alerta. El exceso siempre se
+   * ve en la pantalla; esto solo decide qué llega al flujo de alertas.
+   *
+   * No es adorno: con umbral 1 min serían ~284 alertas por semana y este módulo
+   * ya se ahogó una vez —2,510 alertas enterraron a las de quien sí importaba—.
+   * Con 10, son ~149. Medido sobre 857 desayunos reales (10-23/08/2026).
+   */
+  desayunoAlertaMin: number;
+  /**
+   * Hasta qué hora una pausa cuenta como DESAYUNO ('HH:mm'). Lo que empieza
+   * después es comida, y la comida NO tiene tope.
+   *
+   * 13:00 no es un número redondo elegido a ojo: los inicios de pausa de toda la
+   * empresa forman dos jorobas —una que pica a las 11:00 y otra a las 15:00— y
+   * 13:00 es el valle entre ellas (110 casos contra 321 y 353).
+   */
+  desayunoHastaHora: string;
+  /**
+   * Por encima de esto, la pausa NO se trata como desayuno: ni se reporta el
+   * exceso ni se alerta.
+   *
+   * Nadie desayuna dos horas. Un hueco así es una marca de regreso que el lector
+   * no leyó, y cobrarla como desayuno produce el peor tipo de alerta: la que es
+   * grande, falsa y sale hasta arriba. Medido del 10 al 23/08/2026 sobre 857
+   * pausas matutinas, el corte es limpio — p97 = 66 min y p99 = 240 min—: las 15
+   * que pasan de 120 min (1.8%) son todas dato roto, no gente desayunando.
+   *
+   * Esos días no se ocultan: sus marcas siguen en la columna Comida y los
+   * atrapan las reglas que sí son suyas (`entrada_sin_salida`, día `atipico`).
+   */
+  desayunoMaxPlausibleMin: number;
   /** Interruptores por regla (permite apagar reglas por sucursal). */
   reglasActivas: Record<Regla, boolean>;
 }

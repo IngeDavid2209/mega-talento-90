@@ -10,6 +10,7 @@ import { ReglaConfig, Regla } from './tipos';
 const REGLAS: Regla[] = [
   'retardo', 'falta', 'checada_duplicada',
   'multiples_entradas', 'entrada_sin_salida', 'fuera_de_turno',
+  'desayuno_excedido',
 ];
 
 /** Respaldo en código (espejo de la semilla en db/agente-horarios.sql). */
@@ -22,6 +23,12 @@ export const CONFIG_DEFAULT: ReglaConfig = {
   marcarFaltas: true,
   soloDiasCerrados: true,
   faltaSoloConActividadEnRango: true,
+  // 30 min es el default de la empresa; corporativo lleva 25 en su propia fila
+  // de `asistencia_config` (ver db/agente-horarios.sql).
+  desayunoTopeMin: 30,
+  desayunoAlertaMin: 10,
+  desayunoHastaHora: '13:00',
+  desayunoMaxPlausibleMin: 120,
   reglasActivas: {
     retardo: true,
     falta: true,
@@ -30,6 +37,7 @@ export const CONFIG_DEFAULT: ReglaConfig = {
     entrada_sin_salida: true,
     salida_sin_entrada: true,
     fuera_de_turno: true,
+    desayuno_excedido: true,
   },
 };
 

@@ -44,6 +44,10 @@ export interface DiaApi {
   referencia?: string | null;    // contra qué se midió ese día
   comida: string;
   horasNetas: string;
+  /** Duración del desayuno en minutos (la pausa de la mañana), o null si no hubo. */
+  desayunoMin?: number | null;
+  /** Minutos por encima del tope. Llega aunque no alcance el umbral de alerta. */
+  desayunoExcesoMin?: number | null;
   atrasoMin: number;             // minutos crudos de atraso
   absorbidoMin: number;          // lo que absorbió la bolsa semanal
   retardoRealMin: number;        // el excedente: esto es el retardo
@@ -99,6 +103,9 @@ export interface PersonaAsistencia {
   diasNoMedibles: number;             // días de una sola marca
   diasAtipicos: number;
   horasTrabajadas: number;
+  /** Minutos de desayuno por encima del tope, sumados en el periodo. */
+  desayunoExcesoMin: number;
+  diasDesayunoExcedido: number;
   /** null cuando no hubo ni un día evaluable: un 0% falso parece el peor empleado. */
   pctATiempo: number | null;
   semanas: SemanaApi[];
@@ -125,6 +132,7 @@ export interface AsistenciaPersonas {
     retardoRealMin: number; retardoRealUsableMin: number;
     atrasoBrutoMin: number; absorbidoMin: number;
     faltas: number; faltasJustificadas: number; diasNoMedibles: number; horasTrabajadas: number;
+    desayunoExcesoMin: number; diasDesayunoExcedido: number;
   };
   personas: PersonaAsistencia[];
 }

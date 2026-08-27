@@ -209,6 +209,82 @@ function reglaFueraDeTurno(e: EntradaDia): Inconsistencia | null {
 }
 
 /**
+ * Regla 6: DESAYUNO EXCEDIDO.
+ *
+ * ══ CUÁL DE LAS PAUSAS ES EL DESAYUNO ══
+ *
+ * Un día puede tener varias pausas. La primera y la última marca son la jornada;
+ * las de en medio se emparejan salida→regreso. El desayuno es la PRIMERA pausa
+ * emparejada que empieza antes de `desayunoHastaHora`.
+ *
+ * Se identifica por HORA y no por orden a propósito. Por orden parecería más
+ * simple —"la pausa #1"— pero 25 de 139 días de corporativo tienen su primera
+ * pausa después del mediodía: son personas que ese día solo comieron. Cobrarles
+ * la comida contra el tope del desayuno sería marcar a quien no hizo nada malo.
+ *
+ * ══ UNA PAUSA SIN REGRESO NO CUENTA ══
+ *
+ * Si alguien marca salida y no hay regreso, no se sabe si se fue a desayunar dos
+ * horas o si el lector no leyó el regreso. Medir contra el final del día sería
+ * inventar. Se ignora aquí igual que en el cálculo de horas netas.
+ *
+ * ══ OJO CON EL ALCANCE (medido el 27/08/2026) ══
+ *
+ * En corporativo hay dos pausas reales (desayuno ~11:00 de 25 min y comida
+ * ~15:00) y la regla mide lo que se quiso medir: 77 excesos de 224 desayunos.
+ *
+ * En las SUCURSALES no hay desayuno: el 96-100% de sus días tienen UNA SOLA
+ * pausa, y es su comida. Donde esa pausa cae antes de las 13:00 —morelia-abastos
+ * a las 11:22 con 59 min de mediana— esta regla la trata como un desayuno de una
+ * hora y marca a la plaza entera: 192 de 208 días. Se implementó así porque es
+ * la política que dio RH (25 corporativo / 30 el resto), pero si morelia resulta
+ * ser una excepción, se apaga por sucursal sin tocar código:
+ *
+ *     INSERT INTO asistencia_config (sucursal_id, config) VALUES
+ *       ('morelia-abastos', '{"reglasActivas":{"desayuno_excedido":false}}')
+ *       ON CONFLICT (sucursal_id) DO UPDATE SET config = ...;
+ */
+function reglaDesayunoExcedido(e: EntradaDia): Inconsistencia | null {
+  const { config } = e;
+  const tope = config.desayunoTopeMin;
+  if (!(tope > 0)) return null;
+  const corte = minDeHora(config.desayunoHastaHora);
+  if (corte == null) return null;
+
+  const marcas = aMarcas(e.checadas);
+  if (marcas.length < 4) return null;            // sin jornada + una pausa entera
+  const medio = marcas.slice(1, -1);
+
+  let pausa: { ini: Marca; fin: Marca } | null = null;
+  for (let i = 0; i + 1 < medio.length; i += 2) {
+    if (medio[i].min < corte) { pausa = { ini: medio[i], fin: medio[i + 1] }; break; }
+  }
+  if (!pausa) return null;                       // solo comió: no hay desayuno que medir
+
+  const duracion = pausa.fin.min - pausa.ini.min;
+  // Un "desayuno" de dos horas o más no es un desayuno: es una marca perdida.
+  // Ver desayunoMaxPlausibleMin en tipos.ts.
+  if (duracion > config.desayunoMaxPlausibleMin) return null;
+  const exceso = duracion - tope;
+  if (exceso < config.desayunoAlertaMin) return null;
+
+  return {
+    regla: 'desayuno_excedido',
+    severidad: severidadPorMinutos(exceso),
+    detalle: `Desayuno de ${duracion} min (${hhmm(pausa.ini.min)}–${hhmm(pausa.fin.min)}); ` +
+             `el tope es ${tope} min. Se excedió ${exceso} min.`,
+    evidencia: {
+      salida: pausa.ini.hora, regreso: pausa.fin.hora,
+      duracionMin: duracion, topeMin: tope, excesoMin: exceso,
+      umbralAlertaMin: config.desayunoAlertaMin,
+    },
+    justificacionSugerida:
+      `Desayuno ${exceso} min por encima del tope de ${tope}. Confirmar con el empleado ` +
+      '(posibles: fila en el comedor, permiso del jefe, marca tardía al regresar).',
+  };
+}
+
+/**
  * Punto de entrada del motor: aplica todas las reglas activas a un empleado-día.
  * Devuelve las inconsistencias encontradas (puede ser vacío).
  */
@@ -226,6 +302,7 @@ export function analizarDia(e: EntradaDia): Inconsistencia[] {
   if (activas.multiples_entradas) push(reglaMultiplesEntradas(e));
   if (activas.entrada_sin_salida) push(reglaEntradaSinSalida(e));
   if (activas.fuera_de_turno) push(reglaFueraDeTurno(e));
+  if (activas.desayuno_excedido) push(reglaDesayunoExcedido(e));
 
   return salida;
 }

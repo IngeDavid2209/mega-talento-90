@@ -84,6 +84,29 @@ UPDATE asistencia_config
    SET config = jsonb_set(config, '{faltaSoloConActividadEnRango}', 'true'::jsonb, true)
  WHERE sucursal_id = '__global__' AND NOT (config ? 'faltaSoloConActividadEnRango');
 
+-- ---------------------------------------------------------------------
+-- DESAYUNO EXCEDIDO (27/08/2026). Política de RH: 25 min en corporativo,
+-- 30 en las demás plazas. El global lleva 30 y corporativo su propia fila.
+--
+-- `desayunoAlertaMin` es el mínimo de EXCESO para generar alerta; el exceso
+-- SIEMPRE se ve en la pantalla de asistencia, alerte o no. Con umbral 1 serían
+-- ~284 alertas por semana; con 10, ~149 (medido sobre 857 desayunos reales del
+-- 10 al 23/08/2026). Este módulo ya se ahogó una vez en alertas y la lección
+-- está escrita en corredor.ts: una alerta con ruido se ignora.
+-- ---------------------------------------------------------------------
+UPDATE asistencia_config SET config = config
+     || '{"desayunoTopeMin": 30, "desayunoAlertaMin": 10, "desayunoHastaHora": "13:00", "desayunoMaxPlausibleMin": 120}'::jsonb
+ WHERE sucursal_id = '__global__' AND NOT (config ? 'desayunoTopeMin');
+
+UPDATE asistencia_config
+   SET config = jsonb_set(config, '{reglasActivas,desayuno_excedido}', 'true'::jsonb, true)
+ WHERE sucursal_id = '__global__' AND NOT (config -> 'reglasActivas' ? 'desayuno_excedido');
+
+INSERT INTO asistencia_config (sucursal_id, config)
+VALUES ('corporativo', '{"desayunoTopeMin": 25}'::jsonb)
+ON CONFLICT (sucursal_id) DO UPDATE
+   SET config = asistencia_config.config || '{"desayunoTopeMin": 25}'::jsonb;
+
 -- Liga (opcional) de un empleado a su TURNO asignado. Si está puesta, el agente
 -- usa ESE horario para retardo/falta/fuera-de-turno; si es NULL, cae al horario
 -- general de la sucursal por día de la semana. Aditiva: no rompe checadas ni el

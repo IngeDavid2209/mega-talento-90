@@ -746,3 +746,11 @@
   text-transform: none; letter-spacing: 0;
 }
 .ar-vac-nota { margin: 8px 0 0; font-size: 11.5px; color: var(--text2); }
+
+/* Desayuno que se pasó del tope (25 min en corporativo, 30 en las demás).
+   Se marca la celda en vez de meter otro badge: la tabla del detalle ya tiene
+   badges de falta, descanso y verificación, y uno más se pierde entre ellos. */
+.ar-desayuno-excedido {
+  color: #b42318;
+  font-weight: 600;
+}

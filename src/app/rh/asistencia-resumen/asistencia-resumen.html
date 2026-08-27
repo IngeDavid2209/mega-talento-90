@@ -790,7 +790,9 @@
                 <table class="ar-tabla ar-tabla-det">
                   <thead>
                     <tr>
-                      <th>Día</th><th>Entrada</th><th>Comida</th><th>Salida</th>
+                      <th>Día</th><th>Entrada</th>
+                      <th title="La pausa de la mañana. En rojo si pasó del tope permitido.">Desayuno</th>
+                      <th>Comida</th><th>Salida</th>
                       <th>Horas netas</th>
                       <th title="La hora contra la que se midió ese día. En un rotativo cambia día con día.">Medido vs</th>
                       <th>Retardo</th><th>Justificación</th><th>Verificación</th>
@@ -801,6 +803,11 @@
                       <tr [class.ar-fila-falta]="d.falta" [class.ar-fila-nomedible]="d.noMedible">
                         <td class="ar-dia">{{ d.diaLabel }}@if (d.atipico) { <span title="Día muy lejos de su horario: marca errónea o turno especial. Cuenta, pero revísalo.">⚠</span> }</td>
                         <td class="ar-mono">{{ d.entrada }}</td>
+                        <td class="ar-mono" [class.ar-desayuno-excedido]="!!d.desayunoExcesoMin">
+                          @if (d.desayunoMin != null) {
+                            {{ d.desayunoMin }}m@if (d.desayunoExcesoMin) { <span title="Minutos por encima del tope">&nbsp;+{{ d.desayunoExcesoMin }}</span> }
+                          } @else { — }
+                        </td>
                         <td class="ar-mono">{{ d.comida }}</td>
                         <td class="ar-mono">{{ d.salida }}</td>
                         <td class="ar-mono">{{ d.horasNetas }}</td>
