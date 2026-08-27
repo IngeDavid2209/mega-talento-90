@@ -3,6 +3,41 @@
  * Dominio puro: NO importa Express ni pg. Se usa en reglas.ts (lógica testeable).
  */
 
+/**
+ * ¿Esta ficha es de una PROMOTORA?
+ *
+ * Una promotora no checa como el personal de planta: anda entre plazas y marca
+ * donde le toca ese día. Medida con la misma vara sale con falta a diario, así
+ * que va en su propia pantalla y fuera de la detección de alertas.
+ *
+ * ══ POR QUÉ TAMBIÉN SE MIRA EL DEPARTAMENTO ══
+ *
+ * `es_promotora` es una marca que alguien tiene que poner a mano, con
+ * `tools/marcar-promotoras.js` y el concentrado de RH. El 27/08/2026 había
+ * **51 personas activas** cuyo departamento decía PROMOTORA / PROMOTORIA /
+ * ZONA PROMOTORIA y que NO estaban marcadas: salían mezcladas con el personal
+ * de piso y no aparecían en su sección. Y la incoherencia convivía dentro de la
+ * misma plaza —en zamora-canindo, Alejandra Mondelez marcada y Guadalupe
+ * Mondelez no—, o sea que no era un olvido puntual sino deriva: cada alta nueva
+ * volvía a entrar sin marcar.
+ *
+ * El departamento no es un dato nuestro, viene del padrón de RH, y es la
+ * clasificación que ellos mismos hacen. Usarlo como segunda fuente cierra la
+ * deriva sin depender de que alguien se acuerde de correr una herramienta.
+ *
+ * Ojo con el sentido de un falso positivo: marcar de más SACA a una persona de
+ * la medición de asistencia. Por eso el patrón es `promotor` y no algo más
+ * amplio: no atrapa a nadie por parecido de nombre, solo a quien RH puso en un
+ * departamento de promotoría.
+ */
+export function esPromotora(
+  ficha: { es_promotora?: boolean | null; departamento?: string | null } | null | undefined
+): boolean {
+  if (!ficha) return false;
+  if (ficha.es_promotora === true) return true;
+  return /promotor/i.test(String(ficha.departamento || ''));
+}
+
 /** Reglas soportadas por el detector. */
 export type Regla =
   | 'retardo'

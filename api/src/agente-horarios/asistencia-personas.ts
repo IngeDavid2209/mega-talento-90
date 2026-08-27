@@ -1,6 +1,7 @@
 import { pool } from '../db';
 import * as hd from './horario-deducido';
 import { cargarConfig } from './config';
+import { esPromotora } from './tipos';
 
 /** 'HH:mm' → minutos desde medianoche. */
 function minutosDeHHMM(hhmm: string | null | undefined): number | null {
@@ -519,9 +520,12 @@ export async function asistenciaPersonas(
     // mide —es alguien marcando sin estar en el padrón, justo lo que hay que
     // ver—, pero en la de promotoras no se puede saber si le toca, así que se
     // salta. Meterlo ahí lo contaría dos veces entre las dos pantallas.
+    // Un solo predicado para las dos vistas: si aqui y alla se decidiera
+    // distinto, una persona podria salir en ambas o en ninguna.
+    const promotora = esPromotora(emp);
     if (soloPromotoras) {
-      if (!emp || !emp.es_promotora || emp.activo === false) continue;
-    } else if (emp && (emp.es_promotora || emp.activo === false)) continue;
+      if (!emp || !promotora || emp.activo === false) continue;
+    } else if (emp && (promotora || emp.activo === false)) continue;
     const datos = porCodigo.get(cod);
     const dias = datos?.dias || [];
     const turnosConf = conf.get(cod) || null;

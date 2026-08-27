@@ -2,7 +2,7 @@ import { pool } from '../db';
 import { cargarConfig } from './config';
 import { analizarDia } from './reglas';
 import {
-  BorradorAlerta, ChecadaMin, EmpleadoMin, HorarioMin, Inconsistencia, ReglaConfig,
+  BorradorAlerta, ChecadaMin, EmpleadoMin, HorarioMin, Inconsistencia, ReglaConfig, esPromotora,
 } from './tipos';
 
 /**
@@ -143,7 +143,7 @@ export async function detectar(
 
   // 1) Empleados activos de la sucursal (para faltas, nombre y turno asignado).
   const empRes = await pool.query(
-    'SELECT codigo_checador, nombre, horario_id, es_promotora FROM empleados WHERE sucursal_id=$1 AND activo=TRUE',
+    'SELECT codigo_checador, nombre, horario_id, es_promotora, departamento FROM empleados WHERE sucursal_id=$1 AND activo=TRUE',
     [sucursalId]
   );
   // Las promotoras quedan fuera de la deteccion: no checan en el reloj de la
@@ -151,7 +151,7 @@ export async function detectar(
   // reales. Se filtran aqui y no en el SQL para que `horarioIdPorCodigo` de
   // abajo las siga conociendo.
   const empleados: EmpleadoMin[] = empRes.rows
-    .filter((r) => !r.es_promotora)
+    .filter((r) => !esPromotora(r))
     .map((r) => ({
       sucursalId, codigo: String(r.codigo_checador).trim(), nombre: r.nombre,
     }));
