@@ -107,6 +107,14 @@ VALUES ('corporativo', '{"desayunoTopeMin": 25}'::jsonb)
 ON CONFLICT (sucursal_id) DO UPDATE
    SET config = asistencia_config.config || '{"desayunoTopeMin": 25}'::jsonb;
 
+-- HORAS NETAS (25/09/2026). En corporativo el desayuno se PAGA: las horas netas
+-- descuentan solo la comida. Las demás plazas tienen una sola pausa (su comida)
+-- y esa sí se descuenta. El código ya trae esta política como respaldo
+-- (config.ts::POLITICA_POR_SUCURSAL); aquí queda escrita en la tabla.
+UPDATE asistencia_config
+   SET config = config || '{"desayunoCuentaComoJornada": true}'::jsonb
+ WHERE sucursal_id = 'corporativo' AND NOT (config ? 'desayunoCuentaComoJornada');
+
 -- Liga (opcional) de un empleado a su TURNO asignado. Si está puesta, el agente
 -- usa ESE horario para retardo/falta/fuera-de-turno; si es NULL, cae al horario
 -- general de la sucursal por día de la semana. Aditiva: no rompe checadas ni el

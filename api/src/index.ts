@@ -4,6 +4,7 @@ import { env } from './env';
 import { pool } from './db';
 import { authRouter } from './auth';
 import { checadorRouter } from './checador';
+import { incidenciasRouter } from './incidencias';
 import { agenteHorariosRouter, agenteCallbackRouter, arrancarCorredor } from './agente-horarios';
 import { candidatosRouter } from './candidatos';
 import { puestosRouter } from './puestos';
@@ -58,6 +59,7 @@ app.use('/checador/agente/callback', agenteCallbackRouter); // Fase 2b: justific
 // Mismo motivo que el callback: /checador es prefijo de /checador/relojes, y
 // checadorRouter tiene requireAuth global. Este router lleva su propio JWT.
 app.use('/checador/relojes', relojesRouter);   // semáforo de relojes + padrón por SERIE
+app.use('/checador/incidencias', incidenciasRouter); // vacaciones, permisos, incapacidades…
 app.use('/checador', checadorRouter);
 app.use('/checador/agente', agenteHorariosRouter); // Agente de Horarios (Fase 1)
 app.use('/candidatos', candidatosRouter);

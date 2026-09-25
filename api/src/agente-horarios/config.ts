@@ -29,6 +29,7 @@ export const CONFIG_DEFAULT: ReglaConfig = {
   desayunoAlertaMin: 10,
   desayunoHastaHora: '13:00',
   desayunoMaxPlausibleMin: 120,
+  desayunoCuentaComoJornada: false,
   reglasActivas: {
     retardo: true,
     falta: true,
@@ -39,6 +40,16 @@ export const CONFIG_DEFAULT: ReglaConfig = {
     fuera_de_turno: true,
     desayuno_excedido: true,
   },
+};
+
+/**
+ * Lo que una sucursal trae por POLÍTICA aunque su fila de `asistencia_config`
+ * no lo diga todavía. Se aplica entre el global y la fila propia, así que la
+ * tabla sigue mandando: esto solo evita que una regla nueva dependa de que
+ * alguien corra la migración para empezar a valer.
+ */
+const POLITICA_POR_SUCURSAL: Record<string, Partial<ReglaConfig>> = {
+  corporativo: { desayunoCuentaComoJornada: true },
 };
 
 /** Merge superficial + merge de reglasActivas. `parcial` puede venir de la BD. */
@@ -70,9 +81,9 @@ export async function cargarConfig(sucursalId: string): Promise<ReglaConfig> {
     );
     const global = rows.find((r) => r.sucursal_id === '__global__')?.config;
     const propia = rows.find((r) => r.sucursal_id === sucursalId)?.config;
-    return fusionar(fusionar(CONFIG_DEFAULT, global), propia);
+    return fusionar(fusionar(fusionar(CONFIG_DEFAULT, global), POLITICA_POR_SUCURSAL[sucursalId]), propia);
   } catch (e) {
     console.warn('[agente-horarios] No se pudo leer asistencia_config; uso defaults.', (e as any)?.message);
-    return CONFIG_DEFAULT;
+    return fusionar(CONFIG_DEFAULT, POLITICA_POR_SUCURSAL[sucursalId]);
   }
 }

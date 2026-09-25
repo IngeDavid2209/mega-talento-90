@@ -18,6 +18,7 @@ async function main() {
     'schema-portal.sql',     // portal: candidatos + puestos + candidatos_transiciones (KPI de fases)
     'agente-horarios.sql',   // Fase 1: asistencia_alertas + asistencia_config
     'checadas-vivo.sql',     // padrón de relojes por SERIE + latido + cola de ingesta
+    'incidencias.sql',       // vacaciones, permisos, incapacidades… por periodo
   ];
   const dirDb = join(__dirname, '..', '..', 'db');
   for (const archivo of archivos) {

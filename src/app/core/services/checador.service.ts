@@ -57,6 +57,30 @@ export interface DiaApi {
   marcas?: number;
   /** Con qué se justificó, cuando el día quedó en `justificado`. */
   justificacion?: string;
+  /** Horas netas en minutos, para poder sumarlas. null si no hubo jornada. */
+  netasMin?: number | null;
+  /** En corporativo el desayuno no se descuenta (si el día trae comida aparte). */
+  desayunoPagado?: boolean;
+  /** Incidencias de RH que cubren este día. */
+  incidencias?: IncidenciaDia[];
+}
+
+// ══ INCIDENCIAS DE PERSONAL ══════════════════════════════════════
+// El catálogo lo manda la API (`GET /checador/incidencias/tipos`), que es quien
+// decide qué tipo excusa una falta. Ver api/src/incidencias.ts.
+export interface TipoIncidencia {
+  tipo: string; etiqueta: string; codigo: string; excusaFalta: boolean;
+}
+/** Una incidencia, tal como se pinta en la celda de un día. */
+export interface IncidenciaDia {
+  id: string; tipo: string; codigo: string; etiqueta: string; nota: string;
+}
+/** La incidencia completa, con su periodo. */
+export interface Incidencia {
+  id?: string;
+  sucursalId: string; empleadoCodigo: string; tipo: string;
+  desde: string; hasta: string; nota?: string;
+  creadoPor?: string; creadoEn?: string;
 }
 
 export interface SemanaApi {
@@ -66,6 +90,8 @@ export interface SemanaApi {
   atrasoMin: number;
   retardoRealMin: number;
   bolsaAgotada: boolean;
+  /** Suma de horas netas de la semana, en minutos. */
+  minutosTrabajados?: number;
   dias: DiaApi[];
 }
 
@@ -103,6 +129,11 @@ export interface PersonaAsistencia {
   diasNoMedibles: number;             // días de una sola marca
   diasAtipicos: number;
   horasTrabajadas: number;
+  /** La suma exacta de horas netas del periodo, en minutos. */
+  minutosTrabajados?: number;
+  diasConIncidencia?: number;
+  /** Sus incidencias como periodos (aunque no haya checado esos días). */
+  incidencias?: Array<IncidenciaDia & { desde: string; hasta: string }>;
   /** Minutos de desayuno por encima del tope, sumados en el periodo. */
   desayunoExcesoMin: number;
   diasDesayunoExcedido: number;
@@ -124,6 +155,8 @@ export interface AsistenciaPersonas {
   /** Día en que ABRE la semana de nómina (0=domingo … 4=jueves). */
   diaInicioSemana: number;
   diasExTrabajador: number;
+  /** Desde cuántos minutos de exceso el desayuno cuenta como irregularidad. */
+  desayunoAlertaMin?: number;
   resumen: {
     personas: number; usables: number; conPendiente: number;
     fijos: number; rotativos: number; sinPatron: number; sinDatos: number;
@@ -489,6 +522,23 @@ export class ChecadorService {
   /** Guarda (upsert) la revisión de un día. */
   async guardarRevision(r: RevisionDia): Promise<RevisionDia> {
     return this.api.put<RevisionDia>('/checador/revision', r);
+  }
+
+  // ===================== INCIDENCIAS =====================
+  private tiposIncidencia: Promise<TipoIncidencia[]> | null = null;
+  /** El catálogo se pide una vez por sesión: no cambia entre pantallas. */
+  getTiposIncidencia(): Promise<TipoIncidencia[]> {
+    if (!this.tiposIncidencia) {
+      this.tiposIncidencia = this.api.get<TipoIncidencia[]>('/checador/incidencias/tipos')
+        .catch(e => { this.tiposIncidencia = null; throw e; });
+    }
+    return this.tiposIncidencia;
+  }
+  async crearIncidencia(i: Incidencia): Promise<Incidencia> {
+    return this.api.post<Incidencia>('/checador/incidencias', i);
+  }
+  async eliminarIncidencia(id: string): Promise<void> {
+    await this.api.delete(`/checador/incidencias/${id}`);
   }
 
   // ===================== ASISTENCIA CON EL HORARIO REAL =====================

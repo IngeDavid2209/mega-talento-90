@@ -754,3 +754,131 @@
   color: #b42318;
   font-weight: 600;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   HORAS · IRREGULARIDADES · INCIDENCIAS (25/09/2026)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Columna de horas ── */
+.rep-hrs { width: 74px; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+.rep-subtotal .rep-hrs { font-weight: 700; color: var(--text2); }
+.rep-total .rep-hrs { text-align: center; }
+
+/* ── Fila irregular: el rojo es el aviso, la pastilla dice cuántas ── */
+.rep-fila-click { cursor: pointer; }
+.rep-fila.rep-irregular td { background: #FDF3F3; }
+.rep-fila.rep-irregular td.rep-clv { box-shadow: inset 3px 0 0 var(--red); color: var(--red-text); font-weight: 700; }
+.rep-fila.rep-irregular:hover td { background: var(--red-bg); }
+.rep-fila.rep-irregular td.rep-falta { background: #F3D5D5; }
+.rep-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 5px; margin-left: 6px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; vertical-align: 1px;
+}
+.rep-pill-alta { background: var(--red); color: #fff; }
+.rep-pill-baja { background: var(--amber-bg); color: var(--amber-text); }
+.rep-celda.rep-con-inc .rep-jornada { color: var(--blue-text); font-weight: 800; letter-spacing: .03em; }
+.rep-celda.rep-con-inc { background: var(--blue-bg); }
+
+.rep-irr-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding: 8px 16px; font-size: 12.5px; color: var(--red-text);
+  background: #FDF3F3; border-bottom: 1px solid rgba(161, 38, 38, .14);
+}
+.rep-irr-bar .ar-chip { margin-left: auto; height: 28px; }
+.rep-irr-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+
+/* ── Botón y menú de incidencias ── */
+.inc-menu-wrap { position: relative; }
+.inc-btn svg { stroke-width: 2; }
+.inc-menu-ov { position: fixed; inset: 0; z-index: 1300; }
+.inc-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 1301;
+  list-style: none; margin: 0; padding: 6px; width: 260px;
+  background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg);
+  max-height: 70vh; overflow-y: auto;
+}
+.inc-menu-arriba { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; }
+.inc-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 7px 8px; border: 0; border-radius: 8px; background: none;
+  font: inherit; font-size: 13px; color: var(--ink); text-align: left; cursor: pointer;
+}
+.inc-menu button:hover, .inc-menu button:focus-visible { background: var(--surface2); outline: none; }
+
+/* El código de cada tipo: tres familias de color, no once. Azul = ausencia
+   que se excusa; rojo = cuenta en contra; gris = solo queda anotada. */
+.inc-cod {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 20px; padding: 0 5px; border-radius: 5px; flex: none;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .03em;
+  background: var(--blue-bg); color: var(--blue-text);
+}
+.inc-cod[data-t="falta_injustificada"], .inc-cod[data-t="amonestacion"] { background: var(--red-bg); color: var(--red-text); }
+.inc-cod[data-t="otros"] { background: var(--slate-bg); color: var(--slate); }
+.inc-cod-lg { min-width: 46px; height: 30px; font-size: 13px; border-radius: 8px; }
+
+.inc-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.inc-lista li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text2); }
+.inc-lista-txt { flex: 1; min-width: 0; }
+.inc-x { border: 0; background: none; color: var(--text3); cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 6px; }
+.inc-x:hover { background: var(--red-bg); color: var(--red-text); }
+.inc-rapidas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.inc-rapida { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 6px; }
+.inc-rapida:hover .inc-cod { outline: 1px solid currentColor; }
+
+/* ── Ficha rápida ── */
+.ar-modal.fic { width: min(440px, 94vw); padding: 0 0 16px; overflow-y: auto; }
+.fic-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px 12px; }
+.fic-id { flex: 1; min-width: 0; }
+.fic-id h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.25; }
+.fic-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 18px 12px; }
+.fic-tile { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 10px; background: var(--surface2); }
+.fic-tile b { font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fic-tile span { font-size: 11px; color: var(--text2); }
+.fic-tile.bad { background: var(--red-bg); }
+.fic-tile.bad b { color: var(--red-text); }
+.fic-ok { margin: 0 18px; padding: 12px; border-radius: 10px; background: var(--green-bg); color: var(--green-text); font-size: 13px; text-align: center; }
+.fic-dias { list-style: none; margin: 0 18px; padding: 0; border-top: 1px solid var(--border); }
+.fic-dias li { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.fic-fecha { flex: none; width: 82px; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.fic-items { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.fic-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink); }
+.fic-ico { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex: none; }
+.fic-item[data-n="baja"] { color: var(--text2); }
+.fic-item[data-n="baja"] .fic-ico { background: transparent; border: 2px solid var(--amber); width: 9px; height: 9px; }
+.fic-leyenda { display: flex; gap: 14px; margin: 8px 18px 0; }
+.fic-leyenda .fic-item { font-size: 11px; color: var(--text3); }
+.fic .inc-lista { margin: 12px 18px 0; }
+.fic-acciones { display: flex; justify-content: space-between; gap: 8px; padding: 14px 18px 0; }
+
+/* ── Formulario de incidencia ── */
+.inc-ov { z-index: 1250; }
+.ar-modal.inc-form { z-index: 1251; width: min(420px, 94vw); padding: 0 18px 18px; gap: 12px; overflow-y: auto; }
+.inc-form-head { display: flex; align-items: center; gap: 12px; padding: 16px 0 4px; }
+.inc-form-head > div { flex: 1; min-width: 0; }
+.inc-form-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
+.inc-campo { display: flex; flex-direction: column; gap: 5px; }
+.inc-campo > span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); }
+.inc-campo select, .inc-campo input {
+  border: 1px solid var(--border-med); border-radius: 9px; padding: 8px 10px;
+  font: inherit; font-size: 13.5px; color: var(--ink); background: #fff; width: 100%;
+}
+.inc-seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border-med); border-radius: 10px; overflow: hidden; }
+.inc-seg button {
+  border: 0; border-left: 1px solid var(--border-med); background: #fff; padding: 8px 4px;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text2); cursor: pointer;
+}
+.inc-seg button:first-child { border-left: 0; }
+.inc-seg button.on { background: var(--ink); color: #fff; }
+.inc-rango { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.inc-acciones { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+/* ── Detalle: desayuno que no se descontó ── */
+.ar-desayuno-pagado { margin-left: 4px; color: var(--green); font-weight: 800; }
+
+@media (max-width: 640px) {
+  .rep-acciones { flex-wrap: wrap; }
+  .inc-menu { right: auto; left: 0; width: min(260px, 88vw); }
+  .inc-rango { grid-template-columns: 1fr; }
+}

@@ -406,6 +406,31 @@
           </p>
         </div>
         <div class="rep-acciones">
+          <!-- ══ INCIDENCIAS ══ Un botón, un menú con los tipos, y el formulario
+               pregunta a quién y cuándo ("solo hoy" a un clic). -->
+          <div class="inc-menu-wrap">
+            <button type="button" class="ar-btn ar-btn-ghost inc-btn"
+                    [disabled]="!tiposIncidencia.length"
+                    [attr.aria-expanded]="menuIncidencia"
+                    (click)="menuIncidencia = !menuIncidencia"
+                    title="Vacaciones, permisos, incapacidades, faltas…">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+              Incidencia
+            </button>
+            @if (menuIncidencia) {
+              <div class="inc-menu-ov" (click)="menuIncidencia = false"></div>
+              <ul class="inc-menu" role="menu">
+                @for (t of tiposIncidencia; track t.tipo) {
+                  <li role="none">
+                    <button type="button" role="menuitem" (click)="abrirIncidencia(t)">
+                      <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>
+                      {{ t.etiqueta }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
           <button type="button" class="ar-btn ar-btn-primary rep-pdf" (click)="exportarPdf()"
                   [disabled]="generandoPdf"
                   title="Descargar el reporte en PDF (una hoja por semana, con plaza y periodo en cada hoja)">
@@ -446,6 +471,19 @@
         <div class="ar-empty">Apagaste todas las secciones: no hay nada que mostrar ni que exportar.</div>
       }
 
+      <!-- Irregulares: se dice cuántos y se pueden aislar. La fila en rojo es
+           el aviso; esta línea es para no tener que recorrer la tabla. -->
+      @if (personasIrregulares) {
+        <div class="rep-irr-bar">
+          <span class="rep-irr-dot" aria-hidden="true"></span>
+          <b>{{ personasIrregulares }}</b> con irregularidades · toca su fila para ver qué día y por qué
+          <button type="button" class="ar-chip" [class.on]="soloIrregulares"
+                  (click)="soloIrregulares = !soloIrregulares">
+            {{ soloIrregulares ? 'Ver a todos' : 'Solo irregulares' }}
+          </button>
+        </div>
+      }
+
       <div class="rep-scroll">
         <table class="rep-tabla">
           <thead>
@@ -455,13 +493,14 @@
               @for (c of columnasDia; track c.fecha) {
                 <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
               }
+              <th class="rep-hrs" title="Horas netas del periodo: jornada menos comida. En corporativo el desayuno no se descuenta.">Horas</th>
               <th class="rep-ret">Retardos</th>
             </tr>
           </thead>
           <tbody>
             @for (g of porDepartamento; track g.departamento) {
               <tr class="rep-depto">
-                <td [attr.colspan]="columnasDia.length + 3">
+                <td [attr.colspan]="columnasDia.length + 4">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
                   <!-- El atajo donde se está mirando: aislar esta sección sin
                        subir a los chips. No va al papel (rep-solo-fila). -->
@@ -469,30 +508,48 @@
                           (click)="soloEstaSeccion(g.departamento)">solo esta</button>
                 </td>
               </tr>
-              @for (e of g.empleados; track e.codigo) {
-                <tr class="rep-fila">
+              <!-- La fila entera se toca: abre la ficha rápida (qué día, por qué).
+                   En rojo si trae una irregularidad ALTA; la pastilla junto al
+                   nombre dice cuántas. -->
+              @for (e of empleadosVisibles(g); track e.codigo) {
+                <tr class="rep-fila rep-fila-click"
+                    [class.rep-irregular]="e.irregularAlta"
+                    (click)="abrirFicha(e)"
+                    [title]="e.irregularidades.length ? 'Ver sus irregularidades' : 'Ver su ficha'">
                   <td class="rep-clv">{{ e.codigo }}</td>
-                  <td class="rep-nom" [title]="e.nombreCompleto">{{ e.nombreCompleto }}</td>
+                  <td class="rep-nom" [title]="e.nombreCompleto">
+                    {{ e.nombreCompleto }}
+                    @if (cuentaIrregular(e, 'alta')) {
+                      <span class="rep-pill rep-pill-alta">{{ cuentaIrregular(e, 'alta') }}</span>
+                    } @else if (cuentaIrregular(e, 'baja')) {
+                      <span class="rep-pill rep-pill-baja">{{ cuentaIrregular(e, 'baja') }}</span>
+                    }
+                  </td>
                   @for (c of columnasDia; track c.fecha) {
                     <td class="rep-celda"
                         [class.rep-falta]="celda(e, c.fecha).falta"
-                        [class.rep-tarde]="celda(e, c.fecha).retardo">
+                        [class.rep-tarde]="celda(e, c.fecha).retardo"
+                        [class.rep-con-inc]="!!celda(e, c.fecha).inc"
+                        [attr.title]="celda(e, c.fecha).incTitulo || null">
                       <span class="rep-jornada">{{ celda(e, c.fecha).jornada }}</span>
                       <span class="rep-comida">{{ celda(e, c.fecha).comida }}</span>
                     </td>
                   }
+                  <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
                   <td class="rep-ret">{{ e.diasConRetardo || '' }}</td>
                 </tr>
               }
               <tr class="rep-subtotal">
                 <td [attr.colspan]="columnasDia.length + 2"></td>
+                <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
                 <td class="rep-ret">{{ g.retardos || 0 }}</td>
               </tr>
             }
           </tbody>
           <tfoot>
             <tr class="rep-total">
-              <td [attr.colspan]="columnasDia.length + 2">Total retardos</td>
+              <td [attr.colspan]="columnasDia.length + 2">Totales</td>
+              <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
               <td class="rep-ret">{{ totalRetardos }}</td>
             </tr>
           </tfoot>
@@ -727,37 +784,32 @@
             }
           </ul>
         }
-        <!-- ══ JUSTIFICAR VARIOS DÍAS (vacaciones, incapacidad, permiso) ══
-             Antes solo se podía justificar UN día, desde la tabla de abajo: para
-             unas vacaciones eran ocho guardados para una sola decisión. Y peor,
-             el justificante no servía de nada —se guardaba y la falta seguía
-             contada—; eso ya se corrigió en la API. -->
+        <!-- ══ INCIDENCIAS ══ Reemplaza a "Justificar un periodo": el mismo
+             propósito (vacaciones, incapacidad, permiso…) con catálogo, y un
+             solo camino para capturar en toda la pantalla. -->
         <div class="ar-vac">
           <div class="ar-vac-head">
-            <b>Justificar un periodo</b>
-            <span>Los días aprobados dejan de contar como falta.</span>
+            <b>Incidencias</b>
+            <span>Vacaciones, permisos e incapacidades dejan de contar como falta.</span>
           </div>
-          <div class="ar-vac-form">
-            <label>
-              Motivo
-              <select [(ngModel)]="vacMotivo">
-                <option value="Vacaciones">Vacaciones</option>
-                <option value="Incapacidad">Incapacidad</option>
-                <option value="Permiso">Permiso</option>
-              </select>
-            </label>
-            <label>Desde <input type="date" [(ngModel)]="vacDesde"></label>
-            <label>Hasta <input type="date" [(ngModel)]="vacHasta"></label>
-            <button type="button" class="ar-btn ar-btn-primary"
-                    [disabled]="!vacDias || guardandoVac" (click)="guardarVacaciones()">
-              {{ guardandoVac ? "Guardando…" : (vacDias ? "Justificar " + vacDias + " día(s)" : "Elige el periodo") }}
-            </button>
-          </div>
-          @if (detalle.faltasJustificadas) {
-            <p class="ar-vac-nota">
-              Ya tiene <b>{{ detalle.faltasJustificadas }}</b> día(s) justificados en este periodo.
-            </p>
+          @if (detalle.incidencias.length) {
+            <ul class="inc-lista">
+              @for (i of detalle.incidencias; track i.id) {
+                <li>
+                  <span class="inc-cod" [attr.data-t]="i.tipo">{{ i.codigo }}</span>
+                  <span class="inc-lista-txt">{{ i.etiqueta }} · {{ periodoCorto(i) }}@if (i.nota) { · <em>{{ i.nota }}</em> }</span>
+                  <button type="button" class="inc-x" (click)="borrarIncidencia(i)" title="Quitar">✕</button>
+                </li>
+              }
+            </ul>
           }
+          <div class="inc-rapidas">
+            @for (t of tiposIncidencia; track t.tipo) {
+              <button type="button" class="inc-rapida" (click)="abrirIncidencia(t, detalle.codigo)" [title]="t.etiqueta">
+                <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>
+              </button>
+            }
+          </div>
         </div>
 
         @if (!detalle.semanas.length) {
@@ -784,6 +836,7 @@
                     @else { sin atraso }
                   </span>
                   <span class="ar-sem-bolsa">bolsa {{ sem.bolsaRestante }}/{{ detalle.presupuesto }}</span>
+                  <span class="ar-sem-bolsa" title="Horas netas de la semana">{{ horasTexto(sem.minutosTrabajados) }}</span>
                 </div>
               </div>
               <div class="ar-tabla-wrap">
@@ -806,6 +859,7 @@
                         <td class="ar-mono" [class.ar-desayuno-excedido]="!!d.desayunoExcesoMin">
                           @if (d.desayunoMin != null) {
                             {{ d.desayunoMin }}m@if (d.desayunoExcesoMin) { <span title="Minutos por encima del tope">&nbsp;+{{ d.desayunoExcesoMin }}</span> }
+                            @if (d.desayunoPagado) { <span class="ar-desayuno-pagado" title="No se descontó de las horas: en corporativo solo se descuenta la comida.">✓</span> }
                           } @else { — }
                         </td>
                         <td class="ar-mono">{{ d.comida }}</td>
@@ -853,6 +907,147 @@
             @for (j of JUSTIFICACIONES; track j) { <option [value]="j"></option> }
           </datalist>
         }
+      </div>
+    </div>
+  }
+
+  <!-- ===== Ficha rápida: qué día y por qué, sin texto de más ===== -->
+  @if (ficha) {
+    <div class="ar-modal-ov" (click)="cerrarFicha()"></div>
+    <div class="ar-modal fic" role="dialog" aria-modal="true" [attr.aria-label]="'Irregularidades de ' + ficha.nombreCompleto">
+      <header class="fic-head">
+        <div class="ar-avatar">
+          @if (ficha.fotoUrl) { <img [src]="ficha.fotoUrl" [alt]="ficha.nombre"> }
+          @else { <span>{{ iniciales(ficha.nombreCompleto) }}</span> }
+        </div>
+        <div class="fic-id">
+          <h3>{{ ficha.nombreCompleto }}</h3>
+          <span class="ar-card-sub">#{{ ficha.codigo }} · {{ ficha.departamento }}</span>
+        </div>
+        <button class="ar-modal-x" (click)="cerrarFicha()" aria-label="Cerrar">✕</button>
+      </header>
+
+      <div class="fic-tiles">
+        <div class="fic-tile"><b>{{ horasTexto(ficha.minutosTrabajados) }}</b><span>horas</span></div>
+        <div class="fic-tile" [class.bad]="ficha.faltas"><b>{{ ficha.faltas }}</b><span>faltas</span></div>
+        <div class="fic-tile" [class.bad]="ficha.diasConRetardo && ficha.usable"><b>{{ ficha.diasConRetardo }}</b><span>retardos</span></div>
+      </div>
+
+      @if (!fichaPorDia.length) {
+        <p class="fic-ok">Sin irregularidades en este periodo.</p>
+      } @else {
+        <ul class="fic-dias">
+          @for (d of fichaPorDia; track d.fecha) {
+            <li>
+              <span class="fic-fecha">{{ d.diaLabel }}</span>
+              <span class="fic-items">
+                @for (i of d.items; track i.tipo) {
+                  <span class="fic-item" [attr.data-t]="i.tipo" [attr.data-n]="i.nivel">
+                    <span class="fic-ico" aria-hidden="true"></span>{{ i.texto }}
+                  </span>
+                }
+              </span>
+            </li>
+          }
+        </ul>
+        <p class="fic-leyenda">
+          <span class="fic-item" data-n="alta"><span class="fic-ico"></span>cuenta</span>
+          <span class="fic-item" data-n="baja"><span class="fic-ico"></span>por revisar</span>
+        </p>
+      }
+
+      @if (ficha.incidencias.length) {
+        <ul class="inc-lista">
+          @for (i of ficha.incidencias; track i.id) {
+            <li>
+              <span class="inc-cod" [attr.data-t]="i.tipo">{{ i.codigo }}</span>
+              <span class="inc-lista-txt">{{ i.etiqueta }} · {{ periodoCorto(i) }}</span>
+              <button type="button" class="inc-x" (click)="borrarIncidencia(i)" title="Quitar">✕</button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="fic-acciones">
+        <div class="inc-menu-wrap">
+          <button type="button" class="ar-btn ar-btn-ghost" [disabled]="!tiposIncidencia.length"
+                  (click)="menuIncidencia = !menuIncidencia">+ Incidencia</button>
+          @if (menuIncidencia) {
+            <div class="inc-menu-ov" (click)="menuIncidencia = false"></div>
+            <ul class="inc-menu inc-menu-arriba" role="menu">
+              @for (t of tiposIncidencia; track t.tipo) {
+                <li role="none">
+                  <button type="button" role="menuitem" (click)="abrirIncidencia(t, ficha.codigo, fichaPorDia[0]?.fecha || '')">
+                    <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>{{ t.etiqueta }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+        <button type="button" class="ar-btn ar-btn-primary" (click)="fichaADetalle()">Ver detalle</button>
+      </div>
+    </div>
+  }
+
+  <!-- ===== Formulario de incidencia ===== -->
+  @if (incForm) {
+    <div class="ar-modal-ov inc-ov" (click)="incForm = null"></div>
+    <div class="ar-modal inc-form" role="dialog" aria-modal="true" [attr.aria-label]="incForm.tipo.etiqueta">
+      <header class="inc-form-head">
+        <span class="inc-cod inc-cod-lg" [attr.data-t]="incForm.tipo.tipo">{{ incForm.tipo.codigo }}</span>
+        <div>
+          <h3>{{ incForm.tipo.etiqueta }}</h3>
+          <span class="ar-card-sub">
+            @if (incForm.tipo.excusaFalta) { Los días que cubra no cuentan como falta. }
+            @else { Queda registrada; no cambia el cálculo. }
+          </span>
+        </div>
+        <button class="ar-modal-x" (click)="incForm = null" aria-label="Cerrar">✕</button>
+      </header>
+
+      <label class="inc-campo">
+        <span>¿A quién?</span>
+        <select [(ngModel)]="incForm.codigo">
+          <option value="">Elige a la persona…</option>
+          @for (e of personasParaIncidencia; track e.codigo) {
+            <option [value]="e.codigo">{{ e.nombreCompleto }} · #{{ e.codigo }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="inc-campo">
+        <span>¿Cuándo?</span>
+        <div class="inc-seg" role="radiogroup">
+          <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'hoy'"
+                  [class.on]="incForm.cuando === 'hoy'" (click)="incForm.cuando = 'hoy'">Solo hoy</button>
+          <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'dia'"
+                  [class.on]="incForm.cuando === 'dia'" (click)="incForm.cuando = 'dia'">Otro día</button>
+          <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'rango'"
+                  [class.on]="incForm.cuando === 'rango'" (click)="incForm.cuando = 'rango'">Varios días</button>
+        </div>
+      </div>
+
+      @if (incForm.cuando === 'dia') {
+        <label class="inc-campo"><span>Día</span><input type="date" [(ngModel)]="incForm.desde"></label>
+      } @else if (incForm.cuando === 'rango') {
+        <div class="inc-rango">
+          <label class="inc-campo"><span>Desde</span><input type="date" [(ngModel)]="incForm.desde"></label>
+          <label class="inc-campo"><span>Hasta</span><input type="date" [(ngModel)]="incForm.hasta" [min]="incForm.desde"></label>
+        </div>
+      }
+
+      <label class="inc-campo">
+        <span>Nota <small>(opcional)</small></span>
+        <input type="text" [(ngModel)]="incForm.nota" maxlength="200" placeholder="Ej. folio IMSS 12345">
+      </label>
+
+      <div class="ar-modal-actions inc-acciones">
+        <button type="button" class="ar-btn ar-btn-ghost" (click)="incForm = null">Cancelar</button>
+        <button type="button" class="ar-btn ar-btn-primary"
+                [disabled]="!incForm.codigo || !incDias || guardandoInc" (click)="guardarIncidencia()">
+          {{ guardandoInc ? 'Guardando…' : (incDias ? 'Guardar · ' + incDias + ' día' + (incDias > 1 ? 's' : '') : 'Revisa las fechas') }}
+        </button>
       </div>
     </div>
   }

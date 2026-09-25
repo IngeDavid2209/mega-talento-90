@@ -114,6 +114,19 @@ export interface ReglaConfig {
    * atrapan las reglas que sí son suyas (`entrada_sin_salida`, día `atipico`).
    */
   desayunoMaxPlausibleMin: number;
+  /**
+   * ¿El desayuno cuenta como tiempo TRABAJADO? (25/09/2026, política de RH)
+   *
+   * En corporativo se checa dos veces a media jornada: el desayuno (25-30 min)
+   * y la comida. RH pidió que las horas netas descuenten SOLO la comida; el
+   * desayuno se paga. En las demás plazas hay una sola pausa y es la comida, y
+   * esa sí se descuenta.
+   *
+   * Solo aplica cuando el día trae las DOS pausas: si alguien de corporativo
+   * checó una sola pausa, no se puede saber si fue desayuno o comida, y se
+   * descuenta —equivocarse del lado de pagar una comida sería peor—.
+   */
+  desayunoCuentaComoJornada: boolean;
   /** Interruptores por regla (permite apagar reglas por sucursal). */
   reglasActivas: Record<Regla, boolean>;
 }

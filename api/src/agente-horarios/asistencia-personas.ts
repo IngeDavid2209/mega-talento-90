@@ -2,6 +2,7 @@ import { pool } from '../db';
 import * as hd from './horario-deducido';
 import { cargarConfig } from './config';
 import { esPromotora } from './tipos';
+import { incidenciasEnRango, tipoIncidencia } from '../incidencias';
 
 /** 'HH:mm' → minutos desde medianoche. */
 function minutosDeHHMM(hhmm: string | null | undefined): number | null {
@@ -97,6 +98,21 @@ export interface DiaVista extends hd.DiaMedido {
    * RH. Un exceso de 3 min no merece alerta y sí merece verse.
    */
   desayunoExcesoMin?: number | null;
+  /** Horas netas del día en MINUTOS (lo que se suma). null si no hubo jornada. */
+  netasMin?: number | null;
+  /** El desayuno de ese día NO se descontó (corporativo, con comida aparte). */
+  desayunoPagado?: boolean;
+  /** Incidencias capturadas por RH que cubren este día. */
+  incidencias?: IncidenciaDia[];
+}
+
+/** Una incidencia de RH, tal como se pinta en la celda del día. */
+export interface IncidenciaDia {
+  id: string;
+  tipo: string;
+  codigo: string;
+  etiqueta: string;
+  nota: string;
 }
 
 export interface PersonaAsistencia {
@@ -135,12 +151,22 @@ export interface PersonaAsistencia {
   diasNoMedibles: number;       // días de una sola marca
   diasAtipicos: number;
   horasTrabajadas: number;
+  /** La misma suma, en minutos exactos: la de arriba viene redondeada a 0.1 h. */
+  minutosTrabajados: number;
+  /** Cuántos días del periodo tienen alguna incidencia de RH. */
+  diasConIncidencia: number;
+  /**
+   * Sus incidencias como PERIODOS. Van aparte de los días porque quien estuvo de
+   * vacaciones la semana entera no checó, y sin marcas no tiene días que medir:
+   * sin esta lista su incidencia no tendría dónde verse.
+   */
+  incidencias: Array<IncidenciaDia & { desde: string; hasta: string }>;
   /** Minutos de desayuno por encima del tope, sumados en el periodo. */
   desayunoExcesoMin: number;
   /** En cuántos días se pasó (aunque fuera por poco). */
   diasDesayunoExcedido: number;
   pctATiempo: number | null;
-  semanas: Array<hd.SemanaMedida & { dias: DiaVista[] }>;
+  semanas: Array<hd.SemanaMedida & { dias: DiaVista[]; minutosTrabajados: number }>;
   marcas: Marca[];
   usable: boolean;
   bloqueadoPor: string[];
@@ -166,6 +192,12 @@ export interface AsistenciaPersonas {
    */
   diaInicioSemana: number;
   diasExTrabajador: number;
+  /**
+   * Desde cuántos minutos de exceso el desayuno es una IRREGULARIDAD (la misma
+   * vara que la alerta). La pantalla la usa para pintar la fila en rojo: con
+   * 1 min, media plaza saldría marcada y el rojo dejaría de significar algo.
+   */
+  desayunoAlertaMin: number;
   resumen: {
     personas: number;
     usables: number;
@@ -331,14 +363,32 @@ interface DetalleDia {
   brutasMin: number | null;
   desayunoMin: number | null;
   desayunoExcesoMin: number | null;
+  /** El desayuno se contó como trabajado (no se descontó de las netas). */
+  desayunoPagado: boolean;
 }
 
-function detalleDia(
+/**
+ * ══ EL DESAYUNO DE CORPORATIVO NO SE DESCUENTA (25/09/2026) ══
+ *
+ * Política de RH: en corporativo se checa dos veces a media jornada —el
+ * desayuno de 25-30 min y la comida— y las horas netas descuentan SOLO la
+ * comida. En las demás plazas hay una sola pausa y es la comida.
+ *
+ * El desayuno se "paga" solo si el día trae OTRA pausa emparejada además de él.
+ * Con una sola pausa no se sabe cuál de las dos fue, y se descuenta: la
+ * alternativa es pagar una comida entera por una marca que no se leyó.
+ *
+ * Lo que excede el tope NO se descuenta aquí: se sigue viendo como exceso de
+ * desayuno (columna y alerta). Descontarlo en silencio sería cobrar dos veces
+ * una misma falta —la alerta y la hora—, y esa decisión es de RH.
+ */
+export function detalleDia(
   marcasCrudas: string[],
-  desayuno?: { topeMin: number; hastaMin: number; maxPlausibleMin: number }
+  desayuno?: { topeMin: number; hastaMin: number; maxPlausibleMin: number; cuentaComoJornada: boolean }
 ): DetalleDia {
   const vacio: DetalleDia = {
     comida: '—', netasMin: null, brutasMin: null, desayunoMin: null, desayunoExcesoMin: null,
+    desayunoPagado: false,
   };
   const mins = hd.colapsarDuplicadas(
     marcasCrudas.map((x) => hd.aMinutos(x)).filter((x): x is number => x !== null)
@@ -354,10 +404,12 @@ function detalleDia(
   // dejaran de coincidir, la pantalla y la alerta dirían cosas distintas del
   // mismo día, que es la peor forma de perder la confianza en un reporte.
   let desayunoMin: number | null = null;
+  let pausas = 0;
   for (let i = 0; i < medio.length; i += 2) {
     if (i + 1 < medio.length) {
       tramos.push(`${hd.aHora(medio[i])} – ${hd.aHora(medio[i + 1])}`);
       fuera += medio[i + 1] - medio[i];
+      pausas++;
       if (desayuno && desayunoMin == null && medio[i] < desayuno.hastaMin) {
         const dur = medio[i + 1] - medio[i];
         // El mismo techo que en reglas.ts: si no es creíble como desayuno, no se
@@ -371,6 +423,9 @@ function detalleDia(
     }
   }
 
+  const desayunoPagado = !!desayuno?.cuentaComoJornada && desayunoMin != null && pausas >= 2;
+  if (desayunoPagado) fuera -= desayunoMin!;
+
   return {
     comida: tramos.length ? tramos.join(' · ') : '—',
     netasMin: Math.max(0, brutas - fuera),
@@ -378,6 +433,7 @@ function detalleDia(
     desayunoMin,
     desayunoExcesoMin:
       desayuno && desayunoMin != null ? Math.max(0, desayunoMin - desayuno.topeMin) : null,
+    desayunoPagado,
   };
 }
 
@@ -446,6 +502,7 @@ export async function asistenciaPersonas(
         topeMin: cfg.desayunoTopeMin,
         hastaMin: minutosDeHHMM(cfg.desayunoHastaHora) ?? 13 * 60,
         maxPlausibleMin: cfg.desayunoMaxPlausibleMin,
+        cuentaComoJornada: !!cfg.desayunoCuentaComoJornada,
       }
     : undefined;
 
@@ -454,13 +511,33 @@ export async function asistenciaPersonas(
   const desdeHorario = [desde, menosDias(hasta, VENTANA_HORARIO_DIAS - 1)]
     .sort()[0];
 
-  const [filas, ctx, conf, excusas] = await Promise.all([
+  const [filas, ctx, conf, excusas, incidencias] = await Promise.all([
     // Una sola lectura, la más ancha; el rango se recorta en memoria.
     diasPorPersona(sucursalId, desdeHorario, hasta),
     contexto(sucursalId),
     confirmados(sucursalId),
     justificantes(sucursalId, desde, hasta),
+    incidenciasEnRango(sucursalId, desde, hasta),
   ]);
+
+  // (código → fecha → incidencias). Una incidencia es un PERIODO; aquí se
+  // abre en días, recortado al rango, para pegarla a cada celda.
+  const incPorDia = new Map<string, Map<string, IncidenciaDia[]>>();
+  for (const inc of incidencias) {
+    const t = tipoIncidencia(inc.tipo);
+    const item: IncidenciaDia = {
+      id: inc.id, tipo: inc.tipo, codigo: t?.codigo || 'OTR',
+      etiqueta: t?.etiqueta || inc.tipo, nota: inc.nota,
+    };
+    if (!incPorDia.has(inc.empleadoCodigo)) incPorDia.set(inc.empleadoCodigo, new Map());
+    const porFecha = incPorDia.get(inc.empleadoCodigo)!;
+    const ini = inc.desde > desde ? inc.desde : desde;
+    const fin = inc.hasta < hasta ? inc.hasta : hasta;
+    for (let f = ini; f <= fin; f = siguienteDia(f)) {
+      if (!porFecha.has(f)) porFecha.set(f, []);
+      porFecha.get(f)!.push(item);
+    }
+  }
 
   // Días-persona, agrupados por código. `dias` es la historia (para deducir el
   // horario) y `enRango` es lo que se mide y se muestra.
@@ -674,31 +751,42 @@ export async function asistenciaPersonas(
     // base de datos) y el justificante es una DECISIÓN de RH. Mezclarlos haría
     // que la regla dependiera de quién firmó qué.
     const excusadas = excusas.get(cod) || new Map<string, string>();
+    const incDeEl = incPorDia.get(cod) || new Map<string, IncidenciaDia[]>();
     let faltasJustificadas = 0;
     let desayunoExcesoMin = 0;
     let diasDesayunoExcedido = 0;
-    const semanas = (re?.semanas || []).map((s) => ({
-      ...s,
-      dias: s.dias.map((d): DiaVista => {
+    let diasConIncidencia = 0;
+    const semanas = (re?.semanas || []).map((s) => {
+      let minSemana = 0;
+      const diasVista = s.dias.map((d): DiaVista => {
         const det = detalleDia(datos?.horas.get(d.fecha) || [], desayunoCfg);
-        if (det.netasMin) minTrabajados += det.netasMin;
+        if (det.netasMin) { minTrabajados += det.netasMin; minSemana += det.netasMin; }
         if (det.desayunoExcesoMin) { desayunoExcesoMin += det.desayunoExcesoMin; diasDesayunoExcedido++; }
-        const justificacion = excusadas.get(d.fecha);
+        const incs = incDeEl.get(d.fecha) || [];
+        if (incs.length) diasConIncidencia++;
+        // La incidencia que excusa (vacaciones, incapacidad…) manda sobre el
+        // justificante viejo de texto libre: es la que RH capturó por tipo.
+        const incExcusa = incs.find((i) => tipoIncidencia(i.tipo)?.excusaFalta);
+        const justificacion = incExcusa?.etiqueta || excusadas.get(d.fecha);
         // Solo se excusa la FALTA. Un día con marcas ya se midió y su retardo
         // no lo borra un justificante de ausencia: la persona sí vino.
         const extra = {
           comida: det.comida,
           horasNetas: formatHoras(det.netasMin ?? 0),
+          netasMin: det.netasMin,
           desayunoMin: det.desayunoMin,
           desayunoExcesoMin: det.desayunoExcesoMin,
+          desayunoPagado: det.desayunoPagado,
+          incidencias: incs,
         };
         if (justificacion && d.estado === 'falta') {
           faltasJustificadas++;
           return { ...d, estado: 'justificado' as hd.EstadoDia, justificacion, ...extra };
         }
         return { ...d, ...extra };
-      }),
-    }));
+      });
+      return { ...s, dias: diasVista, minutosTrabajados: minSemana };
+    });
 
     const bloqueantes = marcas.filter((m) => m.gravedad === 'alta');
     const diasEvaluados = re?.diasEvaluados ?? 0;
@@ -752,6 +840,17 @@ export async function asistenciaPersonas(
       diasNoMedibles: re?.marcasFaltantes ?? 0,
       diasAtipicos: re?.atipicos ?? 0,
       horasTrabajadas: Math.round(minTrabajados / 6) / 10,
+      minutosTrabajados: minTrabajados,
+      diasConIncidencia,
+      incidencias: incidencias
+        .filter((i) => i.empleadoCodigo === cod)
+        .map((i) => {
+          const t = tipoIncidencia(i.tipo);
+          return {
+            id: i.id, tipo: i.tipo, codigo: t?.codigo || 'OTR', etiqueta: t?.etiqueta || i.tipo,
+            nota: i.nota, desde: i.desde, hasta: i.hasta,
+          };
+        }),
       desayunoExcesoMin,
       diasDesayunoExcedido,
       // Sobre los días que SÍ se pudieron evaluar: si no hay ninguno, no es 0%,
@@ -782,6 +881,7 @@ export async function asistenciaPersonas(
     corteSemana: 'jueves a miércoles',
     diaInicioSemana: hd.DIA_INICIO_SEMANA,
     diasExTrabajador: DIAS_EX,
+    desayunoAlertaMin: cfg.desayunoAlertaMin,
     resumen: {
       personas: personas.length,
       usables: usables.length,

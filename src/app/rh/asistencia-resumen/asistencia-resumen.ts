@@ -5,8 +5,9 @@ import * as XLSX from 'xlsx';
 import {
   ChecadorService, RevisionDia, EstadoRevision,
   AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi,
-  EstadoReloj, SemaforoReloj
+  EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia
 } from '../../core/services/checador.service';
+import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
 import { aFechaLocal } from '../../core/models/checador.model';
 import { CENTROS_CON_RELOJ, centroChecadorPorId, tieneReloj } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
@@ -36,12 +37,38 @@ interface DiaAsistencia {
   atipico: boolean;
   justificacion: string;       // capturada por RH (se guarda en la base)
   estado: EstadoRevision;      // verificación: pendiente/verificada/aprobada/rechazada
+  /** Horas netas en minutos (lo que se suma). */
+  netasMin: number;
+  /** En corporativo el desayuno no se descontó (el día trae comida aparte). */
+  desayunoPagado: boolean;
+  /** Incidencias de RH que cubren el día. */
+  incidencias: IncidenciaDia[];
+}
+
+/**
+ * ══ IRREGULARIDADES (25/09/2026) ══════════════════════════════════
+ *
+ * Lo que se pinta en la fila del reporte y se lee en la ficha rápida. Dos
+ * niveles a propósito:
+ *   · 'alta'  → falta, retardo real, desayuno excedido: la fila va en ROJO.
+ *   · 'baja'  → una sola checada o un día fuera de su horario: se marca, pero
+ *               no enrojece la fila. Los días de una sola marca son ~20% de los
+ *               días-persona; si pintaran de rojo, media plaza saldría roja y el
+ *               rojo dejaría de avisar de algo.
+ */
+export interface Irregularidad {
+  fecha: string; diaLabel: string;
+  nivel: 'alta' | 'baja';
+  tipo: 'falta' | 'retardo' | 'desayuno' | 'una_marca' | 'atipico';
+  /** Dos o tres palabras: "Falta", "Llegó 12 min tarde". */
+  texto: string;
 }
 /** Una semana (miércoles → martes) con su bolsa de tolerancia. */
 interface SemanaAsistencia {
   inicio: string; label: string;
   acumulado: number;           // retardo REAL de la semana
   atrasoMin: number;           // atraso crudo, antes de la bolsa
+  minutosTrabajados: number;   // suma de horas netas de la semana
   bolsaRestante: number;
   excedido: boolean;           // se agotó la bolsa
   dias: DiaAsistencia[];
@@ -73,6 +100,13 @@ interface EmpleadoAsistencia {
   semanasExcedidas: number; diasConRetardo: number; diasRegistrados: number;
   faltas: number; faltasJustificadas: number; noMedibles: number; atipicos: number;
   horasTrabajadas: number; presupuesto: number;
+  /** Suma exacta de horas netas del periodo, en minutos. */
+  minutosTrabajados: number;
+  /** Sus incidencias como periodos (para pintarlas aunque no haya checado). */
+  incidencias: Array<IncidenciaDia & { desde: string; hasta: string }>;
+  irregularidades: Irregularidad[];
+  /** ¿Alguna irregularidad alta? Es lo que pone la fila en rojo. */
+  irregularAlta: boolean;
   pctATiempo: number | null;
   // ── Por qué el número puede no servir ──
   usable: boolean; bloqueadoPor: string[]; marcas: MarcaAsistencia[];
@@ -145,6 +179,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
   private auth = inject(AuthSession);
+  private periodo = inject(PeriodoAsistenciaService);
 
   /**
    * El semáforo de relojes es solo para el admin (lo pidió RH: 20/08/2026).
@@ -284,8 +319,18 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
     if (this.sucursalIdExterna) this.sucursalFiltro = this.sucursalIdExterna;
 
-    this.ajustarRangoYCargar();
+    // Si RH ya eligió un periodo en esta sesión, ese manda: el componente se
+    // desmonta al pasar a Empleados o a Cruces, y antes al volver se reescribía
+    // a "los últimos 30 días con dato". Ver PeriodoAsistenciaService.
+    if (this.periodo.elegido) {
+      this.desde = this.periodo.desde;
+      this.hasta = this.periodo.hasta;
+      this.cargar();
+    } else {
+      this.ajustarRangoYCargar();
+    }
     this.cargarRelojes();
+    this.cargarTiposIncidencia();
 
     // Refresco automático (en vivo): recarga sin interrumpir si estás cargando o
     // con el detalle abierto.
@@ -298,7 +343,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     // reloj se cae mientras RH está capturando justificaciones, tiene que
     // enterarse antes de firmar los números.
     this.cargarRelojes();
-    if (this.cargando || this.detalle) return;
+    if (this.cargando || this.detalle || this.ficha || this.incForm) return;
     this.cargar(true);
   }
 
@@ -552,23 +597,240 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   /** La celda de un día: jornada (entrada–salida) arriba y comida abajo. */
-  celda(e: EmpleadoAsistencia, fecha: string): { jornada: string; comida: string; retardo: boolean; falta: boolean } {
+  celda(e: EmpleadoAsistencia, fecha: string): {
+    jornada: string; comida: string; retardo: boolean; falta: boolean;
+    /** Código de la incidencia de RH ese día ("VAC", "INC"…), o ''. */
+    inc: string; incTitulo: string;
+  } {
     const d = e.diasPorFecha.get(fecha);
-    if (!d) return { jornada: '', comida: '', retardo: false, falta: false };
-    if (d.estadoDia === 'descanso') return { jornada: '—', comida: '', retardo: false, falta: false };
+    // La incidencia se busca también en los PERIODOS de la persona: quien estuvo
+    // de vacaciones la semana entera no checó y no trae días que pintar.
+    const incs = d?.incidencias.length ? d.incidencias
+      : e.incidencias.filter(i => i.desde <= fecha && i.hasta >= fecha);
+    const inc = incs.map(i => i.codigo).join('·');
+    const incTitulo = incs.map(i => i.etiqueta + (i.nota ? ` — ${i.nota}` : '')).join(' · ');
+    if (!d) return { jornada: inc, comida: '', retardo: false, falta: false, inc, incTitulo };
+    if (d.estadoDia === 'descanso') return { jornada: inc || '—', comida: '', retardo: false, falta: false, inc, incTitulo };
     // El día justificado se marca como tal en el papel: dejarlo en blanco lo
     // haría indistinguible de un día sin dato, y en rojo sería una falta que RH
-    // ya perdonó.
-    if (d.justificado) return { jornada: 'JUST.', comida: '', retardo: false, falta: false };
+    // ya perdonó. Con incidencia, va su código (VAC, INC…) en vez de "JUST.".
+    if (d.justificado) return { jornada: inc || 'JUST.', comida: '', retardo: false, falta: false, inc, incTitulo };
     const ent = d.entrada && d.entrada !== '—' ? d.entrada : '0';
     const sal = d.salida && d.salida !== '—' ? d.salida : '0';
     const com = d.comida && d.comida !== '—' ? d.comida.replace(/\s*[–-]\s*/, ' - ') : '';
     return {
-      jornada: `${ent} - ${sal}`,
+      // Una falta con incidencia (p. ej. "falta injustificada") lleva su código
+      // en lugar de "0 - 0": ya se revisó, y el papel tiene que decirlo.
+      jornada: d.falta && inc ? inc : `${ent} - ${sal}`,
       comida: com,
       retardo: d.retardoMin > 0,
       falta: d.falta,
+      inc, incTitulo,
     };
+  }
+
+  // ══ SUMA DE HORAS ═══════════════════════════════════════════════
+  //
+  // Las horas netas de cada día ya vienen con la comida descontada. En
+  // corporativo, el desayuno NO se descuenta cuando el día trae su comida
+  // aparte (política de RH, ver api/…/asistencia-personas.ts::detalleDia).
+
+  /** 2750 → "45h 50m". */
+  horasTexto(min: number | null | undefined): string {
+    if (!min || min <= 0) return '—';
+    const h = Math.floor(min / 60), m = Math.round(min % 60);
+    return `${h}h ${String(m).padStart(2, '0')}m`;
+  }
+
+  /** Total de horas de un departamento. */
+  minutosDeGrupo(g: { empleados: EmpleadoAsistencia[] }): number {
+    return g.empleados.reduce((t, e) => t + e.minutosTrabajados, 0);
+  }
+
+  get minutosTotales(): number {
+    return this.porDepartamento.reduce((t, g) => t + this.minutosDeGrupo(g), 0);
+  }
+
+  // ══ IRREGULARIDADES ═════════════════════════════════════════════
+
+  private irregularidadesDe(semanas: SemanaAsistencia[], usable: boolean):
+      { irregularidades: Irregularidad[]; irregularAlta: boolean } {
+    const umbralDesayuno = this.datos?.desayunoAlertaMin ?? 10;
+    const out: Irregularidad[] = [];
+    for (const s of semanas) for (const d of s.dias) {
+      const base = { fecha: d.fecha, diaLabel: d.diaLabel };
+      if (d.justificado || d.estadoDia === 'descanso') continue;
+      if (d.falta) out.push({ ...base, nivel: 'alta', tipo: 'falta', texto: 'Falta' });
+      // El retardo solo es irregularidad si el número se puede usar: con el
+      // horario por confirmar, el minuto no es de fiar y no se acusa con él.
+      if (d.retardoMin > 0 && usable) {
+        out.push({ ...base, nivel: 'alta', tipo: 'retardo', texto: `Llegó ${d.retardoMin} min tarde` });
+      }
+      if ((d.desayunoExcesoMin || 0) >= umbralDesayuno) {
+        out.push({ ...base, nivel: 'alta', tipo: 'desayuno', texto: `Desayuno +${d.desayunoExcesoMin} min` });
+      }
+      if (d.noMedible) out.push({ ...base, nivel: 'baja', tipo: 'una_marca', texto: 'Solo checó una vez' });
+      if (d.atipico) out.push({ ...base, nivel: 'baja', tipo: 'atipico', texto: 'Fuera de su horario' });
+    }
+    return { irregularidades: out, irregularAlta: out.some(i => i.nivel === 'alta') };
+  }
+
+  /** Cuántas altas y bajas trae, para la pastilla de la fila. */
+  cuentaIrregular(e: EmpleadoAsistencia, nivel: 'alta' | 'baja'): number {
+    return e.irregularidades.filter(i => i.nivel === nivel).length;
+  }
+
+  /** Personas con fila en rojo, para el aviso de arriba de la tabla. */
+  get personasIrregulares(): number {
+    return this.porDepartamento.reduce((t, g) => t + g.empleados.filter(e => e.irregularAlta).length, 0);
+  }
+
+  /** Ver solo a quien trae algo en rojo. */
+  soloIrregulares = false;
+
+  /** Los empleados de un grupo, con el filtro de "solo irregulares" aplicado. */
+  empleadosVisibles(g: { empleados: EmpleadoAsistencia[] }): EmpleadoAsistencia[] {
+    return this.soloIrregulares ? g.empleados.filter(e => e.irregularAlta) : g.empleados;
+  }
+
+  /** La ficha rápida (clic en la fila). */
+  ficha: EmpleadoAsistencia | null = null;
+  abrirFicha(e: EmpleadoAsistencia) { this.ficha = e; }
+  cerrarFicha() { this.ficha = null; }
+
+  /** Las irregularidades de la ficha, agrupadas por día (un renglón por fecha). */
+  get fichaPorDia(): { fecha: string; diaLabel: string; items: Irregularidad[] }[] {
+    if (!this.ficha) return [];
+    const m = new Map<string, { fecha: string; diaLabel: string; items: Irregularidad[] }>();
+    for (const i of this.ficha.irregularidades) {
+      if (!m.has(i.fecha)) m.set(i.fecha, { fecha: i.fecha, diaLabel: i.diaLabel, items: [] });
+      m.get(i.fecha)!.items.push(i);
+    }
+    return [...m.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }
+
+  /** De la ficha al detalle completo (semanas, justificación por día). */
+  fichaADetalle() {
+    const e = this.ficha;
+    this.ficha = null;
+    if (e) this.abrir(e);
+  }
+
+  // ══ INCIDENCIAS (vacaciones, permisos, incapacidades…) ════════════
+  //
+  // Se capturan desde el tablero: botón "Incidencia" → menú de tipos → a quién
+  // y qué días. "Solo hoy" es el caso común y va a un clic; "Otro día" y
+  // "Varios días" abren el calendario. Los tipos que excusan (vacaciones,
+  // incapacidad…) sacan la falta del conteo; el catálogo y esa decisión viven
+  // en la API (api/src/incidencias.ts).
+
+  tiposIncidencia: TipoIncidencia[] = [];
+  menuIncidencia = false;
+  /** El formulario abierto (null = cerrado). */
+  incForm: {
+    tipo: TipoIncidencia; codigo: string;
+    cuando: 'hoy' | 'dia' | 'rango';
+    desde: string; hasta: string; nota: string;
+  } | null = null;
+  guardandoInc = false;
+
+  private async cargarTiposIncidencia() {
+    try { this.tiposIncidencia = await this.checador.getTiposIncidencia(); }
+    catch { /* sin catálogo el botón queda deshabilitado; el resto sigue */ }
+  }
+
+  /**
+   * Abre el formulario. Desde el menú llega solo el tipo; desde la ficha o el
+   * detalle llega también la persona (y el día, si se picó uno).
+   */
+  abrirIncidencia(tipo: TipoIncidencia, codigo = '', fecha = '') {
+    const hoy = aFechaLocal(new Date());
+    this.menuIncidencia = false;
+    this.incForm = {
+      tipo, codigo,
+      cuando: fecha && fecha !== hoy ? 'dia' : 'hoy',
+      desde: fecha || hoy, hasta: fecha || hoy, nota: '',
+    };
+  }
+
+  /** Personas para el selector: las de la tabla, por nombre. */
+  get personasParaIncidencia(): EmpleadoAsistencia[] {
+    return [...this.lista].filter(e => e.registrado)
+      .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es'));
+  }
+
+  /** El periodo que se va a guardar, según "¿cuándo?". */
+  private get incPeriodo(): { desde: string; hasta: string } | null {
+    const f = this.incForm;
+    if (!f) return null;
+    if (f.cuando === 'hoy') { const h = aFechaLocal(new Date()); return { desde: h, hasta: h }; }
+    if (f.cuando === 'dia') return f.desde ? { desde: f.desde, hasta: f.desde } : null;
+    return f.desde && f.hasta && f.hasta >= f.desde ? { desde: f.desde, hasta: f.hasta } : null;
+  }
+
+  /** Días que abarca, para decirlo en el botón antes de guardar. */
+  get incDias(): number {
+    const p = this.incPeriodo;
+    if (!p) return 0;
+    return Math.round((Date.parse(p.hasta + 'T12:00:00') - Date.parse(p.desde + 'T12:00:00')) / 86400000) + 1;
+  }
+
+  async guardarIncidencia() {
+    const f = this.incForm, p = this.incPeriodo;
+    if (!f || !p || !f.codigo || this.guardandoInc) return;
+    this.guardandoInc = true;
+    try {
+      await this.checador.crearIncidencia({
+        sucursalId: this.sucursalFiltro, empleadoCodigo: f.codigo,
+        tipo: f.tipo.tipo, desde: p.desde, hasta: p.hasta, nota: f.nota,
+      });
+      const quien = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
+      this.toast.exito(`${f.tipo.etiqueta} · ${quien} · ${this.incDias} día(s).`);
+      this.incForm = null;
+      await this.recargarConservandoAbiertos();
+    } catch (e) {
+      console.error(e);
+      this.toast.error('No se pudo guardar la incidencia.');
+    } finally {
+      this.guardandoInc = false;
+    }
+  }
+
+  async borrarIncidencia(i: { id: string; etiqueta: string }) {
+    const ok = await this.toast.confirmar({
+      titulo: 'Quitar incidencia',
+      mensaje: `¿Quitar "${i.etiqueta}"? Si excusaba faltas, vuelven a contar.`,
+      destructivo: true, textoConfirmar: 'Quitar',
+    });
+    if (!ok) return;
+    try {
+      await this.checador.eliminarIncidencia(i.id);
+      await this.recargarConservandoAbiertos();
+    } catch (e) {
+      console.error(e);
+      this.toast.error('No se pudo quitar la incidencia.');
+    }
+  }
+
+  /**
+   * Recarga para que la celda y los conteos lo reflejen ya, y vuelve a apuntar
+   * la ficha y el detalle abiertos a la persona recalculada: si no, se quedan
+   * mostrando la versión de antes del cambio.
+   */
+  private async recargarConservandoAbiertos() {
+    const fichaCod = this.ficha?.codigo, detCod = this.detalle?.codigo;
+    await this.cargar();
+    if (fichaCod) this.ficha = this.lista.find(e => e.codigo === fichaCod) || null;
+    if (detCod) this.detalle = this.lista.find(e => e.codigo === detCod) || null;
+  }
+
+  /** "12 sep" o "12 → 19 sep", para la lista de incidencias de la ficha. */
+  periodoCorto(i: { desde: string; hasta: string }): string {
+    const f = (iso: string) => {
+      const d = new Date(iso + 'T00:00:00');
+      return `${d.getDate()} ${d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '')}`;
+    };
+    return i.desde === i.hasta ? f(i.desde) : `${f(i.desde)} → ${f(i.hasta)}`;
   }
 
   /**
@@ -633,12 +895,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
       const ancho = doc.internal.pageSize.getWidth();
 
-      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Retardos']];
+      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'Retardos']];
       const body: any[] = [];
       for (const g of grupos) {
         body.push([{
           content: `${g.departamento}  (${g.empleados.length})`,
-          colSpan: dias.length + 3,
+          colSpan: dias.length + 4,
           styles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
         }]);
         for (const e of g.empleados) {
@@ -653,11 +915,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
                 : {},
             };
           });
-          body.push([e.codigo, e.nombreCompleto, ...celdas, e.diasConRetardo || '']);
+          body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados), e.diasConRetardo || '']);
         }
         body.push([{
           content: '', colSpan: dias.length + 2, styles: { fillColor: [255, 255, 255] },
-        }, { content: String(g.retardos || 0), styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
+        }, { content: this.horasTexto(this.minutosDeGrupo(g)), styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
+           { content: String(g.retardos || 0), styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
       }
 
       // Medido con 105 personas y 7 columnas: a 7.5 pt con relleno de 1 mm el
@@ -668,7 +931,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       autoTable(doc, {
         head,
         body,
-        foot: [[{ content: 'Total retardos', colSpan: dias.length + 2, styles: { halign: 'right' as const } },
+        foot: [[{ content: 'Totales', colSpan: dias.length + 2, styles: { halign: 'right' as const } },
+                { content: this.horasTexto(this.minutosTotales), styles: { halign: 'center' as const } },
                 { content: String(this.totalRetardos), styles: { halign: 'right' as const } }]],
         startY: 20,
         margin: { top: 20, left: 8, right: 8, bottom: 12 },
@@ -679,6 +943,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           0: { cellWidth: 11, halign: 'center' },
           1: { cellWidth: dias.length > 10 ? 38 : 46 },
           [dias.length + 2]: { cellWidth: 15, halign: 'center' },
+          [dias.length + 3]: { cellWidth: 15, halign: 'center' },
         },
         // Una fila nunca se parte, y un encabezado de departamento no se queda
         // solo al pie de la hoja.
@@ -750,8 +1015,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         this.cargar();
       }
     }
+    // Tras importar un archivo se RECARGA con el mismo periodo. Antes se
+    // reajustaba a los datos de la plaza, y era otra de las formas en que el
+    // periodo elegido se perdía sin que nadie lo tocara.
     if (cambios['recargarToken'] && !cambios['recargarToken'].firstChange) {
-      this.ajustarRangoYCargar();
+      this.cargar();
     }
   }
 
@@ -861,6 +1129,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   async cargar(silencioso = false) {
+    // Todo cambio de periodo pasa por aquí (atajos, calendario, autoajuste): es
+    // el único punto donde hace falta recordarlo.
+    if (this.desde && this.hasta) this.periodo.fijar(this.desde, this.hasta);
     if (!this.sucursalFiltro || !this.desde || !this.hasta) { this.lista = []; this.computarTolerancia(); return; }
     if (!silencioso) this.cargando = true;
     try {
@@ -889,6 +1160,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       label: this.etiquetaSemana(s.inicio),
       acumulado: s.retardoRealMin,
       atrasoMin: s.atrasoMin,
+      minutosTrabajados: s.minutosTrabajados ?? 0,
       bolsaRestante: s.bolsaRestante,
       excedido: s.bolsaAgotada,
       dias: s.dias.map(d => ({
@@ -912,7 +1184,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         justificado: d.estado === 'justificado',
         atipico: !!d.atipico,
         justificacion: '',
-        estado: 'pendiente' as EstadoRevision
+        estado: 'pendiente' as EstadoRevision,
+        netasMin: d.netasMin ?? 0,
+        desayunoPagado: !!d.desayunoPagado,
+        incidencias: d.incidencias || [],
       }))
     }));
 
@@ -946,6 +1221,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       noMedibles: p.diasNoMedibles,
       atipicos: p.diasAtipicos,
       horasTrabajadas: p.horasTrabajadas,
+      minutosTrabajados: p.minutosTrabajados ?? Math.round(p.horasTrabajadas * 60),
+      incidencias: p.incidencias || [],
+      ...this.irregularidadesDe(semanas, p.usable),
       presupuesto: this.datos?.bolsaSemanalMin ?? 15,
       pctATiempo: p.pctATiempo,
       usable: p.usable,
@@ -1304,53 +1582,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       }
     } catch (err) { console.warn('No se pudieron cargar las revisiones:', err); }
   }
-  cerrar() { this.detalle = null; this.vacDesde = ''; this.vacHasta = ''; }
+  cerrar() { this.detalle = null; }
 
-  // ══ VACACIONES Y OTROS JUSTIFICANTES DE VARIOS DÍAS ══════════════
-  //
-  // Antes solo se podía justificar UN día a la vez, desde la tabla del detalle.
-  // Para unas vacaciones eso son siete u ocho guardados para una sola decisión,
-  // y a la tercera persona nadie lo hace.
-  //
-  // Y hasta ahora el justificante no servía de nada: se guardaba, pero el
-  // cálculo no lo leía y la falta seguía contada. Ya se corrigió en la API: un
-  // día con justificante APROBADO de ausencia deja de ser falta.
-  vacDesde = '';
-  vacHasta = '';
-  vacMotivo = 'Vacaciones';
-  guardandoVac = false;
-
-  /** Los días que abarcaría el periodo, para decirlo antes de guardar. */
-  get vacDias(): number {
-    if (!this.vacDesde || !this.vacHasta || this.vacHasta < this.vacDesde) return 0;
-    const a = Date.parse(this.vacDesde + 'T12:00:00');
-    const b = Date.parse(this.vacHasta + 'T12:00:00');
-    return Math.round((b - a) / 86400000) + 1;
-  }
-
-  async guardarVacaciones() {
-    if (!this.detalle || !this.vacDias || this.guardandoVac) return;
-    this.guardandoVac = true;
-    try {
-      const r = await this.checador.guardarRevisionRango({
-        sucursalId: this.sucursalFiltro,
-        empleadoCodigo: this.detalle.codigo,
-        desde: this.vacDesde, hasta: this.vacHasta,
-        justificacion: this.vacMotivo,
-      });
-      this.toast.exito(`${r.dias} día(s) justificados como ${this.vacMotivo}. Dejan de contar como falta.`);
-      this.vacDesde = this.vacHasta = '';
-      // Se recarga para que el cambio se vea en los números, no solo en la nota:
-      // es justo lo que antes no pasaba.
-      await this.cargar();
-      this.detalle = this.lista.find(e => e.codigo === r.revisiones[0]?.empleadoCodigo) || null;
-    } catch (e) {
-      console.error(e);
-      this.toast.error('No se pudieron guardar los días.');
-    } finally {
-      this.guardandoVac = false;
-    }
-  }
+  // "Justificar un periodo" (Vacaciones/Incapacidad/Permiso) vivía aquí y
+  // escribía texto libre en asistencia_revision. Lo reemplazaron las
+  // INCIDENCIAS: el mismo propósito, con catálogo y un solo camino para
+  // capturar. Las justificaciones viejas se siguen respetando en el cálculo.
 
   /** Guarda (upsert) la justificación/estado de un día. */
   async guardarRevisionDia(d: DiaAsistencia) {
@@ -1404,6 +1641,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Desayuno (min)': d.desayunoMin ?? '',
             'Desayuno excedido (min)': d.desayunoExcesoMin || '',
             'Comida': d.comida, 'Salida': d.salida, 'Horas netas': d.horasNetas,
+            // En minutos, para que se pueda SUMAR en Excel: "8h 30m" es texto.
+            'Horas netas (min)': d.netasMin || 0,
+            'Desayuno pagado': d.desayunoPagado ? 'Sí' : '',
+            'Incidencia': d.incidencias.map(i => i.etiqueta).join(', '),
             'Medido contra': d.referencia,
             'Atraso bruto (min)': d.atrasoMin,
             'Absorbido por la bolsa (min)': d.absorbidoMin,

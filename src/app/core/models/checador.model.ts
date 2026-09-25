@@ -74,6 +74,11 @@ export interface Empleado {
    */
   nombreCompleto?: string;
   puesto?: string;
+  /**
+   * La sección del reporte semanal (COMPRAS, FINANZAS…). Sin él la persona cae
+   * en SIN DEPARTAMENTO. Vacío = sin asignar.
+   */
+  departamento?: string;
   fotoUrl?: string;
   activo: boolean;
   /**

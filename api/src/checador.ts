@@ -31,6 +31,10 @@ const mapEmpleado = (r: any) => ({
   // se quedaba con el apodo porque este campo no se mandaba.
   nombreCompleto: r.nombre_completo || '',
   puesto: r.puesto || '', fotoUrl: r.foto_url || '',
+  // La sección del reporte semanal (Compras, Finanzas…). Existía en la base desde
+  // el sembrado de los reportes de RH, pero no viajaba al front y no había dónde
+  // capturarlo: quien no venía en el reporte se quedaba en SIN DEPARTAMENTO.
+  departamento: r.departamento || '',
   horarioId: r.horario_id || '', activo: r.activo,
   // Promotora = no es personal de piso y no se mide con la vara de asistencia
   // de la sucursal. Ver api/db/schema.sql y el filtro en agente-horarios/.
@@ -161,17 +165,18 @@ checadorRouter.post('/empleados', async (req: Request, res: Response) => {
   try {
     const e = req.body || {};
     const { rows } = await pool.query(
-      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, nombre_completo, puesto, foto_url, horario_id, activo, es_promotora)
-       VALUES ($1,$2,$3,NULLIF(btrim($9),''),$4,$5,$6,$7,$8)
+      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, nombre_completo, puesto, foto_url, horario_id, activo, es_promotora, departamento)
+       VALUES ($1,$2,$3,NULLIF(btrim($9),''),$4,$5,$6,$7,$8,NULLIF(upper(btrim($10)),''))
        ON CONFLICT (sucursal_id, codigo_checador)
          DO UPDATE SET nombre=EXCLUDED.nombre, puesto=EXCLUDED.puesto, foto_url=EXCLUDED.foto_url,
                        horario_id=EXCLUDED.horario_id, activo=EXCLUDED.activo,
                        es_promotora=EXCLUDED.es_promotora,
                        -- Solo se pisa si llega algo: ver el comentario del UPDATE.
-                       nombre_completo=COALESCE(EXCLUDED.nombre_completo, empleados.nombre_completo)
+                       nombre_completo=COALESCE(EXCLUDED.nombre_completo, empleados.nombre_completo),
+                       departamento=COALESCE(EXCLUDED.departamento, empleados.departamento)
        RETURNING *`,
       [e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.horarioId || null,
-       e.activo !== false, e.esPromotora === true, e.nombreCompleto ?? null]
+       e.activo !== false, e.esPromotora === true, e.nombreCompleto ?? null, e.departamento ?? null]
     );
     res.json(mapEmpleado(rows[0]));
   } catch (err) { fallo(res, err, 'No se pudo guardar el empleado.'); }
@@ -197,13 +202,19 @@ const actualizarEmpleado = async (req: Request, res: Response) => {
       // manda `{ ...e, esPromotora }`—. Con un SET a secas, cualquiera de esas
       // llamadas borraría el nombre formal del reporte de RH sin querer y sin
       // aviso: un clic en "pasar a promotoras" costaría el nombre bueno.
+      //
+      // `departamento` es distinto a propósito: si el cuerpo NO lo trae (una
+      // llamada vieja), se respeta el que hay; si lo trae vacío, RH lo quitó y
+      // se borra. Se guarda en mayúsculas porque así vienen los del reporte y
+      // "Compras" y "COMPRAS" serían dos secciones distintas en la tabla.
       `UPDATE empleados SET sucursal_id=$2, codigo_checador=$3, nombre=$4, puesto=$5,
               foto_url=$6, horario_id=$7, activo=$8, es_promotora=$9,
-              nombre_completo=COALESCE(NULLIF(btrim($10),''), nombre_completo)
+              nombre_completo=COALESCE(NULLIF(btrim($10),''), nombre_completo),
+              departamento=CASE WHEN $11::boolean THEN NULLIF(upper(btrim($12)),'') ELSE departamento END
        WHERE id=$1 RETURNING *`,
       [req.params.id, e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null,
        e.fotoUrl || null, e.horarioId || null, e.activo !== false, e.esPromotora === true,
-       e.nombreCompleto ?? null]
+       e.nombreCompleto ?? null, e.departamento !== undefined, e.departamento ?? '']
     );
     if (!rows.length) return res.status(404).json({ error: 'Empleado no encontrado.' });
     res.json(mapEmpleado(rows[0]));

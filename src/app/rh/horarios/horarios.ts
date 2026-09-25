@@ -15,6 +15,7 @@ import {
 import { parsearTextoChecadas, parsearFilasExcel } from '../../core/models/parser-attlog';
 import { CENTROS_CON_RELOJ, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
+import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
 import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
@@ -46,6 +47,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
   private checador = inject(ChecadorService);
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
+  private periodo = inject(PeriodoAsistenciaService);
 
   // Catálogos / constantes para la vista (incluye centros internos como Corporativo)
   SUCURSALES = CENTROS_CON_RELOJ;
@@ -249,6 +251,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
    */
   async ajustarRangoYCargar() {
     if (!this.sucursalFiltro) return;
+    // Si ya hay un periodo elegido en la sesión, ese manda: cambiar de plaza no
+    // lo reescribe (ver PeriodoAsistenciaService).
+    if (this.periodo.elegido) {
+      this.desde = this.periodo.desde;
+      this.hasta = this.periodo.hasta;
+      return;
+    }
     try {
       const r = await this.checador.getRangoChecadas(this.sucursalFiltro);
       if (r.max) {
@@ -444,12 +453,14 @@ export class HorariosComponent implements OnInit, OnDestroy {
   nuevoEmpleado(esPromotora = false) {
     this.empleadoEdit = {
       sucursalId: this.sucursalFiltro || CENTROS_CON_RELOJ[0].id,
-      codigoChecador: '', nombre: '', puesto: '', fotoUrl: '', activo: true,
+      codigoChecador: '', nombre: '', puesto: '', departamento: '', fotoUrl: '', activo: true,
       esPromotora
     };
   }
   editarEmpleado(e: Empleado) {
-    this.empleadoEdit = { ...e };
+    // `departamento` siempre viaja (aunque sea vacío): así la API distingue
+    // "lo quitaron" de "esta llamada no lo trae" y no lo pisa por accidente.
+    this.empleadoEdit = { ...e, departamento: e.departamento || '' };
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -475,7 +486,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       codigo: String(e.codigoChecador).trim(),
       sucursalId: e.sucursalId,
       fotoUrl: e.fotoUrl || '',
-      desde: this.desde, hasta: this.hasta,
+      desde: this.periodo.desde || this.desde, hasta: this.periodo.hasta || this.hasta,
       cargando: true, error: '',
       persona: null, semanas: [], bolsaMin: 15
     };
@@ -571,6 +582,26 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const pega = (t: string) => t.toLowerCase().normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
     return pega(formal) !== pega(e.nombre);
+  }
+
+  /**
+   * Los departamentos que ya existen en el padrón, para sugerirlos al editar.
+   * Se sugieren y no se imponen: si RH escribe uno nuevo, se crea. Pero escribir
+   * "Compras" cuando ya existe "COMPRAS" partiría la sección en dos, y la lista
+   * es lo que lo evita (la API además los guarda en mayúsculas).
+   */
+  get departamentosConocidos(): string[] {
+    const s = new Set<string>();
+    for (const e of this.empleados) {
+      const d = (e.departamento || '').trim().toUpperCase();
+      if (d) s.add(d);
+    }
+    return [...s].sort((a, b) => a.localeCompare(b, 'es'));
+  }
+
+  /** Cuántas fichas de la plaza no tienen departamento (caen en SIN DEPARTAMENTO). */
+  get sinDepartamento(): number {
+    return this.empleadosFiltrados.filter(e => !(e.departamento || '').trim()).length;
   }
 
   /** Cuántas fichas de la plaza siguen sin nombre formal. */
