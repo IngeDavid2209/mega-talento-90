@@ -870,7 +870,9 @@
                           @if (d.falta) {
                             <span class="ar-badge ar-badge-falta">Falta</span>
                           } @else if (d.estadoDia === 'descanso') {
-                            <span class="ar-badge ar-badge-nomedible">Descanso</span>
+                            <span class="ar-badge ar-badge-nomedible"
+                                  [title]="d.descansoPorAusencia ? 'No checó en un día que normalmente trabaja; esa semana le quedaba un descanso, así que no cuenta como falta.' : 'Su día de descanso habitual.'">
+                              {{ d.descansoPorAusencia ? 'Descanso (tomado)' : 'Descanso' }}</span>
                           } @else if (d.noMedible) {
                             <span class="ar-badge ar-badge-nomedible"
                                   title="Solo una marca ese día: no se sabe si es la entrada o la salida, así que no se le calcula retardo.">Una sola marca</span>

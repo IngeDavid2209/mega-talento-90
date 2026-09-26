@@ -701,3 +701,15 @@
    y entonces la unica cosa amarilla de la vista era una instruccion de manual:
    grita mas que cualquier dato. Las explicaciones van aqui, en voz baja. */
 .hz-nota { margin: 0 0 10px; font-size: 12.5px; line-height: 1.55; color: var(--text2); }
+
+/* ── Buscador de la pestaña Empleados (26/09/2026) ── */
+.hz-emp-cat { flex-wrap: wrap; align-items: center; }
+.hz-buscar {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  width: min(340px, 100%); padding: 0 12px; height: 38px; box-sizing: border-box;
+  background: #fff; border: 1px solid var(--border-med); border-radius: 10px;
+}
+.hz-buscar:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--brand-bg); }
+.hz-buscar svg { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--text3); stroke-width: 1.8; stroke-linecap: round; }
+.hz-buscar input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font: inherit; font-size: 13.5px; color: var(--ink); }
+@media (max-width: 640px) { .hz-buscar { margin-left: 0; width: 100%; } }

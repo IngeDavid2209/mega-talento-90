@@ -176,6 +176,29 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return this.empleadosDeSucursal.filter(e => !e.esPromotora);
   }
 
+  /**
+   * BUSCADOR DE LA PESTAÑA EMPLEADOS. Busca en el nombre formal, el del reloj,
+   * el código, el departamento y el puesto, sin distinguir acentos ni
+   * mayúsculas: "garcia" encuentra a "GARCÍA TAPIA LUCIA" y a "Luciagarciatapia".
+   * Filtra solo la TABLA; los contadores de arriba siguen siendo de la plaza.
+   */
+  busquedaEmp = '';
+
+  private sinAcentos(t: string): string {
+    return (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  get empleadosBuscados(): Empleado[] {
+    const q = this.sinAcentos(this.busquedaEmp.trim());
+    if (!q) return this.empleadosFiltrados;
+    const partes = q.split(/\s+/);
+    return this.empleadosFiltrados.filter(e => {
+      const texto = this.sinAcentos([e.nombreCompleto, e.nombre, e.codigoChecador, e.departamento, e.puesto]
+        .filter(Boolean).join(' '));
+      return partes.every(p => texto.includes(p));
+    });
+  }
+
 
   // ══ LAS FICHAS DADAS DE BAJA NO SE VEN, PERO SIGUEN AHÍ ══════════
   //

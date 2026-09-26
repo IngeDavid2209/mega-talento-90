@@ -541,6 +541,11 @@ export interface DiaMedido {
   bolsaDespues: number;
   atipico?: boolean;
   marcas?: number;
+  /**
+   * Descanso que se TOMÓ en un día que normalmente trabaja: faltó, pero esa
+   * semana todavía le quedaba un descanso por usar (ver `descansosDeLaSemana`).
+   */
+  descansoPorAusencia?: boolean;
 }
 
 export interface SemanaMedida {
@@ -570,6 +575,38 @@ export interface OpcionesRetardo extends OpcionesHorario {
   entradaMin?: number | null;
   diasLaborales?: number[] | null;
   turnoPorFecha?: Map<string, TurnoDelDia> | null;
+  /**
+   * Por semana (su clave de inicio), cuántos días SIN MARCAS tuvo la persona
+   * ANTES del primer día que se está midiendo. Cuando el periodo corta la
+   * semana, esos días ya gastaron descansos que aquí no se ven.
+   */
+  ausenciasPrevias?: Map<string, number> | null;
+}
+
+/**
+ * ══ UNA FALTA PUEDE SER SU DÍA DE DESCANSO (26/09/2026, regla de RH) ══
+ *
+ * Antes el descanso era FIJO por día de la semana: si la persona trabaja de
+ * lunes a sábado, el domingo es descanso y un martes sin marcas es falta —
+ * aunque esa semana haya trabajado el domingo—. Y a quien le rota el descanso
+ * le iba peor: trabaja cada día de la semana en más de la mitad de las semanas,
+ * todos salían "laborables", y CADA descanso suyo se contaba como falta.
+ *
+ * Ahora cada persona tiene un número de descansos POR SEMANA: los días que
+ * normalmente no trabaja (tienda lun-sáb: 1; corporativo lun-vie: 2), y nunca
+ * menos de 1. Los días sin marcas de la semana se reparten así:
+ *   1. primero sus días de descanso habituales (el domingo de la tienda);
+ *   2. si todavía le quedan descansos, las ausencias en días laborables, en
+ *      orden, pasan a ser descanso;
+ *   3. las que sobren, esas sí son falta.
+ *
+ * El orden importa: si la tienda faltó el viernes y descansó el domingo, la
+ * falta es el viernes, no el domingo. Al revés, la pestaña de "faltas fuera
+ * de domingo" se quedaría vacía teniendo una falta real.
+ */
+export function descansosDeLaSemana(diasLaborales: number[] | null | undefined): number {
+  if (!diasLaborales) return 1;
+  return Math.max(1, 7 - diasLaborales.length);
 }
 
 /**
@@ -590,7 +627,9 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
     entradaMin, bolsaMin = BOLSA_SEMANAL_MIN,
     diasLaborales = null, diaInicioSemana = DIA_INICIO_SEMANA,
     turnoPorFecha = null, atipicoFijoMin = 120, duplicadaMin = DUPLICADA_MIN,
+    ausenciasPrevias = null,
   } = opciones;
+  const descansosSemana = descansosDeLaSemana(diasLaborales);
 
   if (!turnoPorFecha && (entradaMin === null || entradaMin === undefined || !Number.isFinite(entradaMin))) {
     throw new Error('retardosPorSemana necesita entradaMin, o turnoPorFecha para un rotativo.');
@@ -616,17 +655,30 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
     const detalle: DiaMedido[] = [];
     let atrasoSem = 0, retardoSem = 0;
 
+    // Qué ausencias de esta semana caben como descanso (ver descansosDeLaSemana).
+    const esLaboralF = (f: string) => !diasLaborales || diasLaborales.includes(diaSemana(f));
+    const sinMarca = delaSemana.filter((d) => d.tipo === 'sin_marca');
+    const habituales = sinMarca.filter((d) => !esLaboralF(d.fecha));
+    const enLaborable = sinMarca.filter((d) => esLaboralF(d.fecha));
+    const quedan = Math.max(0,
+      descansosSemana - (ausenciasPrevias?.get(clave) || 0) - habituales.length);
+    const descansoTomado = new Set(enLaborable.slice(0, quedan).map((d) => d.fecha));
+
     for (const d of delaSemana) {
-      const esLaboral = !diasLaborales || diasLaborales.includes(diaSemana(d.fecha));
+      const esLaboral = esLaboralF(d.fecha);
 
       if (d.tipo === 'sin_marca') {
-        // Cero marcas: falta si era día laboral suyo; si no, descanso. En
-        // ninguno de los dos casos suma minutos de retardo.
-        if (esLaboral) faltas++;
+        // Cero marcas: su descanso habitual, un descanso que se tomó en día
+        // laborable (le quedaba uno esa semana), o falta. En ningún caso suma
+        // minutos de retardo.
+        const tomado = esLaboral && descansoTomado.has(d.fecha);
+        const esFalta = esLaboral && !tomado;
+        if (esFalta) faltas++;
         detalle.push({
-          fecha: d.fecha, estado: esLaboral ? 'falta' : 'descanso',
+          fecha: d.fecha, estado: esFalta ? 'falta' : 'descanso',
           atrasoMin: 0, absorbidoMin: 0, retardoRealMin: 0,
           bolsaAntes: bolsa, bolsaDespues: bolsa, marcas: 0,
+          ...(tomado ? { descansoPorAusencia: true } : {}),
         });
         continue;
       }

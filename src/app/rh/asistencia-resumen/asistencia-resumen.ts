@@ -41,6 +41,8 @@ interface DiaAsistencia {
   netasMin: number;
   /** En corporativo el desayuno no se descontó (el día trae comida aparte). */
   desayunoPagado: boolean;
+  /** Descanso tomado en un día que normalmente trabaja (no cuenta como falta). */
+  descansoPorAusencia: boolean;
   /** Incidencias de RH que cubren el día. */
   incidencias: IncidenciaDia[];
 }
@@ -610,7 +612,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const inc = incs.map(i => i.codigo).join('·');
     const incTitulo = incs.map(i => i.etiqueta + (i.nota ? ` — ${i.nota}` : '')).join(' · ');
     if (!d) return { jornada: inc, comida: '', retardo: false, falta: false, inc, incTitulo };
-    if (d.estadoDia === 'descanso') return { jornada: inc || '—', comida: '', retardo: false, falta: false, inc, incTitulo };
+    // El descanso que se tomó en día laborable se dice como tal: un guion ahí
+    // se leería como su descanso de siempre, y RH tiene que ver que se movió.
+    if (d.estadoDia === 'descanso') {
+      return { jornada: inc || (d.descansoPorAusencia ? 'DESC.' : '—'), comida: '', retardo: false, falta: false, inc,
+               incTitulo: incTitulo || (d.descansoPorAusencia ? 'No checó en un día que normalmente trabaja; se tomó como su descanso de la semana.' : '') };
+    }
     // El día justificado se marca como tal en el papel: dejarlo en blanco lo
     // haría indistinguible de un día sin dato, y en rojo sería una falta que RH
     // ya perdonó. Con incidencia, va su código (VAC, INC…) en vez de "JUST.".
@@ -1187,6 +1194,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         estado: 'pendiente' as EstadoRevision,
         netasMin: d.netasMin ?? 0,
         desayunoPagado: !!d.desayunoPagado,
+        descansoPorAusencia: !!d.descansoPorAusencia,
         incidencias: d.incidencias || [],
       }))
     }));

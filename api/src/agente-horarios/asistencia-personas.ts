@@ -654,11 +654,26 @@ export async function asistenciaPersonas(
             : ho.bloques,
           opciones)
       : null;
+    // Si el periodo empieza a media semana, los días de esa semana que quedaron
+    // ANTES del periodo también gastan descansos: quien descansó el domingo y
+    // se mira desde el lunes ya no tiene un descanso libre para el martes.
+    const ausenciasPrevias = new Map<string, number>();
+    if (primeraChecada) {
+      const conMarcaHist = new Set(dias.map((d) => d.fecha));
+      const clave = hd.inicioSemana(desde);
+      let n = 0;
+      for (let f = clave; f < desde; f = siguienteDia(f)) {
+        if (f >= primeraChecada && !conMarcaHist.has(f)) n++;
+      }
+      if (n) ausenciasPrevias.set(clave, n);
+    }
+
     const re = ho.entradaMin === null ? null : hd.retardosPorSemana(diasAMedir, {
       ...opciones,
       entradaMin: ho.entradaMin,
       turnoPorFecha,
       diasLaborales: ho.diasLaborales,
+      ausenciasPrevias,
     });
 
     // ── LAS MARCAS: por qué este número puede no ser de fiar ──
@@ -753,6 +768,9 @@ export async function asistenciaPersonas(
     const excusadas = excusas.get(cod) || new Map<string, string>();
     const incDeEl = incPorDia.get(cod) || new Map<string, IncidenciaDia[]>();
     let faltasJustificadas = 0;
+    // Días que el cálculo tomó como descanso pero RH marcó "falta injustificada":
+    // manda RH, y vuelven a ser falta.
+    let faltasForzadas = 0;
     let desayunoExcesoMin = 0;
     let diasDesayunoExcedido = 0;
     let diasConIncidencia = 0;
@@ -782,6 +800,10 @@ export async function asistenciaPersonas(
         if (justificacion && d.estado === 'falta') {
           faltasJustificadas++;
           return { ...d, estado: 'justificado' as hd.EstadoDia, justificacion, ...extra };
+        }
+        if (d.estado === 'descanso' && !d.marcas && incs.some((i) => i.tipo === 'falta_injustificada')) {
+          faltasForzadas++;
+          return { ...d, estado: 'falta' as hd.EstadoDia, descansoPorAusencia: false, ...extra };
         }
         return { ...d, ...extra };
       });
@@ -835,7 +857,7 @@ export async function asistenciaPersonas(
       diasConRetardo: re?.diasConRetardo ?? 0,
       diasEvaluados,
       // La falta justificada no cuenta: es el punto de todo esto.
-      faltas: Math.max(0, (re?.faltas ?? 0) - faltasJustificadas),
+      faltas: Math.max(0, (re?.faltas ?? 0) - faltasJustificadas + faltasForzadas),
       faltasJustificadas,
       diasNoMedibles: re?.marcasFaltantes ?? 0,
       diasAtipicos: re?.atipicos ?? 0,

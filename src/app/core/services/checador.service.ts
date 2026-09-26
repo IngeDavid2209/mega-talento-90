@@ -61,6 +61,8 @@ export interface DiaApi {
   netasMin?: number | null;
   /** En corporativo el desayuno no se descuenta (si el día trae comida aparte). */
   desayunoPagado?: boolean;
+  /** Faltó en un día que normalmente trabaja, pero le quedaba un descanso esa semana. */
+  descansoPorAusencia?: boolean;
   /** Incidencias de RH que cubren este día. */
   incidencias?: IncidenciaDia[];
 }
