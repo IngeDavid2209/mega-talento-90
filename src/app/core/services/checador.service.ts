@@ -479,6 +479,10 @@ export class ChecadorService {
   escucharEmpleados(callback: (empleados: Empleado[]) => void) {
     return this.poll(() => this.api.get<Empleado[]>('/checador/empleados'), callback);
   }
+  /** Las fichas de una sola plaza (para ubicar la de una persona por su código). */
+  async getEmpleadosDeSucursal(sucursalId: string): Promise<Empleado[]> {
+    return this.api.get<Empleado[]>('/checador/empleados', { sucursalId });
+  }
   async guardarEmpleado(empleado: Empleado): Promise<string> {
     const r = empleado.id
       ? await this.api.patch<Empleado>(`/checador/empleados/${empleado.id}`, empleado)

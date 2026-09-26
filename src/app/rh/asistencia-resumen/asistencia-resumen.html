@@ -495,12 +495,13 @@
               }
               <th class="rep-hrs" title="Horas netas del periodo: jornada menos comida. En corporativo el desayuno no se descuenta.">Horas</th>
               <th class="rep-ret">Retardos</th>
+              <th class="rep-acc"><span class="rep-sr">Acciones</span></th>
             </tr>
           </thead>
           <tbody>
             @for (g of porDepartamento; track g.departamento) {
               <tr class="rep-depto">
-                <td [attr.colspan]="columnasDia.length + 4">
+                <td [attr.colspan]="columnasDia.length + 5">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
                   <!-- El atajo donde se está mirando: aislar esta sección sin
                        subir a los chips. No va al papel (rep-solo-fila). -->
@@ -537,12 +538,21 @@
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
                   <td class="rep-ret">{{ e.diasConRetardo || '' }}</td>
+                  <td class="rep-acc">
+                    <button type="button" class="rep-acc-btn" [class.on]="accMenu?.emp === e"
+                            [attr.aria-label]="'Acciones para ' + e.nombreCompleto"
+                            [attr.aria-expanded]="accMenu?.emp === e"
+                            (click)="abrirAcciones($event, e)">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>
+                    </button>
+                  </td>
                 </tr>
               }
               <tr class="rep-subtotal">
                 <td [attr.colspan]="columnasDia.length + 2"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
                 <td class="rep-ret">{{ g.retardos || 0 }}</td>
+                <td></td>
               </tr>
             }
           </tbody>
@@ -551,6 +561,7 @@
               <td [attr.colspan]="columnasDia.length + 2">Totales</td>
               <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
               <td class="rep-ret">{{ totalRetardos }}</td>
+              <td></td>
             </tr>
           </tfoot>
         </table>
@@ -909,6 +920,92 @@
             @for (j of JUSTIFICACIONES; track j) { <option [value]="j"></option> }
           </datalist>
         }
+      </div>
+    </div>
+  }
+
+  <!-- ===== Menú de acciones de una persona (posición fija: la tabla no lo recorta) ===== -->
+  @if (accMenu) {
+    <div class="acc-ov" (click)="cerrarAcciones()"></div>
+    <div class="acc-menu" role="menu" [class.acc-arriba]="accMenu.arriba"
+         [style.top.px]="accMenu.top" [style.left.px]="accMenu.left"
+         [attr.aria-label]="'Acciones para ' + accMenu.emp.nombreCompleto">
+      <div class="acc-quien">{{ accMenu.emp.nombreCompleto }} <span>#{{ accMenu.emp.codigo }}</span></div>
+      @if (accMenu.emp.registrado) {
+        <button type="button" role="menuitem" (click)="accEditar('nombre')">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13h2.5L12 6.5 9.5 4 3 10.5V13zM9.5 4l2.5 2.5"/></svg>Cambiar nombre
+        </button>
+        <button type="button" role="menuitem" (click)="accEditar('departamento')">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v7h-11zM5.5 5.5V3.5h5v2"/></svg>Cambiar departamento
+        </button>
+        <button type="button" role="menuitem" [attr.aria-expanded]="accTipos" [disabled]="!tiposIncidencia.length"
+                (click)="accTipos = !accTipos">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Agregar incidencia
+          <svg class="acc-chev" [class.abierto]="accTipos" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+        </button>
+        @if (accTipos) {
+          <div class="acc-tipos">
+            @for (t of tiposIncidencia; track t.tipo) {
+              <button type="button" role="menuitem" [title]="t.etiqueta" (click)="accIncidencia(t)">
+                <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>
+              </button>
+            }
+          </div>
+        }
+        <button type="button" role="menuitem" (click)="accDetalle()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7"/></svg>Ver detalle y justificar
+        </button>
+        <div class="acc-sep"></div>
+        <button type="button" role="menuitem" class="acc-peligro" (click)="accBaja()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
+        </button>
+      } @else {
+        <p class="acc-nota">Este código checa sin estar en el padrón.</p>
+        <button type="button" role="menuitem" (click)="accAlta()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Agregar al padrón
+        </button>
+        <button type="button" role="menuitem" (click)="accDetalle()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7"/></svg>Ver detalle
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ===== Editar nombre / departamento (se confirma antes de guardar) ===== -->
+  @if (accEdit) {
+    <div class="ar-modal-ov inc-ov" (click)="accEdit = null"></div>
+    <div class="ar-modal inc-form" role="dialog" aria-modal="true"
+         [attr.aria-label]="accEdit.tipo === 'nombre' ? 'Cambiar nombre' : 'Cambiar departamento'">
+      <header class="inc-form-head">
+        <div>
+          <h3>{{ accEdit.tipo === 'nombre' ? 'Cambiar nombre' : 'Cambiar departamento' }}</h3>
+          <span class="ar-card-sub">{{ accEdit.emp.nombreCompleto }} · #{{ accEdit.emp.codigo }}</span>
+        </div>
+        <button class="ar-modal-x" (click)="accEdit = null" aria-label="Cerrar">✕</button>
+      </header>
+      @if (accEdit.tipo === 'nombre') {
+        <label class="inc-campo">
+          <span>Nombre completo</span>
+          <input type="text" [(ngModel)]="accEdit.valor" maxlength="120" placeholder="Ej. GARCIA TAPIA LUCIA"
+                 (keydown.enter)="guardarAccion()">
+        </label>
+        <p class="acc-ayuda">Es el que sale en el reporte. El nombre en el reloj no cambia.</p>
+      } @else {
+        <label class="inc-campo">
+          <span>Departamento</span>
+          <input type="text" [(ngModel)]="accEdit.valor" list="acc-deptos" maxlength="60" autocomplete="off"
+                 placeholder="Ej. COMPRAS" (keydown.enter)="guardarAccion()">
+          <datalist id="acc-deptos">
+            @for (d of departamentosDeLaPlaza; track d) { <option [value]="d"></option> }
+          </datalist>
+        </label>
+        <p class="acc-ayuda">Déjalo vacío para mandarlo a SIN DEPARTAMENTO.</p>
+      }
+      <div class="inc-acciones">
+        <button type="button" class="ar-btn ar-btn-ghost" (click)="accEdit = null">Cancelar</button>
+        <button type="button" class="ar-btn ar-btn-primary" [disabled]="accGuardando" (click)="guardarAccion()">
+          {{ accGuardando ? 'Guardando…' : 'Guardar' }}
+        </button>
       </div>
     </div>
   }

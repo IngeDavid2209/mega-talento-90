@@ -895,3 +895,46 @@
 }
 .fic-tipos button:hover, .fic-tipos button:focus-visible { background: #fff; outline: none; box-shadow: var(--shadow); }
 @media (max-width: 420px) { .fic-tipos { grid-template-columns: 1fr; } }
+
+/* ── Acciones por persona, pegadas a su renglón (26/09/2026) ── */
+.rep-acc { width: 40px; padding: 0 4px !important; }
+.rep-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rep-acc-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 26px; border: 1px solid transparent; border-radius: 7px;
+  background: none; color: var(--text3); cursor: pointer;
+}
+.rep-acc-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.rep-fila:hover .rep-acc-btn, .rep-acc-btn:focus-visible { color: var(--ink); border-color: var(--border-med); background: #fff; outline: none; }
+.rep-acc-btn.on { color: #fff; background: var(--ink); border-color: var(--ink); }
+
+.acc-ov { position: fixed; inset: 0; z-index: 1300; }
+.acc-menu {
+  position: fixed; z-index: 1301; width: 240px; padding: 6px;
+  background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column;
+}
+.acc-menu.acc-arriba { transform: translateY(-100%); }
+.acc-quien {
+  padding: 6px 8px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 800; color: var(--ink); line-height: 1.3;
+}
+.acc-quien span { font-weight: 600; color: var(--text3); }
+.acc-menu > button {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 6px 8px;
+  border: 0; border-radius: 8px; background: none; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--ink); text-align: left;
+}
+.acc-menu > button:hover:not(:disabled), .acc-menu > button:focus-visible { background: var(--surface2); outline: none; }
+.acc-menu > button:disabled { opacity: .5; cursor: default; }
+.acc-menu > button svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.acc-menu .acc-chev { margin-left: auto; transition: transform .15s; }
+.acc-menu .acc-chev.abierto { transform: rotate(180deg); }
+.acc-tipos { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 8px 33px; }
+.acc-tipos button { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 6px; }
+.acc-tipos button:hover .inc-cod, .acc-tipos button:focus-visible .inc-cod { outline: 1px solid currentColor; }
+.acc-sep { height: 1px; background: var(--border); margin: 4px 0; }
+.acc-menu > button.acc-peligro { color: var(--red-text); }
+.acc-menu > button.acc-peligro:hover { background: var(--red-bg); }
+.acc-nota { margin: 2px 8px 6px; font-size: 12px; color: var(--amber-text); }
+.acc-ayuda { margin: -6px 0 0; font-size: 12px; color: var(--text2); }

@@ -8,7 +8,7 @@ import {
   EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia
 } from '../../core/services/checador.service';
 import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
-import { aFechaLocal } from '../../core/models/checador.model';
+import { aFechaLocal, Empleado } from '../../core/models/checador.model';
 import { CENTROS_CON_RELOJ, centroChecadorPorId, tieneReloj } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthSession } from '../../core/services/auth-session';
@@ -337,7 +337,16 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     // Refresco automático (en vivo): recarga sin interrumpir si estás cargando o
     // con el detalle abierto.
     this.pollAsist = setInterval(() => this.ngZone.run(() => this.refrescar()), this.POLL_ASIST_MS);
+    // El menú de acciones flota con posición FIJA: si la página (o la tabla)
+    // se desplaza, se cierra en vez de quedarse flotando lejos de su renglón.
+    // En captura, porque el scroll de un contenedor no llega a window.
+    window.addEventListener('scroll', this.alDesplazar, true);
+    window.addEventListener('resize', this.alDesplazar);
   }
+
+  private alDesplazar = () => {
+    if (this.accMenu) this.ngZone.run(() => { this.accMenu = null; });
+  };
 
   /** Recarga silenciosa periódica. */
   private refrescar() {
@@ -345,7 +354,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     // reloj se cae mientras RH está capturando justificaciones, tiene que
     // enterarse antes de firmar los números.
     this.cargarRelojes();
-    if (this.cargando || this.detalle || this.ficha || this.incForm) return;
+    if (this.cargando || this.detalle || this.ficha || this.incForm || this.accMenu || this.accEdit) return;
     this.cargar(true);
   }
 
@@ -792,6 +801,17 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   async guardarIncidencia() {
     const f = this.incForm, p = this.incPeriodo;
     if (!f || !p || !f.codigo || this.guardandoInc) return;
+    const quien0 = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
+    const cuando = p.desde === p.hasta
+      ? `el ${this.fechaLarga(p.desde)}`
+      : `del ${this.fechaLarga(p.desde)} al ${this.fechaLarga(p.hasta)} (${this.incDias} días)`;
+    const ok = await this.toast.confirmar({
+      titulo: `Registrar ${f.tipo.etiqueta.toLowerCase()}`,
+      mensaje: `¿Seguro? Se registra ${f.tipo.etiqueta.toLowerCase()} para ${quien0} ${cuando}.` +
+        (f.tipo.excusaFalta ? ' Esos días dejan de contar como falta.' : ''),
+      textoConfirmar: 'Sí, registrar',
+    });
+    if (!ok) return;
     this.guardandoInc = true;
     try {
       await this.checador.crearIncidencia({
@@ -836,6 +856,180 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     await this.cargar();
     if (fichaCod) this.ficha = this.lista.find(e => e.codigo === fichaCod) || null;
     if (detCod) this.detalle = this.lista.find(e => e.codigo === detCod) || null;
+  }
+
+  /** "vie 19 sep", para los mensajes de confirmación. */
+  private fechaLarga(iso: string): string {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+  }
+
+  // ══ ACCIONES POR PERSONA, PEGADAS A SU RENGLÓN (26/09/2026) ══════════
+  //
+  // Lo que RH hace con una persona sin salir del reporte: corregir su nombre,
+  // cambiarla de departamento, registrarle una incidencia, darla de baja o, si
+  // checa sin estar en el padrón, darla de alta. TODO cambio pide confirmación
+  // y dice exactamente qué va a pasar ("de COMPRAS a FINANZAS"), porque a un
+  // clic de distancia de un renglón es muy fácil equivocarse de persona.
+  //
+  // No hay "Borrar": la ficha que se borra la repone la ingesta en minutos
+  // (el reloj la sigue trayendo enrolada) y vuelve ACTIVA, sin nombre formal
+  // ni departamento. La baja, en cambio, se sostiene y se puede revertir.
+  //
+  // Esto cambia el PADRÓN del portal, no el reloj: el nombre enrolado en el
+  // equipo sigue igual (escribir en los relojes todavía no está construido).
+
+  /** El menú abierto, con su posición en pantalla (fija, para que no lo recorte la tabla). */
+  accMenu: { emp: EmpleadoAsistencia; top: number; left: number; arriba: boolean } | null = null;
+  /** El formulario de edición abierto. */
+  accEdit: { tipo: 'nombre' | 'departamento'; emp: EmpleadoAsistencia; valor: string } | null = null;
+  accGuardando = false;
+  /** Los tipos de incidencia desplegados dentro del menú de acciones. */
+  accTipos = false;
+
+  abrirAcciones(ev: MouseEvent, e: EmpleadoAsistencia) {
+    ev.stopPropagation();   // el renglón abre la ficha; el botón, solo su menú
+    if (this.accMenu?.emp === e) { this.accMenu = null; return; }
+    const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    const ALTO = 300, ANCHO = 240;
+    const arriba = r.bottom + ALTO > window.innerHeight && r.top > ALTO;
+    this.accTipos = false;
+    this.menuIncidencia = false;
+    this.accMenu = {
+      emp: e,
+      top: arriba ? r.top - 6 : r.bottom + 6,
+      left: Math.max(8, Math.min(r.right - ANCHO, window.innerWidth - ANCHO - 8)),
+      arriba,
+    };
+  }
+  cerrarAcciones() { this.accMenu = null; this.accTipos = false; }
+
+  /** Departamentos que ya existen en la plaza, para sugerirlos. */
+  get departamentosDeLaPlaza(): string[] {
+    const s = new Set<string>();
+    for (const e of this.lista) {
+      if (e.departamento && e.departamento !== this.SIN_DEPTO && e.departamento !== this.PRACTICANTES) s.add(e.departamento);
+    }
+    return [...s].sort((a, b) => a.localeCompare(b, 'es'));
+  }
+
+  private deptoActual(e: EmpleadoAsistencia): string {
+    return e.departamento === this.SIN_DEPTO ? '' : e.departamento;
+  }
+
+  accEditar(tipo: 'nombre' | 'departamento') {
+    const e = this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (!e) return;
+    this.accEdit = { tipo, emp: e, valor: tipo === 'nombre' ? e.nombreCompleto : this.deptoActual(e) };
+  }
+
+  accIncidencia(t: TipoIncidencia) {
+    const e = this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (e) this.abrirIncidencia(t, e.codigo);
+  }
+
+  accDetalle() {
+    const e = this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (e) this.abrir(e);
+  }
+
+  /** La ficha del padrón de esta persona (la del reporte no trae el id). */
+  private async fichaDe(e: EmpleadoAsistencia): Promise<Empleado | null> {
+    const todas = await this.checador.getEmpleadosDeSucursal(this.sucursalFiltro);
+    return todas.find(x => String(x.codigoChecador).trim() === e.codigo) || null;
+  }
+
+  async guardarAccion() {
+    const a = this.accEdit;
+    if (!a || this.accGuardando) return;
+    const nuevo = a.valor.trim().replace(/\s+/g, ' ').toUpperCase();
+    if (a.tipo === 'nombre' && !nuevo) { this.toast.alerta('Escribe el nombre.'); return; }
+    const antes = a.tipo === 'nombre' ? a.emp.nombreCompleto : this.deptoActual(a.emp);
+    if (nuevo === antes.toUpperCase()) { this.accEdit = null; return; }
+
+    const ok = await this.toast.confirmar(a.tipo === 'nombre'
+      ? {
+          titulo: 'Cambiar nombre',
+          mensaje: `¿Seguro? "${antes}" pasará a llamarse "${nuevo}" en el reporte, el PDF y el Excel. ` +
+            'El nombre enrolado en el reloj no cambia.',
+          textoConfirmar: 'Sí, cambiar',
+        }
+      : {
+          titulo: 'Cambiar departamento',
+          mensaje: `¿Seguro? ${a.emp.nombreCompleto} pasará de ${antes || 'SIN DEPARTAMENTO'} a ` +
+            `${nuevo || 'SIN DEPARTAMENTO'}.`,
+          textoConfirmar: 'Sí, cambiar',
+        });
+    if (!ok) return;
+
+    this.accGuardando = true;
+    try {
+      const ficha = await this.fichaDe(a.emp);
+      if (!ficha) { this.toast.error('No encontré su ficha en el padrón. Recarga e intenta de nuevo.'); return; }
+      await this.checador.guardarEmpleado(a.tipo === 'nombre'
+        ? { ...ficha, nombreCompleto: nuevo }
+        : { ...ficha, departamento: nuevo });
+      this.toast.exito(a.tipo === 'nombre' ? `Nombre actualizado: ${nuevo}.` : `${a.emp.nombreCompleto} → ${nuevo || 'SIN DEPARTAMENTO'}.`);
+      this.accEdit = null;
+      await this.recargarConservandoAbiertos();
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo guardar el cambio.');
+    } finally {
+      this.accGuardando = false;
+    }
+  }
+
+  async accBaja() {
+    const e = this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (!e) return;
+    const ok = await this.toast.confirmar({
+      titulo: 'Dar de baja',
+      mensaje: `¿Seguro que quieres dar de baja a ${e.nombreCompleto} (#${e.codigo})? ` +
+        'Deja de contar en la asistencia y sale de este reporte. Sus checadas NO se borran, ' +
+        'y se puede reactivar en Empleados → "Ver dadas de baja".',
+      destructivo: true, textoConfirmar: 'Sí, dar de baja',
+    });
+    if (!ok) return;
+    try {
+      const ficha = await this.fichaDe(e);
+      if (!ficha) { this.toast.error('No encontré su ficha en el padrón.'); return; }
+      await this.checador.guardarEmpleado({ ...ficha, activo: false });
+      this.toast.exito(`${e.nombreCompleto} quedó dada de baja.`);
+      if (this.ficha?.codigo === e.codigo) this.ficha = null;
+      await this.cargar();
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo dar de baja.');
+    }
+  }
+
+  /** Para un código que checa sin ficha: darlo de alta con el nombre del reloj. */
+  async accAlta() {
+    const e = this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (!e) return;
+    const ok = await this.toast.confirmar({
+      titulo: 'Agregar al padrón',
+      mensaje: `¿Seguro? El código #${e.codigo} checa en esta plaza sin estar en el padrón. ` +
+        `Se dará de alta como "${e.nombre}"; después puedes corregirle el nombre y el departamento.`,
+      textoConfirmar: 'Sí, agregar',
+    });
+    if (!ok) return;
+    try {
+      await this.checador.guardarEmpleado({
+        sucursalId: this.sucursalFiltro, codigoChecador: e.codigo, nombre: e.nombre, activo: true,
+      });
+      this.toast.exito(`#${e.codigo} quedó en el padrón.`);
+      await this.cargar();
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo agregar al padrón.');
+    }
   }
 
   /** "12 sep" o "12 → 19 sep", para la lista de incidencias de la ficha. */
@@ -1039,6 +1233,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   ngOnDestroy() {
     if (this.pollAsist) clearInterval(this.pollAsist);
+    window.removeEventListener('scroll', this.alDesplazar, true);
+    window.removeEventListener('resize', this.alDesplazar);
   }
 
   // ---- KPIs del periodo ----
