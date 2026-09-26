@@ -702,8 +702,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** La ficha rápida (clic en la fila). */
   ficha: EmpleadoAsistencia | null = null;
-  abrirFicha(e: EmpleadoAsistencia) { this.ficha = e; }
-  cerrarFicha() { this.ficha = null; }
+  abrirFicha(e: EmpleadoAsistencia) { this.ficha = e; this.menuIncidencia = false; this.fichaTipos = false; }
+  cerrarFicha() { this.ficha = null; this.fichaTipos = false; }
 
   /** Las irregularidades de la ficha, agrupadas por día (un renglón por fecha). */
   get fichaPorDia(): { fecha: string; diaLabel: string; items: Irregularidad[] }[] {
@@ -732,7 +732,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   // en la API (api/src/incidencias.ts).
 
   tiposIncidencia: TipoIncidencia[] = [];
+  /** El menú de la BARRA del reporte. */
   menuIncidencia = false;
+  /**
+   * Los tipos desplegados dentro de la ficha. Va aparte del menú de la barra:
+   * compartían bandera, y al picar "+ Incidencia" en la ficha se abrían los dos.
+   */
+  fichaTipos = false;
   /** El formulario abierto (null = cerrado). */
   incForm: {
     tipo: TipoIncidencia; codigo: string;
@@ -753,6 +759,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   abrirIncidencia(tipo: TipoIncidencia, codigo = '', fecha = '') {
     const hoy = aFechaLocal(new Date());
     this.menuIncidencia = false;
+    this.fichaTipos = false;
     this.incForm = {
       tipo, codigo,
       cuando: fecha && fecha !== hoy ? 'dia' : 'hoy',

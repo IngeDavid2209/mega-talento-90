@@ -970,23 +970,23 @@
         </ul>
       }
 
-      <div class="fic-acciones">
-        <div class="inc-menu-wrap">
-          <button type="button" class="ar-btn ar-btn-ghost" [disabled]="!tiposIncidencia.length"
-                  (click)="menuIncidencia = !menuIncidencia">+ Incidencia</button>
-          @if (menuIncidencia) {
-            <div class="inc-menu-ov" (click)="menuIncidencia = false"></div>
-            <ul class="inc-menu inc-menu-arriba" role="menu">
-              @for (t of tiposIncidencia; track t.tipo) {
-                <li role="none">
-                  <button type="button" role="menuitem" (click)="abrirIncidencia(t, ficha.codigo, fichaPorDia[0]?.fecha || '')">
-                    <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>{{ t.etiqueta }}
-                  </button>
-                </li>
-              }
-            </ul>
+      <!-- Los tipos se despliegan DENTRO de la ficha, no en un menú flotante:
+           flotando, el modal lo recortaba por arriba (se perdían VAC, PSG, PCG)
+           y compartía la bandera con el menú de la barra, que se abría detrás. -->
+      @if (fichaTipos) {
+        <div class="fic-tipos" role="group" aria-label="Tipo de incidencia">
+          @for (t of tiposIncidencia; track t.tipo) {
+            <button type="button" (click)="abrirIncidencia(t, ficha.codigo, fichaPorDia[0]?.fecha || '')">
+              <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>{{ t.etiqueta }}
+            </button>
           }
         </div>
+      }
+
+      <div class="fic-acciones">
+        <button type="button" class="ar-btn ar-btn-ghost" [disabled]="!tiposIncidencia.length"
+                [attr.aria-expanded]="fichaTipos"
+                (click)="fichaTipos = !fichaTipos">{{ fichaTipos ? 'Cancelar' : '+ Incidencia' }}</button>
         <button type="button" class="ar-btn ar-btn-primary" (click)="fichaADetalle()">Ver detalle</button>
       </div>
     </div>
