@@ -198,6 +198,8 @@ export interface AsistenciaPersonas {
    * 1 min, media plaza saldría marcada y el rojo dejaría de significar algo.
    */
   desayunoAlertaMin: number;
+  /** false = sucursal sin hora límite: no se mide retardo (solo faltas). */
+  mideRetardo: boolean;
   resumen: {
     personas: number;
     usables: number;
@@ -674,6 +676,7 @@ export async function asistenciaPersonas(
       turnoPorFecha,
       diasLaborales: ho.diasLaborales,
       ausenciasPrevias,
+      medirRetardo: cfg.medirRetardo !== false,
     });
 
     // ── LAS MARCAS: por qué este número puede no ser de fiar ──
@@ -708,7 +711,10 @@ export async function asistenciaPersonas(
     }
     // Solo para un FIJO: en un rotativo la mediana global no es un horario, es el
     // punto medio entre dos turnos (la duda de un rotativo es por turno).
-    if (ho.bloqueAmbiguo && !turnosConf && ho.tipo === 'fijo') {
+    // Sin hora límite, preguntar "¿su horario es 8:00 u 8:30?" no sirve de
+    // nada: esas dudas solo cambian un retardo que aquí no se mide.
+    const conHorario = cfg.medirRetardo !== false;
+    if (conHorario && ho.bloqueAmbiguo && !turnosConf && ho.tipo === 'fijo') {
       const cr = hd.aMinutos(ho.entradaCruda);
       const ops = [hd.aHora(hd.bloqueDeCostumbre(cr)), hd.aHora(hd.bloqueMasCercano(cr))];
       marcas.push({
@@ -727,7 +733,7 @@ export async function asistenciaPersonas(
         codigo: 'rotativo', gravedad: 'info',
         detalle: `Trabaja ${ho.turnos.length} turnos (${ho.turnos.join(', ')}). Cada día se mide contra el suyo.`,
       });
-      for (const g of (ho.grupos || []).filter((x) => x.ambiguo && !turnosConf)) {
+      for (const g of (ho.grupos || []).filter((x) => conHorario && x.ambiguo && !turnosConf)) {
         const ops = [hd.aHora(hd.bloqueDeCostumbre(g.centroMin)), hd.aHora(hd.bloqueMasCercano(g.centroMin))];
         marcas.push({
           codigo: 'turno_ambiguo', gravedad: 'media',
@@ -774,8 +780,11 @@ export async function asistenciaPersonas(
     let desayunoExcesoMin = 0;
     let diasDesayunoExcedido = 0;
     let diasConIncidencia = 0;
+    // Retardo que una incidencia (permiso, vacaciones…) dejó sin efecto.
+    let excusadoReal = 0, excusadoAtraso = 0, diasRetardoExcusados = 0;
     const semanas = (re?.semanas || []).map((s) => {
       let minSemana = 0;
+      let excReal = 0, excAtraso = 0;
       const diasVista = s.dias.map((d): DiaVista => {
         const det = detalleDia(datos?.horas.get(d.fecha) || [], desayunoCfg);
         if (det.netasMin) { minTrabajados += det.netasMin; minSemana += det.netasMin; }
@@ -801,13 +810,32 @@ export async function asistenciaPersonas(
           faltasJustificadas++;
           return { ...d, estado: 'justificado' as hd.EstadoDia, justificacion, ...extra };
         }
+        // ══ LA INCIDENCIA TAMBIÉN VALE CUANDO SÍ CHECÓ ══
+        // Un permiso para llegar tarde, o unas vacaciones que se capturaron
+        // después de que la persona pasó a checar, dejan sin efecto el retardo
+        // de ese día: RH ya decidió sobre él. No importa cuándo se capturó la
+        // incidencia —el cálculo la lee cada vez—, así que una capturada
+        // semanas después corrige los números de esas semanas.
+        if (justificacion && (d.estado === 'retardo' || d.estado === 'absorbido')) {
+          excReal += d.retardoRealMin; excAtraso += d.atrasoMin;
+          if (d.retardoRealMin > 0) diasRetardoExcusados++;
+          return {
+            ...d, estado: 'a_tiempo' as hd.EstadoDia, justificacion,
+            atrasoMin: 0, absorbidoMin: 0, retardoRealMin: 0, ...extra,
+          };
+        }
         if (d.estado === 'descanso' && !d.marcas && incs.some((i) => i.tipo === 'falta_injustificada')) {
           faltasForzadas++;
           return { ...d, estado: 'falta' as hd.EstadoDia, descansoPorAusencia: false, ...extra };
         }
         return { ...d, ...extra };
       });
-      return { ...s, dias: diasVista, minutosTrabajados: minSemana };
+      excusadoReal += excReal; excusadoAtraso += excAtraso;
+      return {
+        ...s, dias: diasVista, minutosTrabajados: minSemana,
+        retardoRealMin: Math.max(0, s.retardoRealMin - excReal),
+        atrasoMin: Math.max(0, s.atrasoMin - excAtraso),
+      };
     });
 
     const bloqueantes = marcas.filter((m) => m.gravedad === 'alta');
@@ -851,10 +879,10 @@ export async function asistenciaPersonas(
       diasEnRango: datos?.enRango.length ?? 0,
       silencioDias: silencio,
       pctUnaMarca: Math.round(pctUna * 100),
-      retardoRealMin: re?.retardoRealMin ?? 0,
-      atrasoBrutoMin: re?.atrasoMin ?? 0,
+      retardoRealMin: Math.max(0, (re?.retardoRealMin ?? 0) - excusadoReal),
+      atrasoBrutoMin: Math.max(0, (re?.atrasoMin ?? 0) - excusadoAtraso),
       absorbidoMin: re?.absorbidoMin ?? 0,
-      diasConRetardo: re?.diasConRetardo ?? 0,
+      diasConRetardo: Math.max(0, (re?.diasConRetardo ?? 0) - diasRetardoExcusados),
       diasEvaluados,
       // La falta justificada no cuenta: es el punto de todo esto.
       faltas: Math.max(0, (re?.faltas ?? 0) - faltasJustificadas + faltasForzadas),
@@ -877,7 +905,9 @@ export async function asistenciaPersonas(
       diasDesayunoExcedido,
       // Sobre los días que SÍ se pudieron evaluar: si no hay ninguno, no es 0%,
       // es que no hay respuesta (null). Un 0% falso parece el peor empleado.
-      pctATiempo: diasEvaluados ? Math.round(((diasEvaluados - (re?.diasConRetardo ?? 0)) / diasEvaluados) * 100) : null,
+      pctATiempo: diasEvaluados
+        ? Math.round(((diasEvaluados - Math.max(0, (re?.diasConRetardo ?? 0) - diasRetardoExcusados)) / diasEvaluados) * 100)
+        : null,
       semanas,
       marcas,
       usable: bloqueantes.length === 0,
@@ -904,6 +934,7 @@ export async function asistenciaPersonas(
     diaInicioSemana: hd.DIA_INICIO_SEMANA,
     diasExTrabajador: DIAS_EX,
     desayunoAlertaMin: cfg.desayunoAlertaMin,
+    mideRetardo: cfg.medirRetardo !== false,
     resumen: {
       personas: personas.length,
       usables: usables.length,

@@ -178,6 +178,13 @@
         —el botón <b>Todo</b> ajusta el rango a lo que esta plaza tiene registrado—.
       }
     </div>
+  } @else if (vista === 'tolerancia' && !mideRetardo) {
+    <div class="ar-empty">
+      <b>Esta plaza no tiene hora límite de entrada.</b><br>
+      En las sucursales cada quien entra en su turno —hay quien entra tarde porque ese es su horario—,
+      así que aquí no se mide retardo ni tolerancia. Las faltas y los descansos sí se cuentan.
+      La tolerancia aplica solo en corporativo.
+    </div>
   } @else if (vista === 'tolerancia') {
     <!-- ══ TOLERANCIA REBASADA (su propia pestaña) ══════════════════════
          Vivía como franja plegable encima del reporte, junto con la de faltas:
@@ -502,7 +509,9 @@
                 <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
               }
               <th class="rep-hrs" title="Horas netas del periodo: jornada menos comida. En corporativo el desayuno no se descuenta.">Horas</th>
-              <th class="rep-ret">Retardos</th>
+              <th class="rep-ret"
+                  [title]="mideRetardo ? 'Minutos tarde en la ENTRADA (primera checada) contra su hora exacta, que siempre es :00 o :30. La tolerancia semanal de 15 min se aplica en la pestaña Tolerancia.' : 'Esta plaza no tiene hora límite de entrada: no se mide retardo.'">
+                {{ mideRetardo ? 'Min. retardo' : 'Retardo' }}</th>
               <th class="rep-acc"><span class="rep-sr">Acciones</span></th>
             </tr>
           </thead>
@@ -533,6 +542,11 @@
                     } @else if (cuentaIrregular(e, 'baja')) {
                       <span class="rep-pill rep-pill-baja">{{ cuentaIrregular(e, 'baja') }}</span>
                     }
+                    <!-- Aviso: esta persona tiene incidencia en el periodo, se haya
+                         capturado cuando se haya capturado. -->
+                    @for (i of incidenciasUnicas(e); track i.tipo) {
+                      <span class="inc-cod rep-inc" [attr.data-t]="i.tipo" [title]="i.titulo">{{ i.codigo }}</span>
+                    }
                   </td>
                   @for (c of columnasDia; track c.fecha) {
                     <td class="rep-celda"
@@ -545,7 +559,9 @@
                     </td>
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
-                  <td class="rep-ret">{{ e.diasConRetardo || '' }}</td>
+                  <td class="rep-ret" [class.rep-ret-min]="mideRetardo && e.atrasoBrutoMin > 0">
+                    @if (mideRetardo) { {{ e.atrasoBrutoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
+                  </td>
                   <td class="rep-acc">
                     <button type="button" class="rep-acc-btn" [class.on]="accMenu?.emp === e"
                             [attr.aria-label]="'Acciones para ' + e.nombreCompleto"
@@ -559,7 +575,7 @@
               <tr class="rep-subtotal">
                 <td [attr.colspan]="columnasDia.length + 2"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
-                <td class="rep-ret">{{ g.retardos || 0 }}</td>
+                <td class="rep-ret">{{ mideRetardo ? (g.retardos || 0) : '' }}</td>
                 <td></td>
               </tr>
             }
@@ -568,7 +584,7 @@
             <tr class="rep-total">
               <td [attr.colspan]="columnasDia.length + 2">Totales</td>
               <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
-              <td class="rep-ret">{{ totalRetardos }}</td>
+              <td class="rep-ret">{{ mideRetardo ? totalRetardos : '—' }}</td>
               <td></td>
             </tr>
           </tfoot>
@@ -1054,8 +1070,22 @@
       <div class="fic-tiles">
         <div class="fic-tile"><b>{{ horasTexto(ficha.minutosTrabajados) }}</b><span>horas</span></div>
         <div class="fic-tile" [class.bad]="ficha.faltas"><b>{{ ficha.faltas }}</b><span>faltas</span></div>
-        <div class="fic-tile" [class.bad]="ficha.diasConRetardo && ficha.usable"><b>{{ ficha.diasConRetardo }}</b><span>retardos</span></div>
+        @if (mideRetardo) {
+          <div class="fic-tile" [class.bad]="ficha.atrasoBrutoMin > 0"><b>{{ ficha.atrasoBrutoMin }}</b><span>min retardo</span></div>
+        } @else {
+          <div class="fic-tile" title="Esta plaza no tiene hora límite de entrada"><b>—</b><span>sin retardo</span></div>
+        }
       </div>
+
+      @if (ficha.incidencias.length) {
+        <div class="fic-aviso-inc" role="note">
+          <b>Tiene incidencia en este periodo:</b>
+          @for (i of ficha.incidencias; track i.id) {
+            <span><span class="inc-cod" [attr.data-t]="i.tipo">{{ i.codigo }}</span> {{ i.etiqueta }} · {{ periodoCorto(i) }}
+              <button type="button" class="inc-x" (click)="borrarIncidencia(i)" [attr.aria-label]="'Quitar ' + i.etiqueta" title="Quitar">✕</button></span>
+          }
+        </div>
+      }
 
       @if (!fichaPorDia.length) {
         <p class="fic-ok">Sin irregularidades en este periodo.</p>
@@ -1078,18 +1108,6 @@
           <span class="fic-item" data-n="alta"><span class="fic-ico"></span>cuenta</span>
           <span class="fic-item" data-n="baja"><span class="fic-ico"></span>por revisar</span>
         </p>
-      }
-
-      @if (ficha.incidencias.length) {
-        <ul class="inc-lista">
-          @for (i of ficha.incidencias; track i.id) {
-            <li>
-              <span class="inc-cod" [attr.data-t]="i.tipo">{{ i.codigo }}</span>
-              <span class="inc-lista-txt">{{ i.etiqueta }} · {{ periodoCorto(i) }}</span>
-              <button type="button" class="inc-x" (click)="borrarIncidencia(i)" title="Quitar">✕</button>
-            </li>
-          }
-        </ul>
       }
 
       <!-- Los tipos se despliegan DENTRO de la ficha, no en un menú flotante:

@@ -127,6 +127,15 @@ export interface ReglaConfig {
    * descuenta —equivocarse del lado de pagar una comida sería peor—.
    */
   desayunoCuentaComoJornada: boolean;
+  /**
+   * ¿Se mide el RETARDO en esta plaza? (28/09/2026, política de RH)
+   *
+   * Solo en corporativo hay una hora de entrada que cumplir. En las
+   * sucursales la gente entra en turnos distintos —hay quien entra tarde
+   * porque ese es su turno—, así que ahí no hay hora límite: no se calcula
+   * retardo, ni tolerancia, ni "fuera de horario". Faltas y descansos sí.
+   */
+  medirRetardo: boolean;
   /** Interruptores por regla (permite apagar reglas por sucursal). */
   reglasActivas: Record<Regla, boolean>;
 }

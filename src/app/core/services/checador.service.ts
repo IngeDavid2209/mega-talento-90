@@ -173,6 +173,8 @@ export interface AsistenciaPersonas {
   diasExTrabajador: number;
   /** Desde cuántos minutos de exceso el desayuno cuenta como irregularidad. */
   desayunoAlertaMin?: number;
+  /** false = sucursal sin hora límite de entrada: no se mide retardo (solo faltas). */
+  mideRetardo?: boolean;
   resumen: {
     personas: number; usables: number; conPendiente: number;
     fijos: number; rotativos: number; sinPatron: number; sinDatos: number;

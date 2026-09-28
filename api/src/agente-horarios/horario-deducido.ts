@@ -581,6 +581,12 @@ export interface OpcionesRetardo extends OpcionesHorario {
    * semana, esos días ya gastaron descansos que aquí no se ven.
    */
   ausenciasPrevias?: Map<string, number> | null;
+  /**
+   * false = la plaza no tiene hora límite de entrada (sucursales): los días
+   * con marcas salen "a tiempo" sin atraso, ni tolerancia, ni día atípico.
+   * Faltas y descansos se calculan igual.
+   */
+  medirRetardo?: boolean;
 }
 
 /**
@@ -627,7 +633,7 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
     entradaMin, bolsaMin = BOLSA_SEMANAL_MIN,
     diasLaborales = null, diaInicioSemana = DIA_INICIO_SEMANA,
     turnoPorFecha = null, atipicoFijoMin = 120, duplicadaMin = DUPLICADA_MIN,
-    ausenciasPrevias = null,
+    ausenciasPrevias = null, medirRetardo = true,
   } = opciones;
   const descansosSemana = descansosDeLaSemana(diasLaborales);
 
@@ -701,13 +707,15 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
       const referencia = t ? t.bloque : (entradaMin as number);
       if (referencia === null || referencia === undefined) continue;
 
-      const atraso = Math.max(0, (d.entrada as number) - referencia);
+      // Sin hora límite (sucursales) no hay atraso que medir: la persona vino.
+      const atraso = medirRetardo ? Math.max(0, (d.entrada as number) - referencia) : 0;
       const absorbido = Math.min(atraso, bolsa);
       const real = atraso - absorbido;
       const bolsaAntes = bolsa;
       bolsa -= absorbido;
 
-      const atipico = t ? !!t.atipico : Math.abs((d.entrada as number) - referencia) > atipicoFijoMin;
+      const atipico = !medirRetardo ? false
+        : t ? !!t.atipico : Math.abs((d.entrada as number) - referencia) > atipicoFijoMin;
 
       diasEvaluados++;
       atrasoSem += atraso; retardoSem += real;

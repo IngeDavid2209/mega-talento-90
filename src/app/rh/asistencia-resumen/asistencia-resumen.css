@@ -972,3 +972,15 @@
 }
 .ar-semana b { font-size: 17px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 
+
+/* ── Minutos de retardo y aviso de incidencia (28/09/2026) ── */
+.rep-ret { width: 76px; font-variant-numeric: tabular-nums; }
+.rep-ret-min { color: var(--red-text); font-weight: 800; }
+.rep-ret-na { color: var(--text4); }
+.rep-inc { min-width: 0; height: 17px; padding: 0 5px; margin-left: 5px; font-size: 9.5px; vertical-align: 1px; }
+.fic-aviso-inc {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+  margin: 0 18px 12px; padding: 9px 12px; border-radius: 10px;
+  background: var(--blue-bg); color: var(--blue-text); font-size: 12.5px;
+}
+.fic-aviso-inc > span { display: inline-flex; align-items: center; gap: 6px; }

@@ -297,11 +297,14 @@ export function analizarDia(e: EntradaDia): Inconsistencia[] {
   // Si es falta (sin checadas), las demás reglas no aplican.
   if (!e.checadas.length) return salida;
 
-  if (activas.retardo) push(reglaRetardo(e));
+  // Sin hora límite (sucursales, ver `medirRetardo`) no hay retardo ni
+  // "fuera de turno" que alertar: entrar tarde puede ser su turno.
+  const conHorario = e.config.medirRetardo !== false;
+  if (activas.retardo && conHorario) push(reglaRetardo(e));
   if (activas.checada_duplicada) push(reglaDuplicada(e));
   if (activas.multiples_entradas) push(reglaMultiplesEntradas(e));
   if (activas.entrada_sin_salida) push(reglaEntradaSinSalida(e));
-  if (activas.fuera_de_turno) push(reglaFueraDeTurno(e));
+  if (activas.fuera_de_turno && conHorario) push(reglaFueraDeTurno(e));
   if (activas.desayuno_excedido) push(reglaDesayunoExcedido(e));
 
   return salida;

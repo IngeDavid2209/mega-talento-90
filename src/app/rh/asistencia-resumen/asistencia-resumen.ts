@@ -600,7 +600,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       .map(([departamento, empleados]) => ({
         departamento,
         empleados: empleados.sort((a, b) => numOrden(a.codigo) - numOrden(b.codigo) || a.codigo.localeCompare(b.codigo)),
-        retardos: empleados.reduce((s, e) => s + e.diasConRetardo, 0),
+        // MINUTOS tarde en la entrada, no días (28/09/2026): "3 retardos" no
+        // dice si fueron 3 minutos o 3 horas.
+        retardos: empleados.reduce((s, e) => s + e.atrasoBrutoMin, 0),
       }));
   }
 
@@ -641,7 +643,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       // en lugar de "0 - 0": ya se revisó, y el papel tiene que decirlo.
       jornada: d.falta && inc ? inc : `${ent} - ${sal}`,
       comida: com,
-      retardo: d.retardoMin > 0,
+      retardo: d.atrasoMin > 0,
       falta: d.falta,
       inc, incTitulo,
     };
@@ -864,6 +866,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       });
       const quien = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
       this.toast.exito(`${f.tipo.etiqueta} · ${quien} · ${this.incDias} día(s).`);
+      // Una incidencia de hace semanas VALE igual: el cálculo la lee cada vez.
+      // Pero si cae fuera del periodo en pantalla no se ve, y parecería que no
+      // se guardó: se dice.
+      if (p.hasta < this.desde || p.desde > this.hasta) {
+        this.toast.alerta(`Quedó registrada del ${this.fechaLarga(p.desde)} al ${this.fechaLarga(p.hasta)}, ` +
+          'fuera del periodo que estás viendo. Cambia las fechas para verla en la tabla.');
+      }
       this.incForm = null;
       await this.recargarConservandoAbiertos();
     } catch (e) {
@@ -900,6 +909,20 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     await this.cargar();
     if (fichaCod) this.ficha = this.lista.find(e => e.codigo === fichaCod) || null;
     if (detCod) this.detalle = this.lista.find(e => e.codigo === detCod) || null;
+  }
+
+  /** ¿Esta plaza mide retardo? Solo corporativo: las sucursales no tienen hora límite. */
+  get mideRetardo(): boolean { return this.datos?.mideRetardo !== false; }
+
+  /** Las incidencias de la persona en el periodo, sin repetir tipo (para el aviso del renglón). */
+  incidenciasUnicas(e: EmpleadoAsistencia): { codigo: string; tipo: string; titulo: string }[] {
+    const m = new Map<string, { codigo: string; tipo: string; titulo: string }>();
+    for (const i of e.incidencias) {
+      const t = `${i.etiqueta} · ${this.periodoCorto(i)}${i.nota ? ' · ' + i.nota : ''}`;
+      const prev = m.get(i.tipo);
+      m.set(i.tipo, { codigo: i.codigo, tipo: i.tipo, titulo: prev ? `${prev.titulo}\n${t}` : t });
+    }
+    return [...m.values()];
   }
 
   /** "vie 19 sep", para los mensajes de confirmación. */
@@ -1256,7 +1279,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
       const ancho = doc.internal.pageSize.getWidth();
 
-      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'Retardos']];
+      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', this.mideRetardo ? 'Min. retardo' : 'Retardo']];
       const body: any[] = [];
       for (const g of grupos) {
         body.push([{
@@ -1276,12 +1299,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
                 : {},
             };
           });
-          body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados), e.diasConRetardo || '']);
+          body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados),
+            this.mideRetardo ? (e.atrasoBrutoMin || '') : '—']);
         }
         body.push([{
           content: '', colSpan: dias.length + 2, styles: { fillColor: [255, 255, 255] },
         }, { content: this.horasTexto(this.minutosDeGrupo(g)), styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
-           { content: String(g.retardos || 0), styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
+           { content: this.mideRetardo ? String(g.retardos || 0) : '—', styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
       }
 
       // Medido con 105 personas y 7 columnas: a 7.5 pt con relleno de 1 mm el
