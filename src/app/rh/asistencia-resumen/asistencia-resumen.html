@@ -1084,7 +1084,7 @@
         <div class="fic-aviso-inc" role="note">
           <b>Tiene incidencia en este periodo:</b>
           @for (i of ficha.incidencias; track i.id) {
-            <span><span class="inc-cod" [attr.data-t]="i.tipo">{{ i.codigo }}</span> {{ i.etiqueta }} · {{ periodoCorto(i) }}
+            <span><span class="inc-cod" [attr.data-t]="i.tipo">{{ i.codigo }}</span> {{ i.etiqueta }} · {{ periodoCorto(i) }}@if (i.nota) { · <em class="fic-inc-nota">{{ i.nota }}</em> } @else if (i.tipo === 'otros') { · <em class="fic-inc-nota fic-inc-sin">sin descripción</em> }
               <button type="button" class="inc-x" (click)="borrarIncidencia(i)" [attr.aria-label]="'Quitar ' + i.etiqueta" title="Quitar">✕</button></span>
           }
         </div>
@@ -1101,6 +1101,12 @@
                 @for (i of d.items; track i.tipo) {
                   <span class="fic-item" [attr.data-t]="i.tipo" [attr.data-n]="i.nivel">
                     <span class="fic-ico" aria-hidden="true"></span>{{ i.texto }}
+                  </span>
+                }
+                @for (c of d.incs; track c.id) {
+                  <span class="fic-item fic-item-inc">
+                    <span class="inc-cod" [attr.data-t]="c.tipo">{{ c.codigo }}</span>
+                    {{ c.etiqueta }}@if (c.nota) {: {{ c.nota }}}
                   </span>
                 }
               </span>
@@ -1225,14 +1231,19 @@
       }
 
       <label class="inc-campo">
-        <span>Nota <small>(opcional)</small></span>
-        <input type="text" [(ngModel)]="incForm.nota" maxlength="200" placeholder="Ej. folio IMSS 12345">
+        @if (incNotaObligatoria) {
+          <span>¿Qué fue? <small>(obligatorio)</small></span>
+          <input type="text" [(ngModel)]="incForm.nota" maxlength="200" placeholder="Ej. salió temprano por junta con el proveedor">
+        } @else {
+          <span>Nota <small>(opcional)</small></span>
+          <input type="text" [(ngModel)]="incForm.nota" maxlength="200" placeholder="Ej. folio IMSS 12345">
+        }
       </label>
 
       <div class="ar-modal-actions inc-acciones">
         <button type="button" class="ar-btn ar-btn-ghost" (click)="incForm = null">Cancelar</button>
         <button type="button" class="ar-btn ar-btn-primary"
-                [disabled]="!incForm.codigo || !incDias || guardandoInc" (click)="guardarIncidencia()">
+                [disabled]="!incForm.codigo || !incDias || guardandoInc || (incNotaObligatoria && !incForm.nota.trim())" (click)="guardarIncidencia()">
           {{ guardandoInc ? 'Guardando…' : (incDias ? 'Guardar · ' + incDias + ' día' + (incDias > 1 ? 's' : '') : 'Revisa las fechas') }}
         </button>
       </div>

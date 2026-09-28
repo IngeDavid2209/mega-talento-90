@@ -987,3 +987,9 @@
 
 /* La semana del periodo es la que va hoy */
 .ar-semana-hoy { margin-left: 4px; padding: 1px 6px; border-radius: 999px; background: var(--green-bg); color: var(--green-text); font-size: 10.5px; font-style: normal; font-weight: 700; }
+
+/* ── La incidencia dice qué fue (28/09/2026) ── */
+.fic-inc-nota { font-style: normal; font-weight: 600; }
+.fic-inc-sin { font-weight: 400; opacity: .7; font-style: italic; }
+.fic-item-inc { color: var(--blue-text); }
+.fic-item-inc .inc-cod { min-width: 0; height: 18px; font-size: 9.5px; }

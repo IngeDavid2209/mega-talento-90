@@ -59,6 +59,9 @@ interface DiaAsistencia {
  *               días-persona; si pintaran de rojo, media plaza saldría roja y el
  *               rojo dejaría de avisar de algo.
  */
+/** Una incidencia tal como se lista en un día de la ficha. */
+interface FichaInc { id: string; tipo: string; codigo: string; etiqueta: string; nota: string; }
+
 export interface Irregularidad {
   fecha: string; diaLabel: string;
   nivel: 'alta' | 'baja';
@@ -761,15 +764,36 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   /** Las irregularidades de la ficha, agrupadas por día (un renglón por fecha). */
-  get fichaPorDia(): { fecha: string; diaLabel: string; items: Irregularidad[] }[] {
+  get fichaPorDia(): { fecha: string; diaLabel: string; items: Irregularidad[]; incs: FichaInc[] }[] {
     if (!this.ficha) return [];
-    const m = new Map<string, { fecha: string; diaLabel: string; items: Irregularidad[] }>();
-    for (const i of this.ficha.irregularidades) {
-      if (!m.has(i.fecha)) m.set(i.fecha, { fecha: i.fecha, diaLabel: i.diaLabel, items: [] });
-      m.get(i.fecha)!.items.push(i);
+    const m = new Map<string, { fecha: string; diaLabel: string; items: Irregularidad[]; incs: FichaInc[] }>();
+    const dia = (fecha: string, label?: string) => {
+      if (!m.has(fecha)) m.set(fecha, { fecha, diaLabel: label || this.etiquetaDia(fecha), items: [], incs: [] });
+      return m.get(fecha)!;
+    };
+    for (const i of this.ficha.irregularidades) dia(i.fecha, i.diaLabel).items.push(i);
+    // El día que tiene incidencia la dice AHÍ MISMO: antes el jueves salía como
+    // "Falta" a secas y la incidencia de ese día solo aparecía arriba, sin decir
+    // qué fue. Se agregan también los días con incidencia que no traen ninguna
+    // irregularidad (unas vacaciones bien capturadas no generan falta).
+    for (const inc of this.ficha.incidencias) {
+      const ini = inc.desde > this.desde ? inc.desde : this.desde;
+      const fin = inc.hasta < this.hasta ? inc.hasta : this.hasta;
+      for (let f = ini; f <= fin; f = this.diaSiguiente(f)) {
+        dia(f).incs.push({ id: inc.id, tipo: inc.tipo, codigo: inc.codigo, etiqueta: inc.etiqueta, nota: inc.nota });
+      }
     }
     return [...m.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
   }
+
+  private diaSiguiente(iso: string): string {
+    const d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    return aFechaLocal(d);
+  }
+
+  /** "Otros" sin descripción no dice nada: la nota es lo que explica qué pasó. */
+  get incNotaObligatoria(): boolean { return this.incForm?.tipo.tipo === 'otros'; }
 
   /** De la ficha al detalle completo (semanas, justificación por día). */
   fichaADetalle() {
@@ -847,6 +871,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   async guardarIncidencia() {
     const f = this.incForm, p = this.incPeriodo;
     if (!f || !p || !f.codigo || this.guardandoInc) return;
+    if (this.incNotaObligatoria && !f.nota.trim()) {
+      this.toast.alerta('Escribe qué pasó: con "Otros" la descripción es lo único que explica la incidencia.');
+      return;
+    }
     const quien0 = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
     const cuando = p.desde === p.hasta
       ? `el ${this.fechaLarga(p.desde)}`
