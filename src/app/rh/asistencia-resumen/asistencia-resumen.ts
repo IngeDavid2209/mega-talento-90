@@ -713,8 +713,42 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** Los empleados de un grupo, con el filtro de "solo irregulares" aplicado. */
   empleadosVisibles(g: { empleados: EmpleadoAsistencia[] }): EmpleadoAsistencia[] {
-    return this.soloIrregulares ? g.empleados.filter(e => e.irregularAlta) : g.empleados;
+    return g.empleados.filter(e => (!this.soloIrregulares || e.irregularAlta) && this.coincide(e));
   }
+
+  // ══ BUSCADOR DE TRABAJADORES (28/09/2026) ═════════════════════════
+  //
+  // Busca en nombre formal, nombre del reloj, clave, departamento y puesto, sin
+  // distinguir acentos ni mayúsculas, y con varias palabras en cualquier orden
+  // ("lucia garcia" encuentra a "GARCÍA TAPIA LUCÍA"). Filtra lo que se VE en
+  // las tres vistas (reporte, tolerancia, faltas); no cambia los números ni lo
+  // que se exporta: buscar a alguien no debe producir un PDF de una persona
+  // que se lea como el de la plaza.
+  busqueda = '';
+
+  get buscando(): boolean { return !!this.busqueda.trim(); }
+
+  private sinAcentos(t: string): string {
+    return (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  coincide(e: EmpleadoAsistencia): boolean {
+    const q = this.sinAcentos(this.busqueda.trim());
+    if (!q) return true;
+    const texto = this.sinAcentos([e.nombreCompleto, e.nombre, e.codigo, e.departamento, e.puesto].join(' '));
+    return q.split(/\s+/).every(p => texto.includes(p));
+  }
+
+  /** Cuántos coinciden en el reporte (para el aviso "3 de 46"). */
+  get coincidencias(): number {
+    return this.porDepartamento.reduce((t, g) => t + this.empleadosVisibles(g).length, 0);
+  }
+  get totalEnReporte(): number {
+    return this.porDepartamento.reduce((t, g) => t + g.empleados.length, 0);
+  }
+
+  get rebasadosVisibles() { return this.rebasados.filter(r => this.coincide(r.emp)); }
+  get faltasVisibles() { return this.faltasNotificables.filter(f => this.coincide(f.emp)); }
 
   /** La ficha rápida (clic en la fila). */
   ficha: EmpleadoAsistencia | null = null;
@@ -1780,7 +1814,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   mostrarSinMedir = false;
 
   get listaVisible(): EmpleadoAsistencia[] {
-    return this.mostrarSinMedir ? this.lista : this.lista.filter(e => e.usable);
+    return (this.mostrarSinMedir ? this.lista : this.lista.filter(e => e.usable)).filter(e => this.coincide(e));
   }
 
   get sinMedir(): EmpleadoAsistencia[] {

@@ -1024,3 +1024,17 @@
 .rep-fila:hover td.rep-clv, .rep-fila:hover td.rep-nom { background: var(--surface3); }
 .rep-fila.rep-irregular td.rep-clv, .rep-fila.rep-irregular td.rep-nom { background: #FDF3F3; }
 .rep-fila.rep-irregular:hover td.rep-clv, .rep-fila.rep-irregular:hover td.rep-nom { background: var(--red-bg); }
+
+/* ── Buscador de trabajadores (28/09/2026) ── */
+.ar-field-buscar { flex: 1 1 220px; min-width: 200px; max-width: 320px; }
+.ar-buscar {
+  display: flex; align-items: center; gap: 8px; height: 36px; box-sizing: border-box; padding: 0 10px;
+  border: 1px solid var(--border-med); border-radius: 10px; background: #fff;
+}
+.ar-buscar:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--brand-bg); }
+.ar-buscar svg { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--text3); stroke-width: 1.8; stroke-linecap: round; }
+.ar-buscar input { flex: 1; min-width: 0; border: 0 !important; outline: none; background: none; padding: 0 !important; min-width: 0 !important; font: inherit; font-size: 13.5px; color: var(--ink); box-shadow: none !important; }
+.ar-buscar-x { border: 0; background: none; color: var(--text3); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 6px; }
+.ar-buscar-x:hover { background: var(--surface2); color: var(--ink); }
+.rep-sin-res { padding: 18px !important; color: var(--text2); text-align: center !important; }
+@media (max-width: 640px) { .ar-field-buscar { max-width: none; flex-basis: 100%; } }

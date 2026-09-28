@@ -29,6 +29,20 @@
       </div>
     </div>
 
+    <!-- Buscador de trabajadores: filtra lo que se ve en Checadas, Tolerancia y
+         Faltas. No cambia los totales ni lo que se exporta. -->
+    <div class="ar-field ar-field-buscar">
+      <label for="ar-buscar">Buscar</label>
+      <div class="ar-buscar">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        <input id="ar-buscar" type="search" [(ngModel)]="busqueda" placeholder="Nombre, clave o departamento"
+               autocomplete="off" (keydown.escape)="busqueda = ''">
+        @if (buscando) {
+          <button type="button" class="ar-buscar-x" (click)="busqueda = ''" aria-label="Borrar búsqueda">✕</button>
+        }
+      </div>
+    </div>
+
     <!-- Atajos de periodo -->
     <div class="ar-field ar-field-chips">
       <label>Atajos</label>
@@ -248,7 +262,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (r of rebasados; track r.emp.codigo) {
+                @for (r of rebasadosVisibles; track r.emp.codigo) {
                   <tr class="tolt-fila" (click)="abrirDesdeTolerancia(r)"
                       title="Ver su desglose por semana y justificar días">
                     <td class="tolt-clv">{{ r.emp.codigo }}</td>
@@ -379,7 +393,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (f of faltasNotificables; track f.emp.codigo) {
+                @for (f of faltasVisibles; track f.emp.codigo) {
                   <tr class="tolt-fila" [class.falt-grave]="f.dias.length > 1"
                       (click)="abrir(f.emp)" title="Ver su detalle y justificar">
                     <td class="tolt-clv">{{ f.emp.codigo }}</td>
@@ -519,7 +533,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (g of porDepartamento; track g.departamento) {
+            @for (g of porDepartamento; track g.departamento) { @if (empleadosVisibles(g).length) {
               <tr class="rep-depto">
                 <td [attr.colspan]="columnasDia.length + 5">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
@@ -575,12 +589,19 @@
                   </td>
                 </tr>
               }
+              <!-- El subtotal es del departamento COMPLETO: con una búsqueda
+                   puesta se leería como la suma de los renglones visibles. -->
+              @if (!buscando) {
               <tr class="rep-subtotal">
                 <td [attr.colspan]="columnasDia.length + 2"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
                 <td class="rep-ret">{{ mideRetardo ? (g.retardos || 0) : '' }}</td>
                 <td></td>
               </tr>
+              }
+            } }
+            @if (buscando && !coincidencias) {
+              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 5">Nadie coincide con "{{ busqueda }}".</td></tr>
             }
           </tbody>
           <tfoot>
