@@ -993,3 +993,31 @@
 .fic-inc-sin { font-weight: 400; opacity: .7; font-style: italic; }
 .fic-item-inc { color: var(--blue-text); }
 .fic-item-inc .inc-cod { min-width: 0; height: 18px; font-size: 9.5px; }
+
+/* ══ ENCABEZADO DE FECHAS FIJO AL BAJAR (28/09/2026) ══════════════════
+   El `thead` ya era sticky, pero no pegaba: `.rep-scroll` tiene overflow-x, y
+   un contenedor con overflow es el que manda sobre el sticky de sus hijos.
+   Como esa caja no se desplazaba en vertical, el encabezado se iba con la
+   página. Ahora la caja se desplaza sola dentro de la pantalla (alto máximo)
+   y el encabezado se queda arriba. Clv y Nombre se quedan a la izquierda para
+   no perder de quién es el renglón cuando el periodo es largo. */
+.rep-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+  min-height: 320px;
+  overscroll-behavior: contain;
+}
+.rep-tabla { border-collapse: separate; border-spacing: 0; }
+.rep-tabla th, .rep-tabla td { border-width: 0 1px 1px 0; }
+.rep-tabla tr > :first-child { border-left-width: 1px; }
+.rep-tabla thead th { z-index: 3; border-top-width: 1px; box-shadow: 0 1px 0 var(--border-med); }
+
+/* Columnas fijas a la izquierda (con fondo propio para no transparentar). */
+.rep-tabla td.rep-clv, .rep-tabla th.rep-clv { position: sticky; left: 0; width: 44px; min-width: 44px; max-width: 44px; }
+.rep-tabla td.rep-nom, .rep-tabla th.rep-nom { position: sticky; left: 44px; }
+.rep-tabla td.rep-clv, .rep-tabla td.rep-nom { z-index: 1; background: #fff; }
+.rep-tabla td.rep-nom { box-shadow: 1px 0 0 var(--border-med); }
+.rep-tabla thead th.rep-clv, .rep-tabla thead th.rep-nom { z-index: 4; }
+.rep-fila:hover td.rep-clv, .rep-fila:hover td.rep-nom { background: var(--surface3); }
+.rep-fila.rep-irregular td.rep-clv, .rep-fila.rep-irregular td.rep-nom { background: #FDF3F3; }
+.rep-fila.rep-irregular:hover td.rep-clv, .rep-fila.rep-irregular:hover td.rep-nom { background: var(--red-bg); }
