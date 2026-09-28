@@ -704,18 +704,30 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
 
       // La referencia del día: su turno (rotativo) o su bloque fijo.
       const t = turnoPorFecha ? turnoPorFecha.get(d.fecha) : null;
-      const referencia = t ? t.bloque : (entradaMin as number);
-      if (referencia === null || referencia === undefined) continue;
+      const suTurno = t ? t.bloque : (entradaMin as number);
+      if (suTurno === null || suTurno === undefined) continue;
 
-      // Sin hora límite (sucursales) no hay atraso que medir: la persona vino.
+      // ══ CONTRA SU PROPIO TURNO, SIN HORA LÍMITE (28/09/2026, regla de RH) ══
+      //
+      // Hay quien entra en turno de tarde. Antes, un día que caía lejos de TODOS
+      // sus turnos (más de `atipicoFijoMin` / 60 min en un rotativo) se medía
+      // igual contra su turno de siempre y se marcaba "fuera de horario": quien
+      // entra 8:00 y un día entró a cubrir la tarde a las 14:10 cargaba 370 min
+      // de retardo. Ahora ese día se entiende como OTRO TURNO y se mide contra
+      // el bloque de :00/:30 más cercano a su entrada (14:10 → 14:00 → 10 min).
+      // Dentro del margen se sigue midiendo contra su turno de siempre.
+      const lejos = t ? !!t.atipico : Math.abs((d.entrada as number) - suTurno) > atipicoFijoMin;
+      const referencia = lejos ? (bloqueMasCercano(d.entrada as number) as number) : suTurno;
+
+      // `medirRetardo: false` apaga el retardo en una plaza (hoy ninguna lo usa).
       const atraso = medirRetardo ? Math.max(0, (d.entrada as number) - referencia) : 0;
       const absorbido = Math.min(atraso, bolsa);
       const real = atraso - absorbido;
       const bolsaAntes = bolsa;
       bolsa -= absorbido;
 
-      const atipico = !medirRetardo ? false
-        : t ? !!t.atipico : Math.abs((d.entrada as number) - referencia) > atipicoFijoMin;
+      // Ya no hay "fuera de horario": entrar en otro turno no es una anomalía.
+      const atipico = false;
 
       diasEvaluados++;
       atrasoSem += atraso; retardoSem += real;

@@ -128,12 +128,9 @@ export interface ReglaConfig {
    */
   desayunoCuentaComoJornada: boolean;
   /**
-   * ¿Se mide el RETARDO en esta plaza? (28/09/2026, política de RH)
-   *
-   * Solo en corporativo hay una hora de entrada que cumplir. En las
-   * sucursales la gente entra en turnos distintos —hay quien entra tarde
-   * porque ese es su turno—, así que ahí no hay hora límite: no se calcula
-   * retardo, ni tolerancia, ni "fuera de horario". Faltas y descansos sí.
+   * ¿Se mide el RETARDO en esta plaza? true en todas (28/09/2026): cada
+   * persona se mide contra SU turno, y el día que entra en otro turno se mide
+   * contra ese (ver retardosPorSemana). Se conserva el interruptor por plaza.
    */
   medirRetardo: boolean;
   /** Interruptores por regla (permite apagar reglas por sucursal). */

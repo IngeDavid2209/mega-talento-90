@@ -30,7 +30,9 @@ export const CONFIG_DEFAULT: ReglaConfig = {
   desayunoHastaHora: '13:00',
   desayunoMaxPlausibleMin: 120,
   desayunoCuentaComoJornada: false,
-  medirRetardo: false,
+  // true en TODAS las plazas (28/09/2026): cada quien se mide contra su propio
+  // turno. Se deja el interruptor por si alguna plaza hubiera que apagarla.
+  medirRetardo: true,
   reglasActivas: {
     retardo: true,
     falta: true,
@@ -50,9 +52,7 @@ export const CONFIG_DEFAULT: ReglaConfig = {
  * alguien corra la migración para empezar a valer.
  */
 const POLITICA_POR_SUCURSAL: Record<string, Partial<ReglaConfig>> = {
-  corporativo: { desayunoCuentaComoJornada: true, medirRetardo: true },
-  // El reloj de desayuno y comida de oficinas es la misma gente de corporativo.
-  'corporativo-comida': { medirRetardo: true },
+  corporativo: { desayunoCuentaComoJornada: true },
 };
 
 /** Merge superficial + merge de reglasActivas. `parcial` puede venir de la BD. */
