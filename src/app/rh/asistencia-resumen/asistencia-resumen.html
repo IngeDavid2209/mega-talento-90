@@ -45,6 +45,14 @@
       </div>
     </div>
 
+    <!-- En qué semana del año vamos: RH cuenta el año en semanas de nómina. -->
+    <div class="ar-field ar-field-semana">
+      <label>Semana fiscal</label>
+      <span class="ar-semana" [title]="'Semana de nómina (jueves a miércoles) que va del ' + semanaHoy.inicio + ' al ' + semanaHoy.fin + '. La semana 1 es la que contiene el 1 de enero.'">
+        <b>{{ semanaHoy.numero }}</b> de {{ semanaHoy.total }}
+      </span>
+    </div>
+
     <div class="ar-bar-actions">
       <!-- Este chip decía "En vivo" siempre. Hablaba del refresco de la PANTALLA,
            no de la llegada del DATO: con el reloj apagado seguía en verde, que es
@@ -494,6 +502,7 @@
                 <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
               }
               <th class="rep-hrs" title="Horas netas del periodo: jornada menos comida. En corporativo el desayuno no se descuenta.">Horas</th>
+              <th class="rep-hrs rep-ext-h" [title]="'Horas extra: por semana de nómina, lo que pasa de ' + jornadaHoras + ' h netas.'">Extras</th>
               <th class="rep-ret">Retardos</th>
               <th class="rep-acc"><span class="rep-sr">Acciones</span></th>
             </tr>
@@ -501,7 +510,7 @@
           <tbody>
             @for (g of porDepartamento; track g.departamento) {
               <tr class="rep-depto">
-                <td [attr.colspan]="columnasDia.length + 5">
+                <td [attr.colspan]="columnasDia.length + 6">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
                   <!-- El atajo donde se está mirando: aislar esta sección sin
                        subir a los chips. No va al papel (rep-solo-fila). -->
@@ -537,6 +546,10 @@
                     </td>
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
+                  <td class="rep-hrs rep-ext" [class.con]="e.extrasMin > 0" [title]="detalleExtras(e)">
+                    @if (e.extrasMin > 0) { {{ horasTexto(e.extrasMin) }}@if (e.extrasParciales) {<sup>*</sup>} }
+                    @else { <span class="rep-t-vacio">—</span> }
+                  </td>
                   <td class="rep-ret">{{ e.diasConRetardo || '' }}</td>
                   <td class="rep-acc">
                     <button type="button" class="rep-acc-btn" [class.on]="accMenu?.emp === e"
@@ -551,6 +564,7 @@
               <tr class="rep-subtotal">
                 <td [attr.colspan]="columnasDia.length + 2"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
+                <td class="rep-hrs rep-ext">{{ extrasDeGrupo(g) ? horasTexto(extrasDeGrupo(g)) : '' }}</td>
                 <td class="rep-ret">{{ g.retardos || 0 }}</td>
                 <td></td>
               </tr>
@@ -560,12 +574,19 @@
             <tr class="rep-total">
               <td [attr.colspan]="columnasDia.length + 2">Totales</td>
               <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
+              <td class="rep-hrs rep-ext">{{ extrasTotales ? horasTexto(extrasTotales) : '—' }}</td>
               <td class="rep-ret">{{ totalRetardos }}</td>
               <td></td>
             </tr>
           </tfoot>
         </table>
       </div>
+      <!-- Cómo se leen las extras, una vez y a la vista. -->
+      <p class="rep-ext-nota">
+        <b>Extras:</b> por semana de nómina (jueves a miércoles), lo que pasa de <b>{{ jornadaHoras }} h</b> netas.
+        @if (personasConExtras) { {{ personasConExtras }} persona{{ personasConExtras > 1 ? 's' : '' }} con extras en el periodo. }
+        <sup>*</sup> la semana todavía no termina: pueden crecer.
+      </p>
     </div>
   } @else {
     <div class="ar-vista-switch">
@@ -830,7 +851,7 @@
             <div class="ar-sem" [class.ar-sem-bad]="sem.excedido">
               <div class="ar-sem-head">
                 <div class="ar-sem-title">
-                  <span class="ar-sem-n">Semana {{ i + 1 }}</span>
+                  <span class="ar-sem-n">Semana {{ sem.fiscal.numero }}</span>
                   <span class="ar-sem-rango">{{ sem.label }}</span>
                 </div>
                 <div class="ar-sem-meta">
@@ -847,7 +868,12 @@
                     @else { sin atraso }
                   </span>
                   <span class="ar-sem-bolsa">bolsa {{ sem.bolsaRestante }}/{{ detalle.presupuesto }}</span>
-                  <span class="ar-sem-bolsa" title="Horas netas de la semana">{{ horasTexto(sem.minutosTrabajados) }}</span>
+                  <span class="ar-sem-bolsa" [title]="'Horas netas de la semana completa (jueves a miércoles)' + (sem.semanaCompleta ? '' : '; la semana aún no termina')">
+                    {{ horasTexto(sem.minutosSemana) }}@if (!sem.semanaCompleta) {<sup>*</sup>}
+                  </span>
+                  @if (sem.extrasMin > 0) {
+                    <span class="ar-badge ar-badge-ext">+{{ horasTexto(sem.extrasMin) }} extra</span>
+                  }
                 </div>
               </div>
               <div class="ar-tabla-wrap">
@@ -1045,6 +1071,9 @@
 
       <div class="fic-tiles">
         <div class="fic-tile"><b>{{ horasTexto(ficha.minutosTrabajados) }}</b><span>horas</span></div>
+        <div class="fic-tile" [class.ext]="ficha.extrasMin > 0" [title]="detalleExtras(ficha)">
+          <b>{{ ficha.extrasMin ? horasTexto(ficha.extrasMin) : '0' }}</b><span>extras</span>
+        </div>
         <div class="fic-tile" [class.bad]="ficha.faltas"><b>{{ ficha.faltas }}</b><span>faltas</span></div>
         <div class="fic-tile" [class.bad]="ficha.diasConRetardo && ficha.usable"><b>{{ ficha.diasConRetardo }}</b><span>retardos</span></div>
       </div>

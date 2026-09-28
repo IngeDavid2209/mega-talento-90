@@ -153,6 +153,8 @@ export interface PersonaAsistencia {
   horasTrabajadas: number;
   /** La misma suma, en minutos exactos: la de arriba viene redondeada a 0.1 h. */
   minutosTrabajados: number;
+  /** Horas extra del periodo: la suma de lo que cada semana pasó de la jornada. */
+  extrasMin: number;
   /** Cuántos días del periodo tienen alguna incidencia de RH. */
   diasConIncidencia: number;
   /**
@@ -166,7 +168,22 @@ export interface PersonaAsistencia {
   /** En cuántos días se pasó (aunque fuera por poco). */
   diasDesayunoExcedido: number;
   pctATiempo: number | null;
-  semanas: Array<hd.SemanaMedida & { dias: DiaVista[]; minutosTrabajados: number }>;
+  semanas: Array<hd.SemanaMedida & {
+    dias: DiaVista[];
+    /** Horas netas de los días de la semana que caen DENTRO del periodo pedido. */
+    minutosTrabajados: number;
+    /**
+     * Horas netas de la semana de nómina COMPLETA (jueves→miércoles), aunque el
+     * periodo la corte: las extras se miden por semana, no por periodo. Si el
+     * periodo elegido fuera del lunes al miércoles, sumar solo esos días nunca
+     * pasaría de 48 y las extras de esa semana desaparecerían.
+     */
+    minutosSemana: number;
+    /** Lo que pasa de la jornada semanal (48 h). */
+    extrasMin: number;
+    /** false: la semana todavía no termina (o no se tienen todos sus días). */
+    semanaCompleta: boolean;
+  }>;
   marcas: Marca[];
   usable: boolean;
   bloqueadoPor: string[];
@@ -198,6 +215,8 @@ export interface AsistenciaPersonas {
    * 1 min, media plaza saldría marcada y el rojo dejaría de significar algo.
    */
   desayunoAlertaMin: number;
+  /** Jornada semanal en minutos (48 h = 2880): de ahí en adelante son extras. */
+  jornadaSemanalMin: number;
   resumen: {
     personas: number;
     usables: number;
@@ -220,6 +239,8 @@ export interface AsistenciaPersonas {
   faltasJustificadas: number;
     diasNoMedibles: number;
     horasTrabajadas: number;
+    /** Horas extra (min) de toda la plaza en el periodo. */
+    extrasMin: number;
     /** Minutos de desayuno por encima del tope, sumados en toda la plaza. */
     desayunoExcesoMin: number;
     diasDesayunoExcedido: number;
@@ -506,6 +527,9 @@ export async function asistenciaPersonas(
       }
     : undefined;
 
+  // La jornada semanal: lo que pase de aquí en una semana son horas extra.
+  const jornadaSemanalMin = Math.round((cfg.jornadaSemanalHoras || 48) * 60);
+
   // La ventana del HORARIO nunca es más corta que la del rango (ver
   // VENTANA_HORARIO_DIAS): si RH pide "Hoy", el horario sale de su último mes.
   const desdeHorario = [desde, menosDias(hasta, VENTANA_HORARIO_DIAS - 1)]
@@ -774,6 +798,10 @@ export async function asistenciaPersonas(
     let desayunoExcesoMin = 0;
     let diasDesayunoExcedido = 0;
     let diasConIncidencia = 0;
+    let extrasMin = 0;
+    // Todas las marcas de su historia por fecha, para completar las semanas
+    // que el periodo corta por delante.
+    const horasHist = new Map<string, string[]>((dias || []).map((d) => [d.fecha, d.marcas as string[]]));
     const semanas = (re?.semanas || []).map((s) => {
       let minSemana = 0;
       const diasVista = s.dias.map((d): DiaVista => {
@@ -807,7 +835,23 @@ export async function asistenciaPersonas(
         }
         return { ...d, ...extra };
       });
-      return { ...s, dias: diasVista, minutosTrabajados: minSemana };
+      // ── HORAS EXTRA: sobre la semana de nómina COMPLETA ──
+      // Los días de la semana que quedaron antes del periodo se leen de la
+      // historia (`dias`, la ventana ancha). Los que caen después de `hasta`
+      // no existen todavía: la semana queda marcada como parcial.
+      let minCompleta = 0;
+      const finSemana = menosDias(s.inicio, -6);
+      for (let f = s.inicio; f <= finSemana && f <= hasta; f = siguienteDia(f)) {
+        const marcas = (f >= desde ? datos?.horas.get(f) : horasHist.get(f)) || [];
+        minCompleta += detalleDia(marcas, desayunoCfg).netasMin || 0;
+      }
+      const semanaCompleta = finSemana <= hasta && s.inicio >= desdeHorario;
+      const extrasSem = Math.max(0, minCompleta - jornadaSemanalMin);
+      extrasMin += extrasSem;
+      return {
+        ...s, dias: diasVista, minutosTrabajados: minSemana,
+        minutosSemana: minCompleta, extrasMin: extrasSem, semanaCompleta,
+      };
     });
 
     const bloqueantes = marcas.filter((m) => m.gravedad === 'alta');
@@ -863,6 +907,7 @@ export async function asistenciaPersonas(
       diasAtipicos: re?.atipicos ?? 0,
       horasTrabajadas: Math.round(minTrabajados / 6) / 10,
       minutosTrabajados: minTrabajados,
+      extrasMin,
       diasConIncidencia,
       incidencias: incidencias
         .filter((i) => i.empleadoCodigo === cod)
@@ -904,6 +949,7 @@ export async function asistenciaPersonas(
     diaInicioSemana: hd.DIA_INICIO_SEMANA,
     diasExTrabajador: DIAS_EX,
     desayunoAlertaMin: cfg.desayunoAlertaMin,
+    jornadaSemanalMin,
     resumen: {
       personas: personas.length,
       usables: usables.length,
@@ -927,6 +973,7 @@ export async function asistenciaPersonas(
       faltasJustificadas: personas.reduce((s, p) => s + p.faltasJustificadas, 0),
       diasNoMedibles: personas.reduce((s, p) => s + p.diasNoMedibles, 0),
       horasTrabajadas: Math.round(personas.reduce((s, p) => s + p.horasTrabajadas, 0)),
+      extrasMin: personas.reduce((s, p) => s + p.extrasMin, 0),
       desayunoExcesoMin: personas.reduce((s, p) => s + p.desayunoExcesoMin, 0),
       diasDesayunoExcedido: personas.reduce((s, p) => s + p.diasDesayunoExcedido, 0),
     },

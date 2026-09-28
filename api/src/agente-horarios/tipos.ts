@@ -127,6 +127,11 @@ export interface ReglaConfig {
    * descuenta —equivocarse del lado de pagar una comida sería peor—.
    */
   desayunoCuentaComoJornada: boolean;
+  /**
+   * Horas netas por semana de nómina que hay que cumplir (28/09/2026: 48, la
+   * jornada de ley). Lo que pase de aquí en la semana son HORAS EXTRA.
+   */
+  jornadaSemanalHoras: number;
   /** Interruptores por regla (permite apagar reglas por sucursal). */
   reglasActivas: Record<Regla, boolean>;
 }
