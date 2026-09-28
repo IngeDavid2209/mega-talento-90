@@ -1005,7 +1005,10 @@
   overflow: auto;
   max-height: calc(100vh - 180px);
   min-height: 320px;
-  overscroll-behavior: contain;
+  /* SIN `overscroll-behavior: contain`: con él, al subir dentro de la tabla
+     el desplazamiento se detenía en su primer renglón y la página nunca volvía
+     a mostrar la barra de filtros y las pestañas. Así, al llegar al tope de la
+     tabla, la rueda sigue subiendo la página. */
 }
 .rep-tabla { border-collapse: separate; border-spacing: 0; }
 .rep-tabla th, .rep-tabla td { border-width: 0 1px 1px 0; }
