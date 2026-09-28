@@ -30,7 +30,6 @@ export const CONFIG_DEFAULT: ReglaConfig = {
   desayunoHastaHora: '13:00',
   desayunoMaxPlausibleMin: 120,
   desayunoCuentaComoJornada: false,
-  jornadaSemanalHoras: 48,
   reglasActivas: {
     retardo: true,
     falta: true,

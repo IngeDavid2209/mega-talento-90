@@ -71,10 +71,7 @@ interface SemanaAsistencia {
   inicio: string; label: string;
   acumulado: number;           // retardo REAL de la semana
   atrasoMin: number;           // atraso crudo, antes de la bolsa
-  minutosTrabajados: number;   // suma de horas netas de la semana (días del periodo)
-  minutosSemana: number;       // horas netas de la semana de nómina COMPLETA
-  extrasMin: number;           // lo que pasó de la jornada semanal (48 h)
-  semanaCompleta: boolean;     // false: la semana aún no termina
+  minutosTrabajados: number;   // suma de horas netas de la semana
   fiscal: SemanaFiscal;        // "semana 39 de 52"
   bolsaRestante: number;
   excedido: boolean;           // se agotó la bolsa
@@ -109,10 +106,6 @@ interface EmpleadoAsistencia {
   horasTrabajadas: number; presupuesto: number;
   /** Suma exacta de horas netas del periodo, en minutos. */
   minutosTrabajados: number;
-  /** Horas extra del periodo: por semana, lo que pasó de 48 h. */
-  extrasMin: number;
-  /** Alguna de sus semanas con extras todavía no termina (pueden crecer). */
-  extrasParciales: boolean;
   /** Sus incidencias como periodos (para pintarlas aunque no haya checado). */
   incidencias: Array<IncidenciaDia & { desde: string; hasta: string }>;
   irregularidades: Irregularidad[];
@@ -1263,12 +1256,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
       const ancho = doc.internal.pageSize.getWidth();
 
-      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'Extras', 'Retardos']];
+      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'Retardos']];
       const body: any[] = [];
       for (const g of grupos) {
         body.push([{
           content: `${g.departamento}  (${g.empleados.length})`,
-          colSpan: dias.length + 5,
+          colSpan: dias.length + 4,
           styles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
         }]);
         for (const e of g.empleados) {
@@ -1283,13 +1276,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
                 : {},
             };
           });
-          body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados),
-            e.extrasMin ? this.horasTexto(e.extrasMin) + (e.extrasParciales ? '*' : '') : '', e.diasConRetardo || '']);
+          body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados), e.diasConRetardo || '']);
         }
         body.push([{
           content: '', colSpan: dias.length + 2, styles: { fillColor: [255, 255, 255] },
         }, { content: this.horasTexto(this.minutosDeGrupo(g)), styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
-           { content: this.extrasDeGrupo(g) ? this.horasTexto(this.extrasDeGrupo(g)) : '', styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
            { content: String(g.retardos || 0), styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
       }
 
@@ -1303,7 +1294,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         body,
         foot: [[{ content: 'Totales', colSpan: dias.length + 2, styles: { halign: 'right' as const } },
                 { content: this.horasTexto(this.minutosTotales), styles: { halign: 'center' as const } },
-                { content: this.extrasTotales ? this.horasTexto(this.extrasTotales) : '', styles: { halign: 'center' as const } },
                 { content: String(this.totalRetardos), styles: { halign: 'right' as const } }]],
         startY: 20,
         margin: { top: 20, left: 8, right: 8, bottom: 12 },
@@ -1315,7 +1305,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           1: { cellWidth: dias.length > 10 ? 38 : 46 },
           [dias.length + 2]: { cellWidth: 15, halign: 'center' },
           [dias.length + 3]: { cellWidth: 15, halign: 'center' },
-          [dias.length + 4]: { cellWidth: 15, halign: 'center' },
         },
         // Una fila nunca se parte, y un encabezado de departamento no se queda
         // solo al pie de la hoja.
@@ -1354,12 +1343,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       ? `Asistencia del ${f(this.desde)} al ${f(this.hasta)} · ${this.semanasDelPeriodo}` : '';
   }
 
-  // ══ SEMANA FISCAL Y HORAS EXTRA (28/09/2026) ══════════════════════
+  // ══ SEMANA FISCAL (28/09/2026) ══════════════════════════════════════
   //
   // La semana fiscal es la de nómina (jueves→miércoles) contada desde la que
-  // contiene el 1 de enero: ver core/models/semana-fiscal.ts. Las horas extra
-  // son, por semana, lo que pasa de la jornada (48 h netas); las calcula la API
-  // sobre la semana COMPLETA aunque el periodo la corte.
+  // contiene el 1 de enero: ver core/models/semana-fiscal.ts.
 
   /** La semana en la que vamos hoy. */
   get semanaHoy(): SemanaFiscal { return semanaFiscal(aFechaLocal(new Date()), this.diaCorte); }
@@ -1371,27 +1358,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (a.anio === b.anio && a.numero === b.numero) return `Semana ${a.numero} de ${a.total}`;
     if (a.anio === b.anio) return `Semanas ${a.numero} a ${b.numero}`;
     return `Semana ${a.numero}/${a.anio} a ${b.numero}/${b.anio}`;
-  }
-
-  /** Jornada semanal en horas (48), como la manda la API. */
-  get jornadaHoras(): number { return Math.round((this.datos?.jornadaSemanalMin ?? 2880) / 60); }
-
-  /** Extras de un departamento y del reporte (lo que se ve). */
-  extrasDeGrupo(g: { empleados: EmpleadoAsistencia[] }): number {
-    return g.empleados.reduce((t, e) => t + e.extrasMin, 0);
-  }
-  get extrasTotales(): number {
-    return this.porDepartamento.reduce((t, g) => t + this.extrasDeGrupo(g), 0);
-  }
-  get personasConExtras(): number {
-    return this.porDepartamento.reduce((t, g) => t + g.empleados.filter(e => e.extrasMin > 0).length, 0);
-  }
-
-  /** "Sem 38: 51h 20m (3h 20m extra)" por semana, para el tooltip de la celda de extras. */
-  detalleExtras(e: EmpleadoAsistencia): string {
-    return e.semanas.map(s => `Sem ${s.fiscal.numero}: ${this.horasTexto(s.minutosSemana)}` +
-      (s.extrasMin ? ` (${this.horasTexto(s.extrasMin)} extra)` : '') + (s.semanaCompleta ? '' : ' · aún no termina'))
-      .join('\n');
   }
 
   /** "40 s", "12 min", "2 h 30 m" — para redactar los motivos. */
@@ -1574,9 +1540,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       inicio: s.inicio,
       label: `Sem ${semanaFiscal(s.inicio, this.diaCorte).numero} · ${this.etiquetaSemana(s.inicio)}`,
       fiscal: semanaFiscal(s.inicio, this.diaCorte),
-      minutosSemana: s.minutosSemana ?? s.minutosTrabajados ?? 0,
-      extrasMin: s.extrasMin ?? 0,
-      semanaCompleta: s.semanaCompleta !== false,
       acumulado: s.retardoRealMin,
       atrasoMin: s.atrasoMin,
       minutosTrabajados: s.minutosTrabajados ?? 0,
@@ -1642,8 +1605,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       atipicos: p.diasAtipicos,
       horasTrabajadas: p.horasTrabajadas,
       minutosTrabajados: p.minutosTrabajados ?? Math.round(p.horasTrabajadas * 60),
-      extrasMin: p.extrasMin ?? 0,
-      extrasParciales: p.semanas.some(s => s.semanaCompleta === false && (s.extrasMin || 0) > 0),
       incidencias: p.incidencias || [],
       ...this.irregularidadesDe(semanas, p.usable),
       presupuesto: this.datos?.bolsaSemanalMin ?? 15,
@@ -2059,8 +2020,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Su horario': e.horario, 'Tipo': e.tipo,
             'Horario confirmado por RH': e.horarioConfirmado ? 'Sí' : 'No',
             'Semana': s.label, 'Semana fiscal': s.fiscal.numero,
-            'Horas de la semana (min)': s.minutosSemana, 'Horas extra de la semana (min)': s.extrasMin,
-            'Semana completa': s.semanaCompleta ? 'Sí' : 'No — aún no termina',
             'Fecha': d.fecha, 'Día': d.diaLabel,
             'Entrada': d.entrada,
             'Desayuno (min)': d.desayunoMin ?? '',

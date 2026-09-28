@@ -106,14 +106,8 @@ export interface SemanaApi {
   atrasoMin: number;
   retardoRealMin: number;
   bolsaAgotada: boolean;
-  /** Suma de horas netas de la semana, en minutos (solo días dentro del periodo). */
+  /** Suma de horas netas de la semana, en minutos. */
   minutosTrabajados?: number;
-  /** Horas netas de la semana de nómina COMPLETA, aunque el periodo la corte. */
-  minutosSemana?: number;
-  /** Lo que la semana pasó de la jornada (48 h): horas extra, en minutos. */
-  extrasMin?: number;
-  /** false: la semana todavía no termina; sus extras pueden crecer. */
-  semanaCompleta?: boolean;
   dias: DiaApi[];
 }
 
@@ -153,8 +147,6 @@ export interface PersonaAsistencia {
   horasTrabajadas: number;
   /** La suma exacta de horas netas del periodo, en minutos. */
   minutosTrabajados?: number;
-  /** Horas extra del periodo (suma por semana de lo que pasó de 48 h), en minutos. */
-  extrasMin?: number;
   diasConIncidencia?: number;
   /** Sus incidencias como periodos (aunque no haya checado esos días). */
   incidencias?: Array<IncidenciaDia & { desde: string; hasta: string }>;
@@ -181,8 +173,6 @@ export interface AsistenciaPersonas {
   diasExTrabajador: number;
   /** Desde cuántos minutos de exceso el desayuno cuenta como irregularidad. */
   desayunoAlertaMin?: number;
-  /** Jornada semanal en minutos (48 h = 2880): de ahí en adelante son extras. */
-  jornadaSemanalMin?: number;
   resumen: {
     personas: number; usables: number; conPendiente: number;
     fijos: number; rotativos: number; sinPatron: number; sinDatos: number;
