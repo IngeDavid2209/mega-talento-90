@@ -1458,7 +1458,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       : `de la ${a.numero} (${this.fechaLarga(a.inicio)}) a la ${b.numero} (${this.fechaLarga(b.fin)})`;
     return {
       numeros, total: b.total, esActual,
-      titulo: `Semana de nómina (jueves a miércoles) ${rango}. La semana 1 es la que contiene el 1 de enero. ` +
+      titulo: `Semana de nómina (jueves a miércoles) ${rango}. Numeración del calendario (ISO, lunes a domingo): toma el número del lunes que cae en esa semana. ` +
         `Hoy vamos en la ${hoy.numero}.`,
     };
   }
