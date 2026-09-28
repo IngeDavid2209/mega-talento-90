@@ -1,6 +1,6 @@
 {
   "name": "mega-talento-agente-checadas",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Agente local de checadas: lee los relojes ZKTeco de la LAN y los empuja a la API. NO necesita credenciales de Postgres.",
   "main": "index.js",

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { comandosAgenteRouter } from './reloj-comandos';
 import { createHash, timingSafeEqual } from 'crypto';
 import { pool } from './db';
 import { requireAuth } from './auth';
@@ -418,6 +419,8 @@ async function tocarEstado(
 // =====================================================================
 export const ingestaRouter = Router();
 ingestaRouter.use(requireAgente);
+// Comandos hacia los relojes (eliminar/renombrar): el agente los toma y reporta.
+ingestaRouter.use('/comandos', comandosAgenteRouter);
 
 /** POST /checador/ingesta — un lote de checadas. Idempotente. */
 ingestaRouter.post('/', async (req: Request, res: Response) => {

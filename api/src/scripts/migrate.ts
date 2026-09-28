@@ -19,6 +19,7 @@ async function main() {
     'agente-horarios.sql',   // Fase 1: asistencia_alertas + asistencia_config
     'checadas-vivo.sql',     // padrón de relojes por SERIE + latido + cola de ingesta
     'incidencias.sql',       // vacaciones, permisos, incapacidades… por periodo
+    'reloj-comandos.sql',    // cola de cambios hacia los relojes + empleados.eliminado_en
   ];
   const dirDb = join(__dirname, '..', '..', 'db');
   for (const archivo of archivos) {

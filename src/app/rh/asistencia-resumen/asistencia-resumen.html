@@ -959,6 +959,9 @@
         <button type="button" role="menuitem" class="acc-peligro" (click)="accBaja()">
           <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
         </button>
+        <button type="button" role="menuitem" class="acc-peligro" (click)="accEliminar()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>Eliminar (sistema y reloj)
+        </button>
       } @else {
         <p class="acc-nota">Este código checa sin estar en el padrón.</p>
         <button type="button" role="menuitem" (click)="accAlta()">
@@ -966,6 +969,10 @@
         </button>
         <button type="button" role="menuitem" (click)="accDetalle()">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7"/></svg>Ver detalle
+        </button>
+        <div class="acc-sep"></div>
+        <button type="button" role="menuitem" class="acc-peligro" (click)="accEliminar()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>Eliminar del reloj
         </button>
       }
     </div>
@@ -985,11 +992,21 @@
       </header>
       @if (accEdit.tipo === 'nombre') {
         <label class="inc-campo">
-          <span>Nombre completo</span>
+          <span>Nombre completo <small>(reporte, PDF y Excel)</small></span>
           <input type="text" [(ngModel)]="accEdit.valor" maxlength="120" placeholder="Ej. GARCIA TAPIA LUCIA"
                  (keydown.enter)="guardarAccion()">
         </label>
-        <p class="acc-ayuda">Es el que sale en el reporte. El nombre en el reloj no cambia.</p>
+        <label class="inc-campo">
+          <span>Nombre en el reloj <small>(el que sale en el checador)</small></span>
+          <input type="text" [(ngModel)]="accEdit.valorReloj" maxlength="40" placeholder="Ej. Lucia Garcia"
+                 (keydown.enter)="guardarAccion()">
+        </label>
+        @if (accEdit.valorReloj && nombreParaReloj(accEdit.valorReloj) !== accEdit.valorReloj.trim()) {
+          <p class="acc-ayuda">El reloj no acepta acentos ni símbolos y guarda hasta 23 letras: quedará como
+            <b>{{ nombreParaReloj(accEdit.valorReloj) }}</b>.</p>
+        } @else {
+          <p class="acc-ayuda">Si cambias el del reloj, el agente lo aplica en los relojes de la plaza.</p>
+        }
       } @else {
         <label class="inc-campo">
           <span>Departamento</span>
@@ -1080,10 +1097,52 @@
         </div>
       }
 
+      <!-- Cambios en los relojes de esta persona: se ve si ya quedó, si espera
+           al agente o si falló, reloj por reloj. -->
+      @if (comandosVisibles.length) {
+        <ul class="fic-reloj">
+          @for (c of comandosVisibles; track c.id) {
+            <li [attr.data-e]="c.estado">
+              <span class="fic-reloj-dot" aria-hidden="true"></span>
+              <span class="fic-reloj-txt" [title]="c.detalle">{{ textoComando(c) }}</span>
+              <span class="fic-reloj-est">{{ estadoComando(c) }}</span>
+              @if (c.estado === 'pendiente') {
+                <button type="button" class="inc-x" (click)="cancelarComando(c)" title="Cancelar">✕</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <!-- Todo lo que se le puede hacer a la persona, pegado a su ficha. Cada
+           botón pide confirmación antes de cambiar algo. -->
+      <div class="fic-ops" role="group" aria-label="Acciones">
+        <button type="button" [attr.aria-expanded]="fichaTipos" [disabled]="!tiposIncidencia.length"
+                (click)="fichaTipos = !fichaTipos" [class.on]="fichaTipos">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Incidencia
+        </button>
+        @if (ficha.registrado) {
+          <button type="button" (click)="accEditar('nombre', ficha)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13h2.5L12 6.5 9.5 4 3 10.5V13zM9.5 4l2.5 2.5"/></svg>Nombre
+          </button>
+          <button type="button" (click)="accEditar('departamento', ficha)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v7h-11zM5.5 5.5V3.5h5v2"/></svg>Departamento
+          </button>
+          <button type="button" class="fic-op-peligro" (click)="accBaja(ficha)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
+          </button>
+        }
+        <button type="button" class="fic-op-peligro" (click)="accEliminar(ficha)">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>Eliminar
+        </button>
+      </div>
+
       <div class="fic-acciones">
-        <button type="button" class="ar-btn ar-btn-ghost" [disabled]="!tiposIncidencia.length"
-                [attr.aria-expanded]="fichaTipos"
-                (click)="fichaTipos = !fichaTipos">{{ fichaTipos ? 'Cancelar' : '+ Incidencia' }}</button>
+        <span class="fic-relojes-n">
+          @if (fichaReloj) {
+            {{ fichaReloj.relojes.length }} reloj{{ fichaReloj.relojes.length === 1 ? '' : 'es' }} en la plaza
+          }
+        </span>
         <button type="button" class="ar-btn ar-btn-primary" (click)="fichaADetalle()">Ver detalle</button>
       </div>
     </div>

@@ -179,4 +179,30 @@ async function leerUsuarios(z) {
   return usuarios;
 }
 
-module.exports = { leerChecadas, leerUsuarios, leerBloqueCompleto };
+/**
+ * Igual que `leerUsuarios`, pero cada usuario trae también su registro CRUDO
+ * de 72 bytes (`crudo`). Lo usa la escritura (api/agente/escritura.js): para
+ * renombrar se copia el registro tal cual y solo se cambian los bytes del
+ * nombre, así no se tocan contraseña, tarjeta, privilegio ni grupo —campos que
+ * `decodeUserData72` ni siquiera lee y que un re-armado en limpio pondría en
+ * cero—. Y el crudo es el respaldo de lo que había antes de cualquier cambio.
+ */
+async function leerUsuariosCrudos(z) {
+  const tcp = z.zklibTcp;
+  if (!tcp || !tcp.socket) throw new Error('no hay socket TCP abierto con el reloj');
+
+  await tcp.freeData();
+  const bruto = await leerBloqueCompleto(tcp, REQUEST_DATA.GET_USERS);
+  await tcp.freeData();
+
+  let resto = bruto.subarray(4);
+  const usuarios = [];
+  while (resto.length >= 72) {
+    const crudo = Buffer.from(resto.subarray(0, 72));
+    usuarios.push({ ...decodeUserData72(crudo), crudo });
+    resto = resto.subarray(72);
+  }
+  return usuarios;
+}
+
+module.exports = { leerChecadas, leerUsuarios, leerUsuariosCrudos, leerBloqueCompleto };

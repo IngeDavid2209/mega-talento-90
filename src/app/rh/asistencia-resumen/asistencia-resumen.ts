@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import {
   ChecadorService, RevisionDia, EstadoRevision,
   AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi,
-  EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia
+  EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia, CambiosReloj, ComandoReloj
 } from '../../core/services/checador.service';
 import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
 import { aFechaLocal, Empleado } from '../../core/models/checador.model';
@@ -711,8 +711,50 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** La ficha rápida (clic en la fila). */
   ficha: EmpleadoAsistencia | null = null;
-  abrirFicha(e: EmpleadoAsistencia) { this.ficha = e; this.menuIncidencia = false; this.fichaTipos = false; }
-  cerrarFicha() { this.ficha = null; this.fichaTipos = false; }
+  abrirFicha(e: EmpleadoAsistencia) {
+    this.ficha = e; this.menuIncidencia = false; this.fichaTipos = false;
+    this.cargarCambiosReloj(e);
+  }
+  cerrarFicha() { this.ficha = null; this.fichaTipos = false; this.fichaReloj = null; }
+
+  /** Relojes de la plaza y los cambios de esta persona (para la ficha). */
+  fichaReloj: CambiosReloj | null = null;
+  private async cargarCambiosReloj(e: EmpleadoAsistencia) {
+    this.fichaReloj = null;
+    try {
+      const r = await this.checador.getCambiosReloj(this.sucursalFiltro, e.codigo);
+      if (this.ficha?.codigo === e.codigo) this.fichaReloj = r;
+    } catch { /* sin este dato la ficha sigue sirviendo */ }
+  }
+
+  /** Solo los que valen la pena en la ficha: lo pendiente, lo fallido y lo reciente. */
+  get comandosVisibles(): ComandoReloj[] {
+    return (this.fichaReloj?.comandos || []).filter(c => c.estado !== 'cancelado').slice(0, 6);
+  }
+  textoComando(c: ComandoReloj): string {
+    const que = c.tipo === 'borrar_usuario' ? 'Borrar del reloj' : `Renombrar a "${c.payload?.nombre || ''}"`;
+    return `${que} · ${c.alias || c.serie}`;
+  }
+  estadoComando(c: ComandoReloj): string {
+    switch (c.estado) {
+      case 'hecho': return 'Hecho';
+      case 'error': return 'Falló';
+      case 'pendiente': return c.intentos ? `Reintentando (${c.intentos})` : 'En espera del agente';
+      default: return c.estado;
+    }
+  }
+  async cancelarComando(c: ComandoReloj) {
+    const ok = await this.toast.confirmar({
+      titulo: 'Cancelar cambio en el reloj',
+      mensaje: `¿Seguro? "${this.textoComando(c)}" no se va a ejecutar. Lo que ya cambió en el sistema se queda.`,
+      textoConfirmar: 'Sí, cancelar',
+    });
+    if (!ok) return;
+    try {
+      await this.checador.cancelarComandoReloj(c.id);
+      if (this.ficha) await this.cargarCambiosReloj(this.ficha);
+    } catch { this.toast.error('Ya no se pudo cancelar: el agente lo tomó o ya terminó.'); }
+  }
 
   /** Las irregularidades de la ficha, agrupadas por día (un renglón por fecha). */
   get fichaPorDia(): { fecha: string; diaLabel: string; items: Irregularidad[] }[] {
@@ -882,7 +924,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** El menú abierto, con su posición en pantalla (fija, para que no lo recorte la tabla). */
   accMenu: { emp: EmpleadoAsistencia; top: number; left: number; arriba: boolean } | null = null;
   /** El formulario de edición abierto. */
-  accEdit: { tipo: 'nombre' | 'departamento'; emp: EmpleadoAsistencia; valor: string } | null = null;
+  accEdit: {
+    tipo: 'nombre' | 'departamento'; emp: EmpleadoAsistencia; valor: string;
+    /** Solo al renombrar: el nombre enrolado en el reloj, y cómo estaba. */
+    valorReloj?: string; relojAntes?: string;
+  } | null = null;
   accGuardando = false;
   /** Los tipos de incidencia desplegados dentro del menú de acciones. */
   accTipos = false;
@@ -917,11 +963,31 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return e.departamento === this.SIN_DEPTO ? '' : e.departamento;
   }
 
-  accEditar(tipo: 'nombre' | 'departamento') {
-    const e = this.accMenu?.emp;
+  accEditar(tipo: 'nombre' | 'departamento', directo?: EmpleadoAsistencia) {
+    const e = directo || this.accMenu?.emp;
     this.cerrarAcciones();
     if (!e) return;
-    this.accEdit = { tipo, emp: e, valor: tipo === 'nombre' ? e.nombreCompleto : this.deptoActual(e) };
+    this.accEdit = tipo === 'nombre'
+      ? { tipo, emp: e, valor: e.nombreCompleto, valorReloj: e.nombre, relojAntes: e.nombre }
+      : { tipo, emp: e, valor: this.deptoActual(e) };
+  }
+
+  /**
+   * El nombre como lo va a guardar el reloj: sin acentos, solo ASCII, 23
+   * caracteres. Es la misma regla que la API y el agente; aquí es para
+   * ENSEÑARLO antes de confirmar ("Aarón" se va a ver "Aaron").
+   */
+  nombreParaReloj(t: string | undefined): string {
+    return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9 .\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 23).trim();
+  }
+
+  /** Cuántos relojes tiene la plaza (para decirlo en las confirmaciones). */
+  private async relojesDeLaPlaza(e: EmpleadoAsistencia): Promise<number> {
+    try {
+      if (this.fichaReloj && this.ficha?.codigo === e.codigo) return this.fichaReloj.relojes.length;
+      return (await this.checador.getCambiosReloj(this.sucursalFiltro, e.codigo)).relojes.length;
+    } catch { return 0; }
   }
 
   accIncidencia(t: TipoIncidencia) {
@@ -945,19 +1011,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   async guardarAccion() {
     const a = this.accEdit;
     if (!a || this.accGuardando) return;
+    if (a.tipo === 'nombre') return this.guardarNombres(a);
     const nuevo = a.valor.trim().replace(/\s+/g, ' ').toUpperCase();
-    if (a.tipo === 'nombre' && !nuevo) { this.toast.alerta('Escribe el nombre.'); return; }
-    const antes = a.tipo === 'nombre' ? a.emp.nombreCompleto : this.deptoActual(a.emp);
+    const antes = this.deptoActual(a.emp);
     if (nuevo === antes.toUpperCase()) { this.accEdit = null; return; }
 
-    const ok = await this.toast.confirmar(a.tipo === 'nombre'
-      ? {
-          titulo: 'Cambiar nombre',
-          mensaje: `¿Seguro? "${antes}" pasará a llamarse "${nuevo}" en el reporte, el PDF y el Excel. ` +
-            'El nombre enrolado en el reloj no cambia.',
-          textoConfirmar: 'Sí, cambiar',
-        }
-      : {
+    const ok = await this.toast.confirmar(
+      {
           titulo: 'Cambiar departamento',
           mensaje: `¿Seguro? ${a.emp.nombreCompleto} pasará de ${antes || 'SIN DEPARTAMENTO'} a ` +
             `${nuevo || 'SIN DEPARTAMENTO'}.`,
@@ -969,10 +1029,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     try {
       const ficha = await this.fichaDe(a.emp);
       if (!ficha) { this.toast.error('No encontré su ficha en el padrón. Recarga e intenta de nuevo.'); return; }
-      await this.checador.guardarEmpleado(a.tipo === 'nombre'
-        ? { ...ficha, nombreCompleto: nuevo }
-        : { ...ficha, departamento: nuevo });
-      this.toast.exito(a.tipo === 'nombre' ? `Nombre actualizado: ${nuevo}.` : `${a.emp.nombreCompleto} → ${nuevo || 'SIN DEPARTAMENTO'}.`);
+      await this.checador.guardarEmpleado({ ...ficha, departamento: nuevo });
+      this.toast.exito(`${a.emp.nombreCompleto} → ${nuevo || 'SIN DEPARTAMENTO'}.`);
       this.accEdit = null;
       await this.recargarConservandoAbiertos();
     } catch (err) {
@@ -983,8 +1041,101 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     }
   }
 
-  async accBaja() {
-    const e = this.accMenu?.emp;
+  /**
+   * Renombrar: el nombre FORMAL (el del reporte) y el que tiene ENROLADO en el
+   * reloj son dos cosas y pueden cambiar por separado. El del reloj se aplica
+   * en el sistema al instante y en cada reloj de la plaza vía el agente.
+   */
+  private async guardarNombres(a: NonNullable<AsistenciaResumenComponent['accEdit']>) {
+    const formal = a.valor.trim().replace(/\s+/g, ' ').toUpperCase();
+    if (!formal) { this.toast.alerta('Escribe el nombre completo.'); return; }
+    const reloj = this.nombreParaReloj(a.valorReloj);
+    const cambiaFormal = formal !== a.emp.nombreCompleto.toUpperCase();
+    const cambiaReloj = !!reloj && reloj !== (a.relojAntes || '').trim();
+    if (!cambiaFormal && !cambiaReloj) { this.accEdit = null; return; }
+    if (a.valorReloj?.trim() && !reloj) { this.toast.alerta('El nombre para el reloj quedó vacío: usa letras sin símbolos.'); return; }
+
+    const n = cambiaReloj ? await this.relojesDeLaPlaza(a.emp) : 0;
+    const partes: string[] = [];
+    if (cambiaFormal) partes.push(`En el reporte: "${a.emp.nombreCompleto}" → "${formal}".`);
+    if (cambiaReloj) {
+      partes.push(`En el reloj: "${a.relojAntes}" → "${reloj}"` +
+        (n ? `, en ${n} reloj${n > 1 ? 'es' : ''} de la plaza (lo aplica el agente en uno o dos minutos).`
+           : '. Esta plaza no tiene relojes a los que el agente pueda escribir: solo cambia en el sistema.'));
+    }
+    const ok = await this.toast.confirmar({
+      titulo: 'Cambiar nombre',
+      mensaje: `¿Seguro? ${partes.join(' ')}`,
+      textoConfirmar: 'Sí, cambiar',
+    });
+    if (!ok) return;
+
+    this.accGuardando = true;
+    try {
+      if (cambiaFormal) {
+        const ficha = await this.fichaDe(a.emp);
+        if (!ficha) { this.toast.error('No encontré su ficha en el padrón. Recarga e intenta de nuevo.'); return; }
+        await this.checador.guardarEmpleado({ ...ficha, nombreCompleto: formal });
+      }
+      if (cambiaReloj) await this.checador.renombrarEnReloj(this.sucursalFiltro, a.emp.codigo, reloj);
+      this.toast.exito(cambiaReloj && n ? 'Nombre cambiado. El reloj se actualiza en unos minutos.' : 'Nombre cambiado.');
+      this.accEdit = null;
+      await this.recargarConservandoAbiertos();
+      if (this.ficha) this.cargarCambiosReloj(this.ficha);
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo cambiar el nombre.');
+    } finally {
+      this.accGuardando = false;
+    }
+  }
+
+  /**
+   * ELIMINAR DEFINITIVAMENTE: del sistema y de los relojes de la plaza.
+   *
+   * Dos confirmaciones a propósito: la primera explica qué pasa, la segunda
+   * es la última salida. En el reloj esto borra la huella y el rostro, y eso
+   * no tiene vuelta atrás —habría que volver a enrolar a la persona en el
+   * equipo—. Sus checadas pasadas NO se borran: son nómina ya pagada.
+   */
+  async accEliminar(directo?: EmpleadoAsistencia) {
+    const e = directo || this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (!e) return;
+    const n = await this.relojesDeLaPlaza(e);
+    const enRelojes = n
+      ? `y se borra de ${n} reloj${n > 1 ? 'es' : ''} de la plaza, con su huella y su rostro`
+      : '(esta plaza no tiene relojes a los que el agente pueda escribir: en el equipo habrá que borrarla a mano)';
+    const ok1 = await this.toast.confirmar({
+      titulo: 'Eliminar definitivamente',
+      mensaje: `¿Seguro que quieres eliminar a ${e.nombreCompleto} (#${e.codigo})? Desaparece del sistema ` +
+        `${enRelojes}. Sus checadas pasadas se conservan.`,
+      destructivo: true, textoConfirmar: 'Continuar',
+    });
+    if (!ok1) return;
+    const ok2 = await this.toast.confirmar({
+      titulo: 'Última confirmación',
+      mensaje: `Esto NO se puede deshacer${n ? ': para volver a checar habría que enrolarla otra vez en el reloj' : ''}. ` +
+        `¿Eliminar a ${e.nombreCompleto}?`,
+      destructivo: true, textoConfirmar: 'Sí, eliminar',
+    });
+    if (!ok2) return;
+    try {
+      const r = await this.checador.eliminarDefinitivo(this.sucursalFiltro, e.codigo);
+      this.toast.exito(r.relojes
+        ? `${e.nombreCompleto} eliminada. Se borra de ${r.relojes} reloj(es) en unos minutos.`
+        : `${e.nombreCompleto} eliminada del sistema.`);
+      if (this.ficha?.codigo === e.codigo) this.cerrarFicha();
+      if (this.detalle?.codigo === e.codigo) this.detalle = null;
+      await this.cargar();
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo eliminar.');
+    }
+  }
+
+  async accBaja(directo?: EmpleadoAsistencia) {
+    const e = directo || this.accMenu?.emp;
     this.cerrarAcciones();
     if (!e) return;
     const ok = await this.toast.confirmar({

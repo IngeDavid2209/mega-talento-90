@@ -676,16 +676,35 @@ export class HorariosComponent implements OnInit, OnDestroy {
       this.toast.error('No se pudo guardar el empleado.');
     }
   }
+  /**
+   * Borrar = ELIMINAR DEFINITIVAMENTE, del sistema y de los relojes de la plaza.
+   *
+   * Antes esto hacía un DELETE de la fila, y no servía: el reloj manda su
+   * padrón completo en cada lote y la ingesta la volvía a crear en minutos,
+   * ACTIVA y sin nombre formal ni departamento. Ahora es el mismo camino que
+   * la ficha del reporte (api/src/reloj-comandos.ts), con doble confirmación.
+   */
   async borrarEmpleado(e: Empleado) {
-    const ok = await this.toast.confirmar({
-      titulo: 'Eliminar empleado',
-      mensaje: `¿Eliminar a "${e.nombre}"? Las checadas ya importadas conservan su nombre.`,
-      destructivo: true, textoConfirmar: 'Eliminar'
+    const nombre = this.nombreDe(e);
+    const ok1 = await this.toast.confirmar({
+      titulo: 'Eliminar definitivamente',
+      mensaje: `¿Seguro que quieres eliminar a ${nombre} (#${e.codigoChecador})? Desaparece del sistema y se ` +
+        'borra de los relojes de la plaza, con su huella y su rostro. Sus checadas pasadas se conservan.',
+      destructivo: true, textoConfirmar: 'Continuar'
     });
-    if (!ok || !e.id) return;
+    if (!ok1) return;
+    const ok2 = await this.toast.confirmar({
+      titulo: 'Última confirmación',
+      mensaje: `Esto NO se puede deshacer: para volver a checar habría que enrolarla otra vez en el reloj. ¿Eliminar a ${nombre}?`,
+      destructivo: true, textoConfirmar: 'Sí, eliminar'
+    });
+    if (!ok2) return;
     try {
-      await this.checador.eliminarEmpleado(e.id);
-      this.toast.exito('Empleado eliminado.');
+      const r = await this.checador.eliminarDefinitivo(e.sucursalId, String(e.codigoChecador).trim());
+      this.empleados = this.empleados.filter(x => x.id !== e.id);
+      this.toast.exito(r.relojes
+        ? `${nombre} eliminada. Se borra de ${r.relojes} reloj(es) en unos minutos.`
+        : `${nombre} eliminada del sistema.`);
     } catch (err) {
       console.error(err);
       this.toast.error('No se pudo eliminar el empleado.');

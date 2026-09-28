@@ -26,6 +26,16 @@ const { fmt, conectar, cerrar, leerVerificado, normalizarChecadas, normalizarUsu
   require('../tools/lectura-verificada');
 const { descubrir } = require('./descubrir');
 const { ErrorEnvio } = require('./enviar');
+const { ejecutarComando } = require('./escritura');
+
+/**
+ * Cada cuánto se preguntan los comandos pendientes (eliminar/renombrar). Un
+ * minuto: es una consulta chica a la API y RH ve el resultado casi al momento.
+ */
+const COMANDOS_MS = 60 * 1000;
+
+/** Tope para UN comando completo: leer padrón + escribir + releer. */
+const LIMITE_ESCRITURA_MS = 3 * 60 * 1000;
 
 const TAM_LOTE = 500;
 
@@ -147,6 +157,8 @@ class RelojJob {
     await this.reconectar('arranque');
     // Los backfills se escalonan: si los 8 relojes bajan su log completo al
     // mismo tiempo, se saturan la red de la plaza y el enlace de salida.
+    this.timers.comandos = setInterval(
+      () => this.atenderComandos().catch((e) => this.log(`comandos: ${motivo(e)}`)), COMANDOS_MS);
     this.timers.backfill = setTimeout(() => {
       this.backfill().catch((e) => this.log(`backfill: ${motivo(e)}`));
       this.timers.backfillRepe = setInterval(
@@ -154,6 +166,43 @@ class RelojJob {
         this.intervalos.backfillMin * 60000
       );
     }, retrasoBackfillMs);
+  }
+
+  // ── Comandos hacia el reloj (eliminar / renombrar usuarios) ─────────
+  //
+  // Van por la MISMA sesión del vigía y con el MISMO candado (`ocupado`): un ZK
+  // acepta una sola sesión, y un comando encimado con una lectura es lo que lo
+  // deja mudo. Si el candado está tomado (backfill en curso) se espera a la
+  // siguiente vuelta; el comando no se pierde, sigue pendiente en la API.
+  async atenderComandos() {
+    if (!this.corriendo || !this.zk || this.ocupado) return;
+    const pendientes = await this.enviador.comandosPendientes(this.reloj.serie);
+    if (!pendientes.length || !this.zk || this.ocupado) return;
+
+    this.ocupado = true;
+    let sesionRota = false;
+    try {
+      for (const cmd of pendientes) {
+        let resultado;
+        try {
+          resultado = await conLimite(
+            ejecutarComando(this.zk, cmd, (m) => this.log(m)), LIMITE_ESCRITURA_MS, `el comando ${cmd.tipo}`);
+        } catch (e) {
+          // Error de sesión (timeout, socket caído): se reporta, se tira la
+          // sesión y se reconecta. El comando vuelve a pendiente en la API.
+          resultado = { estado: 'error', detalle: `sesión con el reloj: ${motivo(e)}` };
+          sesionRota = true;
+        }
+        this.log(`${resultado.estado === 'hecho' ? '✏️' : '⚠'} ${cmd.tipo} #${cmd.empleadoCodigo}: ${resultado.detalle}`);
+        try { await this.enviador.reportarComando(cmd.id, resultado); }
+        catch (e) { this.log(`no se pudo reportar el comando ${cmd.id}: ${motivo(e)}`); }
+        if (sesionRota) break;
+      }
+    } finally {
+      if (sesionRota) destruirSocket(this.zk);
+      this.ocupado = false;
+    }
+    if (sesionRota && this.corriendo) await this.reconectar('después de un comando');
   }
 
   async detener() {

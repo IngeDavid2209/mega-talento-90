@@ -155,8 +155,11 @@ checadorRouter.get('/empleados', async (req: Request, res: Response) => {
   try {
     const { sucursalId } = req.query as any;
     const { rows } = sucursalId
-      ? await pool.query('SELECT * FROM empleados WHERE sucursal_id=$1 ORDER BY nombre', [sucursalId])
-      : await pool.query('SELECT * FROM empleados ORDER BY nombre');
+      // Los ELIMINADOS no salen en ningún lado, ni en "Ver dadas de baja": su
+      // fila se conserva solo para que el reloj no los vuelva a dar de alta
+      // (ver db/reloj-comandos.sql).
+      ? await pool.query('SELECT * FROM empleados WHERE sucursal_id=$1 AND eliminado_en IS NULL ORDER BY nombre', [sucursalId])
+      : await pool.query('SELECT * FROM empleados WHERE eliminado_en IS NULL ORDER BY nombre');
     res.json(rows.map(mapEmpleado));
   } catch (e) { fallo(res, e, 'No se pudieron leer los empleados.'); }
 });
@@ -173,6 +176,9 @@ checadorRouter.post('/empleados', async (req: Request, res: Response) => {
                        es_promotora=EXCLUDED.es_promotora,
                        -- Solo se pisa si llega algo: ver el comentario del UPDATE.
                        nombre_completo=COALESCE(EXCLUDED.nombre_completo, empleados.nombre_completo),
+                       -- Darla de alta A MANO otra vez es una decisión explícita
+                       -- de RH: deja de estar eliminada.
+                       eliminado_en=NULL, eliminado_por=NULL,
                        departamento=COALESCE(EXCLUDED.departamento, empleados.departamento)
        RETURNING *`,
       [e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.horarioId || null,

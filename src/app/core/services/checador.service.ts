@@ -85,6 +85,20 @@ export interface Incidencia {
   creadoPor?: string; creadoEn?: string;
 }
 
+// ══ CAMBIOS EN LOS RELOJES (eliminar / renombrar) ════════════════
+// El portal deja un comando por reloj; el agente de la plaza lo ejecuta y
+// reporta. Ver api/src/reloj-comandos.ts y api/agente/escritura.js.
+export interface ComandoReloj {
+  id: string; serie: string; alias: string; empleadoCodigo: string;
+  tipo: 'borrar_usuario' | 'renombrar_usuario'; payload: { nombre?: string };
+  estado: 'pendiente' | 'hecho' | 'error' | 'cancelado';
+  intentos: number; detalle: string; creadoPor: string; creadoEn: string; actualizadoEn: string;
+}
+export interface CambiosReloj {
+  relojes: { serie: string; alias: string | null }[];
+  comandos: ComandoReloj[];
+}
+
 export interface SemanaApi {
   inicio: string;
   bolsaInicial: number;
@@ -545,6 +559,22 @@ export class ChecadorService {
   }
   async eliminarIncidencia(id: string): Promise<void> {
     await this.api.delete(`/checador/incidencias/${id}`);
+  }
+
+  // ===================== CAMBIOS EN LOS RELOJES =====================
+  async getCambiosReloj(sucursalId: string, codigo: string): Promise<CambiosReloj> {
+    return this.api.get<CambiosReloj>('/checador/reloj-comandos', { sucursalId, codigo });
+  }
+  /** Elimina del sistema y deja el borrado en cola para cada reloj de la plaza. */
+  async eliminarDefinitivo(sucursalId: string, codigo: string): Promise<{ relojes: number }> {
+    return this.api.post('/checador/reloj-comandos/eliminar', { sucursalId, codigo });
+  }
+  /** Cambia el nombre con el que está enrolada en el reloj (sistema + relojes). */
+  async renombrarEnReloj(sucursalId: string, codigo: string, nombre: string): Promise<{ nombre: string; relojes: number }> {
+    return this.api.post('/checador/reloj-comandos/renombrar', { sucursalId, codigo, nombre });
+  }
+  async cancelarComandoReloj(id: string): Promise<void> {
+    await this.api.post(`/checador/reloj-comandos/${id}/cancelar`, {});
   }
 
   // ===================== ASISTENCIA CON EL HORARIO REAL =====================

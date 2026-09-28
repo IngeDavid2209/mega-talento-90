@@ -128,6 +128,27 @@ class Enviador {
     }
   }
 
+  /**
+   * Los comandos pendientes para un reloj (eliminar/renombrar usuarios). Un
+   * fallo aquí devuelve lista vacía: sin comandos el reloj sigue su vida, y el
+   * comando espera a la siguiente vuelta.
+   */
+  async comandosPendientes(serie) {
+    try {
+      const { res, json } = await this.pedir(
+        `/checador/ingesta/comandos?serie=${encodeURIComponent(serie)}`, { method: 'GET' }, 15000);
+      return res.ok && Array.isArray(json) ? json : [];
+    } catch { return []; }
+  }
+
+  /** Cómo le fue a un comando. Si no sale, el comando sigue pendiente y se reintenta. */
+  async reportarComando(id, resultado) {
+    const { res, txt } = await this.pedir(`/checador/ingesta/comandos/${encodeURIComponent(id)}`, {
+      method: 'POST', body: JSON.stringify(resultado),
+    }, 15000);
+    if (!res.ok) throw new Error(`la API contestó ${res.status}: ${txt.slice(0, 200)}`);
+  }
+
   /** Cuánto esperar antes del siguiente intento, subiendo por el backoff. */
   siguienteEspera() {
     const ms = ESPERAS_MS[Math.min(this.espera, ESPERAS_MS.length - 1)];
