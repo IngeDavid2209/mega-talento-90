@@ -984,3 +984,6 @@
   background: var(--blue-bg); color: var(--blue-text); font-size: 12.5px;
 }
 .fic-aviso-inc > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* La semana del periodo es la que va hoy */
+.ar-semana-hoy { margin-left: 4px; padding: 1px 6px; border-radius: 999px; background: var(--green-bg); color: var(--green-text); font-size: 10.5px; font-style: normal; font-weight: 700; }

@@ -48,8 +48,11 @@
     <!-- En qué semana del año vamos: RH cuenta el año en semanas de nómina. -->
     <div class="ar-field ar-field-semana">
       <label>Semana fiscal</label>
-      <span class="ar-semana" [title]="'Semana de nómina (jueves a miércoles) que va del ' + semanaHoy.inicio + ' al ' + semanaHoy.fin + '. La semana 1 es la que contiene el 1 de enero.'">
-        <b>{{ semanaHoy.numero }}</b> de {{ semanaHoy.total }}
+      <!-- Sigue al PERIODO elegido, no a hoy: si se ven del 10 al 16 de
+           septiembre, dice la 37. Si el periodo abarca varias, dice el tramo. -->
+      <span class="ar-semana" [title]="semanaPeriodo.titulo">
+        <b>{{ semanaPeriodo.numeros }}</b> de {{ semanaPeriodo.total }}
+        @if (semanaPeriodo.esActual) { <em class="ar-semana-hoy">actual</em> }
       </span>
     </div>
 

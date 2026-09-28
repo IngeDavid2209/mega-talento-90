@@ -1375,6 +1375,32 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** La semana en la que vamos hoy. */
   get semanaHoy(): SemanaFiscal { return semanaFiscal(aFechaLocal(new Date()), this.diaCorte); }
 
+  /**
+   * La semana fiscal del PERIODO en pantalla (el recuadro de la barra).
+   *
+   * Mostraba siempre la de HOY: se elegía otra semana en el calendario y el
+   * recuadro seguía diciendo 39. Ahora sigue a las fechas: una semana → "37";
+   * varias → "37–39"; si cruza de año, cada número con su año.
+   */
+  get semanaPeriodo(): { numeros: string; total: number; esActual: boolean; titulo: string } {
+    const hoy = this.semanaHoy;
+    if (!this.desde || !this.hasta) {
+      return { numeros: String(hoy.numero), total: hoy.total, esActual: true, titulo: '' };
+    }
+    const a = semanaFiscal(this.desde, this.diaCorte), b = semanaFiscal(this.hasta, this.diaCorte);
+    const numeros = a.anio !== b.anio ? `${a.numero}/${a.anio}–${b.numero}/${b.anio}`
+      : a.numero === b.numero ? String(a.numero) : `${a.numero}–${b.numero}`;
+    const esActual = b.anio === hoy.anio && b.numero === hoy.numero;
+    const rango = a.numero === b.numero && a.anio === b.anio
+      ? `del ${this.fechaLarga(a.inicio)} al ${this.fechaLarga(a.fin)}`
+      : `de la ${a.numero} (${this.fechaLarga(a.inicio)}) a la ${b.numero} (${this.fechaLarga(b.fin)})`;
+    return {
+      numeros, total: b.total, esActual,
+      titulo: `Semana de nómina (jueves a miércoles) ${rango}. La semana 1 es la que contiene el 1 de enero. ` +
+        `Hoy vamos en la ${hoy.numero}.`,
+    };
+  }
+
   /** "Semana 39" o "Semanas 37 a 39" (con el año si el periodo cruza de año). */
   get semanasDelPeriodo(): string {
     if (!this.desde || !this.hasta) return '';
