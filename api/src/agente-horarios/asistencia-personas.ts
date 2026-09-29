@@ -861,7 +861,7 @@ export async function asistenciaPersonas(
       // Para el reporte calcado: nombre completo y departamento vienen del padrón
       // de RH (sembrado de los reportes). Si no hay, cae al nombre del reloj.
       nombreCompleto: (emp && emp.nombre_completo) || (emp && emp.nombre) || datos?.nombreReloj || cod,
-      departamento: (emp && emp.departamento) || null,
+      departamento: (emp && emp.departamento && String(emp.departamento).trim().toUpperCase()) || null,
       puesto: (emp && emp.puesto) || '',
       fotoUrl: (emp && emp.foto_url) || '',
       registrado: !!emp,

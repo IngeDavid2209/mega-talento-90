@@ -1053,15 +1053,26 @@
           <p class="acc-ayuda">Si cambias el del reloj, el agente lo aplica en los relojes de la plaza.</p>
         }
       } @else {
+        <!-- Una lista con TODOS los departamentos de la sucursal (del padrón),
+             no un texto con sugerencias: esas solo enseñaban el que ya tenía. -->
         <label class="inc-campo">
-          <span>Departamento</span>
-          <input type="text" [(ngModel)]="accEdit.valor" list="acc-deptos" maxlength="60" autocomplete="off"
-                 placeholder="Ej. COMPRAS" (keydown.enter)="guardarAccion()">
-          <datalist id="acc-deptos">
-            @for (d of departamentosDeLaPlaza; track d) { <option [value]="d"></option> }
-          </datalist>
+          <span>Departamento en {{ nombreSucursal(sucursalFiltro) }}</span>
+          <select [(ngModel)]="accEdit.valor">
+            <option value="">SIN DEPARTAMENTO</option>
+            @for (d of deptosDePlaza; track d.nombre) {
+              <option [value]="d.nombre">{{ d.nombre }} ({{ d.n }})</option>
+            }
+            <option [value]="NUEVO_DEPTO">+ Nuevo departamento…</option>
+          </select>
         </label>
-        <p class="acc-ayuda">Déjalo vacío para mandarlo a SIN DEPARTAMENTO.</p>
+        @if (accEdit.valor === NUEVO_DEPTO) {
+          <label class="inc-campo">
+            <span>Nombre del departamento nuevo</span>
+            <input type="text" [(ngModel)]="accEdit.nuevo" maxlength="60" autocomplete="off"
+                   placeholder="Ej. LOGÍSTICA" (keydown.enter)="guardarAccion()">
+          </label>
+        }
+        <p class="acc-ayuda">Actual: <b>{{ deptoActualTexto(accEdit.emp) }}</b>. Se guarda en mayúsculas.</p>
       }
       <div class="inc-acciones">
         <button type="button" class="ar-btn ar-btn-ghost" (click)="accEdit = null">Cancelar</button>

@@ -499,7 +499,8 @@ export class HorariosComponent implements OnInit, OnDestroy {
   editarEmpleado(e: Empleado) {
     // `departamento` siempre viaja (aunque sea vacío): así la API distingue
     // "lo quitaron" de "esta llamada no lo trae" y no lo pisa por accidente.
-    this.empleadoEdit = { ...e, departamento: e.departamento || '' };
+    this.empleadoEdit = { ...e, departamento: (e.departamento || '').trim().toUpperCase() };
+    this.deptoNuevo = '';
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -629,14 +630,22 @@ export class HorariosComponent implements OnInit, OnDestroy {
    * "Compras" cuando ya existe "COMPRAS" partiría la sección en dos, y la lista
    * es lo que lo evita (la API además los guarda en mayúsculas).
    */
-  get departamentosConocidos(): string[] {
-    const s = new Set<string>();
+  get departamentosConocidos(): { nombre: string; n: number }[] {
+    // Los de la SUCURSAL de la ficha que se edita, no los de todas las plazas.
+    const suc = this.empleadoEdit?.sucursalId || this.sucursalFiltro;
+    const m = new Map<string, number>();
     for (const e of this.empleados) {
+      if (e.sucursalId !== suc || e.activo === false || e.esPromotora) continue;
       const d = (e.departamento || '').trim().toUpperCase();
-      if (d) s.add(d);
+      if (d) m.set(d, (m.get(d) || 0) + 1);
     }
-    return [...s].sort((a, b) => a.localeCompare(b, 'es'));
+    const actual = (this.empleadoEdit?.departamento || '').trim().toUpperCase();
+    if (actual && actual !== this.NUEVO_DEPTO && !m.has(actual)) m.set(actual, 1);
+    return [...m.entries()].map(([nombre, n]) => ({ nombre, n })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }
+  readonly NUEVO_DEPTO = '__nuevo__';
+  /** El nombre del departamento nuevo, cuando en la lista se elige "+ Nuevo". */
+  deptoNuevo = '';
 
   /** Cuántas fichas de la plaza no tienen departamento (caen en SIN DEPARTAMENTO). */
   get sinDepartamento(): number {
@@ -682,6 +691,11 @@ export class HorariosComponent implements OnInit, OnDestroy {
     if (!e.nombre.trim() || !e.codigoChecador.trim() || !e.sucursalId) {
       this.toast.alerta('El empleado necesita nombre, código del reloj y sucursal.');
       return;
+    }
+    // "+ Nuevo departamento": se guarda lo que se escribió.
+    if (e.departamento === this.NUEVO_DEPTO) {
+      if (!this.deptoNuevo.trim()) { this.toast.alerta('Escribe el nombre del departamento nuevo.'); return; }
+      e.departamento = this.deptoNuevo.trim().toUpperCase();
     }
     try {
       await this.checador.guardarEmpleado(e);

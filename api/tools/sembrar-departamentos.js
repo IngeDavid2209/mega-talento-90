@@ -38,7 +38,9 @@ const A_SUCURSAL = {
 /** Limpia el nombre del departamento de anotaciones sueltas ("+1", números al final). */
 function limpiarDepto(nom) {
   if (!nom || nom === '(sin nombre)') return null;
-  return nom.replace(/\s*\+\d+\s*$/, '').replace(/\s{2,}/g, ' ').trim() || null;
+  // En MAYÚSCULAS, como los guarda el portal: "Sistemas" y "SISTEMAS" salían
+  // como dos secciones distintas en el reporte (29/09/2026).
+  return nom.replace(/\s*\+\d+\s*$/, '').replace(/\s{2,}/g, ' ').trim().toUpperCase() || null;
 }
 /** Nombre completo en Mayúscula Inicial, quitando basura de cola. */
 function limpiarNombre(nom) {

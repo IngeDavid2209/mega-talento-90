@@ -366,11 +366,19 @@
            partir una sección en dos por una mayúscula. -->
       <div class="hz-field">
         <label>Departamento <small>(sección del reporte)</small></label>
-        <input type="text" [(ngModel)]="empleadoEdit.departamento" list="hz-deptos"
-               placeholder="Ej. COMPRAS" autocomplete="off">
-        <datalist id="hz-deptos">
-          @for (d of departamentosConocidos; track d) { <option [value]="d"></option> }
-        </datalist>
+        <!-- Todos los departamentos de SU sucursal, en una lista: las sugerencias
+             de texto solo enseñaban el que ya tenía escrito. -->
+        <select [(ngModel)]="empleadoEdit.departamento">
+          <option value="">SIN DEPARTAMENTO</option>
+          @for (d of departamentosConocidos; track d.nombre) {
+            <option [value]="d.nombre">{{ d.nombre }} ({{ d.n }})</option>
+          }
+          <option [value]="NUEVO_DEPTO">+ Nuevo departamento…</option>
+        </select>
+        @if (empleadoEdit.departamento === NUEVO_DEPTO) {
+          <input type="text" [(ngModel)]="deptoNuevo" placeholder="Nombre del departamento nuevo" autocomplete="off"
+                 style="margin-top: 6px">
+        }
       </div>
       <!-- Eran dos nombres con una sola casilla, y la etiqueta mentía: decía
            "Nombre completo" pero guardaba en `nombre`, que es el apodo del reloj.

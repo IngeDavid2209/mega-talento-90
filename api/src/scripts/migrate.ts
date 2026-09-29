@@ -21,6 +21,7 @@ async function main() {
     'incidencias.sql',       // vacaciones, permisos, incapacidades… por periodo
     'reloj-comandos.sql',    // cola de cambios hacia los relojes + empleados.eliminado_en
     'papelera-empleados.sql', // cuándo y quién dio de baja (Papelera de empleados)
+    'departamentos-mayusculas.sql', // una sola escritura por departamento
   ];
   const dirDb = join(__dirname, '..', '..', 'db');
   for (const archivo of archivos) {

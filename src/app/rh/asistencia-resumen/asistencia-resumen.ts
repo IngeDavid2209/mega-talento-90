@@ -583,11 +583,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   private agruparPorDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
     const grupos = new Map<string, EmpleadoAsistencia[]>();
     for (const e of this.lista) {
-      // Los practicantes (media jornada ~4 h, o ya marcados como tal en el
-      // padrón) se sacan de su departamento y van a su propia sección.
-      const dep = (e.esPracticante || e.departamento === this.PRACTICANTES)
-        ? this.PRACTICANTES
-        : (e.departamento || this.SIN_DEPTO);
+      // PRACTICANTES: los que RH puso ahí, y los de media jornada (~4 h) que
+      // no tienen departamento. Si RH le asignó uno, ESE manda (29/09/2026):
+      // antes la detección automática lo sacaba de su departamento y el cambio
+      // hecho desde la ficha parecía no funcionar.
+      const asignado = e.departamento && e.departamento !== this.SIN_DEPTO ? e.departamento : '';
+      const dep = asignado || (e.esPracticante ? this.PRACTICANTES : this.SIN_DEPTO);
       // Los códigos enrolados en el reloj que NO están en el padrón de RH y que
       // además no marcaron en el periodo son ruido: no van al reporte. Los que
       // sí marcaron se conservan (en 'SIN DEPARTAMENTO') para que nada se esconda.
@@ -1015,6 +1016,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** El formulario de edición abierto. */
   accEdit: {
     tipo: 'nombre' | 'departamento'; emp: EmpleadoAsistencia; valor: string;
+    /** Departamento: el nombre nuevo cuando se elige "+ Nuevo departamento". */
+    nuevo?: string;
     /** Solo al renombrar: el nombre enrolado en el reloj, y cómo estaba. */
     valorReloj?: string; relojAntes?: string;
   } | null = null;
@@ -1048,6 +1051,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return [...s].sort((a, b) => a.localeCompare(b, 'es'));
   }
 
+  deptoActualTexto(e: EmpleadoAsistencia): string { return this.deptoActual(e) || 'SIN DEPARTAMENTO'; }
+
   private deptoActual(e: EmpleadoAsistencia): string {
     return e.departamento === this.SIN_DEPTO ? '' : e.departamento;
   }
@@ -1058,7 +1063,36 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (!e) return;
     this.accEdit = tipo === 'nombre'
       ? { tipo, emp: e, valor: e.nombreCompleto, valorReloj: e.nombre, relojAntes: e.nombre }
-      : { tipo, emp: e, valor: this.deptoActual(e) };
+      : { tipo, emp: e, valor: this.deptoActual(e), nuevo: '' };
+    if (tipo === 'departamento') this.cargarDeptosDePlaza();
+  }
+
+  /**
+   * TODOS los departamentos de la sucursal, con cuánta gente hay en cada uno.
+   * Salen del PADRÓN de la plaza, no del reporte en pantalla (que solo trae a
+   * quien checó en el periodo). Antes era un campo de texto con sugerencias:
+   * como traía escrito el departamento actual, el navegador solo sugería ese
+   * mismo, y la lista parecía vacía.
+   */
+  deptosDePlaza: { nombre: string; n: number }[] = [];
+  readonly NUEVO_DEPTO = '__nuevo__';
+  private async cargarDeptosDePlaza() {
+    const cuenta = new Map<string, number>();
+    const sumar = (d: string | null | undefined) => {
+      const k = (d || '').trim().toUpperCase();
+      if (k && k !== this.SIN_DEPTO) cuenta.set(k, (cuenta.get(k) || 0) + 1);
+    };
+    try {
+      const fichas = await this.checador.getEmpleadosDeSucursal(this.sucursalFiltro);
+      for (const f of fichas) if (f.activo !== false && !f.esPromotora) sumar(f.departamento);
+    } catch {
+      for (const e of this.lista) sumar(e.departamento);   // sin red: lo que hay en pantalla
+    }
+    const actual = this.accEdit ? this.deptoActual(this.accEdit.emp).toUpperCase() : '';
+    if (actual && !cuenta.has(actual)) cuenta.set(actual, 1);
+    this.deptosDePlaza = [...cuenta.entries()].map(([nombre, n]) => ({ nombre, n }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    if (this.accEdit?.tipo === 'departamento') this.accEdit.valor = actual;
   }
 
   /**
@@ -1101,9 +1135,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const a = this.accEdit;
     if (!a || this.accGuardando) return;
     if (a.tipo === 'nombre') return this.guardarNombres(a);
-    const nuevo = a.valor.trim().replace(/\s+/g, ' ').toUpperCase();
-    const antes = this.deptoActual(a.emp);
-    if (nuevo === antes.toUpperCase()) { this.accEdit = null; return; }
+    const elegido = a.valor === this.NUEVO_DEPTO ? (a.nuevo || '') : a.valor;
+    if (a.valor === this.NUEVO_DEPTO && !elegido.trim()) { this.toast.alerta('Escribe el nombre del departamento nuevo.'); return; }
+    const nuevo = elegido.trim().replace(/\s+/g, ' ').toUpperCase();
+    const antes = this.deptoActual(a.emp).toUpperCase();
+    if (nuevo === antes) { this.accEdit = null; return; }
 
     const ok = await this.toast.confirmar(
       {
@@ -1658,7 +1694,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       codigo: p.codigo,
       nombre: p.nombre || '(sin registrar)',
       nombreCompleto: p.nombreCompleto || p.nombre || '(sin registrar)',
-      departamento: p.departamento || 'SIN DEPARTAMENTO',
+      departamento: (p.departamento || '').trim().toUpperCase() || 'SIN DEPARTAMENTO',
       esPracticante: !!p.esPracticante,
       diasPorFecha,
       fotoUrl: p.fotoUrl,
