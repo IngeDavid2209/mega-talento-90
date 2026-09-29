@@ -36,9 +36,18 @@ interface Personaje extends PersonaEquipo {
 /** El fondo de cada tarjeta, según dónde está la plaza. */
 export type Lugar = 'catedral' | 'abastos' | 'acueducto' | 'kiosco' | 'esquinas' | 'colonia' | 'corporativo' | 'cedis' | 'ciudad';
 
+/** Un departamento dentro de una escena, con su gente. */
+interface GrupoDepto { nombre: string; color: string; personas: Personaje[]; comiendo: number; }
+
 interface Escena extends Omit<EscenaEquipo, 'personas'> {
   plaza: string;
   lugar: Lugar;
+  /**
+   * La gente de la escena, SUBDIVIDIDA POR DEPARTAMENTO (29/09/2026): cada
+   * grupo con su color, y cada persona con su nombre completo, su hora de
+   * llegada y su última checada a la vista, sin tener que pasar el mouse.
+   */
+  departamentos: GrupoDepto[];
   trabajando: Personaje[];
   comiendo: Personaje[];
   sinSalidaNombres: string;
@@ -133,6 +142,7 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
         lugar: this.lugarDe(e),
         trabajando: personajes.filter((p) => p.estado === 'dentro'),
         comiendo: personajes.filter((p) => p.estado === 'comida'),
+        departamentos: this.agrupar(personajes),
         sinSalidaNombres: e.personas.filter((p) => p.estado === 'sin_salida')
           .map((p) => `${p.nombre} (entró ${p.entrada})`).join('\n'),
       };
@@ -140,6 +150,38 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
     this.ubicacionAnterior = ahora;
     return escenas;
   }
+
+  /** Por departamento: el más grande primero; SIN DEPARTAMENTO al final; dentro, por hora de llegada. */
+  private agrupar(personas: Personaje[]): GrupoDepto[] {
+    const m = new Map<string, GrupoDepto>();
+    for (const p of personas) {
+      const nombre = (p.departamento || '').trim().toUpperCase() || 'SIN DEPARTAMENTO';
+      if (!m.has(nombre)) m.set(nombre, { nombre, color: p.color, personas: [], comiendo: 0 });
+      const g = m.get(nombre)!;
+      g.personas.push(p);
+      if (p.estado === 'comida') g.comiendo++;
+    }
+    for (const g of m.values()) g.personas.sort((a, b) => a.entrada.localeCompare(b.entrada) || a.nombre.localeCompare(b.nombre, 'es'));
+    return [...m.values()].sort((a, b) =>
+      (a.nombre === 'SIN DEPARTAMENTO' ? 1 : 0) - (b.nombre === 'SIN DEPARTAMENTO' ? 1 : 0) ||
+      b.personas.length - a.personas.length || a.nombre.localeCompare(b.nombre, 'es'));
+  }
+
+  /** Cuántos se ven por departamento antes de "ver todos". */
+  readonly POR_DEPTO = 8;
+  deptosAbiertos = new Set<string>();
+  claveDepto(e: Escena, g: GrupoDepto) { return `${e.id}|${g.nombre}`; }
+  personasDe(e: Escena, g: GrupoDepto): Personaje[] {
+    const lista = this.buscando
+      ? g.personas.filter((p) => this.coincide(p)).concat(g.personas.filter((p) => !this.coincide(p)))
+      : g.personas;
+    return this.deptosAbiertos.has(this.claveDepto(e, g)) ? lista : lista.slice(0, this.POR_DEPTO);
+  }
+  alternarDepto(e: Escena, g: GrupoDepto) {
+    const k = this.claveDepto(e, g);
+    if (this.deptosAbiertos.has(k)) this.deptosAbiertos.delete(k); else this.deptosAbiertos.add(k);
+  }
+  grupoCoincide(g: GrupoDepto): boolean { return !this.buscando || g.personas.some((p) => this.coincide(p)); }
 
   // ── Presentación ──────────────────────────────────────────────────
 

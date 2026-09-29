@@ -253,6 +253,34 @@
 @keyframes lg-humo { from { opacity: .8; transform: translate(0, 0) scale(.6); } to { opacity: 0; transform: translate(-10px, -8px) scale(1.8); } }
 .lg-humo { transform-box: fill-box; transform-origin: center; }
 
+/* ══ LA GENTE POR DEPARTAMENTO (29/09/2026) ══════════════════════════ */
+.ue-grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+.ue-deptos { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 6px; }
+.ue-depto { border: 1px solid var(--border); border-left: 4px solid var(--slate); border-radius: 12px; padding: 8px 10px 6px; background: var(--surface3); transition: opacity .25s; }
+.ue-depto.tenue { opacity: .35; }
+.ue-depto-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ue-depto-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.ue-depto-head h4 { margin: 0; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; color: var(--ink); text-transform: uppercase; }
+.ue-depto-n { min-width: 22px; height: 20px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #fff; border: 1px solid var(--border); font-size: 11.5px; font-weight: 800; color: var(--ink); }
+.ue-depto-comida { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--amber-text); background: var(--amber-bg); border-radius: 999px; padding: 2px 8px; }
+.ue-gente { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 8px; }
+.ue-persona { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 2px 4px; border-radius: 10px; transition: background .2s, opacity .25s; }
+.ue-persona:hover { background: #fff; }
+.ue-persona.come { background: rgba(249, 239, 214, .7); }
+.ue-persona.tenue { opacity: .3; }
+.ue-persona.hallado { background: var(--blue-bg); }
+.ue-persona.recien { animation: pj-llega 1.6s cubic-bezier(.2, .8, .3, 1) both; }
+.ue-persona .pj { width: 32px; height: 44px; flex: none; }
+.ue-persona .pj svg { width: 32px; height: 42px; }
+.ue-persona .pj.recien { animation: none; }
+.ue-persona-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.ue-persona-nom { font-size: 12px; font-weight: 700; color: var(--ink); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+.ue-persona-horas { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ue-persona-horas b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ue-persona-est { font-style: normal; font-weight: 700; color: var(--amber-text); margin-left: 2px; }
+.ue-depto-mas { margin: 4px 0 2px; border: 0; background: none; padding: 4px 6px; font: inherit; font-size: 12px; font-weight: 700; color: var(--blue-text); cursor: pointer; border-radius: 6px; }
+.ue-depto-mas:hover { background: #fff; }
+
 @media (max-width: 640px) {
   .ue-grid { grid-template-columns: 1fr; }
   .ue-total-n { font-size: 22px; }

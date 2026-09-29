@@ -359,28 +359,46 @@
             }
           </div>
 
-          <!-- ══ Los personajes ══ -->
-          <div class="ue-piso">
-            @if (!e.trabajando.length && !e.comiendo.length) {
+          <!-- ══ La gente, POR DEPARTAMENTO (29/09/2026) ══
+               Cada departamento con su color y cuántos hay; cada persona con su
+               muñequito, nombre completo, a qué hora llegó y su última checada.
+               Quien está comiendo se queda en su departamento, con su taza. -->
+          <div class="ue-deptos">
+            @if (!e.departamentos.length) {
               <p class="ue-nadie">Nadie por ahora</p>
             }
-            <ng-container *ngTemplateOutlet="pjs; context: { lista: visibles(e, e.tipo === 'comedor' ? e.comiendo.concat(e.trabajando) : e.trabajando), e: e }"></ng-container>
-            @if (!abiertas.has(e.id) && (e.tipo === 'comedor' ? e.comiendo.length + e.trabajando.length : e.trabajando.length) > MAX) {
-              <button type="button" class="ue-mas" (click)="alternarEscena(e)">
-                +{{ (e.tipo === 'comedor' ? e.comiendo.length + e.trabajando.length : e.trabajando.length) - MAX }}
-              </button>
-            } @else if (abiertas.has(e.id)) {
-              <button type="button" class="ue-mas" (click)="alternarEscena(e)">ver menos</button>
+            @for (g of e.departamentos; track g.nombre) {
+              <section class="ue-depto" [class.tenue]="buscando && !grupoCoincide(g)" [style.border-left-color]="g.color">
+                <header class="ue-depto-head">
+                  <span class="ue-depto-dot" [style.background]="g.color" aria-hidden="true"></span>
+                  <h4>{{ g.nombre }}</h4>
+                  <span class="ue-depto-n">{{ g.personas.length }}</span>
+                  @if (g.comiendo) { <span class="ue-depto-comida">{{ g.comiendo }} en comida</span> }
+                </header>
+                <ul class="ue-gente">
+                  @for (p of personasDe(e, g); track p.clave) {
+                    <li class="ue-persona" [class.recien]="p.recien" [class.come]="p.estado === 'comida'"
+                        [class.tenue]="buscando && !coincide(p)" [class.hallado]="buscando && coincide(p)">
+                      <ng-container *ngTemplateOutlet="pjs; context: { lista: [p], e: e }"></ng-container>
+                      <div class="ue-persona-txt">
+                        <span class="ue-persona-nom" [title]="p.nombre">{{ p.nombre }}</span>
+                        <span class="ue-persona-horas">
+                          Llegó <b>{{ p.entrada }}</b>
+                          @if (p.ultima !== p.entrada) { · marcó <b>{{ p.ultima }}</b> }
+                          @if (p.estado === 'comida') { <em class="ue-persona-est">en comida</em> }
+                        </span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+                @if (g.personas.length > POR_DEPTO) {
+                  <button type="button" class="ue-depto-mas" (click)="alternarDepto(e, g)">
+                    {{ deptosAbiertos.has(claveDepto(e, g)) ? 'Ver menos' : 'Ver los ' + g.personas.length }}
+                  </button>
+                }
+              </section>
             }
           </div>
-
-          <!-- En una plaza de un solo reloj, quien salió a comer espera en su mesita. -->
-          @if (e.tipo !== 'comedor' && e.comiendo.length) {
-            <div class="ue-rincon">
-              <span class="ue-rincon-lbl">En comida</span>
-              <ng-container *ngTemplateOutlet="pjs; context: { lista: e.comiendo, e: e }"></ng-container>
-            </div>
-          }
 
           <footer class="ue-esc-pie">
             @if (e.salieron) { <span class="ue-chip">{{ e.salieron }} ya salieron</span> }
