@@ -442,6 +442,28 @@ class RelojJob {
 
   async vaciarColaInterno(extra = {}) {
     let total = 0;
+    // ══ LA LISTA DE USUARIOS VIAJA AUNQUE NO HAYA CHECADAS (29/09/2026) ══
+    // Antes solo iba pegada al primer lote con checadas: si el respaldo no
+    // traía checadas nuevas, la lista no se mandaba, y quien se acababa de
+    // registrar en el reloj no aparecía en el sistema hasta que coincidiera un
+    // respaldo con marcas nuevas (Ale #100 tardó casi tres meses). Ahora, sin
+    // checadas pendientes, sale un lote vacío que solo trae el padrón.
+    if (extra.usuarios && extra.usuarios.length && !this.cola.pendientes(this.reloj.serie, 1).length) {
+      await this.enviador.enviarLote({
+        serie: this.reloj.serie,
+        ip: this.reloj.ip,
+        origen: 'agente',
+        infoReloj: this.infoReloj ? {
+          logCounts: this.infoReloj.logCounts,
+          userCounts: this.infoReloj.userCounts,
+          horaReloj: this.horaReloj ? this.horaReloj.toISOString() : undefined,
+        } : undefined,
+        usuarios: extra.usuarios,
+        checadas: [],
+        completa: !!extra.completa,
+      });
+      return 0;
+    }
     for (;;) {
       const filas = this.cola.pendientes(this.reloj.serie, TAM_LOTE);
       if (!filas.length) break;

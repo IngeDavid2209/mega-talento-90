@@ -310,6 +310,64 @@ export async function aplicarLote(lote: LoteEntrante): Promise<ResultadoLote> {
   // son ~50 mil registros, y archivarlos cada hora llenaría la base con una
   // copia de lo que ya está en `checadas`. Se guarda solo cuando NO se pudo
   // aplicar, que es justo cuando hace falta para reprocesar.
+  // ══ QUIEN CHECA, EXISTE (29/09/2026) ════════════════════════════
+  //
+  // Dos huecos por los que gente nueva no aparecía en el sistema:
+  //
+  //  1. La ficha solo se abría con la LISTA de usuarios del reloj, y el agente
+  //     solo mandaba esa lista pegada a un lote con checadas. Un código que
+  //     checaba sin que la lista llegara quedaba sin ficha: Ale (#100, Morelia
+  //     Vicente Guerrero) checó desde el 2 de julio y su ficha nació el 25 de
+  //     septiembre. Ahora, si un código checa y no tiene ficha, se le abre aquí.
+  //
+  //  2. Un número que se reutiliza: la depuración del padrón (21/08/2026) dio de
+  //     baja a quien llevaba meses sin checar, y su número quedó en
+  //     `padron_depurado`. Si ese número vuelve a checar DESPUÉS de la
+  //     depuración, alguien está trabajando con él —la persona que volvió o una
+  //     nueva— y dejarlo en la papelera lo escondía de todo: Jose (#49, PH) y
+  //     Vanessa (#210, Morelia Abastos). Se reactiva.
+  //
+  //  Lo que NO se toca: una baja que dio RH a mano (`baja_por` con su correo),
+  //  una persona eliminada, y las cuentas de administrador del reloj.
+  if (filas.length) {
+    const ultimaPorCodigo = new Map<string, string>();
+    for (const c of filas) {
+      const cod = codigoFinal(c.codigo);
+      const f = c.fecha || '';
+      if (!ultimaPorCodigo.has(cod) || f > ultimaPorCodigo.get(cod)!) ultimaPorCodigo.set(cod, f);
+    }
+    const cods = [...ultimaPorCodigo.keys()];
+    const fechas = cods.map((c) => ultimaPorCodigo.get(c)!);
+    const noms = cods.map((c) => nombres.get(c) || `Empleado ${c}`);
+    await pool.query(
+      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo)
+       SELECT $1, u.cod, u.nom, NOT EXISTS (
+                SELECT 1 FROM padron_depurado d WHERE d.sucursal_id = $1 AND d.codigo_checador = u.cod)
+         FROM unnest($2::text[], $3::text[]) AS u(cod, nom)
+       ON CONFLICT (sucursal_id, codigo_checador) DO NOTHING`,
+      [sucursalId, cods, noms]);
+    const { rows: reactivados } = await pool.query(
+      `WITH candidatos AS (
+         SELECT u.cod FROM unnest($2::text[], $3::text[]) AS u(cod, fecha)
+           JOIN padron_depurado d ON d.sucursal_id = $1 AND d.codigo_checador = u.cod
+          WHERE u.fecha > to_char(d.depurado_en AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD')
+       ), activados AS (
+         UPDATE empleados e SET activo = TRUE, baja_en = NULL, baja_por = NULL
+          WHERE e.sucursal_id = $1 AND e.codigo_checador IN (SELECT cod FROM candidatos)
+            AND e.activo = FALSE AND e.eliminado_en IS NULL AND e.baja_por IS NULL
+            AND e.nombre !~* '^\\s*admin'
+         RETURNING e.codigo_checador, e.nombre
+       ), borrados AS (
+         DELETE FROM padron_depurado d USING activados a
+          WHERE d.sucursal_id = $1 AND d.codigo_checador = a.codigo_checador
+       )
+       SELECT codigo_checador, nombre FROM activados`,
+      [sucursalId, cods, fechas]);
+    for (const r of reactivados) {
+      console.log(`[ingesta] ${sucursalId} #${r.codigo_checador} "${r.nombre}" volvió a checar después de la depuración: se reactiva.`);
+    }
+  }
+
   const { rows: loteRows } = await pool.query(
     `INSERT INTO ingesta_lotes (serie, origen, registros, aceptados, crudo, error)
      VALUES ($1,$2,$3,$4,NULL,NULL) RETURNING id`,
