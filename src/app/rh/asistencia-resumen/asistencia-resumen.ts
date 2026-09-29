@@ -179,7 +179,7 @@ interface Rebasado {
   standalone: true,
   imports: [CommonModule, FormsModule, SucursalSelectComponent],
   templateUrl: './asistencia-resumen.html',
-  styleUrl: './asistencia-resumen.css'
+  styleUrls: ['./asistencia-resumen.css', './asistencia-resumen.extra.css']
 })
 export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges {
   private checador = inject(ChecadorService);
