@@ -66,7 +66,11 @@
 .ue-esc-n { flex: none; min-width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; border-radius: 12px; background: var(--brand-bg); color: var(--ink); font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* La ilustración */
-.ue-escenario { position: relative; margin: 0 12px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, var(--cielo-1), var(--cielo-2)); }
+/* El suelo va en el fondo de la caja y no solo en el dibujo: el dibujo se
+   escala sin recortarse (para que el letrero nunca se corte), y en tarjetas
+   anchas deja margen a los lados; así el suelo llega de orilla a orilla. */
+.ue-escenario { position: relative; margin: 0 12px; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, var(--cielo-1), var(--cielo-2) calc(100% - 11px), #D7DEE8 calc(100% - 11px)); }
 .ue-escenario svg { display: block; width: 100%; height: 118px; }
 .ue-suelo { fill: #D7DEE8; }
 .ue-muro { fill: var(--muro); stroke: var(--linea); stroke-width: 1.2; }
@@ -149,6 +153,57 @@
 .pj-tip .pj-tip-est { margin-top: 3px; align-self: flex-start; padding: 1px 8px; border-radius: 999px; background: var(--green); color: #fff; font-weight: 700; }
 .pj-tip .pj-tip-est.come { background: var(--amber); }
 .pj:hover .pj-tip, .pj:focus-visible .pj-tip, .pj.abierto .pj-tip { display: flex; }
+
+/* ══ SUCURSAL MEGA DULCES DE LOS ALTOS (29/09/2026) ══════════════════
+   Colores del logo: amarillo #FFD21F con orilla naranja #EE7D00, letras
+   negras, cinta blanca; y el azul marino de la marca (#1A2F4E). */
+.ue-esc[data-tipo="tienda"] { --cielo-1: #FFF1BF; --cielo-2: #FFFBEB; }
+.md-muro { fill: #FFF8EC; stroke: #E8D6B8; stroke-width: 1.2; }
+.md-cornisa, .md-zoclo { fill: #1A2F4E; }
+.md-toldo { fill: #FFC61A; }
+.md-toldo.alt { fill: #F28C1B; }
+.md-aparador { fill: #E6EEF7; stroke: #1A2F4E; stroke-width: 1.6; transition: fill .6s; }
+.md.on .md-aparador { fill: #FFF3C2; }
+.md-frasco rect { fill: rgba(255, 255, 255, .75); stroke: #9FB6D4; stroke-width: 1; }
+.d1 { fill: #E0413A; } .d2 { fill: #2FA36B; } .d3 { fill: #EC6FB0; } .d4 { fill: #3C7BE0; }
+.md-palito { fill: #F4F1EA; stroke: #C9C1B2; stroke-width: .6; }
+.md-paleta-base { fill: #FF5C8A; stroke: #fff; stroke-width: 1.2; }
+.md-paleta-espiral { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; }
+.md-paleta { transform-box: fill-box; transform-origin: center; }
+.md.on .md-paleta { animation: md-gira 6s linear infinite; }
+@keyframes md-gira { to { transform: rotate(360deg); } }
+.md-puerta { fill: #1A2F4E; }
+.md-vidrio { fill: #9FB6D4; }
+.md.on .md-vidrio { fill: #FFE7A3; }
+.md-abierto { fill: #fff; }
+.md-abierto-txt { fill: #8A95A8; font-size: 3.9px; font-weight: 800; text-anchor: middle; letter-spacing: .05em; font-family: 'DM Sans', system-ui, sans-serif; }
+.md.on .md-abierto-txt { fill: #1F7A4C; }
+.md-perilla { fill: #FFC61A; }
+.md-ovalo-borde { fill: #EE7D00; }
+.md-ovalo { fill: #FFD21F; }
+.md-ovalo-brillo { fill: #FFF3A6; opacity: .75; }
+.md-logo { fill: #111; font-size: 13.5px; font-weight: 900; font-style: italic; text-anchor: middle; letter-spacing: -.02em; font-family: 'DM Sans', Arial Black, system-ui, sans-serif; }
+.md-cinta { fill: #fff; stroke: #1B1B1B; stroke-width: .8; }
+.md-cinta-txt { fill: #111; font-size: 6.4px; font-weight: 700; text-anchor: middle; font-family: 'DM Sans', system-ui, sans-serif; }
+.md-letrero { transform-box: fill-box; transform-origin: center; }
+.md.on .md-letrero { animation: md-brilla 3.2s ease-in-out infinite; }
+@keyframes md-brilla {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 198, 26, 0)); }
+  50% { filter: drop-shadow(0 0 6px rgba(255, 198, 26, .95)); }
+}
+.md:not(.on) .md-ovalo { fill: #E9D98A; }
+.md:not(.on) .md-ovalo-borde { fill: #C9A06A; }
+.md-caramelo path { fill: #F28C1B; }
+.md-caramelo ellipse { fill: #FFC61A; stroke: #EE7D00; stroke-width: .8; }
+.md-caramelo.c2 path { fill: #EC6FB0; } .md-caramelo.c2 ellipse { fill: #FF9ACB; stroke: #D8559A; }
+.md-caramelo.c3 path { fill: #2FA36B; } .md-caramelo.c3 ellipse { fill: #7FD3A8; stroke: #2F8F5F; }
+.md-flotan { opacity: 0; transition: opacity .6s; }
+.md-flotan.on { opacity: 1; }
+.md-flotan.on .md-caramelo { animation: md-flota 4.5s ease-in-out infinite; }
+.md-flotan.on .md-caramelo.c2 { animation-delay: -1.5s; animation-duration: 5.2s; }
+.md-flotan.on .md-caramelo.c3 { animation-delay: -3s; animation-duration: 3.9s; }
+@keyframes md-flota { 0%, 100% { translate: 0 0; rotate: -8deg; } 50% { translate: 0 -6px; rotate: 10deg; } }
+.md-caramelo { transform-box: fill-box; transform-origin: center; }
 
 @media (max-width: 640px) {
   .ue-grid { grid-template-columns: 1fr; }

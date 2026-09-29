@@ -86,7 +86,7 @@
 
           <!-- ══ La ilustración de cada reloj, según su tipo ══ -->
           <div class="ue-escenario" aria-hidden="true">
-            <svg class="ue-cielo-nubes" viewBox="0 0 320 110" preserveAspectRatio="xMidYMax slice">
+            <svg class="ue-cielo-nubes" viewBox="0 0 320 110" preserveAspectRatio="xMidYMax meet">
               <g class="ue-nube"><ellipse cx="60" cy="24" rx="20" ry="7"/><ellipse cx="74" cy="20" rx="13" ry="8"/></g>
               <g class="ue-nube ue-nube-2"><ellipse cx="250" cy="30" rx="16" ry="6"/><ellipse cx="262" cy="26" rx="10" ry="6"/></g>
               <rect x="0" y="100" width="320" height="10" class="ue-suelo"/>
@@ -111,18 +111,73 @@
                   <g class="ue-arbol" transform="translate(246 62)"><rect x="6" y="22" width="4" height="16" class="ue-tronco"/><circle cx="8" cy="16" r="14" class="ue-copa"/></g>
                 }
                 @case ('tienda') {
-                  <g transform="translate(96 30)">
-                    <rect x="0" y="12" width="128" height="58" rx="4" class="ue-muro"/>
-                    <rect x="14" y="0" width="100" height="14" rx="4" class="ue-letrero"/>
-                    <text x="64" y="10.5" class="ue-letrero-txt">ABIERTO</text>
-                    @for (i of [0,1,2,3,4,5,6,7]; track i) {
-                      <path [attr.d]="'M' + (i * 16) + ' 16h16l-3 12h-10z'" class="ue-toldo" [class.alt]="i % 2 === 1"/>
+                  <!-- ══ SUCURSAL MEGA DULCES DE LOS ALTOS ══
+                       La fachada lleva la marca: el letrero es el logo (óvalo
+                       amarillo con orilla naranja, "Mega Dulces" en negro y la
+                       cinta blanca "De Los Altos"), el toldo va en amarillo y
+                       naranja, y el aparador está lleno de dulces. Con gente
+                       adentro, el letrero brilla, la paleta gira y la puerta
+                       dice ABIERTO. -->
+                  <g class="md" [class.on]="e.trabajando.length + e.comiendo.length > 0" transform="translate(88 14)">
+                    <!-- Muro y cornisa -->
+                    <rect x="0" y="22" width="144" height="64" rx="3" class="md-muro"/>
+                    <rect x="-4" y="19" width="152" height="6" rx="3" class="md-cornisa"/>
+                    <rect x="0" y="82" width="144" height="4" class="md-zoclo"/>
+
+                    <!-- Toldo amarillo y naranja -->
+                    @for (i of [0,1,2,3,4,5,6,7,8]; track i) {
+                      <path [attr.d]="'M' + (i * 16) + ' 25h16l-3 11h-10z'" class="md-toldo" [class.alt]="i % 2 === 1"/>
                     }
-                    <rect x="12" y="34" width="46" height="30" rx="2" class="ue-ventana ue-aparador" [class.luz]="e.trabajando.length > 0"/>
-                    <rect x="74" y="34" width="24" height="36" rx="2" class="ue-puerta"/>
-                    <rect x="104" y="34" width="16" height="16" rx="2" class="ue-ventana" [class.luz]="e.trabajando.length > 2"/>
+
+                    <!-- Aparador con dulces -->
+                    <rect x="8" y="40" width="64" height="40" rx="2" class="md-aparador"/>
+                    <g class="md-frasco" transform="translate(14 56)">
+                      <rect width="14" height="20" rx="3"/>
+                      <circle cx="4" cy="14" r="2.4" class="d1"/><circle cx="9.5" cy="15" r="2.4" class="d2"/>
+                      <circle cx="6.5" cy="9.5" r="2.4" class="d3"/><circle cx="10" cy="5" r="2.2" class="d4"/>
+                    </g>
+                    <g class="md-frasco" transform="translate(52 58)">
+                      <rect width="14" height="18" rx="3"/>
+                      <circle cx="4" cy="12.5" r="2.4" class="d4"/><circle cx="9.5" cy="13.5" r="2.4" class="d1"/>
+                      <circle cx="7" cy="7.5" r="2.4" class="d2"/>
+                    </g>
+                    <g transform="translate(40 50)">
+                      <rect x="-1" y="6" width="2" height="22" class="md-palito"/>
+                      <g class="md-paleta">
+                        <circle r="8" class="md-paleta-base"/>
+                        <path d="M0 0 m-5.5 0 a5.5 5.5 0 1 1 5.5 5.5 a3.6 3.6 0 1 1 -3.6 -3.6 a1.8 1.8 0 1 1 1.8 1.8" class="md-paleta-espiral"/>
+                      </g>
+                    </g>
+
+                    <!-- Puerta con letrero -->
+                    <rect x="82" y="40" width="28" height="46" rx="2" class="md-puerta"/>
+                    <rect x="86" y="44" width="20" height="26" rx="1.5" class="md-vidrio"/>
+                    <rect x="87.5" y="52" width="17" height="7" rx="1.5" class="md-abierto"/>
+                    <text x="96" y="57.2" class="md-abierto-txt">{{ e.trabajando.length + e.comiendo.length > 0 ? 'ABIERTO' : 'CERRADO' }}</text>
+                    <circle cx="105" cy="74" r="1.3" class="md-perilla"/>
+
+                    <!-- Ventanita -->
+                    <rect x="118" y="40" width="20" height="20" rx="2" class="md-aparador"/>
+                    <circle cx="125" cy="52" r="2.6" class="d3"/><circle cx="131" cy="49" r="2.6" class="d1"/>
+
+                    <!-- El letrero: el logo -->
+                    <g class="md-letrero" transform="rotate(-5 72 8)">
+                      <ellipse cx="72" cy="8" rx="47" ry="17.5" class="md-ovalo-borde"/>
+                      <ellipse cx="72" cy="8" rx="44" ry="15" class="md-ovalo"/>
+                      <ellipse cx="62" cy="1" rx="26" ry="6" class="md-ovalo-brillo"/>
+                      <text x="72" y="10.5" class="md-logo">Mega Dulces</text>
+                      <rect x="42" y="14.5" width="60" height="9" rx="3" class="md-cinta"/>
+                      <text x="72" y="21.4" class="md-cinta-txt">De Los Altos</text>
+                    </g>
                   </g>
-                  <g class="ue-arbol" transform="translate(40 62)"><rect x="6" y="22" width="4" height="16" class="ue-tronco"/><circle cx="8" cy="16" r="14" class="ue-copa"/></g>
+
+                  <!-- Dulces que flotan cuando la tienda está abierta -->
+                  <g class="md-flotan" [class.on]="e.trabajando.length + e.comiendo.length > 0">
+                    <g class="md-caramelo" transform="translate(48 58)"><path d="M-7 -3 l3 3 l-3 3z M7 -3 l-3 3 l3 3z"/><ellipse rx="4.5" ry="3.2"/></g>
+                    <g class="md-caramelo c2" transform="translate(270 50)"><path d="M-7 -3 l3 3 l-3 3z M7 -3 l-3 3 l3 3z"/><ellipse rx="4.5" ry="3.2"/></g>
+                    <g class="md-caramelo c3" transform="translate(292 74)"><path d="M-7 -3 l3 3 l-3 3z M7 -3 l-3 3 l3 3z"/><ellipse rx="4.5" ry="3.2"/></g>
+                  </g>
+                  <g class="ue-arbol" transform="translate(30 62)"><rect x="6" y="22" width="4" height="16" class="ue-tronco"/><circle cx="8" cy="16" r="14" class="ue-copa"/></g>
                 }
                 @case ('bodega') {
                   <g transform="translate(80 26)">
