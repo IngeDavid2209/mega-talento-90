@@ -63,10 +63,11 @@ function respaldoDe(u) {
 async function ejecutarComando(zk, cmd, log = () => {}) {
   const codigo = String(cmd.empleadoCodigo || '').trim();
   if (!codigo) return { estado: 'error', detalle: 'el comando no trae código de empleado' };
-  if (cmd.tipo !== 'borrar_usuario' && cmd.tipo !== 'renombrar_usuario') {
+  if (!['borrar_usuario', 'renombrar_usuario', 'restaurar_usuario'].includes(cmd.tipo)) {
     return { estado: 'error', detalle: `tipo de comando desconocido: ${cmd.tipo}` };
   }
   const tcp = zk.zklibTcp;
+  if (cmd.tipo === 'restaurar_usuario') return restaurar(zk, tcp, cmd, codigo, log);
 
   // 1) Lectura fresca: ¿está, y con qué uid?
   const antes = await leerUsuariosCrudos(zk);
@@ -125,6 +126,51 @@ async function ejecutarComando(zk, cmd, log = () => {}) {
   return quedo === nombreNuevo
     ? { estado: 'hecho', detalle: `renombrado y verificado: "${u.name}" → "${quedo}"`, respaldo }
     : { estado: 'error', detalle: `el reloj aceptó pero quedó "${quedo}" en vez de "${nombreNuevo}"`, respaldo };
+}
+
+/**
+ * REGRESAR DE LA PAPELERA: vuelve a dar de alta en el reloj a alguien que se
+ * borró antes, con el registro de 72 bytes que se respaldó al borrarlo.
+ *
+ * Tres cuidados:
+ *   · Si ya está en el reloj (alguien lo volvió a enrolar a mano), no se toca.
+ *   · Si su lugar interno (uid) lo ocupa OTRA persona, no se escribe: pisarlo
+ *     sería borrarle el registro a esa otra persona. Se reporta para verlo a mano.
+ *   · La huella y el rostro NO vienen en el respaldo: la persona queda dada de
+ *     alta con su número, nombre, tarjeta y contraseña, y hay que registrarle la
+ *     huella otra vez en el equipo.
+ */
+async function restaurar(zk, tcp, cmd, codigo, log) {
+  const r = cmd.payload && cmd.payload.respaldo;
+  if (!r || !r.crudo) return { estado: 'error', detalle: 'el comando no trae el respaldo del usuario' };
+  const registro = Buffer.from(r.crudo, 'base64');
+  if (registro.length !== 72) return { estado: 'error', detalle: `el respaldo mide ${registro.length} bytes, se esperaban 72` };
+
+  const antes = await leerUsuariosCrudos(zk);
+  if (antes.some((u) => String(u.userId).trim() === codigo)) {
+    return { estado: 'hecho', detalle: 'ya estaba dado de alta en este reloj (nada que restaurar)' };
+  }
+  const ocupa = antes.find((u) => u.uid === r.uid);
+  if (ocupa) {
+    return { estado: 'error', detalle: `su lugar en el reloj (uid ${r.uid}) ya lo ocupa #${ocupa.userId} "${ocupa.name}"; darlo de alta a mano` };
+  }
+
+  await tcp.disableDevice();
+  let respuesta;
+  try {
+    respuesta = await tcp.executeCmd(COMMANDS.CMD_USER_WRQ, registro);
+    if (aceptado(respuesta)) await tcp.executeCmd(COMMANDS.CMD_REFRESHDATA, '');
+  } finally {
+    try { await tcp.enableDevice(); } catch (e) { log(`⚠ no se pudo reactivar el equipo tras escribir: ${e.message}`); throw e; }
+  }
+  if (!aceptado(respuesta)) {
+    return { estado: 'error', detalle: `el reloj rechazó el alta (respuesta ${codigoRespuesta(respuesta)})` };
+  }
+  const despues = await leerUsuariosCrudos(zk);
+  const ahora = despues.find((u) => String(u.userId).trim() === codigo);
+  return ahora
+    ? { estado: 'hecho', detalle: `dado de alta otra vez como "${ahora.name}" (uid ${ahora.uid}); falta registrar su huella en el equipo` }
+    : { estado: 'error', detalle: 'el reloj aceptó el alta pero la persona no aparece al volver a leer' };
 }
 
 module.exports = { ejecutarComando, nombreParaReloj };

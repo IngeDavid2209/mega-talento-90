@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from './db';
-import { requireAuth } from './auth';
+import { requireAuth, AuthedRequest } from './auth';
 
 /**
  * Router del módulo Horarios y checadas. Todo protegido con JWT.
@@ -38,7 +38,9 @@ const mapEmpleado = (r: any) => ({
   horarioId: r.horario_id || '', activo: r.activo,
   // Promotora = no es personal de piso y no se mide con la vara de asistencia
   // de la sucursal. Ver api/db/schema.sql y el filtro en agente-horarios/.
-  esPromotora: r.es_promotora === true
+  esPromotora: r.es_promotora === true,
+  // Cuándo y quién la dio de baja (Papelera de empleados).
+  bajaEn: r.baja_en || null, bajaPor: r.baja_por || '',
 });
 const mapChecada = (r: any) => ({
   id: r.id, sucursalId: r.sucursal_id, areaId: r.area_id || undefined,
@@ -164,15 +166,18 @@ checadorRouter.get('/empleados', async (req: Request, res: Response) => {
   } catch (e) { fallo(res, e, 'No se pudieron leer los empleados.'); }
 });
 
-checadorRouter.post('/empleados', async (req: Request, res: Response) => {
+checadorRouter.post('/empleados', async (req: AuthedRequest, res: Response) => {
   try {
     const e = req.body || {};
     const { rows } = await pool.query(
-      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, nombre_completo, puesto, foto_url, horario_id, activo, es_promotora, departamento)
-       VALUES ($1,$2,$3,NULLIF(btrim($9),''),$4,$5,$6,$7,$8,NULLIF(upper(btrim($10)),''))
+      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, nombre_completo, puesto, foto_url, horario_id, activo, es_promotora, departamento, baja_en, baja_por)
+       VALUES ($1,$2,$3,NULLIF(btrim($9),''),$4,$5,$6,$7,$8,NULLIF(upper(btrim($10)),''),
+               CASE WHEN $7 THEN NULL ELSE now() END, CASE WHEN $7 THEN NULL ELSE $11 END)
        ON CONFLICT (sucursal_id, codigo_checador)
          DO UPDATE SET nombre=EXCLUDED.nombre, puesto=EXCLUDED.puesto, foto_url=EXCLUDED.foto_url,
                        horario_id=EXCLUDED.horario_id, activo=EXCLUDED.activo,
+                       baja_en=CASE WHEN EXCLUDED.activo THEN NULL WHEN empleados.activo THEN now() ELSE empleados.baja_en END,
+                       baja_por=CASE WHEN EXCLUDED.activo THEN NULL WHEN empleados.activo THEN $11 ELSE empleados.baja_por END,
                        es_promotora=EXCLUDED.es_promotora,
                        -- Solo se pisa si llega algo: ver el comentario del UPDATE.
                        nombre_completo=COALESCE(EXCLUDED.nombre_completo, empleados.nombre_completo),
@@ -182,7 +187,8 @@ checadorRouter.post('/empleados', async (req: Request, res: Response) => {
                        departamento=COALESCE(EXCLUDED.departamento, empleados.departamento)
        RETURNING *`,
       [e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.horarioId || null,
-       e.activo !== false, e.esPromotora === true, e.nombreCompleto ?? null, e.departamento ?? null]
+       e.activo !== false, e.esPromotora === true, e.nombreCompleto ?? null, e.departamento ?? null,
+       req.usuario?.email || null]
     );
     res.json(mapEmpleado(rows[0]));
   } catch (err) { fallo(res, err, 'No se pudo guardar el empleado.'); }
@@ -197,7 +203,7 @@ checadorRouter.post('/empleados', async (req: Request, res: Response) => {
  * a un empleado ya dado de alta no guardaba nada. Se descubrió al agregar la
  * marca de promotora, que se guarda justamente por esta ruta.
  */
-const actualizarEmpleado = async (req: Request, res: Response) => {
+const actualizarEmpleado = async (req: AuthedRequest, res: Response) => {
   try {
     const e = req.body || {};
     const { rows } = await pool.query(
@@ -216,11 +222,16 @@ const actualizarEmpleado = async (req: Request, res: Response) => {
       `UPDATE empleados SET sucursal_id=$2, codigo_checador=$3, nombre=$4, puesto=$5,
               foto_url=$6, horario_id=$7, activo=$8, es_promotora=$9,
               nombre_completo=COALESCE(NULLIF(btrim($10),''), nombre_completo),
-              departamento=CASE WHEN $11::boolean THEN NULLIF(upper(btrim($12)),'') ELSE departamento END
+              departamento=CASE WHEN $11::boolean THEN NULLIF(upper(btrim($12)),'') ELSE departamento END,
+              -- La baja deja rastro (Papelera de empleados). En el SET, \`activo\`
+              -- todavía es el valor de ANTES: así se sabe si esto es una baja nueva.
+              baja_en=CASE WHEN $8 THEN NULL WHEN activo THEN now() ELSE baja_en END,
+              baja_por=CASE WHEN $8 THEN NULL WHEN activo THEN $13 ELSE baja_por END
        WHERE id=$1 RETURNING *`,
       [req.params.id, e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null,
        e.fotoUrl || null, e.horarioId || null, e.activo !== false, e.esPromotora === true,
-       e.nombreCompleto ?? null, e.departamento !== undefined, e.departamento ?? '']
+       e.nombreCompleto ?? null, e.departamento !== undefined, e.departamento ?? '',
+       req.usuario?.email || null]
     );
     if (!rows.length) return res.status(404).json({ error: 'Empleado no encontrado.' });
     res.json(mapEmpleado(rows[0]));
@@ -229,11 +240,40 @@ const actualizarEmpleado = async (req: Request, res: Response) => {
 checadorRouter.put('/empleados/:id', actualizarEmpleado);
 checadorRouter.patch('/empleados/:id', actualizarEmpleado);
 
-checadorRouter.delete('/empleados/:id', async (req: Request, res: Response) => {
+// ══ NO SE BORRA A NADIE (29/09/2026) ══
+// RH quitó el borrado: a quien ya no trabaja se le da de BAJA y se va a la
+// Papelera de empleados, de donde se le puede regresar. La ruta DELETE se quitó
+// a propósito, no solo el botón: esconder un botón no impide llamar a la ruta.
+// (Además, borrar la fila nunca sirvió: la ingesta la recreaba en minutos.)
+
+/**
+ * GET /checador/empleados/papelera — la Papelera de empleados, de TODAS las
+ * plazas: los dados de baja y los que se eliminaron antes de que se quitara el
+ * botón. Con su última checada, para decidir si alguien debe regresar.
+ */
+checadorRouter.get('/empleados/papelera', async (_req: Request, res: Response) => {
   try {
-    await pool.query('DELETE FROM empleados WHERE id=$1', [req.params.id]);
-    res.json({ ok: true });
-  } catch (err) { fallo(res, err, 'No se pudo eliminar el empleado.'); }
+    const { rows } = await pool.query(
+      `SELECT e.*, u.ultima AS ultima_checada,
+              EXISTS (SELECT 1 FROM reloj_comandos c
+                       WHERE c.sucursal_id = e.sucursal_id AND c.empleado_codigo = e.codigo_checador
+                         AND c.tipo = 'borrar_usuario' AND c.estado = 'hecho' AND c.respaldo IS NOT NULL
+                         AND c.actualizado_en >= COALESCE(e.eliminado_en, 'epoch')) AS borrado_de_reloj
+         FROM empleados e
+         LEFT JOIN LATERAL (
+           SELECT max(fecha) AS ultima FROM checadas c
+            WHERE c.sucursal_id = e.sucursal_id AND c.empleado_codigo = e.codigo_checador
+         ) u ON TRUE
+        WHERE e.activo = FALSE OR e.eliminado_en IS NOT NULL
+        ORDER BY COALESCE(e.eliminado_en, e.baja_en) DESC NULLS LAST, e.sucursal_id, e.nombre`);
+    res.json(rows.map((r: any) => ({
+      ...mapEmpleado(r),
+      ultimaChecada: r.ultima_checada || null,
+      eliminadoEn: r.eliminado_en || null,
+      eliminadoPor: r.eliminado_por || '',
+      borradoDeReloj: r.borrado_de_reloj === true,
+    })));
+  } catch (err) { fallo(res, err, 'No se pudo leer la papelera de empleados.'); }
 });
 
 // ===================== CHECADAS =====================

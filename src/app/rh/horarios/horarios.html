@@ -21,7 +21,7 @@
   <!-- En Cruces se esconde: esa vista mira TODAS las plazas, y dejar el
        selector puesto haría leer la lista como si fuera de la plaza elegida
        y estuviera incompleta. -->
-  @if (tabActiva !== 'cruces' && tabActiva !== 'equipo') {
+  @if (tabActiva !== 'cruces' && tabActiva !== 'equipo' && tabActiva !== 'papelera') {
   <div class="hz-toolbar">
     <div class="hz-field">
       <label>Sucursal</label>
@@ -55,6 +55,8 @@
       @if (totalCruces) { <span class="hz-tab-num hz-tab-alerta">{{ totalCruces }}</span> }
     </button>
     <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
+    <button [class.active]="tabActiva === 'papelera'" (click)="cambiarTab('papelera')"
+            title="Quienes se dieron de baja. De aquí se les puede regresar.">Papelera de empleados</button>
   </nav>
 
   <!-- ============ CHECADAS · TOLERANCIA · FALTAS ============
@@ -75,6 +77,13 @@
         (conteos)="onConteos($event)"
         (archivo)="onArchivoSeleccionado($event)">
       </app-asistencia-resumen>
+    </section>
+  }
+
+  <!-- ====================== PAPELERA DE EMPLEADOS ====================== -->
+  @if (tabActiva === 'papelera') {
+    <section class="hz-panel">
+      <app-papelera-empleados (regresado)="alRegresar()"></app-papelera-empleados>
     </section>
   }
 
@@ -134,8 +143,9 @@
                    aria-label="Buscar empleado">
           </label>
           @if (bajasDeSucursal) {
-            <button type="button" class="hz-bajas-tog" (click)="mostrarBajas = !mostrarBajas">
-              {{ mostrarBajas ? 'Ocultar' : 'Ver' }} {{ bajasDeSucursal }} dada(s) de baja
+            <!-- Las bajas ya no se mezclan aquí: viven en la Papelera de empleados. -->
+            <button type="button" class="hz-bajas-tog" (click)="cambiarTab('papelera')">
+              {{ bajasDeSucursal }} en la papelera →
             </button>
           }
         </div>
@@ -196,12 +206,9 @@
                     <button class="hz-link" (click)="abrirDetalleEmp(e)"
                             title="Su horario, su retardo real y el detalle día por día">Asistencia</button>
                     <button class="hz-link" (click)="editarEmpleado(e)">Editar</button>
-                    @if (e.activo === false) {
-                      <button class="hz-link" [disabled]="moviendo === e.id"
-                              title="Volver a contarlo en la asistencia"
-                              (click)="reactivar(e)">Reactivar</button>
-                    }
-                    <button class="hz-link hz-danger" (click)="borrarEmpleado(e)">Borrar</button>
+                    <button class="hz-link hz-danger" [disabled]="moviendo === e.id"
+                            title="Se va a la Papelera de empleados, de donde se puede regresar"
+                            (click)="darDeBaja(e)">Dar de baja</button>
                   </td>
                 </tr>
               }

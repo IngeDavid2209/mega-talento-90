@@ -13,7 +13,7 @@ import { requireAuth, AuthedRequest } from './auth';
  * Tabla: db/reloj-comandos.sql.
  */
 
-export const TIPOS_COMANDO = ['borrar_usuario', 'renombrar_usuario'] as const;
+export const TIPOS_COMANDO = ['borrar_usuario', 'renombrar_usuario', 'restaurar_usuario'] as const;
 type TipoComando = typeof TIPOS_COMANDO[number];
 
 /** Tras estos intentos fallidos el comando se queda en `error` y deja de reintentarse. */
@@ -102,13 +102,17 @@ relojComandosRouter.get('/', async (req: AuthedRequest, res: Response) => {
 });
 
 /**
- * POST /checador/reloj-comandos/eliminar  { sucursalId, codigo }
+ * POST /checador/reloj-comandos/restaurar  { sucursalId, codigo }
  *
- * Elimina a la persona DEL SISTEMA (queda inactiva y marcada como eliminada:
- * ya no sale en ningún lado) y deja un comando de borrado para cada reloj de
- * la plaza. Todo en una transacción: o quedan las dos cosas o ninguna.
+ * REGRESAR DE LA PAPELERA. Reactiva a la persona en el sistema y, si antes se
+ * le borró de algún reloj, deja un comando para volver a darla de alta en ese
+ * reloj con el RESPALDO que se guardó al borrarla (su registro de 72 bytes:
+ * número, nombre, tarjeta, contraseña). La huella y el rostro no vienen en ese
+ * registro: hay que volver a registrarlos en el equipo.
+ *
+ * (La ruta /eliminar se quitó el 29/09/2026: RH ya no borra, da de baja.)
  */
-relojComandosRouter.post('/eliminar', async (req: AuthedRequest, res: Response) => {
+relojComandosRouter.post('/restaurar', async (req: AuthedRequest, res: Response) => {
   const { sucursalId } = req.body || {};
   const codigo = String(req.body?.codigo ?? '').trim();
   if (!sucursalId || !codigo) return res.status(400).json({ error: 'Faltan sucursalId y codigo.' });
@@ -116,21 +120,38 @@ relojComandosRouter.post('/eliminar', async (req: AuthedRequest, res: Response) 
   const cliente = await pool.connect();
   try {
     await cliente.query('BEGIN');
-    // Upsert: también sirve para un código que checa SIN ficha. Sin la fila
-    // inactiva, el próximo lote del reloj lo volvería a dar de alta.
-    await cliente.query(
-      `INSERT INTO empleados (sucursal_id, codigo_checador, nombre, activo, eliminado_en, eliminado_por)
-       VALUES ($1, $2, $3, FALSE, now(), $4)
-       ON CONFLICT (sucursal_id, codigo_checador)
-         DO UPDATE SET activo = FALSE, eliminado_en = now(), eliminado_por = $4`,
-      [sucursalId, codigo, `Empleado ${codigo}`, quien]);
-    const r = await encolar(cliente, sucursalId, codigo, 'borrar_usuario', {}, quien);
+    const upd = await cliente.query(
+      `UPDATE empleados SET activo = TRUE, eliminado_en = NULL, eliminado_por = NULL, baja_en = NULL, baja_por = NULL
+        WHERE sucursal_id = $1 AND codigo_checador = $2`, [sucursalId, codigo]);
+    if (!upd.rowCount) {
+      await cliente.query('ROLLBACK');
+      return res.status(404).json({ error: 'No encontré a esa persona en la papelera.' });
+    }
+    // El último borrado HECHO de cada reloj, con su respaldo.
+    const { rows: borrados } = await cliente.query(
+      `SELECT DISTINCT ON (c.serie) c.serie, c.respaldo, r.alias
+         FROM reloj_comandos c LEFT JOIN relojes r ON r.serie = c.serie
+        WHERE c.sucursal_id = $1 AND c.empleado_codigo = $2 AND c.tipo = 'borrar_usuario'
+          AND c.estado = 'hecho' AND c.respaldo IS NOT NULL
+        ORDER BY c.serie, c.actualizado_en DESC`, [sucursalId, codigo]);
+    const creados: any[] = [];
+    for (const b of borrados) {
+      await cliente.query(
+        `UPDATE reloj_comandos SET estado = 'cancelado', detalle = 'Reemplazado por uno más nuevo', actualizado_en = now()
+          WHERE serie = $1 AND sucursal_id = $2 AND empleado_codigo = $3 AND estado = 'pendiente'`,
+        [b.serie, sucursalId, codigo]);
+      const { rows } = await cliente.query(
+        `INSERT INTO reloj_comandos (serie, sucursal_id, empleado_codigo, tipo, payload, creado_por)
+         VALUES ($1, $2, $3, 'restaurar_usuario', $4::jsonb, $5) RETURNING *`,
+        [b.serie, sucursalId, codigo, JSON.stringify({ respaldo: b.respaldo }), quien]);
+      creados.push(mapComando({ ...rows[0], alias: b.alias }));
+    }
     await cliente.query('COMMIT');
-    res.json({ ok: true, relojes: r.relojes.length, comandos: r.creados });
+    res.json({ ok: true, relojes: creados.length, comandos: creados });
   } catch (e) {
     await cliente.query('ROLLBACK').catch(() => {});
-    console.error('[reloj-comandos] eliminar', e);
-    res.status(500).json({ error: 'No se pudo eliminar.' });
+    console.error('[reloj-comandos] restaurar', e);
+    res.status(500).json({ error: 'No se pudo regresar a la persona.' });
   } finally {
     cliente.release();
   }

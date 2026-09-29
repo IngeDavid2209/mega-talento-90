@@ -88,6 +88,9 @@ export interface Empleado {
    * propio apartado dentro de Horarios.
    */
   esPromotora?: boolean;
+  /** Cuándo y quién la dio de baja (Papelera de empleados). */
+  bajaEn?: string | null;
+  bajaPor?: string;
 }
 
 /** Tipos de marca que reporta ZKTeco (columna de estado). */

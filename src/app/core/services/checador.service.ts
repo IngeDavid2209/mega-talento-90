@@ -88,9 +88,17 @@ export interface Incidencia {
 // ══ CAMBIOS EN LOS RELOJES (eliminar / renombrar) ════════════════
 // El portal deja un comando por reloj; el agente de la plaza lo ejecuta y
 // reporta. Ver api/src/reloj-comandos.ts y api/agente/escritura.js.
+/** Un renglón de la Papelera de empleados. */
+export interface EmpleadoPapelera extends Empleado {
+  ultimaChecada: string | null;
+  eliminadoEn: string | null; eliminadoPor: string;
+  /** Se le borró de algún reloj y hay respaldo para volver a darlo de alta. */
+  borradoDeReloj: boolean;
+}
+
 export interface ComandoReloj {
   id: string; serie: string; alias: string; empleadoCodigo: string;
-  tipo: 'borrar_usuario' | 'renombrar_usuario'; payload: { nombre?: string };
+  tipo: 'borrar_usuario' | 'renombrar_usuario' | 'restaurar_usuario'; payload: { nombre?: string };
   estado: 'pendiente' | 'hecho' | 'error' | 'cancelado';
   intentos: number; detalle: string; creadoPor: string; creadoEn: string; actualizadoEn: string;
 }
@@ -529,8 +537,18 @@ export class ChecadorService {
       : await this.api.post<Empleado>('/checador/empleados', empleado);
     return (r as any)?.id || empleado.id || '';
   }
-  async eliminarEmpleado(id: string): Promise<void> {
-    await this.api.delete(`/checador/empleados/${id}`);
+  // (Ya no se borra a nadie: se da de baja y va a la Papelera de empleados.)
+
+  /** La Papelera de empleados: dados de baja y eliminados, de todas las plazas. */
+  async getPapeleraEmpleados(): Promise<EmpleadoPapelera[]> {
+    return this.api.get<EmpleadoPapelera[]>('/checador/empleados/papelera');
+  }
+  /**
+   * Regresar de la papelera: reactiva en el sistema y, si se le había borrado
+   * de un reloj, deja en cola volver a darlo de alta ahí con su respaldo.
+   */
+  async restaurarEmpleado(sucursalId: string, codigo: string): Promise<{ relojes: number }> {
+    return this.api.post('/checador/reloj-comandos/restaurar', { sucursalId, codigo });
   }
 
   // ===================== CHECADAS =====================
@@ -590,10 +608,6 @@ export class ChecadorService {
   // ===================== CAMBIOS EN LOS RELOJES =====================
   async getCambiosReloj(sucursalId: string, codigo: string): Promise<CambiosReloj> {
     return this.api.get<CambiosReloj>('/checador/reloj-comandos', { sucursalId, codigo });
-  }
-  /** Elimina del sistema y deja el borrado en cola para cada reloj de la plaza. */
-  async eliminarDefinitivo(sucursalId: string, codigo: string): Promise<{ relojes: number }> {
-    return this.api.post('/checador/reloj-comandos/eliminar', { sucursalId, codigo });
   }
   /** Cambia el nombre con el que está enrolada en el reloj (sistema + relojes). */
   async renombrarEnReloj(sucursalId: string, codigo: string, nombre: string): Promise<{ nombre: string; relojes: number }> {

@@ -1,0 +1,79 @@
+<div class="pe">
+  <header class="pe-head">
+    <div>
+      <h2>Papelera de empleados</h2>
+      <p class="pe-sub">
+        Quienes se dieron de baja, de todas las plazas. No se borra a nadie: de aquí se les puede
+        <b>regresar</b> cuando se necesite, y vuelven a contar en la asistencia.
+      </p>
+    </div>
+    <span class="pe-total">{{ lista.length }} en la papelera</span>
+  </header>
+
+  <div class="pe-barra">
+    <label class="pe-buscar">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+      <input type="search" [(ngModel)]="busqueda" (ngModelChange)="limite = 60" placeholder="Nombre, código o departamento"
+             aria-label="Buscar en la papelera" (keydown.escape)="busqueda = ''">
+    </label>
+    <label class="pe-plaza">
+      <span>Plaza</span>
+      <select [(ngModel)]="plaza" (ngModelChange)="limite = 60">
+        <option value="">Todas</option>
+        @for (p of plazas; track p.id) { <option [value]="p.id">{{ p.nombre }} ({{ p.n }})</option> }
+      </select>
+    </label>
+  </div>
+
+  @if (cargando) {
+    <p class="pe-vacio">Abriendo la papelera…</p>
+  } @else if (error) {
+    <div class="pe-error"><span>{{ error }}</span><button type="button" (click)="cargar()">Reintentar</button></div>
+  } @else if (!lista.length) {
+    <p class="pe-vacio">La papelera está vacía.</p>
+  } @else if (!filtrados.length) {
+    <p class="pe-vacio">Nadie en la papelera coincide con la búsqueda.</p>
+  } @else {
+    <div class="pe-scroll">
+      <table class="pe-tabla">
+        <thead>
+          <tr>
+            <th>Cód.</th><th>Nombre</th><th>Plaza</th><th>Departamento</th>
+            <th>Dado de baja</th><th>Última checada</th><th class="pe-acc"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of visibles; track clave(e)) {
+            <tr [class.pe-eliminado]="!!e.eliminadoEn">
+              <td class="pe-cod">{{ e.codigoChecador }}</td>
+              <td class="pe-nom">
+                {{ nombreDe(e) }}
+                @if (e.nombre && e.nombre !== nombreDe(e)) { <span class="pe-reloj">{{ e.nombre }}</span> }
+                @if (e.borradoDeReloj) {
+                  <span class="pe-tag" title="Se le borró del reloj antes de que se quitara el botón. Al regresarlo, el agente lo vuelve a dar de alta, pero su huella hay que registrarla otra vez.">
+                    borrado del reloj
+                  </span>
+                }
+              </td>
+              <td>{{ nombrePlaza(e.sucursalId) }}</td>
+              <td>{{ e.departamento || '—' }}</td>
+              <td class="pe-cuando">{{ cuando(e) }}</td>
+              <td class="pe-cuando">{{ fecha(e.ultimaChecada) }}</td>
+              <td class="pe-acc">
+                <button type="button" class="pe-btn" [disabled]="!!regresando" (click)="regresar(e)">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4L2.5 7.5 6 11M3 7.5h7a3.5 3.5 0 0 1 0 7H8"/></svg>
+                  {{ regresando === clave(e) ? 'Regresando…' : 'Regresar' }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (filtrados.length > limite) {
+      <button type="button" class="pe-mas" (click)="limite = limite + 100">
+        Ver más ({{ filtrados.length - limite }} restantes)
+      </button>
+    }
+  }
+</div>

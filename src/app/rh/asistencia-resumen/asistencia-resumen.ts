@@ -773,7 +773,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return (this.fichaReloj?.comandos || []).filter(c => c.estado !== 'cancelado').slice(0, 6);
   }
   textoComando(c: ComandoReloj): string {
-    const que = c.tipo === 'borrar_usuario' ? 'Borrar del reloj' : `Renombrar a "${c.payload?.nombre || ''}"`;
+    const que = c.tipo === 'borrar_usuario' ? 'Borrar del reloj'
+      : c.tipo === 'restaurar_usuario' ? 'Volver a dar de alta en el reloj'
+      : `Renombrar a "${c.payload?.nombre || ''}"`;
     return `${que} · ${c.alias || c.serie}`;
   }
   estadoComando(c: ComandoReloj): string {
@@ -1177,49 +1179,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     }
   }
 
-  /**
-   * ELIMINAR DEFINITIVAMENTE: del sistema y de los relojes de la plaza.
-   *
-   * Dos confirmaciones a propósito: la primera explica qué pasa, la segunda
-   * es la última salida. En el reloj esto borra la huella y el rostro, y eso
-   * no tiene vuelta atrás —habría que volver a enrolar a la persona en el
-   * equipo—. Sus checadas pasadas NO se borran: son nómina ya pagada.
-   */
-  async accEliminar(directo?: EmpleadoAsistencia) {
-    const e = directo || this.accMenu?.emp;
-    this.cerrarAcciones();
-    if (!e) return;
-    const n = await this.relojesDeLaPlaza(e);
-    const enRelojes = n
-      ? `y se borra de ${n} reloj${n > 1 ? 'es' : ''} de la plaza, con su huella y su rostro`
-      : '(esta plaza no tiene relojes a los que el agente pueda escribir: en el equipo habrá que borrarla a mano)';
-    const ok1 = await this.toast.confirmar({
-      titulo: 'Eliminar definitivamente',
-      mensaje: `¿Seguro que quieres eliminar a ${e.nombreCompleto} (#${e.codigo})? Desaparece del sistema ` +
-        `${enRelojes}. Sus checadas pasadas se conservan.`,
-      destructivo: true, textoConfirmar: 'Continuar',
-    });
-    if (!ok1) return;
-    const ok2 = await this.toast.confirmar({
-      titulo: 'Última confirmación',
-      mensaje: `Esto NO se puede deshacer${n ? ': para volver a checar habría que enrolarla otra vez en el reloj' : ''}. ` +
-        `¿Eliminar a ${e.nombreCompleto}?`,
-      destructivo: true, textoConfirmar: 'Sí, eliminar',
-    });
-    if (!ok2) return;
-    try {
-      const r = await this.checador.eliminarDefinitivo(this.sucursalFiltro, e.codigo);
-      this.toast.exito(r.relojes
-        ? `${e.nombreCompleto} eliminada. Se borra de ${r.relojes} reloj(es) en unos minutos.`
-        : `${e.nombreCompleto} eliminada del sistema.`);
-      if (this.ficha?.codigo === e.codigo) this.cerrarFicha();
-      if (this.detalle?.codigo === e.codigo) this.detalle = null;
-      await this.cargar();
-    } catch (err) {
-      console.error(err);
-      this.toast.error('No se pudo eliminar.');
-    }
-  }
+  // "Eliminar definitivamente" se quitó (29/09/2026): a nadie se le borra, se
+  // le da de BAJA y se va a la Papelera de empleados, de donde se le regresa.
 
   async accBaja(directo?: EmpleadoAsistencia) {
     const e = directo || this.accMenu?.emp;
@@ -1228,16 +1189,19 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const ok = await this.toast.confirmar({
       titulo: 'Dar de baja',
       mensaje: `¿Seguro que quieres dar de baja a ${e.nombreCompleto} (#${e.codigo})? ` +
-        'Deja de contar en la asistencia y sale de este reporte. Sus checadas NO se borran, ' +
-        'y se puede reactivar en Empleados → "Ver dadas de baja".',
+        'Deja de contar en la asistencia y se va a la Papelera de empleados, de donde la puedes ' +
+        'regresar cuando se necesite. Sus checadas no se borran y el reloj no se toca.',
       destructivo: true, textoConfirmar: 'Sí, dar de baja',
     });
     if (!ok) return;
     try {
       const ficha = await this.fichaDe(e);
-      if (!ficha) { this.toast.error('No encontré su ficha en el padrón.'); return; }
-      await this.checador.guardarEmpleado({ ...ficha, activo: false });
-      this.toast.exito(`${e.nombreCompleto} quedó dada de baja.`);
+      // Un código que checa sin ficha también se puede dar de baja: se le abre
+      // la ficha ya inactiva, y así el reloj no lo vuelve a dar de alta.
+      await this.checador.guardarEmpleado(ficha
+        ? { ...ficha, activo: false }
+        : { sucursalId: this.sucursalFiltro, codigoChecador: e.codigo, nombre: e.nombre, activo: false });
+      this.toast.exito(`${e.nombreCompleto} se fue a la Papelera de empleados.`);
       if (this.ficha?.codigo === e.codigo) this.ficha = null;
       await this.cargar();
     } catch (err) {

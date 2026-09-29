@@ -20,9 +20,10 @@ import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 import { UbicacionEquipoComponent } from '../ubicacion-equipo/ubicacion-equipo';
+import { PapeleraEmpleadosComponent } from '../papelera-empleados/papelera-empleados';
 import { AuthSession } from '../../core/services/auth-session';
 
-type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'equipo';
+type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'equipo' | 'papelera';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -41,7 +42,7 @@ interface DetalleEmpleado {
 @Component({
   selector: 'app-horarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent, UbicacionEquipoComponent],
+  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent, UbicacionEquipoComponent, PapeleraEmpleadosComponent],
   templateUrl: './horarios.html',
   styleUrl: './horarios.css'
 })
@@ -225,11 +226,16 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   /** Todos los de la sucursal, promotoras incluidas, SIN las dadas de baja. */
   private get empleadosDeSucursal(): Empleado[] {
-    return this.empleadosDeSucursalTodos.filter(e => this.mostrarBajas || e.activo !== false);
+    return this.empleadosDeSucursalTodos.filter(e => e.activo !== false);
   }
 
   private get empleadosDeSucursalTodos(): Empleado[] {
     return this.empleados.filter(e => !this.sucursalFiltro || e.sucursalId === this.sucursalFiltro);
+  }
+
+  /** Alguien regresó de la papelera: se recarga el padrón para que aparezca ya. */
+  async alRegresar() {
+    try { this.empleados = await this.checador.getEmpleados(); } catch { /* el sondeo lo trae en un momento */ }
   }
 
   /** Cuántas fichas de esta plaza están dadas de baja. */
@@ -687,37 +693,30 @@ export class HorariosComponent implements OnInit, OnDestroy {
     }
   }
   /**
-   * Borrar = ELIMINAR DEFINITIVAMENTE, del sistema y de los relojes de la plaza.
-   *
-   * Antes esto hacía un DELETE de la fila, y no servía: el reloj manda su
-   * padrón completo en cada lote y la ingesta la volvía a crear en minutos,
-   * ACTIVA y sin nombre formal ni departamento. Ahora es el mismo camino que
-   * la ficha del reporte (api/src/reloj-comandos.ts), con doble confirmación.
+   * DAR DE BAJA desde la pestaña Empleados (29/09/2026). Reemplaza al "Borrar":
+   * a nadie se le borra; se le da de baja y se va a la Papelera de empleados,
+   * de donde se le puede regresar. Sus checadas y el reloj no se tocan.
    */
-  async borrarEmpleado(e: Empleado) {
+  async darDeBaja(e: Empleado) {
+    if (!e.id || this.moviendo) return;
     const nombre = this.nombreDe(e);
-    const ok1 = await this.toast.confirmar({
-      titulo: 'Eliminar definitivamente',
-      mensaje: `¿Seguro que quieres eliminar a ${nombre} (#${e.codigoChecador})? Desaparece del sistema y se ` +
-        'borra de los relojes de la plaza, con su huella y su rostro. Sus checadas pasadas se conservan.',
-      destructivo: true, textoConfirmar: 'Continuar'
+    const ok = await this.toast.confirmar({
+      titulo: 'Dar de baja',
+      mensaje: `¿Seguro que quieres dar de baja a ${nombre} (#${e.codigoChecador})? Deja de contar en la ` +
+        'asistencia y se va a la Papelera de empleados, de donde la puedes regresar cuando se necesite.',
+      destructivo: true, textoConfirmar: 'Sí, dar de baja'
     });
-    if (!ok1) return;
-    const ok2 = await this.toast.confirmar({
-      titulo: 'Última confirmación',
-      mensaje: `Esto NO se puede deshacer: para volver a checar habría que enrolarla otra vez en el reloj. ¿Eliminar a ${nombre}?`,
-      destructivo: true, textoConfirmar: 'Sí, eliminar'
-    });
-    if (!ok2) return;
+    if (!ok) return;
+    this.moviendo = e.id;
     try {
-      const r = await this.checador.eliminarDefinitivo(e.sucursalId, String(e.codigoChecador).trim());
-      this.empleados = this.empleados.filter(x => x.id !== e.id);
-      this.toast.exito(r.relojes
-        ? `${nombre} eliminada. Se borra de ${r.relojes} reloj(es) en unos minutos.`
-        : `${nombre} eliminada del sistema.`);
+      await this.checador.guardarEmpleado({ ...e, activo: false });
+      e.activo = false;
+      this.toast.exito(`${nombre} se fue a la Papelera de empleados.`);
     } catch (err) {
       console.error(err);
-      this.toast.error('No se pudo eliminar el empleado.');
+      this.toast.error('No se pudo dar de baja.');
+    } finally {
+      this.moviendo = '';
     }
   }
 

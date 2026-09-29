@@ -1007,9 +1007,6 @@
         <button type="button" role="menuitem" class="acc-peligro" (click)="accBaja()">
           <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
         </button>
-        <button type="button" role="menuitem" class="acc-peligro" (click)="accEliminar()">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>Eliminar (sistema y reloj)
-        </button>
       } @else {
         <p class="acc-nota">Este código checa sin estar en el padrón.</p>
         <button type="button" role="menuitem" (click)="accAlta()">
@@ -1019,8 +1016,8 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7"/></svg>Ver detalle
         </button>
         <div class="acc-sep"></div>
-        <button type="button" role="menuitem" class="acc-peligro" (click)="accEliminar()">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>Eliminar del reloj
+        <button type="button" role="menuitem" class="acc-peligro" (click)="accBaja()">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
         </button>
       }
     </div>
@@ -1184,12 +1181,10 @@
           <button type="button" (click)="accEditar('departamento', ficha)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v7h-11zM5.5 5.5V3.5h5v2"/></svg>Departamento
           </button>
-          <button type="button" class="fic-op-peligro" (click)="accBaja(ficha)">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
-          </button>
         }
-        <button type="button" class="fic-op-peligro" (click)="accEliminar(ficha)">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>Eliminar
+        <!-- Ya no hay "Eliminar": se da de baja y va a la Papelera de empleados. -->
+        <button type="button" class="fic-op-peligro" (click)="accBaja(ficha)">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8h5"/></svg>Dar de baja
         </button>
       </div>
 
