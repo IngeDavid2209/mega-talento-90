@@ -54,7 +54,11 @@
       Cruces
       @if (totalCruces) { <span class="hz-tab-num hz-tab-alerta">{{ totalCruces }}</span> }
     </button>
-    <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')">Empleados</button>
+    <button [class.active]="tabActiva === 'empleados'" (click)="cambiarTab('empleados')"
+            [title]="nuevosPendientes.length ? nuevosPendientes.length + ' persona(s) nueva(s) en los relojes por completar' : ''">
+      Empleados
+      @if (nuevosPendientes.length) { <span class="hz-tab-num hz-tab-nuevo">{{ nuevosPendientes.length }}</span> }
+    </button>
     <button [class.active]="tabActiva === 'papelera'" (click)="cambiarTab('papelera')"
             title="Quienes se dieron de baja. De aquí se les puede regresar.">Papelera de empleados</button>
   </nav>
@@ -108,6 +112,47 @@
         <h2>Empleados de {{ nombreSucursal(sucursalFiltro) }}</h2>
         <button class="hz-btn hz-btn-primary" (click)="nuevoEmpleado()">+ Nuevo empleado</button>
       </div>
+
+      <!-- ══ NUEVOS EN LOS RELOJES ══ Se dan de alta solos (el agente revisa cada
+           reloj cada hora); aquí se les completa lo que el reloj no trae. -->
+      @if (nuevos.length) {
+        <div class="hz-nuevos">
+          <div class="hz-nuevos-head">
+            <div>
+              <b>Nuevos en los relojes</b>
+              <span>{{ nuevos.length }} en los últimos 14 días, de todas las plazas ·
+                @if (nuevosPendientes.length) { <em>{{ nuevosPendientes.length }} por completar</em> } @else { todos completos }
+              </span>
+            </div>
+            <button type="button" class="hz-link" (click)="verTodosNuevos = !verTodosNuevos">
+              {{ verTodosNuevos ? 'Ver solo pendientes' : 'Ver todos' }}
+            </button>
+          </div>
+          <p class="hz-nuevos-nota">Se dan de alta solos: el agente revisa cada reloj cada hora. El reloj solo trae el nombre corto; el nombre completo y el departamento se ponen aquí.</p>
+          @if (nuevosVisibles.length) {
+            <ul class="hz-nuevos-lista">
+              @for (n of nuevosVisibles; track n.sucursalId + n.codigoChecador) {
+                <li>
+                  <span class="hz-nuevos-cod">#{{ n.codigoChecador }}</span>
+                  <span class="hz-nuevos-nom">
+                    <b>{{ n.nombreCompleto || n.nombre }}</b>
+                    <small>{{ nombreSucursal(n.sucursalId) }} · en el reloj "{{ n.nombre }}" · alta {{ haceDias(n.creadoEn) }}
+                      @if (n.primeraChecada) { · checa desde {{ n.primeraChecada }} } @else { · aún no checa }</small>
+                  </span>
+                  <span class="hz-nuevos-falta">
+                    @if (n.sinNombre) { <em>falta nombre</em> }
+                    @if (n.sinDepartamento) { <em>falta departamento</em> }
+                    @if (!n.sinNombre && !n.sinDepartamento) { <em class="ok">completo</em> }
+                  </span>
+                  <button type="button" class="hz-btn hz-btn-primary hz-nuevos-btn" (click)="completarNuevo(n)">
+                    {{ n.sinNombre || n.sinDepartamento ? 'Completar' : 'Editar' }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
 
       <p class="hz-hint">
         El <strong>código del reloj</strong> es el número con el que cada persona checa. Es el que enlaza sus marcas con su

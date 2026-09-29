@@ -247,6 +247,40 @@ checadorRouter.patch('/empleados/:id', actualizarEmpleado);
 // (Además, borrar la fila nunca sirvió: la ingesta la recreaba en minutos.)
 
 /**
+ * GET /checador/empleados/nuevos?dias=14 — NUEVOS EN LOS RELOJES (29/09/2026).
+ *
+ * El agente lee la lista de usuarios de cada reloj cada hora y le abre ficha a
+ * quien se registró; esto es el reporte de esas altas, para que RH les complete
+ * lo que el reloj no trae: nombre completo y departamento. Sin eso salen con
+ * su nombre corto ("Luis") en SIN DEPARTAMENTO y nadie los encuentra.
+ */
+checadorRouter.get('/empleados/nuevos', async (req: Request, res: Response) => {
+  try {
+    const dias = Math.min(90, Math.max(1, parseInt(String((req.query as any).dias || '14'), 10) || 14));
+    const { rows } = await pool.query(
+      `SELECT e.*, u.primera, u.ultima
+         FROM empleados e
+         LEFT JOIN LATERAL (
+           SELECT min(c.fecha_hora) AS primera, max(c.fecha_hora) AS ultima FROM checadas c
+            WHERE c.sucursal_id = e.sucursal_id AND c.empleado_codigo = e.codigo_checador
+              AND c.fecha > '2023-01-01'
+         ) u ON TRUE
+        WHERE e.eliminado_en IS NULL AND e.activo
+          AND e.creado_en >= now() - make_interval(days => $1)
+        ORDER BY e.creado_en DESC`, [dias]);
+    const corta = (v: any) => (v ? String(v).slice(0, 10) : null);
+    res.json(rows.map((r: any) => ({
+      ...mapEmpleado(r),
+      creadoEn: r.creado_en,
+      primeraChecada: corta(r.primera),
+      ultimaChecada: corta(r.ultima),
+      sinNombre: !String(r.nombre_completo || '').trim(),
+      sinDepartamento: !String(r.departamento || '').trim(),
+    })));
+  } catch (err) { fallo(res, err, 'No se pudieron leer los nuevos del reloj.'); }
+});
+
+/**
  * GET /checador/empleados/papelera — la Papelera de empleados, de TODAS las
  * plazas: los dados de baja y los que se eliminaron antes de que se quitara el
  * botón. Con su última checada, para decidir si alguien debe regresar.

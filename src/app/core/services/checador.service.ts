@@ -88,6 +88,15 @@ export interface Incidencia {
 // ══ CAMBIOS EN LOS RELOJES (eliminar / renombrar) ════════════════
 // El portal deja un comando por reloj; el agente de la plaza lo ejecuta y
 // reporta. Ver api/src/reloj-comandos.ts y api/agente/escritura.js.
+/** Alguien que el reloj dio de alta hace poco (reporte "Nuevos en los relojes"). */
+export interface EmpleadoNuevo extends Empleado {
+  creadoEn: string;
+  primeraChecada: string | null;
+  ultimaChecada: string | null;
+  sinNombre: boolean;
+  sinDepartamento: boolean;
+}
+
 /** Un renglón de la Papelera de empleados. */
 export interface EmpleadoPapelera extends Empleado {
   ultimaChecada: string | null;
@@ -553,6 +562,11 @@ export class ChecadorService {
     return (r as any)?.id || empleado.id || '';
   }
   // (Ya no se borra a nadie: se da de baja y va a la Papelera de empleados.)
+
+  /** Los que los relojes dieron de alta en los últimos `dias` (todas las plazas). */
+  async getNuevosDelReloj(dias = 14): Promise<EmpleadoNuevo[]> {
+    return this.api.get<EmpleadoNuevo[]>('/checador/empleados/nuevos', { dias: String(dias) });
+  }
 
   /** La Papelera de empleados: dados de baja y eliminados, de todas las plazas. */
   async getPapeleraEmpleados(): Promise<EmpleadoPapelera[]> {

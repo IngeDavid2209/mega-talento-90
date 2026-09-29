@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
 import {
-  ChecadorService, ResultadoImportacion,
+  ChecadorService, ResultadoImportacion, EmpleadoNuevo,
   PersonaAsistencia, SemanaApi, DiaApi
 } from '../../core/services/checador.service';
 import { VistaAsistencia, ConteosPendientes } from '../asistencia-resumen/asistencia-resumen';
@@ -16,6 +16,7 @@ import { parsearTextoChecadas, parsearFilasExcel } from '../../core/models/parse
 import { CENTROS_CON_RELOJ, centroChecadorPorId } from '../../core/models/sucursales.model';
 import { ToastService } from '../../core/services/toast.service';
 import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
+import { NotificacionesService } from '../../core/services/notificaciones.service';
 import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
@@ -52,6 +53,62 @@ export class HorariosComponent implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private periodo = inject(PeriodoAsistenciaService);
   private auth = inject(AuthSession);
+  private notif = inject(NotificacionesService);
+
+  // ══ NUEVOS EN LOS RELOJES (29/09/2026) ═════════════════════════════
+  //
+  // El agente lee la lista de usuarios de cada reloj CADA HORA y le abre ficha
+  // a quien se registró. El reloj solo trae su nombre corto ("Luis"): nombre
+  // completo y departamento los pone RH. Este recuadro es el pendiente a la
+  // vista, de todas las plazas, con un botón para completar cada ficha, y un
+  // aviso del navegador cuando aparece alguien nuevo.
+  nuevos: EmpleadoNuevo[] = [];
+  verTodosNuevos = false;
+  private relojNuevos: any;
+  private readonly CLAVE_VISTOS = 'mt90.nuevos-reloj.vistos';
+
+  /** Los que todavía no tienen nombre completo o departamento. */
+  get nuevosPendientes(): EmpleadoNuevo[] { return this.nuevos.filter((n) => n.sinNombre || n.sinDepartamento); }
+  get nuevosVisibles(): EmpleadoNuevo[] {
+    const l = this.verTodosNuevos ? this.nuevos : this.nuevosPendientes;
+    return l;
+  }
+
+  async cargarNuevos() {
+    try {
+      this.nuevos = await this.checador.getNuevosDelReloj(14);
+      this.avisarNuevos();
+    } catch { /* sin este recuadro la pantalla sigue sirviendo */ }
+  }
+
+  /** Aviso del navegador, una vez por persona (se recuerda en este navegador). */
+  private avisarNuevos() {
+    let vistos: string[] = [];
+    try { vistos = JSON.parse(localStorage.getItem(this.CLAVE_VISTOS) || '[]'); } catch { vistos = []; }
+    const primeraVez = !vistos.length;
+    const claves = this.nuevos.map((n) => `${n.sucursalId}|${n.codigoChecador}`);
+    const nuevosDeVerdad = this.nuevos.filter((n) => !vistos.includes(`${n.sucursalId}|${n.codigoChecador}`));
+    try { localStorage.setItem(this.CLAVE_VISTOS, JSON.stringify(claves)); } catch { /* sin almacenamiento */ }
+    // La primera vez que se abre la pantalla no se avisa de todo lo acumulado:
+    // el recuadro ya lo enseña. Solo se avisa de lo que llega después.
+    if (primeraVez || !nuevosDeVerdad.length) return;
+    const quien = nuevosDeVerdad.slice(0, 3).map((n) => `${n.nombre} (${this.nombreSucursal(n.sucursalId)})`).join(', ');
+    this.notif.notificar(
+      nuevosDeVerdad.length === 1 ? 'Nueva persona en un reloj' : `${nuevosDeVerdad.length} personas nuevas en los relojes`,
+      `${quien}${nuevosDeVerdad.length > 3 ? '…' : ''}. Complétales nombre y departamento.`,
+      () => this.cambiarTab('empleados'));
+  }
+
+  /** Abre la ficha de un nuevo para completarla. */
+  completarNuevo(n: EmpleadoNuevo) {
+    this.editarEmpleado({ ...n });
+  }
+
+  /** "hace 3 días", "hoy". */
+  haceDias(iso: string): string {
+    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} días`;
+  }
 
   /**
    * "Ubicación de mi equipo" es solo para administradores (29/09/2026). El
@@ -110,9 +167,12 @@ export class HorariosComponent implements OnInit, OnDestroy {
     });
 
     this.ajustarRangoYCargar();
+    this.cargarNuevos();
+    this.relojNuevos = setInterval(() => this.ngZone.run(() => this.cargarNuevos()), 10 * 60 * 1000);
   }
 
   ngOnDestroy() {
+    clearInterval(this.relojNuevos);
     if (this.unsubAreas) this.unsubAreas();
     if (this.unsubHorarios) this.unsubHorarios();
     if (this.unsubEmpleados) this.unsubEmpleados();
@@ -700,6 +760,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     try {
       await this.checador.guardarEmpleado(e);
       this.toast.exito('Empleado guardado.');
+      this.cargarNuevos();
       this.empleadoEdit = null;
     } catch (err) {
       console.error(err);
