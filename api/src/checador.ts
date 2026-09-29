@@ -261,14 +261,17 @@ checadorRouter.get('/empleados/papelera', async (_req: Request, res: Response) =
                          AND c.actualizado_en >= COALESCE(e.eliminado_en, 'epoch')) AS borrado_de_reloj
          FROM empleados e
          LEFT JOIN LATERAL (
-           SELECT max(fecha) AS ultima FROM checadas c
+           -- max(fecha_hora) y no max(fecha): la primera sale del índice
+           -- (sucursal_id, empleado_codigo, fecha_hora) sin leer la tabla. Con
+           -- 550 personas en la papelera, eso es de ~5 s a menos de uno.
+           SELECT max(c.fecha_hora) AS ultima FROM checadas c
             WHERE c.sucursal_id = e.sucursal_id AND c.empleado_codigo = e.codigo_checador
          ) u ON TRUE
         WHERE e.activo = FALSE OR e.eliminado_en IS NOT NULL
         ORDER BY COALESCE(e.eliminado_en, e.baja_en) DESC NULLS LAST, e.sucursal_id, e.nombre`);
     res.json(rows.map((r: any) => ({
       ...mapEmpleado(r),
-      ultimaChecada: r.ultima_checada || null,
+      ultimaChecada: r.ultima_checada ? String(r.ultima_checada instanceof Date ? r.ultima_checada.toISOString() : r.ultima_checada).slice(0, 10) : null,
       eliminadoEn: r.eliminado_en || null,
       eliminadoPor: r.eliminado_por || '',
       borradoDeReloj: r.borrado_de_reloj === true,
