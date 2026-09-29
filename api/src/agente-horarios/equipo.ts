@@ -60,6 +60,12 @@ export interface EscenaEquipo {
   serie: string | null;
   sucursalId: string;
   alias: string;
+  /**
+   * Los relojes que forman la escena. Casi siempre uno; en corporativo son dos
+   * —entrada/salida y desayuno/comida— y es UN SOLO lugar (29/09/2026, RH): se
+   * pintan juntos, y quien checa en el de comida sale en su rincón "En comida".
+   */
+  relojes: string[];
   tipo: TipoEscena;
   relojMudo: boolean;
   segundosSinSenal: number | null;
@@ -127,37 +133,73 @@ export async function equipoAhora(): Promise<EquipoAhora> {
 
   // Una escena por reloj; y una por plaza para las marcas que no traen serie
   // (importadas de archivo o del sistema de RH).
+  // ══ UN LUGAR = UNA ESCENA ══
+  // El reloj de desayuno/comida está en el MISMO edificio que el de entrada y
+  // salida de su plaza: no es otro lugar, es otro reloj. Se funde con el
+  // principal. Solo tiene escena propia si su plaza no tiene otro reloj.
   const escenas = new Map<string, EscenaEquipo>();
-  const relojesDePlaza = new Map<string, string[]>();
-  for (const r of relojes) {
-    const seg = r.seg == null ? null : Number(r.seg);
-    escenas.set(r.serie, {
+  /** serie → la escena donde se pinta. */
+  const escenaPorSerie = new Map<string, EscenaEquipo>();
+  /** Series de relojes de comida: una marca ahí es una pausa, no una entrada. */
+  const seriesComedor = new Set<string>();
+  const principalDePlaza = new Map<string, EscenaEquipo>();
+
+  const seg = (r: any) => (r.seg == null ? null : Number(r.seg));
+  const mudo = (s: number | null) => s == null || s > RELOJ_MUDO_MIN * 60;
+  for (const r of relojes) if (esComedor(`${r.sucursal_id} ${r.alias || ''}`)) seriesComedor.add(r.serie);
+  // Primero los relojes de trabajo…
+  for (const r of relojes.filter((x: any) => !seriesComedor.has(x.serie))) {
+    const e: EscenaEquipo = {
       id: r.serie, serie: r.serie, sucursalId: r.sucursal_id,
-      alias: r.alias || r.sucursal_id, tipo: tipoDe(r.sucursal_id, r.alias || ''),
-      relojMudo: seg == null || seg > RELOJ_MUDO_MIN * 60, segundosSinSenal: seg,
+      alias: r.alias || r.sucursal_id, relojes: [r.alias || r.serie],
+      tipo: tipoDe(r.sucursal_id, r.alias || ''),
+      relojMudo: mudo(seg(r)), segundosSinSenal: seg(r),
       personas: [], salieron: 0, sinSalida: 0,
-    });
-    if (!relojesDePlaza.has(r.sucursal_id)) relojesDePlaza.set(r.sucursal_id, []);
-    relojesDePlaza.get(r.sucursal_id)!.push(r.serie);
+    };
+    escenas.set(e.id, e);
+    escenaPorSerie.set(r.serie, e);
+    if (!principalDePlaza.has(r.sucursal_id)) principalDePlaza.set(r.sucursal_id, e);
+  }
+  // …y los de comida se funden con el principal de su plaza.
+  for (const r of relojes.filter((x: any) => seriesComedor.has(x.serie))) {
+    const principal = principalDePlaza.get(r.sucursal_id);
+    if (principal) {
+      principal.relojes.push(r.alias || r.serie);
+      // "Oficinas · entrada y salida" + "Oficinas · desayuno y comida" → "Oficinas".
+      principal.alias = principal.alias.split(' · ')[0];
+      // Si cualquiera de sus relojes está mudo, lo que se ve puede estar viejo.
+      if (mudo(seg(r))) principal.relojMudo = true;
+      escenaPorSerie.set(r.serie, principal);
+    } else {
+      const e: EscenaEquipo = {
+        id: r.serie, serie: r.serie, sucursalId: r.sucursal_id,
+        alias: r.alias || r.sucursal_id, relojes: [r.alias || r.serie], tipo: 'comedor',
+        relojMudo: mudo(seg(r)), segundosSinSenal: seg(r),
+        personas: [], salieron: 0, sinSalida: 0,
+      };
+      escenas.set(e.id, e);
+      escenaPorSerie.set(r.serie, e);
+      principalDePlaza.set(r.sucursal_id, e);
+    }
   }
   const escenaDePlaza = (sucursalId: string): EscenaEquipo => {
-    // El reloj "de trabajo" de la plaza: el primero que no es comedor.
-    const series = relojesDePlaza.get(sucursalId) || [];
-    const principal = series.find((s) => escenas.get(s)!.tipo !== 'comedor') || series[0];
-    if (principal) return escenas.get(principal)!;
+    const p = principalDePlaza.get(sucursalId);
+    if (p) return p;
+    // Marcas sin serie (importadas de archivo o del sistema de RH) de una
+    // plaza sin reloj registrado: escena propia de la plaza.
     const id = `plaza:${sucursalId}`;
     if (!escenas.has(id)) {
-      escenas.set(id, {
-        id, serie: null, sucursalId, alias: sucursalId, tipo: tipoDe(sucursalId, ''),
+      const e: EscenaEquipo = {
+        id, serie: null, sucursalId, alias: sucursalId, relojes: [], tipo: tipoDe(sucursalId, ''),
         relojMudo: false, segundosSinSenal: null, personas: [], salieron: 0, sinSalida: 0,
-      });
+      };
+      escenas.set(id, e);
+      principalDePlaza.set(sucursalId, e);
     }
     return escenas.get(id)!;
   };
   const escenaDeSerie = (serie: string, sucursalId: string) =>
-    (serie && escenas.get(serie)) || escenaDePlaza(sucursalId);
-  const comedorDePlaza = (sucursalId: string) =>
-    (relojesDePlaza.get(sucursalId) || []).map((s) => escenas.get(s)!).find((e) => e.tipo === 'comedor') || null;
+    (serie && escenaPorSerie.get(serie)) || escenaDePlaza(sucursalId);
 
   for (const m of marcas) {
     const cod = String(m.empleado_codigo).trim();
@@ -178,8 +220,9 @@ export async function equipoAhora(): Promise<EquipoAhora> {
     const salida = salidas.get(`${m.sucursal_id}|${cod}`) ?? null;
     const escUltima = escenaDeSerie(ultima.serie, m.sucursal_id);
     const escPrimera = escenaDeSerie(primera.serie, m.sucursal_id);
+    const ultimaEnComedor = seriesComedor.has(ultima.serie);
     // Su edificio: donde entró, salvo que su primera marca haya sido en el comedor.
-    const edificio = escPrimera.tipo === 'comedor' ? escenaDePlaza(m.sucursal_id) : escPrimera;
+    const edificio = seriesComedor.has(primera.serie) ? escenaDePlaza(m.sucursal_id) : escPrimera;
     const hace = Math.max(0, minutoAhora - ultima.min);
     const impar = minsColapsados.length % 2 === 1;
 
@@ -189,14 +232,14 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       if (salida != null && minutoAhora > salida + MARGEN_SALIDA_MIN) estado = 'sin_salida';
       else estado = 'dentro';
       // Regresó de comer por el reloj del comedor: está de vuelta en su edificio.
-      escena = escUltima.tipo === 'comedor' ? edificio : escUltima;
-    } else if (escUltima.tipo === 'comedor') {
+      escena = ultimaEnComedor ? edificio : escUltima;
+    } else if (ultimaEnComedor) {
       estado = hace <= PAUSA_MAX_MIN ? 'comida' : 'salio';
       escena = escUltima;
     } else if (salida != null && ultima.min < salida - ANTES_DE_SU_SALIDA_MIN && hace <= PAUSA_MAX_MIN) {
       // Plaza de un solo reloj: salió a media jornada y hace poco → está comiendo.
       estado = 'comida';
-      escena = comedorDePlaza(m.sucursal_id) || escUltima;
+      escena = escUltima;
     } else {
       estado = 'salio';
       escena = escUltima;

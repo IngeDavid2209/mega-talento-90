@@ -111,6 +111,8 @@ export interface PersonaEquipo {
 }
 export interface EscenaEquipo {
   id: string; serie: string | null; sucursalId: string; alias: string;
+  /** Los relojes que forman la escena (corporativo: entrada/salida + desayuno/comida). */
+  relojes: string[];
   tipo: 'oficina' | 'comedor' | 'tienda' | 'bodega';
   relojMudo: boolean; segundosSinSenal: number | null;
   personas: PersonaEquipo[]; salieron: number; sinSalida: number;

@@ -205,6 +205,54 @@
 @keyframes md-flota { 0%, 100% { translate: 0 0; rotate: -8deg; } 50% { translate: 0 -6px; rotate: 10deg; } }
 .md-caramelo { transform-box: fill-box; transform-origin: center; }
 
+/* ══ EL LUGAR DE CADA PLAZA (29/09/2026) ══════════════════════════════ */
+.lg-piedra { fill: #1A2F4E; opacity: .1; }
+.lg-aguja { opacity: .13; }
+.lg-roseton { fill: #FFD21F; opacity: .55; }
+.lg-hueco { fill: #1A2F4E; opacity: .16; }
+.lg-cruz { stroke: #1A2F4E; stroke-width: 1.4; opacity: .25; stroke-linecap: round; }
+.lg-poste { fill: #7C8BA3; }
+.lg-lona { fill: #2FA36B; }
+.lg-lona.alt { fill: #FFFFFF; }
+.lg-lona-borde { fill: #1F8F5F; }
+.lg-mesa { fill: #A77B52; }
+.lg-caja { fill: #D2A76A; stroke: #B38A50; stroke-width: .8; }
+.fr-naranja { fill: #F28C1B; } .fr-verde { fill: #5DAE4B; } .fr-rojo { fill: #E0413A; }
+.lg-kiosco-base { fill: #C9B79C; }
+.lg-kiosco-col { fill: #E9DFCF; stroke: #B8A68A; stroke-width: .8; }
+.lg-kiosco-reja { stroke: #B8A68A; stroke-width: 1.4; }
+.lg-kiosco-techo { fill: #2E7D5B; }
+.lg-placa { fill: #1F7A4C; }
+.lg-placa-2 { fill: #1A4FB0; }
+.lg-placa-txt { fill: #fff; font-size: 5.4px; font-weight: 800; text-anchor: middle; letter-spacing: .06em; font-family: 'DM Sans', system-ui, sans-serif; }
+.lg-semaforo { fill: #2B3645; }
+.sem { opacity: .18; }
+.sem-rojo { fill: #FF4D4D; } .sem-ambar { fill: #FFC61A; } .sem-verde { fill: #3DDC84; }
+.sem-rojo { animation: sem-rojo 9s infinite; }
+.sem-ambar { animation: sem-ambar 9s infinite; }
+.sem-verde { animation: sem-verde 9s infinite; }
+@keyframes sem-verde { 0%, 40% { opacity: 1; } 41%, 100% { opacity: .18; } }
+@keyframes sem-ambar { 0%, 40% { opacity: .18; } 41%, 55% { opacity: 1; } 56%, 100% { opacity: .18; } }
+@keyframes sem-rojo { 0%, 55% { opacity: .18; } 56%, 100% { opacity: 1; } }
+.lg-casa.c1 { fill: #F6DDBB; } .lg-casa.c2 { fill: #D6E9DA; } .lg-casa.c3 { fill: #F3CFCF; }
+.lg-teja { fill: #B5452F; opacity: .85; }
+.lg-bandera { transform-box: fill-box; transform-origin: left center; animation: lg-ondea 2.4s ease-in-out infinite; }
+@keyframes lg-ondea { 0%, 100% { transform: skewY(0) scaleX(1); } 50% { transform: skewY(-6deg) scaleX(.94); } }
+.lg-bandera-tela { fill: #FFD21F; stroke: #EE7D00; stroke-width: .8; }
+.lg-bandera-logo { fill: #1A2F4E; opacity: .8; }
+.lg-camion-caja { fill: #FFFFFF; stroke: #1A2F4E; stroke-width: 1.4; }
+.lg-camion-logo { fill: #111; font-size: 5.6px; font-weight: 900; font-style: italic; text-anchor: middle; font-family: 'DM Sans', system-ui, sans-serif; }
+.lg-camion-cabina { fill: #1A2F4E; }
+.lg-llanta { fill: #2B2B2B; }
+.lg-rin { fill: #C9CFD8; }
+.lg-humo { fill: #B9C6DA; opacity: 0; }
+.lg-camion.on .lg-camion-cuerpo { animation: lg-motor .35s ease-in-out infinite; }
+@keyframes lg-motor { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.6px); } }
+.lg-camion.on .lg-humo { animation: lg-humo 2.2s ease-out infinite; }
+.lg-camion.on .lg-humo.h2 { animation-delay: 1.1s; }
+@keyframes lg-humo { from { opacity: .8; transform: translate(0, 0) scale(.6); } to { opacity: 0; transform: translate(-10px, -8px) scale(1.8); } }
+.lg-humo { transform-box: fill-box; transform-origin: center; }
+
 @media (max-width: 640px) {
   .ue-grid { grid-template-columns: 1fr; }
   .ue-total-n { font-size: 22px; }

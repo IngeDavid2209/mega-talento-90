@@ -33,8 +33,12 @@ interface Personaje extends PersonaEquipo {
   retraso: number;
 }
 
+/** El fondo de cada tarjeta, según dónde está la plaza. */
+export type Lugar = 'catedral' | 'abastos' | 'acueducto' | 'kiosco' | 'esquinas' | 'colonia' | 'corporativo' | 'cedis' | 'ciudad';
+
 interface Escena extends Omit<EscenaEquipo, 'personas'> {
   plaza: string;
+  lugar: Lugar;
   trabajando: Personaje[];
   comiendo: Personaje[];
   sinSalidaNombres: string;
@@ -126,6 +130,7 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       return {
         ...e,
         plaza: this.nombrePlaza(e.sucursalId),
+        lugar: this.lugarDe(e),
         trabajando: personajes.filter((p) => p.estado === 'dentro'),
         comiendo: personajes.filter((p) => p.estado === 'comida'),
         sinSalidaNombres: e.personas.filter((p) => p.estado === 'sin_salida')
@@ -137,6 +142,27 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
   }
 
   // ── Presentación ──────────────────────────────────────────────────
+
+  /**
+   * EL FONDO DE CADA TARJETA, SEGÚN EL LUGAR (29/09/2026).
+   *
+   * Cada plaza se reconoce por lo que tiene alrededor: la catedral de Zamora,
+   * los puestos de la Central de Abastos, los arcos del acueducto de Morelia,
+   * el kiosco de la plaza del centro, la esquina de 8 Esquinas. Se decide por
+   * el id y el nombre del reloj; una plaza nueva que no encaje cae en "ciudad".
+   */
+  lugarDe(e: EscenaEquipo): Lugar {
+    const t = `${e.sucursalId} ${e.alias}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (e.tipo === 'bodega') return 'cedis';
+    if (e.tipo === 'oficina' || e.tipo === 'comedor') return 'corporativo';
+    if (t.includes('catedral')) return 'catedral';
+    if (t.includes('abastos')) return 'abastos';
+    if (t.includes('esquina')) return 'esquinas';
+    if (t.includes('centro')) return 'kiosco';
+    if (t.includes('morelia')) return 'acueducto';
+    if (t.includes('canindo') || t.includes('pacueco')) return 'colonia';
+    return 'ciudad';
+  }
 
   /** "GARCIA TAPIA LUCIA" → "GT"; "Luciagarcia" → "LU". */
   iniciales(nombre: string): string {
