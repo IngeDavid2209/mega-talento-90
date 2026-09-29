@@ -10,6 +10,7 @@ import { notificarJefe } from './notificador';
 import { estadoCorredor, correrUnaVez } from './corredor';
 import { asistenciaPersonas } from './asistencia-personas';
 import { presenciaAhora } from './presencia';
+import { equipoAhora } from './equipo';
 import { crucesEntrePlazas } from './cruces-plazas';
 
 /** Umbral de ex-trabajador, el mismo que usa el corredor (ver corredor.ts). */
@@ -142,6 +143,23 @@ agenteHorariosRouter.get('/presencia', async (_req: Request, res: Response) => {
     res.json(await presenciaAhora());
   } catch (e) {
     fallo(res, e, 'No se pudo leer quién está en cada plaza.');
+  }
+});
+
+/**
+ * GET /checador/agente/equipo
+ * "Ubicación de mi equipo": quién está en cada RELOJ ahora, y si está
+ * trabajando o comiendo. SOLO ADMINISTRADORES, y se valida aquí: esconder el
+ * botón en el portal no impide llamar a la ruta. La base guarda el rol en dos
+ * escrituras (`admin` y `Administrador`), así que se compara por prefijo.
+ */
+agenteHorariosRouter.get('/equipo', async (req: AuthedRequest, res: Response) => {
+  const rol = String(req.usuario?.rol || '').toLowerCase();
+  if (!rol.startsWith('admin')) return res.status(403).json({ error: 'Solo administradores.' });
+  try {
+    res.json(await equipoAhora());
+  } catch (e) {
+    fallo(res, e, 'No se pudo leer la ubicación del equipo.');
   }
 });
 

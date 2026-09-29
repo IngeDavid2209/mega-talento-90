@@ -99,6 +99,28 @@ export interface CambiosReloj {
   comandos: ComandoReloj[];
 }
 
+// ══ UBICACIÓN DE MI EQUIPO ═══════════════════════════════════════
+// Quién está en cada RELOJ ahora y si trabaja o come. Lo calcula la API
+// (api/src/agente-horarios/equipo.ts); solo la ven los administradores.
+export interface PersonaEquipo {
+  codigo: string; nombre: string; departamento: string | null;
+  estado: 'dentro' | 'comida' | 'sin_salida';
+  entrada: string; ultima: string;
+  /** Minutos desde su última checada. */
+  hace: number;
+}
+export interface EscenaEquipo {
+  id: string; serie: string | null; sucursalId: string; alias: string;
+  tipo: 'oficina' | 'comedor' | 'tienda' | 'bodega';
+  relojMudo: boolean; segundosSinSenal: number | null;
+  personas: PersonaEquipo[]; salieron: number; sinSalida: number;
+}
+export interface EquipoAhora {
+  fecha: string; hora: string;
+  totales: { dentro: number; comida: number; salieron: number; sinSalida: number };
+  escenas: EscenaEquipo[];
+}
+
 export interface SemanaApi {
   inicio: string;
   bolsaInicial: number;
@@ -613,6 +635,11 @@ export class ChecadorService {
   /** Quién está en cada plaza AHORA. Alimenta el mapa en vivo. */
   presencia() {
     return this.api.get<Presencia>('/checador/agente/presencia');
+  }
+
+  /** "Ubicación de mi equipo": quién está en cada reloj ahora. Solo administradores. */
+  getEquipo(): Promise<EquipoAhora> {
+    return this.api.get<EquipoAhora>('/checador/agente/equipo');
   }
 
   // ===================== SEMÁFORO DE RELOJES =====================

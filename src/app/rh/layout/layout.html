@@ -183,12 +183,8 @@
               </a>
             </li>
           }
-          <li (click)="isMenuOpen = false">
-            <a routerLink="/app/mapa" routerLinkActive="active">
-              <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-              <span class="nav-text">¿Dónde está cada quien?</span>
-            </a>
-          </li>
+          <!-- "¿Dónde está cada quien?" se reemplazó por "Ubicación de mi equipo",
+               dentro de Horarios y checadas (solo administradores). -->
           <li (click)="isMenuOpen = false">
             <a routerLink="/app/agente-horarios" routerLinkActive="active">
               <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>

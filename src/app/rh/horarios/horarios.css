@@ -713,3 +713,10 @@
 .hz-buscar svg { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--text3); stroke-width: 1.8; stroke-linecap: round; }
 .hz-buscar input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font: inherit; font-size: 13.5px; color: var(--ink); }
 @media (max-width: 640px) { .hz-buscar { margin-left: 0; width: 100%; } }
+
+/* ── Botón "Ubicación de mi equipo" (solo administradores, 29/09/2026) ── */
+.hz-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.hz-btn-equipo { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 12px; background: #fff; color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow); transition: background .15s, color .15s; }
+.hz-btn-equipo svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hz-btn-equipo:hover { background: var(--brand-bg); }
+.hz-btn-equipo.on { background: var(--ink); color: #fff; }

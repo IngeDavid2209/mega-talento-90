@@ -19,8 +19,10 @@ import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia
 import { subirACloudinary } from '../../core/services/cloudinary';
 import { AsistenciaResumenComponent } from '../asistencia-resumen/asistencia-resumen';
 import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
+import { UbicacionEquipoComponent } from '../ubicacion-equipo/ubicacion-equipo';
+import { AuthSession } from '../../core/services/auth-session';
 
-type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados';
+type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'equipo';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -39,7 +41,7 @@ interface DetalleEmpleado {
 @Component({
   selector: 'app-horarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent],
+  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent, UbicacionEquipoComponent],
   templateUrl: './horarios.html',
   styleUrl: './horarios.css'
 })
@@ -48,6 +50,14 @@ export class HorariosComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
   private periodo = inject(PeriodoAsistenciaService);
+  private auth = inject(AuthSession);
+
+  /**
+   * "Ubicación de mi equipo" es solo para administradores (29/09/2026). El
+   * botón se esconde aquí y la API lo vuelve a validar: esconder un botón no
+   * impide llamar a la ruta.
+   */
+  get esAdmin(): boolean { return this.auth.esAdmin(); }
 
   // Catálogos / constantes para la vista (incluye centros internos como Corporativo)
   SUCURSALES = CENTROS_CON_RELOJ;

@@ -6,13 +6,22 @@
       <h1>Horarios y checadas</h1>
       <p class="hz-sub">Gestiona los horarios de sucursales y áreas, e importa la asistencia desde el reloj checador.</p>
     </div>
+    <!-- Solo administradores: dónde está cada quien ahora, reloj por reloj. -->
+    @if (esAdmin) {
+      <button type="button" class="hz-btn-equipo" [class.on]="tabActiva === 'equipo'"
+              [attr.aria-pressed]="tabActiva === 'equipo'"
+              (click)="cambiarTab(tabActiva === 'equipo' ? 'checadas' : 'equipo')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        {{ tabActiva === 'equipo' ? 'Volver a checadas' : 'Ubicación de mi equipo' }}
+      </button>
+    }
   </header>
 
   <!-- BARRA: sucursal (compartida) -->
   <!-- En Cruces se esconde: esa vista mira TODAS las plazas, y dejar el
        selector puesto haría leer la lista como si fuera de la plaza elegida
        y estuviera incompleta. -->
-  @if (tabActiva !== 'cruces') {
+  @if (tabActiva !== 'cruces' && tabActiva !== 'equipo') {
   <div class="hz-toolbar">
     <div class="hz-field">
       <label>Sucursal</label>
@@ -66,6 +75,13 @@
         (conteos)="onConteos($event)"
         (archivo)="onArchivoSeleccionado($event)">
       </app-asistencia-resumen>
+    </section>
+  }
+
+  <!-- ====================== UBICACIÓN DE MI EQUIPO ====================== -->
+  @if (tabActiva === 'equipo' && esAdmin) {
+    <section class="hz-panel">
+      <app-ubicacion-equipo></app-ubicacion-equipo>
     </section>
   }
 

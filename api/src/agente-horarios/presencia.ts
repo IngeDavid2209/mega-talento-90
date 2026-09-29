@@ -207,7 +207,7 @@ export async function presenciaAhora(): Promise<Presencia> {
 let cacheSalidas: { fecha: string; en: number; datos: Map<string, number> } | null = null;
 const CACHE_SALIDAS_MS = 30 * 60 * 1000;
 
-async function salidasHabitualesCache(fecha: string): Promise<Map<string, number>> {
+export async function salidasHabitualesCache(fecha: string): Promise<Map<string, number>> {
   const ahora = Date.now();
   if (cacheSalidas && cacheSalidas.fecha === fecha && ahora - cacheSalidas.en < CACHE_SALIDAS_MS) {
     return cacheSalidas.datos;
