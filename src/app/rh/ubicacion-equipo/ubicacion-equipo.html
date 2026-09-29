@@ -29,17 +29,43 @@
 
   @if (datos) {
     <!-- Los números grandes: se leen antes que el dibujo. -->
+    <!-- Los números grandes: se leen antes que el dibujo. Cada uno se toca y
+         enseña a esas personas (29/09/2026). -->
     <div class="ue-totales">
-      <div class="ue-total t-dentro"><span class="ue-total-n">{{ datos.totales.dentro }}</span><span>trabajando</span></div>
-      <div class="ue-total t-comida"><span class="ue-total-n">{{ datos.totales.comida }}</span><span>en comida</span></div>
-      <div class="ue-total t-salio"><span class="ue-total-n">{{ datos.totales.salieron }}</span><span>ya salieron</span></div>
+      <button type="button" class="ue-total t-dentro" (click)="abrirLista('dentro')"><span class="ue-total-n">{{ datos.totales.dentro }}</span><span>trabajando</span></button>
+      <button type="button" class="ue-total t-comida" (click)="abrirLista('comida')"><span class="ue-total-n">{{ datos.totales.comida }}</span><span>en comida</span></button>
+      <button type="button" class="ue-total t-salio" (click)="abrirLista('salieron')"><span class="ue-total-n">{{ datos.totales.salieron }}</span><span>ya salieron</span></button>
+      <button type="button" class="ue-total t-antes" [class.hay]="datos.totales.salieronAntes" (click)="abrirLista('antes')"
+              title="Terminaron su día antes de lo que suele durar su jornada.">
+        <span class="ue-total-n">{{ datos.totales.salieronAntes }}</span><span>salieron antes</span>
+      </button>
+      <button type="button" class="ue-total t-falta" [class.hay]="datos.totales.faltan" (click)="abrirLista('faltan')"
+              title="Hoy tenían que trabajar (no es su descanso ni tienen incidencia), ya pasó su hora de entrada + 30 min y no han checado.">
+        <span class="ue-total-n">{{ datos.totales.faltan }}</span><span>no se han presentado</span>
+      </button>
       @if (datos.totales.sinSalida) {
-        <div class="ue-total t-sin"
-             title="Checaron entrada, ya pasó su hora habitual de salida y no hay checada de salida. Casi siempre ya se fueron y el reloj no leyó su salida: no se dibujan como presentes.">
+        <button type="button" class="ue-total t-sin" (click)="abrirLista('sin_salida')"
+                title="Checaron entrada, ya pasó su hora habitual de salida y no hay checada de salida. Casi siempre ya se fueron y el reloj no leyó su salida: no se dibujan como presentes.">
           <span class="ue-total-n">{{ datos.totales.sinSalida }}</span><span>sin salida registrada</span>
-        </div>
+        </button>
       }
     </div>
+
+    <!-- El aviso: lo que hay que atender, arriba y a la vista. -->
+    @if (datos.totales.faltan || datos.totales.salieronAntes) {
+      <div class="ue-aviso" role="alert">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 14.3 13.5H1.7z"/><path d="M8 6.5v3.2M8 11.6v.2"/></svg>
+        <span>
+          @if (datos.totales.faltan) {
+            <button type="button" (click)="abrirLista('faltan')"><b>{{ datos.totales.faltan }}</b> no se han presentado</button>
+          }
+          @if (datos.totales.faltan && datos.totales.salieronAntes) { · }
+          @if (datos.totales.salieronAntes) {
+            <button type="button" (click)="abrirLista('antes')"><b>{{ datos.totales.salieronAntes }}</b> salieron antes de su hora</button>
+          }
+        </span>
+      </div>
+    }
 
     <!-- ══ FILTROS ══ Esconden lo que no coincide. Los totales de arriba siguen
          siendo de toda la empresa; lo filtrado se dice en "Mostrando N de M". -->
@@ -434,8 +460,40 @@
             }
           </div>
 
+          <!-- EN ROJO: tenían que venir y no han checado. -->
+          @if (e.faltan.length) {
+            <section class="ue-riesgo" aria-label="No se han presentado">
+              <header><span class="ue-riesgo-dot" aria-hidden="true"></span>No se han presentado <b>{{ e.faltan.length }}</b></header>
+              <ul>
+                @for (f of e.faltan; track f.codigo) {
+                  <li>
+                    <span class="ue-riesgo-nom">{{ f.nombre }}</span>
+                    <span class="ue-riesgo-dep">{{ f.departamento || 'Sin departamento' }}</span>
+                    <span class="ue-riesgo-det">Entra {{ f.entraA }} · lleva {{ duracion(f.retrasoMin) }}</span>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+          <!-- Se fueron antes de lo que dura su jornada. -->
+          @if (salidasAntes(e).length) {
+            <section class="ue-riesgo ue-riesgo-antes" aria-label="Salieron antes de su hora">
+              <header><span class="ue-riesgo-dot" aria-hidden="true"></span>Salieron antes de su hora <b>{{ salidasAntes(e).length }}</b></header>
+              <ul>
+                @for (x of salidasAntes(e); track x.codigo) {
+                  <li>
+                    <span class="ue-riesgo-nom">{{ x.nombre }}</span>
+                    <span class="ue-riesgo-dep">{{ x.departamento || 'Sin departamento' }}</span>
+                    <span class="ue-riesgo-det">{{ x.entrada }} → {{ x.salida }} · {{ duracion(x.antesMin!) }} antes (su jornada: {{ x.jornadaHabitual }})</span>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
           <footer class="ue-esc-pie">
             @if (e.salieron) { <span class="ue-chip">{{ e.salieron }} ya salieron</span> }
+            @if (e.descansan) { <span class="ue-chip" title="Hoy es su día de descanso según la regla de descansos de la semana.">{{ e.descansan }} descansan hoy</span> }
             @if (e.sinSalida) {
               <span class="ue-chip ue-chip-aviso" [title]="'Sin salida registrada:\n' + e.sinSalidaNombres">{{ e.sinSalida }} sin salida registrada</span>
             }
@@ -448,6 +506,33 @@
     </div>
   }
 </section>
+
+<!-- ===== La lista de un recuadro ===== -->
+@if (lista) {
+  <div class="ue-lista-ov" (click)="cerrarLista()"></div>
+  <div class="ue-lista" role="dialog" aria-modal="true" [attr.aria-label]="lista.titulo">
+    <header class="ue-lista-head">
+      <h3>{{ lista.titulo }} <span>{{ lista.filas.length }}</span></h3>
+      <button type="button" class="ue-btn-ico" (click)="cerrarLista()" aria-label="Cerrar">✕</button>
+    </header>
+    @if (!lista.filas.length) {
+      <p class="ue-lista-vacia">Nadie por ahora.</p>
+    } @else {
+      <ul class="ue-lista-filas">
+        @for (f of lista.filas; track $index) {
+          <li [class.aviso]="f.aviso">
+            <span class="ue-lista-dot" [style.background]="f.color" aria-hidden="true"></span>
+            <div class="ue-lista-txt">
+              <b>{{ f.nombre }}</b>
+              <span>{{ f.lugar }} · {{ f.departamento || 'Sin departamento' }}</span>
+            </div>
+            <span class="ue-lista-det">{{ f.detalle }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}
 
 <!-- Un personaje. Se reusa en la escena y en el rincón de comida. -->
 <ng-template #pjs let-lista="lista" let-e="e">

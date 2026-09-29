@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ChecadorService, EquipoAhora, EscenaEquipo, PersonaEquipo } from '../../core/services/checador.service';
+import { ChecadorService, EquipoAhora, EscenaEquipo, PersonaEquipo, PersonaFaltaEquipo, PersonaSalidaEquipo } from '../../core/services/checador.service';
 import { centroChecadorPorId } from '../../core/models/sucursales.model';
 
 /**
@@ -21,6 +21,9 @@ import { centroChecadorPorId } from '../../core/models/sucursales.model';
  * El cálculo vive en la API (api/src/agente-horarios/equipo.ts). Solo la ven
  * los administradores, y la API lo vuelve a validar.
  */
+
+type TipoLista = 'dentro' | 'comida' | 'salieron' | 'sin_salida' | 'antes' | 'faltan';
+interface FilaLista { nombre: string; departamento: string | null; lugar: string; detalle: string; color: string; aviso?: boolean; }
 
 /** Un personaje ya listo para pintar. */
 interface Personaje extends PersonaEquipo {
@@ -205,10 +208,21 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
   aplicarFiltros() {
     const pasa = (p: Personaje, e: Escena) =>
       (this.estadoSel === 'todos' || p.estado === this.estadoSel) && this.coincide(p, e);
+    const pasaOtro = (x: { nombre: string; codigo: string; departamento: string | null }, e: Escena) => {
+      const dep = (x.departamento || '').trim().toUpperCase() || 'SIN DEPARTAMENTO';
+      if (this.deptosSel.size && !this.deptosSel.has(dep)) return false;
+      if (this.estadoSel !== 'todos') return false;     // "trabajando / en comida" no incluye a quien no está
+      const q = this.norm(this.busqueda.trim());
+      if (!q) return true;
+      const t = this.norm(`${x.nombre} ${x.codigo} ${x.departamento || ''} ${e.alias} ${e.plaza}`);
+      return q.split(/\s+/).every((w) => t.includes(w));
+    };
     this.vista = this.escenas
       .filter((e) => !this.lugarSel || e.id === this.lugarSel)
       .map((e) => ({
         ...e,
+        faltan: e.faltan.filter((x) => pasaOtro(x, e)),
+        salidas: e.salidas.filter((x) => pasaOtro(x, e)),
         departamentos: e.departamentos
           .filter((g) => !this.deptosSel.size || this.deptosSel.has(g.nombre))
           .map((g) => {
@@ -219,7 +233,8 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       }))
       // Un lugar sin nadie que pase los filtros se esconde; sin filtros de
       // persona, solo si se pidió "ocultar lugares sin nadie".
-      .filter((e) => e.departamentos.length || (!this.filtraPersonas && !this.ocultarVacios));
+      .filter((e) => e.departamentos.length || e.faltan.length || e.salidas.some((x) => x.antesMin != null)
+        || (!this.filtraPersonas && !this.ocultarVacios));
   }
 
   alternarDeptoFiltro(nombre: string) {
@@ -237,6 +252,59 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
   get mostrando(): number { return this.vista.reduce((t, e) => t + e.departamentos.reduce((s, g) => s + g.personas.length, 0), 0); }
   get totalPersonas(): number { return this.escenas.reduce((t, e) => t + e.trabajando.length + e.comiendo.length, 0); }
   cuantosEn(e: Escena): number { return e.departamentos.reduce((s, g) => s + g.personas.length, 0); }
+
+  // ══ LAS LISTAS DE LOS RECUADROS (29/09/2026) ══════════════════════
+  // Cada recuadro de arriba se puede tocar y enseña a esas personas, con dónde
+  // están y sus horas. Salen de TODOS los lugares (no de lo filtrado): los
+  // números del recuadro son de toda la empresa, y la lista tiene que cuadrar.
+  lista: { clave: TipoLista; titulo: string; filas: FilaLista[] } | null = null;
+
+  abrirLista(clave: TipoLista) {
+    const d = this.datos;
+    if (!d) return;
+    const filas: FilaLista[] = [];
+    for (const e of this.escenas) {
+      const lugar = e.alias;
+      if (clave === 'dentro' || clave === 'comida') {
+        for (const p of (clave === 'dentro' ? e.trabajando : e.comiendo)) {
+          filas.push({ nombre: p.nombre, departamento: p.departamento, lugar,
+            detalle: `Llegó ${p.entrada}${p.ultima !== p.entrada ? ' · marcó ' + p.ultima : ''}`, color: p.color });
+        }
+      } else if (clave === 'sin_salida') {
+        for (const p of (d.escenas.find((x) => x.id === e.id)?.personas || []).filter((x) => x.estado === 'sin_salida')) {
+          filas.push({ nombre: p.nombre, departamento: p.departamento, lugar,
+            detalle: `Entró ${p.entrada} · no hay checada de salida`, color: this.colorDe(p.departamento), aviso: true });
+        }
+      } else if (clave === 'salieron' || clave === 'antes') {
+        for (const x of e.salidas) {
+          if (clave === 'antes' && x.antesMin == null) continue;
+          filas.push({ nombre: x.nombre, departamento: x.departamento, lugar,
+            detalle: `Entró ${x.entrada} · salió ${x.salida}` + (x.antesMin != null ? ` · ${this.duracion(x.antesMin)} antes de su jornada (${x.jornadaHabitual})` : ''),
+            color: this.colorDe(x.departamento), aviso: x.antesMin != null });
+        }
+      } else if (clave === 'faltan') {
+        for (const x of e.faltan) {
+          filas.push({ nombre: x.nombre, departamento: x.departamento, lugar,
+            detalle: `Entra ${x.entraA} · lleva ${this.duracion(x.retrasoMin)} sin checar`, color: this.colorDe(x.departamento), aviso: true });
+        }
+      }
+    }
+    filas.sort((a, b) => a.lugar.localeCompare(b.lugar, 'es') || a.nombre.localeCompare(b.nombre, 'es'));
+    const titulos: Record<TipoLista, string> = {
+      dentro: 'Trabajando ahora', comida: 'En comida', salieron: 'Ya salieron',
+      sin_salida: 'Sin salida registrada', antes: 'Salieron antes de su hora', faltan: 'No se han presentado',
+    };
+    this.lista = { clave, titulo: titulos[clave], filas };
+  }
+  cerrarLista() { this.lista = null; }
+
+  salidasAntes(e: Escena): PersonaSalidaEquipo[] { return e.salidas.filter((x) => x.antesMin != null); }
+
+  /** 186 → "3 h 06 min". */
+  duracion(min: number): string {
+    if (min < 60) return `${min} min`;
+    return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+  }
 
   /** Los lugares para el selector, con cuánta gente hay en cada uno. */
   get lugares(): { id: string; nombre: string; n: number }[] {

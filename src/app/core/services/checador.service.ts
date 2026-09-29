@@ -117,6 +117,17 @@ export interface PersonaEquipo {
   /** Minutos desde su última checada. */
   hace: number;
 }
+export interface PersonaSalidaEquipo {
+  codigo: string; nombre: string; departamento: string | null;
+  entrada: string; salida: string;
+  /** Salió esta cantidad de minutos antes de lo que dura su jornada (null: a su hora). */
+  antesMin: number | null;
+  jornadaHabitual: string | null;
+}
+export interface PersonaFaltaEquipo {
+  codigo: string; nombre: string; departamento: string | null;
+  entraA: string; retrasoMin: number;
+}
 export interface EscenaEquipo {
   id: string; serie: string | null; sucursalId: string; alias: string;
   /** Los relojes que forman la escena (corporativo: entrada/salida + desayuno/comida). */
@@ -124,10 +135,14 @@ export interface EscenaEquipo {
   tipo: 'oficina' | 'comedor' | 'tienda' | 'bodega';
   relojMudo: boolean; segundosSinSenal: number | null;
   personas: PersonaEquipo[]; salieron: number; sinSalida: number;
+  salidas: PersonaSalidaEquipo[];
+  /** Tenían que venir hoy y no han checado (ya pasó su hora + 30 min). */
+  faltan: PersonaFaltaEquipo[];
+  descansan: number;
 }
 export interface EquipoAhora {
   fecha: string; hora: string;
-  totales: { dentro: number; comida: number; salieron: number; sinSalida: number };
+  totales: { dentro: number; comida: number; salieron: number; sinSalida: number; salieronAntes: number; faltan: number };
   escenas: EscenaEquipo[];
 }
 

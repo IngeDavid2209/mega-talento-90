@@ -1,6 +1,7 @@
 import { pool } from '../db';
 import * as hd from './horario-deducido';
 import { salidasHabitualesCache } from './presencia';
+import { asistenciaPersonas } from './asistencia-personas';
 
 /**
  * UBICACIÓN DE MI EQUIPO — quién está en cada RELOJ ahora mismo (29/09/2026).
@@ -54,6 +55,28 @@ export interface PersonaEquipo {
   hace: number;
 }
 
+/** Alguien que ya terminó su jornada hoy. */
+export interface PersonaSalida {
+  codigo: string; nombre: string; departamento: string | null;
+  entrada: string; salida: string;
+  /**
+   * SALIÓ ANTES (29/09/2026): cuántos minutos antes de lo que suele durar su
+   * jornada se fue. null si salió a su hora (o no hay historia para saberlo).
+   */
+  antesMin: number | null;
+  /** Lo que suele durar su jornada ('9h 30m'), para el aviso. */
+  jornadaHabitual: string | null;
+}
+
+/** Alguien que hoy tenía que trabajar y no se ha presentado. */
+export interface PersonaFalta {
+  codigo: string; nombre: string; departamento: string | null;
+  /** A qué hora suele entrar ('08:00'), o sus turnos si rota. */
+  entraA: string;
+  /** Minutos que lleva de retraso sobre esa hora. */
+  retrasoMin: number;
+}
+
 export interface EscenaEquipo {
   /** Serie del reloj, o `plaza:<sucursal>` si sus marcas no traen serie. */
   id: string;
@@ -74,16 +97,40 @@ export interface EscenaEquipo {
   salieron: number;
   /** Entraron y ya pasó su hora de salida sin marca de salida. */
   sinSalida: number;
+  /** Los que ya se fueron, con aviso si salieron antes de su jornada. */
+  salidas: PersonaSalida[];
+  /** Los que hoy tenían que venir y no han checado (en rojo). */
+  faltan: PersonaFalta[];
+  /** Cuántos tienen hoy su día de descanso (según la regla de descansos). */
+  descansan: number;
 }
 
 export interface EquipoAhora {
   fecha: string;
   hora: string;
-  totales: { dentro: number; comida: number; salieron: number; sinSalida: number };
+  totales: {
+    dentro: number; comida: number; salieron: number; sinSalida: number;
+    /** Salieron antes de lo que dura su jornada. */
+    salieronAntes: number;
+    /** Tenían que venir y no se han presentado. */
+    faltan: number;
+  };
   escenas: EscenaEquipo[];
 }
 
+/**
+ * SALIÓ ANTES: se compara lo que trabajó hoy (de su primera a su última
+ * checada) contra lo que SUELE DURAR SU JORNADA, no contra una hora fija de
+ * salida. Así no se le avisa de más a quien rota turnos o entra tarde: quien
+ * entra 14:00 y sale 22:00 cumplió, aunque "la salida de la plaza" sea 18:00.
+ * Menos de esto antes no se avisa (checar unos minutos antes es ruido).
+ */
+const SALIO_ANTES_MIN = 30;
+/** NO SE PRESENTÓ: se espera esto después de su hora de entrada antes de marcarlo. */
+const MARGEN_FALTA_MIN = 30;
+
 const dd = (n: number) => String(n).padStart(2, '0');
+const aHoras = (m: number) => `${Math.floor(m / 60)}h ${dd(Math.round(m % 60))}m`;
 const aHHMM = (m: number) => `${dd(Math.floor(m / 60))}:${dd(m % 60)}`;
 
 const esComedor = (texto: string) => /comida|desayuno|comedor/i.test(texto || '');
@@ -130,6 +177,10 @@ export async function equipoAhora(): Promise<EquipoAhora> {
          FROM empleados WHERE eliminado_en IS NULL`),
     salidasHabitualesCache(fecha),
   ]);
+  const [jornadas, asistenciaHoy] = await Promise.all([
+    jornadasHabitualesCache(fecha),
+    asistenciaDeHoyCache(fecha, [...new Set((relojes as any[]).map((r) => r.sucursal_id))]),
+  ]);
 
   const porFicha = new Map<string, any>();
   for (const f of fichas) porFicha.set(`${f.sucursal_id}|${String(f.codigo_checador).trim()}`, f);
@@ -157,7 +208,7 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       alias: r.alias || r.sucursal_id, relojes: [r.alias || r.serie],
       tipo: tipoDe(r.sucursal_id, r.alias || ''),
       relojMudo: mudo(seg(r)), segundosSinSenal: seg(r),
-      personas: [], salieron: 0, sinSalida: 0,
+      personas: [], salieron: 0, sinSalida: 0, salidas: [], faltan: [], descansan: 0,
     };
     escenas.set(e.id, e);
     escenaPorSerie.set(r.serie, e);
@@ -178,7 +229,7 @@ export async function equipoAhora(): Promise<EquipoAhora> {
         id: r.serie, serie: r.serie, sucursalId: r.sucursal_id,
         alias: r.alias || r.sucursal_id, relojes: [r.alias || r.serie], tipo: 'comedor',
         relojMudo: mudo(seg(r)), segundosSinSenal: seg(r),
-        personas: [], salieron: 0, sinSalida: 0,
+        personas: [], salieron: 0, sinSalida: 0, salidas: [], faltan: [], descansan: 0,
       };
       escenas.set(e.id, e);
       escenaPorSerie.set(r.serie, e);
@@ -194,7 +245,7 @@ export async function equipoAhora(): Promise<EquipoAhora> {
     if (!escenas.has(id)) {
       const e: EscenaEquipo = {
         id, serie: null, sucursalId, alias: sucursalId, relojes: [], tipo: tipoDe(sucursalId, ''),
-        relojMudo: false, segundosSinSenal: null, personas: [], salieron: 0, sinSalida: 0,
+        relojMudo: false, segundosSinSenal: null, personas: [], salieron: 0, sinSalida: 0, salidas: [], faltan: [], descansan: 0,
       };
       escenas.set(id, e);
       principalDePlaza.set(sucursalId, e);
@@ -248,7 +299,22 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       escena = escUltima;
     }
 
-    if (estado === 'salio') { escena.salieron++; continue; }
+    if (estado === 'salio') {
+      escena.salieron++;
+      // ¿Se fue antes de lo que dura su jornada?
+      const jornada = jornadas.get(`${m.sucursal_id}|${cod}`) ?? null;
+      const trabajo = ultima.min - primera.min;
+      const antes = jornada != null && minsColapsados.length >= 2 ? jornada - trabajo : null;
+      escena.salidas.push({
+        codigo: cod,
+        nombre: (ficha && ficha.nombre) || `Código ${cod}`,
+        departamento: (ficha && ficha.departamento) || null,
+        entrada: aHHMM(primera.min), salida: aHHMM(ultima.min),
+        antesMin: antes != null && antes >= SALIO_ANTES_MIN ? Math.round(antes) : null,
+        jornadaHabitual: jornada != null ? aHoras(jornada) : null,
+      });
+      continue;
+    }
     if (estado === 'sin_salida') escena.sinSalida++;
     escena.personas.push({
       codigo: cod,
@@ -261,8 +327,39 @@ export async function equipoAhora(): Promise<EquipoAhora> {
     });
   }
 
+  // ══ NO SE PRESENTARON ══
+  // Sale de la MISMA asistencia del reporte, para hoy: ahí ya viven la regla de
+  // descansos (los que le tocan en la semana, habituales o tomados en otro día),
+  // las incidencias (vacaciones, permisos…) y el corte de quien ya no viene.
+  // Un día que el cálculo marca como `falta` hoy es alguien que tenía que venir.
+  // Pero el día no ha terminado: solo se le marca cuando ya pasó su hora de
+  // entrada (+ margen). Quien entra a las 14:00 no falta a las 10:00.
+  for (const [sucursalId, a] of asistenciaHoy) {
+    const escena = escenaDePlaza(sucursalId);
+    for (const p of a.personas) {
+      const dia = p.semanas.flatMap((s) => s.dias).find((d) => d.fecha === fecha);
+      if (!dia) continue;
+      if (dia.estado === 'descanso') { escena.descansan++; continue; }
+      if (dia.estado !== 'falta') continue;
+      // Su hora de entrada: la fija, o si rota, la de su turno MÁS TARDE (para
+      // no marcar como falta a quien hoy entra en el de la tarde).
+      const horas = (p.tipo === 'rotativo' ? p.turnos : [p.horario])
+        .map((h) => hd.aMinutos(h)).filter((x): x is number => x !== null);
+      if (!horas.length) continue;
+      const entraMin = Math.max(...horas);
+      if (minutoAhora < entraMin + MARGEN_FALTA_MIN) continue;
+      escena.faltan.push({
+        codigo: p.codigo, nombre: p.nombreCompleto || p.nombre, departamento: p.departamento,
+        entraA: p.tipo === 'rotativo' ? p.turnos.filter(Boolean).join(' / ') : (p.horario as string),
+        retrasoMin: minutoAhora - entraMin,
+      });
+    }
+  }
+
   const lista = [...escenas.values()];
   for (const e of lista) {
+    e.faltan.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    e.salidas.sort((a, b) => (b.antesMin ?? -1) - (a.antesMin ?? -1) || a.nombre.localeCompare(b.nombre, 'es'));
     e.personas.sort((a, b) => a.entrada.localeCompare(b.entrada) || a.nombre.localeCompare(b.nombre, 'es'));
   }
   // Primero donde hay más gente; los relojes vacíos al final, pero se muestran:
@@ -278,7 +375,69 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       comida: cuenta('comida'),
       salieron: lista.reduce((t, e) => t + e.salieron, 0),
       sinSalida: lista.reduce((t, e) => t + e.sinSalida, 0),
+      salieronAntes: lista.reduce((t, e) => t + e.salidas.filter((x) => x.antesMin != null).length, 0),
+      faltan: lista.reduce((t, e) => t + e.faltan.length, 0),
     },
     escenas: lista,
   };
+}
+
+// ══ LO QUE SUELE DURAR LA JORNADA DE CADA QUIEN ══
+// Mediana de (última − primera checada) en sus últimos 28 días con al menos
+// entrada y salida. Cambia de un día a otro, no de un minuto a otro: se guarda
+// 30 minutos, igual que las salidas habituales de presencia.ts.
+let cacheJornadas: { fecha: string; en: number; datos: Map<string, number> } | null = null;
+
+async function jornadasHabitualesCache(fecha: string): Promise<Map<string, number>> {
+  if (cacheJornadas && cacheJornadas.fecha === fecha && Date.now() - cacheJornadas.en < 30 * 60 * 1000) {
+    return cacheJornadas.datos;
+  }
+  const desde = new Date(`${fecha}T12:00:00Z`);
+  desde.setUTCDate(desde.getUTCDate() - 28);
+  const { rows } = await pool.query(
+    `SELECT sucursal_id, empleado_codigo, array_agg(hora ORDER BY hora) AS horas
+       FROM checadas WHERE fecha >= $1 AND fecha < $2
+      GROUP BY sucursal_id, empleado_codigo, fecha`,
+    [desde.toISOString().slice(0, 10), fecha]);
+  const porPersona = new Map<string, number[]>();
+  for (const r of rows) {
+    const mins = hd.colapsarDuplicadas(
+      (r.horas as string[]).map((h) => hd.aMinutos(h)).filter((x): x is number => x !== null));
+    if (mins.length < 2) continue;         // una sola marca no dice cuánto trabajó
+    const k = `${r.sucursal_id}|${String(r.empleado_codigo).trim()}`;
+    if (!porPersona.has(k)) porPersona.set(k, []);
+    porPersona.get(k)!.push(mins[mins.length - 1] - mins[0]);
+  }
+  const datos = new Map<string, number>();
+  for (const [k, v] of porPersona) {
+    if (v.length < 3) continue;            // con menos de tres días no hay costumbre
+    v.sort((a, b) => a - b);
+    datos.set(k, v[Math.floor(v.length / 2)]);
+  }
+  cacheJornadas = { fecha, en: Date.now(), datos };
+  return datos;
+}
+
+// La asistencia de HOY de cada plaza (para "no se presentaron"). Es el cálculo
+// del reporte y lee 28 días por plaza: se guarda 5 minutos. Un error en una
+// plaza no tumba la pantalla: esa plaza simplemente no marca faltantes.
+let cacheAsistencia: { fecha: string; en: number; datos: Map<string, Awaited<ReturnType<typeof asistenciaPersonas>>> } | null = null;
+
+async function asistenciaDeHoyCache(fecha: string, sucursales: string[]) {
+  if (cacheAsistencia && cacheAsistencia.fecha === fecha && Date.now() - cacheAsistencia.en < 5 * 60 * 1000) {
+    return cacheAsistencia.datos;
+  }
+  const datos = new Map<string, Awaited<ReturnType<typeof asistenciaPersonas>>>();
+  await Promise.all(sucursales.map(async (sucursalId) => {
+    // La ÚLTIMA SEMANA y no solo hoy: el cálculo solo evalúa los días sin marcas
+    // de quien checó al menos una vez en el periodo. Pedido solo "hoy", quien no
+    // ha llegado no tiene ningún día que evaluar y nunca salía como falta. Con la
+    // semana, quien vino estos días y hoy no aparece sí se evalúa, y la regla de
+    // descansos ve la semana completa. Luego solo se mira el día de hoy.
+    const d = new Date(`${fecha}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - 6);
+    try { datos.set(sucursalId, await asistenciaPersonas({ sucursalId, desde: d.toISOString().slice(0, 10), hasta: fecha })); }
+    catch (e) { console.warn('[equipo] asistencia de hoy', sucursalId, (e as any)?.message); }
+  }));
+  cacheAsistencia = { fecha, en: Date.now(), datos };
+  return datos;
 }
