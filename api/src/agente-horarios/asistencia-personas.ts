@@ -102,6 +102,8 @@ export interface DiaVista extends hd.DiaMedido {
   netasMin?: number | null;
   /** El desayuno de ese día NO se descontó (corporativo, con comida aparte). */
   desayunoPagado?: boolean;
+  /** Minutos de horas extra que usó ese día (ya sumados en `netasMin`). */
+  horasExtraUsadasMin?: number;
   /** Incidencias capturadas por RH que cubren este día. */
   incidencias?: IncidenciaDia[];
 }
@@ -113,6 +115,8 @@ export interface IncidenciaDia {
   codigo: string;
   etiqueta: string;
   nota: string;
+  /** "Uso de horas extra": minutos que se suman a las horas del día. */
+  minutos?: number | null;
 }
 
 export interface PersonaAsistencia {
@@ -529,7 +533,7 @@ export async function asistenciaPersonas(
     const t = tipoIncidencia(inc.tipo);
     const item: IncidenciaDia = {
       id: inc.id, tipo: inc.tipo, codigo: t?.codigo || 'OTR',
-      etiqueta: t?.etiqueta || inc.tipo, nota: inc.nota,
+      etiqueta: t?.etiqueta || inc.tipo, nota: inc.nota, minutos: inc.minutos,
     };
     if (!incPorDia.has(inc.empleadoCodigo)) incPorDia.set(inc.empleadoCodigo, new Map());
     const porFecha = incPorDia.get(inc.empleadoCodigo)!;
@@ -787,9 +791,15 @@ export async function asistenciaPersonas(
       let excReal = 0, excAtraso = 0;
       const diasVista = s.dias.map((d): DiaVista => {
         const det = detalleDia(datos?.horas.get(d.fecha) || [], desayunoCfg);
-        if (det.netasMin) { minTrabajados += det.netasMin; minSemana += det.netasMin; }
-        if (det.desayunoExcesoMin) { desayunoExcesoMin += det.desayunoExcesoMin; diasDesayunoExcedido++; }
         const incs = incDeEl.get(d.fecha) || [];
+        // USO DE HORAS EXTRA: los minutos que usó ese día se SUMAN a lo que
+        // trabajó (29/09/2026). Si faltó el día completo usando horas, esas
+        // horas son las de su jornada.
+        const extraUsadas = incs.filter((i) => i.tipo === 'horas_extra')
+          .reduce((t, i) => t + (Number(i.minutos) || 0), 0);
+        const netas = (det.netasMin || 0) + extraUsadas;
+        if (netas) { minTrabajados += netas; minSemana += netas; }
+        if (det.desayunoExcesoMin) { desayunoExcesoMin += det.desayunoExcesoMin; diasDesayunoExcedido++; }
         if (incs.length) diasConIncidencia++;
         // La incidencia que excusa (vacaciones, incapacidad…) manda sobre el
         // justificante viejo de texto libre: es la que RH capturó por tipo.
@@ -799,8 +809,9 @@ export async function asistenciaPersonas(
         // no lo borra un justificante de ausencia: la persona sí vino.
         const extra = {
           comida: det.comida,
-          horasNetas: formatHoras(det.netasMin ?? 0),
-          netasMin: det.netasMin,
+          horasNetas: formatHoras(netas),
+          netasMin: netas || det.netasMin,
+          horasExtraUsadasMin: extraUsadas || undefined,
           desayunoMin: det.desayunoMin,
           desayunoExcesoMin: det.desayunoExcesoMin,
           desayunoPagado: det.desayunoPagado,
@@ -898,7 +909,7 @@ export async function asistenciaPersonas(
           const t = tipoIncidencia(i.tipo);
           return {
             id: i.id, tipo: i.tipo, codigo: t?.codigo || 'OTR', etiqueta: t?.etiqueta || i.tipo,
-            nota: i.nota, desde: i.desde, hasta: i.hasta,
+            nota: i.nota, minutos: i.minutos, desde: i.desde, hasta: i.hasta,
           };
         }),
       desayunoExcesoMin,

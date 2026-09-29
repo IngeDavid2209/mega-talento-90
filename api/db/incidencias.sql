@@ -39,3 +39,8 @@ CREATE INDEX IF NOT EXISTS idx_incidencias_suc_fechas
   ON asistencia_incidencias (sucursal_id, desde, hasta);
 CREATE INDEX IF NOT EXISTS idx_incidencias_emp
   ON asistencia_incidencias (sucursal_id, empleado_codigo);
+
+-- USO DE HORAS EXTRA (29/09/2026). Quien usa horas que tenía a favor para
+-- llegar tarde o irse antes: la incidencia lleva CUÁNTOS minutos usó por día, y
+-- esos minutos se suman a las horas trabajadas de ese día.
+ALTER TABLE asistencia_incidencias ADD COLUMN IF NOT EXISTS minutos INTEGER;

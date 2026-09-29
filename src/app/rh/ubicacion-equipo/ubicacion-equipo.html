@@ -563,6 +563,15 @@
           @for (t of tiposQueJustifican; track t.tipo) { <option [value]="t.tipo">{{ t.etiqueta }}</option> }
         </select>
       </label>
+      @if (esHorasExtra) {
+        <div class="ue-just-campo">
+          <span>¿Cuántas horas extra usó?</span>
+          <div class="ue-just-horas">
+            <label><input type="number" min="0" max="12" [(ngModel)]="justificando.horas" placeholder="0"> h</label>
+            <label><input type="number" min="0" max="59" step="5" [(ngModel)]="justificando.mins" placeholder="0"> min</label>
+          </div>
+        </div>
+      }
       <label class="ue-just-campo">
         <span>{{ notaObligatoria ? 'Motivo (obligatorio)' : 'Nota (opcional)' }}</span>
         <input type="text" [(ngModel)]="justificando.nota" maxlength="200"

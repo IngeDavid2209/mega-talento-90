@@ -40,7 +40,12 @@ export const TIPOS_INCIDENCIA: TipoIncidencia[] = [
   { tipo: 'riesgo_trabajo',      etiqueta: 'Riesgo de trabajo',          codigo: 'RT',  excusaFalta: true },
   { tipo: 'amonestacion',        etiqueta: 'Amonestación',               codigo: 'AMO', excusaFalta: false },
   { tipo: 'semana_reducida',     etiqueta: 'Semana reducida',            codigo: 'SR',  excusaFalta: true },
-  { tipo: 'otros',               etiqueta: 'Otros',                      codigo: 'OTR', excusaFalta: false },
+  // Usó horas que tenía a favor: justifica el día y sus minutos SE SUMAN a las
+  // horas trabajadas de ese día (29/09/2026). Lleva `minutos` obligatorio.
+  { tipo: 'horas_extra',         etiqueta: 'Uso de horas extra',         codigo: 'HE',  excusaFalta: true },
+  // "Otros" JUSTIFICA desde el 29/09/2026: el portal exige escribir el motivo, y
+  // RH lo usa para lo que no tiene tipo propio (una junta, un trámite).
+  { tipo: 'otros',               etiqueta: 'Otros',                      codigo: 'OTR', excusaFalta: true },
 ];
 
 const POR_TIPO = new Map(TIPOS_INCIDENCIA.map((t) => [t.tipo, t]));
@@ -54,6 +59,8 @@ export interface Incidencia {
   desde: string;
   hasta: string;
   nota: string;
+  /** Solo en "Uso de horas extra": minutos usados por día. */
+  minutos: number | null;
   creadoPor: string;
   creadoEn: string;
 }
@@ -73,6 +80,7 @@ const mapIncidencia = (r: any): Incidencia => ({
   desde: aFecha(r.desde),
   hasta: aFecha(r.hasta),
   nota: r.nota || '',
+  minutos: r.minutos == null ? null : Number(r.minutos),
   creadoPor: r.creado_por || '',
   creadoEn: r.creado_en,
 });
@@ -131,6 +139,17 @@ incidenciasRouter.get('/', async (req: AuthedRequest, res: Response) => {
 incidenciasRouter.post('/', async (req: AuthedRequest, res: Response) => {
   try {
     const { sucursalId, empleadoCodigo, tipo, desde, nota } = req.body || {};
+    // Uso de horas extra: cuántos minutos por día (entre 1 min y 12 h).
+    let minutos: number | null = null;
+    if (tipo === 'horas_extra') {
+      minutos = Math.round(Number(req.body?.minutos));
+      if (!Number.isFinite(minutos) || minutos < 1 || minutos > 720) {
+        return res.status(400).json({ error: 'Indica cuántas horas extra usó (entre 1 minuto y 12 horas).' });
+      }
+    }
+    if (tipo === 'otros' && !String(nota || '').trim()) {
+      return res.status(400).json({ error: 'Con "Otros" hay que escribir el motivo.' });
+    }
     const hasta = req.body?.hasta || desde;
     if (!sucursalId || !empleadoCodigo || !tipo || !desde) {
       return res.status(400).json({ error: 'Faltan sucursalId, empleadoCodigo, tipo o desde.' });
@@ -150,10 +169,10 @@ incidenciasRouter.post('/', async (req: AuthedRequest, res: Response) => {
       return res.status(400).json({ error: `El periodo son ${dias} días y el tope es ${TOPE_DIAS}. Revisa las fechas.` });
     }
     const { rows } = await pool.query(
-      `INSERT INTO asistencia_incidencias (sucursal_id, empleado_codigo, tipo, desde, hasta, nota, creado_por)
-       VALUES ($1, $2, $3, $4::date, $5::date, NULLIF(btrim($6), ''), $7)
+      `INSERT INTO asistencia_incidencias (sucursal_id, empleado_codigo, tipo, desde, hasta, nota, creado_por, minutos)
+       VALUES ($1, $2, $3, $4::date, $5::date, NULLIF(btrim($6), ''), $7, $8)
        RETURNING *`,
-      [sucursalId, String(empleadoCodigo).trim(), tipo, desde, hasta, nota ?? '', req.usuario?.email || null]);
+      [sucursalId, String(empleadoCodigo).trim(), tipo, desde, hasta, nota ?? '', req.usuario?.email || null, minutos]);
     res.json(mapIncidencia(rows[0]));
   } catch (e) {
     console.error('[incidencias] crear', e);

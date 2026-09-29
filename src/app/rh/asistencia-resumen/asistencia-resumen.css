@@ -1038,3 +1038,13 @@
 .ar-buscar-x:hover { background: var(--surface2); color: var(--ink); }
 .rep-sin-res { padding: 18px !important; color: var(--text2); text-align: center !important; }
 @media (max-width: 640px) { .ar-field-buscar { max-width: none; flex-basis: 100%; } }
+
+/* ── Justificar un día en la ficha, y uso de horas extra (29/09/2026) ── */
+.fic-dias li { flex-wrap: wrap; }
+.fic-justificar { order: 3; margin-left: auto; height: 28px; padding: 0 10px; border: 1px solid var(--red); border-radius: 8px; background: #fff; color: var(--red-text); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; flex: none; }
+.fic-justificar:hover { background: var(--red); color: #fff; }
+.fic-just-ok { order: 3; margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--green-text); flex: none; }
+.inc-horas { display: flex; gap: 12px; }
+.inc-horas label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
+.inc-horas input { width: 72px !important; }
+.inc-horas-ayuda { font-size: 11.5px; color: var(--text3); }

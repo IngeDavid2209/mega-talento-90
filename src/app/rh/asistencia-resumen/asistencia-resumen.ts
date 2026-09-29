@@ -60,7 +60,7 @@ interface DiaAsistencia {
  *               rojo dejaría de avisar de algo.
  */
 /** Una incidencia tal como se lista en un día de la ficha. */
-interface FichaInc { id: string; tipo: string; codigo: string; etiqueta: string; nota: string; }
+interface FichaInc { id: string; tipo: string; codigo: string; etiqueta: string; nota: string; minutos?: number | null; }
 
 export interface Irregularidad {
   fecha: string; diaLabel: string;
@@ -684,6 +684,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     for (const s of semanas) for (const d of s.dias) {
       const base = { fecha: d.fecha, diaLabel: d.diaLabel };
       if (d.justificado || d.estadoDia === 'descanso') continue;
+      // Un día con una incidencia que justifica (permiso, horas extra, otros con
+      // su motivo…) ya no es malo: se ve justificado en la ficha, no en rojo.
+      if (d.incidencias.some((i) => i.tipo !== 'falta_injustificada' && i.tipo !== 'amonestacion')) continue;
       if (d.falta) out.push({ ...base, nivel: 'alta', tipo: 'falta', texto: 'Falta' });
       // El retardo solo es irregularidad si el número se puede usar: con el
       // horario por confirmar, el minuto no es de fiar y no se acusa con él.
@@ -817,7 +820,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const ini = inc.desde > this.desde ? inc.desde : this.desde;
       const fin = inc.hasta < this.hasta ? inc.hasta : this.hasta;
       for (let f = ini; f <= fin; f = this.diaSiguiente(f)) {
-        dia(f).incs.push({ id: inc.id, tipo: inc.tipo, codigo: inc.codigo, etiqueta: inc.etiqueta, nota: inc.nota });
+        dia(f).incs.push({ id: inc.id, tipo: inc.tipo, codigo: inc.codigo, etiqueta: inc.etiqueta, nota: inc.nota, minutos: inc.minutos });
       }
     }
     return [...m.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -860,7 +863,37 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     tipo: TipoIncidencia; codigo: string;
     cuando: 'hoy' | 'dia' | 'rango';
     desde: string; hasta: string; nota: string;
+    /** "Uso de horas extra": cuántas horas y minutos usó (por día). */
+    horas?: number | null; mins?: number | null;
+    /** Se abrió desde "Justificar" en la ficha: se deja elegir el motivo. */
+    elegirTipo?: boolean;
   } | null = null;
+
+  /** Los que justifican, para el selector de "Justificar". */
+  get tiposQueJustifican(): TipoIncidencia[] {
+    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada' && t.tipo !== 'amonestacion');
+  }
+  get esHorasExtra(): boolean { return this.incForm?.tipo.tipo === 'horas_extra'; }
+  private get incMinutos(): number {
+    const f = this.incForm;
+    return f ? Math.round((Number(f.horas) || 0) * 60 + (Number(f.mins) || 0)) : 0;
+  }
+  cambiarTipoInc(tipo: string) {
+    const t = this.tiposIncidencia.find((x) => x.tipo === tipo);
+    if (t && this.incForm) this.incForm.tipo = t;
+  }
+
+  /**
+   * JUSTIFICAR UN DÍA desde la ficha (29/09/2026): abre el formulario de
+   * incidencia con la persona y el día ya puestos y el motivo por elegir.
+   */
+  justificarDia(fecha: string) {
+    const e = this.ficha;
+    const t = this.tiposIncidencia.find((x) => x.tipo === 'permiso_con_goce') || this.tiposQueJustifican[0];
+    if (!e || !t) return;
+    this.abrirIncidencia(t, e.codigo, fecha);
+    if (this.incForm) this.incForm.elegirTipo = true;
+  }
   guardandoInc = false;
 
   private async cargarTiposIncidencia() {
@@ -912,6 +945,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       this.toast.alerta('Escribe qué pasó: con "Otros" la descripción es lo único que explica la incidencia.');
       return;
     }
+    if (this.esHorasExtra && (this.incMinutos < 1 || this.incMinutos > 720)) {
+      this.toast.alerta('Escribe cuántas horas extra usó (entre 1 minuto y 12 horas).');
+      return;
+    }
     const quien0 = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
     const cuando = p.desde === p.hasta
       ? `el ${this.fechaLarga(p.desde)}`
@@ -919,7 +956,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const ok = await this.toast.confirmar({
       titulo: `Registrar ${f.tipo.etiqueta.toLowerCase()}`,
       mensaje: `¿Seguro? Se registra ${f.tipo.etiqueta.toLowerCase()} para ${quien0} ${cuando}.` +
-        (f.tipo.excusaFalta ? ' Esos días dejan de contar como falta.' : ''),
+        (this.esHorasExtra ? ` Se le suman ${this.textoMinutos(this.incMinutos)} a sus horas trabajadas por día, y el día queda justificado.`
+          : f.tipo.excusaFalta ? ' Esos días quedan justificados: no cuentan como falta ni como retardo.' : ''),
       textoConfirmar: 'Sí, registrar',
     });
     if (!ok) return;
@@ -928,6 +966,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       await this.checador.crearIncidencia({
         sucursalId: this.sucursalFiltro, empleadoCodigo: f.codigo,
         tipo: f.tipo.tipo, desde: p.desde, hasta: p.hasta, nota: f.nota,
+        minutos: this.esHorasExtra ? this.incMinutos : null,
       });
       const quien = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
       this.toast.exito(`${f.tipo.etiqueta} · ${quien} · ${this.incDias} día(s).`);
@@ -988,6 +1027,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       m.set(i.tipo, { codigo: i.codigo, tipo: i.tipo, titulo: prev ? `${prev.titulo}\n${t}` : t });
     }
     return [...m.values()];
+  }
+
+  /** 90 → "1 h 30 min". */
+  textoMinutos(m: number): string {
+    const h = Math.floor(m / 60), r = m % 60;
+    return h ? `${h} h${r ? ' ' + r + ' min' : ''}` : `${r} min`;
   }
 
   /** "vie 19 sep", para los mensajes de confirmación. */

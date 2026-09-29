@@ -325,7 +325,14 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
     sucursalId: string; codigo: string; nombre: string;
     motivo: 'falta' | 'salida'; detalle: string;
     tipo: string; nota: string; guardando: boolean;
+    /** "Uso de horas extra": cuántas usó. */
+    horas?: number | null; mins?: number | null;
   } | null = null;
+  get esHorasExtra(): boolean { return this.justificando?.tipo === 'horas_extra'; }
+  private get minutosJust(): number {
+    const j = this.justificando;
+    return j ? Math.round((Number(j.horas) || 0) * 60 + (Number(j.mins) || 0)) : 0;
+  }
 
   /** Los tipos que sí justifican (una amonestación o una falta injustificada no). */
   get tiposQueJustifican(): TipoIncidencia[] {
@@ -349,11 +356,13 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
     const j = this.justificando;
     if (!j || j.guardando) return;
     if (this.notaObligatoria && !j.nota.trim()) { this.toast.alerta('Escribe el motivo: con "Otros" es lo único que explica la justificación.'); return; }
+    if (this.esHorasExtra && (this.minutosJust < 1 || this.minutosJust > 720)) { this.toast.alerta('Escribe cuántas horas extra usó (entre 1 minuto y 12 horas).'); return; }
     const t = this.tiposIncidencia.find((x) => x.tipo === j.tipo);
     const ok = await this.toast.confirmar({
       titulo: 'Justificar',
       mensaje: `¿Seguro? Se registra "${t?.etiqueta || j.tipo}" para ${j.nombre} hoy` +
         (j.nota.trim() ? ` (${j.nota.trim()})` : '') + '. ' +
+        (this.esHorasExtra ? `Se le suman ${this.duracion(this.minutosJust)} a sus horas de hoy. ` : '') +
         (j.motivo === 'falta' ? 'Deja de contar como falta.' : 'La salida anticipada deja de contar como aviso.'),
       textoConfirmar: 'Sí, justificar',
     });
@@ -364,6 +373,7 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       await this.checador.crearIncidencia({
         sucursalId: j.sucursalId, empleadoCodigo: j.codigo, tipo: j.tipo,
         desde: hoy, hasta: hoy, nota: j.nota.trim(),
+        minutos: this.esHorasExtra ? this.minutosJust : null,
       });
       this.toast.exito(`${j.nombre}: justificado.`);
       this.justificando = null;

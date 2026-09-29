@@ -76,12 +76,16 @@ export interface TipoIncidencia {
 /** Una incidencia, tal como se pinta en la celda de un día. */
 export interface IncidenciaDia {
   id: string; tipo: string; codigo: string; etiqueta: string; nota: string;
+  /** "Uso de horas extra": minutos que se suman a las horas del día. */
+  minutos?: number | null;
 }
 /** La incidencia completa, con su periodo. */
 export interface Incidencia {
   id?: string;
   sucursalId: string; empleadoCodigo: string; tipo: string;
   desde: string; hasta: string; nota?: string;
+  /** Solo "Uso de horas extra": minutos usados por día. */
+  minutos?: number | null;
   creadoPor?: string; creadoEn?: string;
 }
 

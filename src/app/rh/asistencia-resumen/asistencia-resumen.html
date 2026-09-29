@@ -1126,6 +1126,12 @@
           @for (d of fichaPorDia; track d.fecha) {
             <li>
               <span class="fic-fecha">{{ d.diaLabel }}</span>
+              @if (d.items.length) {
+                <button type="button" class="fic-justificar" (click)="justificarDia(d.fecha)"
+                        [attr.aria-label]="'Justificar el ' + d.diaLabel">Justificar</button>
+              } @else if (d.incs.length) {
+                <span class="fic-just-ok">✓ Justificado</span>
+              }
               <span class="fic-items">
                 @for (i of d.items; track i.tipo) {
                   <span class="fic-item" [attr.data-t]="i.tipo" [attr.data-n]="i.nivel">
@@ -1135,7 +1141,7 @@
                 @for (c of d.incs; track c.id) {
                   <span class="fic-item fic-item-inc">
                     <span class="inc-cod" [attr.data-t]="c.tipo">{{ c.codigo }}</span>
-                    {{ c.etiqueta }}@if (c.nota) {: {{ c.nota }}}
+                    {{ c.etiqueta }}@if (c.minutos) { ({{ textoMinutos(c.minutos) }})}@if (c.nota) {: {{ c.nota }}}
                   </span>
                 }
               </span>
@@ -1219,12 +1225,34 @@
         <div>
           <h3>{{ incForm.tipo.etiqueta }}</h3>
           <span class="ar-card-sub">
-            @if (incForm.tipo.excusaFalta) { Los días que cubra no cuentan como falta. }
+            @if (esHorasExtra) { Sus horas se suman a las del día. }
+            @else if (incForm.tipo.excusaFalta) { Los días que cubra quedan justificados. }
             @else { Queda registrada; no cambia el cálculo. }
           </span>
         </div>
         <button class="ar-modal-x" (click)="incForm = null" aria-label="Cerrar">✕</button>
       </header>
+
+      <!-- Desde "Justificar" se elige el motivo aquí mismo. -->
+      @if (incForm.elegirTipo) {
+        <label class="inc-campo">
+          <span>¿Por qué?</span>
+          <select [ngModel]="incForm.tipo.tipo" (ngModelChange)="cambiarTipoInc($event)">
+            @for (t of tiposQueJustifican; track t.tipo) { <option [value]="t.tipo">{{ t.etiqueta }}</option> }
+          </select>
+        </label>
+      }
+      <!-- Uso de horas extra: cuántas usó. Se suman a sus horas de ese día. -->
+      @if (esHorasExtra) {
+        <div class="inc-campo">
+          <span>¿Cuántas horas extra usó? <small>(por día)</small></span>
+          <div class="inc-horas">
+            <label><input type="number" min="0" max="12" [(ngModel)]="incForm.horas" placeholder="0"> h</label>
+            <label><input type="number" min="0" max="59" step="5" [(ngModel)]="incForm.mins" placeholder="0"> min</label>
+          </div>
+          <small class="inc-horas-ayuda">Se suman a las horas trabajadas de ese día, y el día queda justificado.</small>
+        </div>
+      }
 
       <label class="inc-campo">
         <span>¿A quién?</span>
