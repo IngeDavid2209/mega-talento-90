@@ -157,7 +157,8 @@ agenteHorariosRouter.get('/equipo', async (req: AuthedRequest, res: Response) =>
   const rol = String(req.usuario?.rol || '').toLowerCase();
   if (!rol.startsWith('admin')) return res.status(403).json({ error: 'Solo administradores.' });
   try {
-    res.json(await equipoAhora());
+    // ?fresco=1 justo después de justificar: sin la caché de 5 min.
+    res.json(await equipoAhora(String((req.query as any).fresco || '') === '1'));
   } catch (e) {
     fallo(res, e, 'No se pudo leer la ubicación del equipo.');
   }

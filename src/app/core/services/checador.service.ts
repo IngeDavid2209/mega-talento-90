@@ -127,14 +127,16 @@ export interface PersonaEquipo {
   hace: number;
 }
 export interface PersonaSalidaEquipo {
-  codigo: string; nombre: string; departamento: string | null;
+  codigo: string; sucursalId: string; nombre: string; departamento: string | null;
   entrada: string; salida: string;
   /** Salió esta cantidad de minutos antes de lo que dura su jornada (null: a su hora). */
   antesMin: number | null;
   jornadaHabitual: string | null;
+  /** RH ya la justificó hoy con una incidencia: se ve, pero no cuenta como aviso. */
+  justificacion: string | null;
 }
 export interface PersonaFaltaEquipo {
-  codigo: string; nombre: string; departamento: string | null;
+  codigo: string; sucursalId: string; nombre: string; departamento: string | null;
   entraA: string; retrasoMin: number;
 }
 export interface EscenaEquipo {
@@ -683,8 +685,8 @@ export class ChecadorService {
   }
 
   /** "Ubicación de mi equipo": quién está en cada reloj ahora. Solo administradores. */
-  getEquipo(): Promise<EquipoAhora> {
-    return this.api.get<EquipoAhora>('/checador/agente/equipo');
+  getEquipo(fresco = false): Promise<EquipoAhora> {
+    return this.api.get<EquipoAhora>('/checador/agente/equipo', fresco ? { fresco: '1' } : undefined);
   }
 
   // ===================== SEMÁFORO DE RELOJES =====================

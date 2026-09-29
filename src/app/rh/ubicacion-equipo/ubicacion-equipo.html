@@ -470,6 +470,7 @@
                     <span class="ue-riesgo-nom">{{ f.nombre }}</span>
                     <span class="ue-riesgo-dep">{{ f.departamento || 'Sin departamento' }}</span>
                     <span class="ue-riesgo-det">Entra {{ f.entraA }} · lleva {{ duracion(f.retrasoMin) }}</span>
+                    <button type="button" class="ue-justificar" (click)="justificar(f, 'falta', 'No se ha presentado (entra ' + f.entraA + ')')">Justificar</button>
                   </li>
                 }
               </ul>
@@ -478,13 +479,20 @@
           <!-- Se fueron antes de lo que dura su jornada. -->
           @if (salidasAntes(e).length) {
             <section class="ue-riesgo ue-riesgo-antes" aria-label="Salieron antes de su hora">
-              <header><span class="ue-riesgo-dot" aria-hidden="true"></span>Salieron antes de su hora <b>{{ salidasAntes(e).length }}</b></header>
+              <header><span class="ue-riesgo-dot" aria-hidden="true"></span>Salieron antes de su hora
+                @if (salidasPendientes(e)) { <b>{{ salidasPendientes(e) }}</b> } @else { <em class="ue-todo-just">todas justificadas</em> }
+              </header>
               <ul>
                 @for (x of salidasAntes(e); track x.codigo) {
-                  <li>
+                  <li [class.just]="!!x.justificacion">
                     <span class="ue-riesgo-nom">{{ x.nombre }}</span>
                     <span class="ue-riesgo-dep">{{ x.departamento || 'Sin departamento' }}</span>
                     <span class="ue-riesgo-det">{{ x.entrada }} → {{ x.salida }} · {{ duracion(x.antesMin!) }} antes (su jornada: {{ x.jornadaHabitual }})</span>
+                    @if (x.justificacion) {
+                      <span class="ue-just-tag" [title]="x.justificacion">✓ Justificada: {{ x.justificacion }}</span>
+                    } @else {
+                      <button type="button" class="ue-justificar" (click)="justificar(x, 'salida', 'Salió ' + x.salida + ', ' + duracion(x.antesMin!) + ' antes de su jornada')">Justificar</button>
+                    }
                   </li>
                 }
               </ul>
@@ -526,11 +534,49 @@
               <b>{{ f.nombre }}</b>
               <span>{{ f.lugar }} · {{ f.departamento || 'Sin departamento' }}</span>
             </div>
-            <span class="ue-lista-det">{{ f.detalle }}</span>
+            <span class="ue-lista-det">{{ f.detalle }}
+              @if (f.justificada) { <em class="ue-just-tag">✓ Justificada: {{ f.justificada }}</em> }
+            </span>
+            @if (f.justificar) {
+              <button type="button" class="ue-justificar" (click)="justificar(f.justificar, f.justificar.motivo, f.detalle)">Justificar</button>
+            }
           </li>
         }
       </ul>
     }
+  </div>
+}
+
+<!-- ===== Justificar (se registra como incidencia del día) ===== -->
+@if (justificando) {
+  <div class="ue-lista-ov ue-just-ov" (click)="justificando = null"></div>
+  <div class="ue-lista ue-just" role="dialog" aria-modal="true" aria-label="Justificar">
+    <header class="ue-lista-head">
+      <h3>Justificar</h3>
+      <button type="button" class="ue-btn-ico" (click)="justificando = null" aria-label="Cerrar">✕</button>
+    </header>
+    <div class="ue-just-cuerpo">
+      <p class="ue-just-quien"><b>{{ justificando.nombre }}</b><span>{{ justificando.detalle }}</span></p>
+      <label class="ue-just-campo">
+        <span>¿Por qué?</span>
+        <select [(ngModel)]="justificando.tipo">
+          @for (t of tiposQueJustifican; track t.tipo) { <option [value]="t.tipo">{{ t.etiqueta }}</option> }
+        </select>
+      </label>
+      <label class="ue-just-campo">
+        <span>{{ notaObligatoria ? 'Motivo (obligatorio)' : 'Nota (opcional)' }}</span>
+        <input type="text" [(ngModel)]="justificando.nota" maxlength="200"
+               [placeholder]="justificando.motivo === 'salida' ? 'Ej. salió a una cita médica' : 'Ej. avisó que llega tarde por un trámite'"
+               (keydown.enter)="guardarJustificacion()">
+      </label>
+      <p class="ue-just-ayuda">Se registra como incidencia de hoy, igual que en la pestaña Checadas: cuenta en el reporte y en todos lados.</p>
+      <div class="ue-just-acciones">
+        <button type="button" class="ue-btn ue-btn-ghost" (click)="justificando = null">Cancelar</button>
+        <button type="button" class="ue-btn" [disabled]="justificando.guardando || (notaObligatoria && !justificando.nota.trim())" (click)="guardarJustificacion()">
+          {{ justificando.guardando ? 'Guardando…' : 'Justificar' }}
+        </button>
+      </div>
+    </div>
   </div>
 }
 

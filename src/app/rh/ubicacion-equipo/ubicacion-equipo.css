@@ -389,3 +389,30 @@ button.ue-total:focus-visible { outline: 2px solid var(--ink); outline-offset: 2
 @media (prefers-reduced-motion: reduce) {
   .ue *, .ue *::after { animation: none !important; transition: none !important; }
 }
+
+/* ── Justificar (29/09/2026) ── */
+.ue-riesgo li { position: relative; padding-right: 92px; }
+.ue-justificar { position: absolute; right: 0; top: 50%; transform: translateY(-50%); height: 28px; padding: 0 10px; border: 1px solid currentColor; border-radius: 8px; background: #fff; color: var(--red-text); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.ue-justificar:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.ue-riesgo-antes .ue-justificar { color: #9A3F12; }
+.ue-riesgo-antes .ue-justificar:hover { background: #D9642E; border-color: #D9642E; color: #fff; }
+.ue-riesgo li.just { opacity: .85; }
+.ue-riesgo li.just .ue-riesgo-nom, .ue-riesgo li.just .ue-riesgo-det { color: var(--text2); }
+.ue-just-tag { flex-basis: 100%; font-style: normal; font-size: 11px; font-weight: 700; color: var(--green-text); }
+.ue-todo-just { font-style: normal; font-size: 11px; font-weight: 700; color: var(--green-text); text-transform: none; letter-spacing: 0; }
+.ue-lista-filas .ue-justificar { position: static; transform: none; margin-left: 8px; grid-column: auto; }
+.ue-lista-filas li { grid-template-columns: 10px minmax(0, 1fr) auto auto; }
+.ue-lista-det .ue-just-tag { display: block; }
+.ue-just-ov { z-index: 1250; }
+.ue-lista.ue-just { z-index: 1251; width: min(440px, 94vw); }
+.ue-just-cuerpo { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 18px; }
+.ue-just-quien { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.ue-just-quien b { font-size: 14px; color: var(--ink); }
+.ue-just-quien span { font-size: 12.5px; color: var(--text2); }
+.ue-just-campo { display: flex; flex-direction: column; gap: 5px; }
+.ue-just-campo > span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); }
+.ue-just-campo select, .ue-just-campo input { height: 40px; border: 1px solid var(--border-med); border-radius: 10px; padding: 0 10px; font: inherit; font-size: 13.5px; color: var(--ink); background: #fff; }
+.ue-just-ayuda { margin: 0; font-size: 12px; color: var(--text3); }
+.ue-just-acciones { display: flex; justify-content: flex-end; gap: 8px; }
+.ue-btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--border-med); }
+.ue-btn:disabled { opacity: .5; cursor: default; }

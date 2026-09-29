@@ -2,6 +2,7 @@ import { pool } from '../db';
 import * as hd from './horario-deducido';
 import { salidasHabitualesCache } from './presencia';
 import { asistenciaPersonas } from './asistencia-personas';
+import { incidenciasEnRango, tipoIncidencia } from '../incidencias';
 
 /**
  * UBICACIÓN DE MI EQUIPO — quién está en cada RELOJ ahora mismo (29/09/2026).
@@ -57,7 +58,7 @@ export interface PersonaEquipo {
 
 /** Alguien que ya terminó su jornada hoy. */
 export interface PersonaSalida {
-  codigo: string; nombre: string; departamento: string | null;
+  codigo: string; sucursalId: string; nombre: string; departamento: string | null;
   entrada: string; salida: string;
   /**
    * SALIÓ ANTES (29/09/2026): cuántos minutos antes de lo que suele durar su
@@ -66,11 +67,17 @@ export interface PersonaSalida {
   antesMin: number | null;
   /** Lo que suele durar su jornada ('9h 30m'), para el aviso. */
   jornadaHabitual: string | null;
+  /**
+   * JUSTIFICADA (29/09/2026): RH registró hoy una incidencia para esta persona
+   * (permiso, vacaciones, "otros" con su nota…). La salida anticipada se sigue
+   * viendo, pero ya no cuenta como aviso. null = sin justificar.
+   */
+  justificacion: string | null;
 }
 
 /** Alguien que hoy tenía que trabajar y no se ha presentado. */
 export interface PersonaFalta {
-  codigo: string; nombre: string; departamento: string | null;
+  codigo: string; sucursalId: string; nombre: string; departamento: string | null;
   /** A qué hora suele entrar ('08:00'), o sus turnos si rota. */
   entraA: string;
   /** Minutos que lleva de retraso sobre esa hora. */
@@ -146,7 +153,11 @@ function tipoDe(sucursalId: string, alias: string): TipoEscena {
   return 'tienda';
 }
 
-export async function equipoAhora(): Promise<EquipoAhora> {
+/**
+ * @param fresco  true = sin la caché de 5 min de la asistencia: se usa justo
+ *   después de justificar a alguien, para que salga de la lista al momento.
+ */
+export async function equipoAhora(fresco = false): Promise<EquipoAhora> {
   // Hora de México desde Postgres: la API corre en UTC (ver presencia.ts).
   const { rows: [ahora] } = await pool.query(
     `SELECT to_char((now() AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS fecha,
@@ -179,8 +190,21 @@ export async function equipoAhora(): Promise<EquipoAhora> {
   ]);
   const [jornadas, asistenciaHoy] = await Promise.all([
     jornadasHabitualesCache(fecha),
-    asistenciaDeHoyCache(fecha, [...new Set((relojes as any[]).map((r) => r.sucursal_id))]),
+    asistenciaDeHoyCache(fecha, [...new Set((relojes as any[]).map((r) => r.sucursal_id))], fresco),
   ]);
+  // Las incidencias de HOY, para saber qué salida anticipada ya está justificada.
+  // (Las faltas justificadas ya las quita el cálculo de asistencia.)
+  const justificadas = new Map<string, string>();
+  await Promise.all([...new Set((relojes as any[]).map((r) => r.sucursal_id))].map(async (suc) => {
+    try {
+      for (const i of await incidenciasEnRango(suc, fecha, fecha)) {
+        // Una falta injustificada o una amonestación no justifican nada.
+        if (i.tipo === 'falta_injustificada' || i.tipo === 'amonestacion') continue;
+        const t = tipoIncidencia(i.tipo);
+        justificadas.set(`${suc}|${i.empleadoCodigo}`, `${t?.etiqueta || i.tipo}${i.nota ? ': ' + i.nota : ''}`);
+      }
+    } catch { /* sin incidencias, nada justificado */ }
+  }));
 
   const porFicha = new Map<string, any>();
   for (const f of fichas) porFicha.set(`${f.sucursal_id}|${String(f.codigo_checador).trim()}`, f);
@@ -306,12 +330,13 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       const trabajo = ultima.min - primera.min;
       const antes = jornada != null && minsColapsados.length >= 2 ? jornada - trabajo : null;
       escena.salidas.push({
-        codigo: cod,
+        codigo: cod, sucursalId: m.sucursal_id,
         nombre: (ficha && ficha.nombre) || `Código ${cod}`,
         departamento: (ficha && ficha.departamento) || null,
         entrada: aHHMM(primera.min), salida: aHHMM(ultima.min),
         antesMin: antes != null && antes >= SALIO_ANTES_MIN ? Math.round(antes) : null,
         jornadaHabitual: jornada != null ? aHoras(jornada) : null,
+        justificacion: justificadas.get(`${m.sucursal_id}|${cod}`) || null,
       });
       continue;
     }
@@ -349,7 +374,7 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       const entraMin = Math.max(...horas);
       if (minutoAhora < entraMin + MARGEN_FALTA_MIN) continue;
       escena.faltan.push({
-        codigo: p.codigo, nombre: p.nombreCompleto || p.nombre, departamento: p.departamento,
+        codigo: p.codigo, sucursalId, nombre: p.nombreCompleto || p.nombre, departamento: p.departamento,
         entraA: p.tipo === 'rotativo' ? p.turnos.filter(Boolean).join(' / ') : (p.horario as string),
         retrasoMin: minutoAhora - entraMin,
       });
@@ -375,7 +400,7 @@ export async function equipoAhora(): Promise<EquipoAhora> {
       comida: cuenta('comida'),
       salieron: lista.reduce((t, e) => t + e.salieron, 0),
       sinSalida: lista.reduce((t, e) => t + e.sinSalida, 0),
-      salieronAntes: lista.reduce((t, e) => t + e.salidas.filter((x) => x.antesMin != null).length, 0),
+      salieronAntes: lista.reduce((t, e) => t + e.salidas.filter((x) => x.antesMin != null && !x.justificacion).length, 0),
       faltan: lista.reduce((t, e) => t + e.faltan.length, 0),
     },
     escenas: lista,
@@ -423,8 +448,8 @@ async function jornadasHabitualesCache(fecha: string): Promise<Map<string, numbe
 // plaza no tumba la pantalla: esa plaza simplemente no marca faltantes.
 let cacheAsistencia: { fecha: string; en: number; datos: Map<string, Awaited<ReturnType<typeof asistenciaPersonas>>> } | null = null;
 
-async function asistenciaDeHoyCache(fecha: string, sucursales: string[]) {
-  if (cacheAsistencia && cacheAsistencia.fecha === fecha && Date.now() - cacheAsistencia.en < 5 * 60 * 1000) {
+async function asistenciaDeHoyCache(fecha: string, sucursales: string[], fresco = false) {
+  if (!fresco && cacheAsistencia && cacheAsistencia.fecha === fecha && Date.now() - cacheAsistencia.en < 5 * 60 * 1000) {
     return cacheAsistencia.datos;
   }
   const datos = new Map<string, Awaited<ReturnType<typeof asistenciaPersonas>>>();

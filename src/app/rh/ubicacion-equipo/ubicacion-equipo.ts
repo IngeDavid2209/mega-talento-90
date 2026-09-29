@@ -1,7 +1,9 @@
 import { Component, inject, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ChecadorService, EquipoAhora, EscenaEquipo, PersonaEquipo, PersonaFaltaEquipo, PersonaSalidaEquipo } from '../../core/services/checador.service';
+import { ChecadorService, EquipoAhora, EscenaEquipo, PersonaEquipo, PersonaFaltaEquipo, PersonaSalidaEquipo, TipoIncidencia } from '../../core/services/checador.service';
+import { ToastService } from '../../core/services/toast.service';
+import { aFechaLocal } from '../../core/models/checador.model';
 import { centroChecadorPorId } from '../../core/models/sucursales.model';
 
 /**
@@ -23,7 +25,12 @@ import { centroChecadorPorId } from '../../core/models/sucursales.model';
  */
 
 type TipoLista = 'dentro' | 'comida' | 'salieron' | 'sin_salida' | 'antes' | 'faltan';
-interface FilaLista { nombre: string; departamento: string | null; lugar: string; detalle: string; color: string; aviso?: boolean; }
+interface FilaLista {
+  nombre: string; departamento: string | null; lugar: string; detalle: string; color: string; aviso?: boolean;
+  /** Para el botón "Justificar" (solo en faltas y salidas anticipadas sin justificar). */
+  justificar?: { sucursalId: string; codigo: string; nombre: string; motivo: 'falta' | 'salida' };
+  justificada?: string | null;
+}
 
 /** Un personaje ya listo para pintar. */
 interface Personaje extends PersonaEquipo {
@@ -72,6 +79,7 @@ const MAX_VISIBLES = 24;
 export class UbicacionEquipoComponent implements OnInit, OnDestroy {
   private checador = inject(ChecadorService);
   private zona = inject(NgZone);
+  private toast = inject(ToastService);
 
   datos: EquipoAhora | null = null;
   escenas: Escena[] = [];
@@ -100,10 +108,10 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() { clearInterval(this.reloj); }
 
-  async cargar(silencioso = false) {
+  async cargar(silencioso = false, fresco = false) {
     if (!silencioso) this.cargando = true;
     try {
-      const d = await this.checador.getEquipo();
+      const d = await this.checador.getEquipo(fresco);
       this.datos = d;
       this.escenas = this.armar(d);
       this.aplicarFiltros();
@@ -278,14 +286,18 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       } else if (clave === 'salieron' || clave === 'antes') {
         for (const x of e.salidas) {
           if (clave === 'antes' && x.antesMin == null) continue;
+          const antes = x.antesMin != null;
           filas.push({ nombre: x.nombre, departamento: x.departamento, lugar,
-            detalle: `Entró ${x.entrada} · salió ${x.salida}` + (x.antesMin != null ? ` · ${this.duracion(x.antesMin)} antes de su jornada (${x.jornadaHabitual})` : ''),
-            color: this.colorDe(x.departamento), aviso: x.antesMin != null });
+            detalle: `Entró ${x.entrada} · salió ${x.salida}` + (antes ? ` · ${this.duracion(x.antesMin!)} antes de su jornada (${x.jornadaHabitual})` : ''),
+            color: this.colorDe(x.departamento), aviso: antes && !x.justificacion,
+            justificada: antes ? x.justificacion : null,
+            justificar: antes && !x.justificacion ? { sucursalId: x.sucursalId, codigo: x.codigo, nombre: x.nombre, motivo: 'salida' } : undefined });
         }
       } else if (clave === 'faltan') {
         for (const x of e.faltan) {
           filas.push({ nombre: x.nombre, departamento: x.departamento, lugar,
-            detalle: `Entra ${x.entraA} · lleva ${this.duracion(x.retrasoMin)} sin checar`, color: this.colorDe(x.departamento), aviso: true });
+            detalle: `Entra ${x.entraA} · lleva ${this.duracion(x.retrasoMin)} sin checar`, color: this.colorDe(x.departamento), aviso: true,
+            justificar: { sucursalId: x.sucursalId, codigo: x.codigo, nombre: x.nombre, motivo: 'falta' } });
         }
       }
     }
@@ -299,6 +311,71 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
   cerrarLista() { this.lista = null; }
 
   salidasAntes(e: Escena): PersonaSalidaEquipo[] { return e.salidas.filter((x) => x.antesMin != null); }
+  /** Las que siguen pendientes (sin justificar): son las que cuentan en el aviso. */
+  salidasPendientes(e: Escena): number { return e.salidas.filter((x) => x.antesMin != null && !x.justificacion).length; }
+
+  // ══ JUSTIFICAR DESDE AQUÍ (29/09/2026) ══════════════════════════════
+  //
+  // Quien no se presentó o salió antes puede tener una razón: un permiso, una
+  // cita, una comisión. Se registra como INCIDENCIA del día (la misma de la
+  // pestaña Checadas), así que cuenta igual en todos lados: la falta deja de
+  // contar en el reporte y la salida anticipada deja de ser aviso.
+  tiposIncidencia: TipoIncidencia[] = [];
+  justificando: {
+    sucursalId: string; codigo: string; nombre: string;
+    motivo: 'falta' | 'salida'; detalle: string;
+    tipo: string; nota: string; guardando: boolean;
+  } | null = null;
+
+  /** Los tipos que sí justifican (una amonestación o una falta injustificada no). */
+  get tiposQueJustifican(): TipoIncidencia[] {
+    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada' && t.tipo !== 'amonestacion');
+  }
+
+  async justificar(x: { sucursalId: string; codigo: string; nombre: string }, motivo: 'falta' | 'salida', detalle: string) {
+    if (!this.tiposIncidencia.length) {
+      try { this.tiposIncidencia = await this.checador.getTiposIncidencia(); } catch { /* se avisa abajo */ }
+    }
+    if (!this.tiposIncidencia.length) { this.toast.error('No se pudieron leer los tipos de incidencia. Intenta de nuevo.'); return; }
+    this.justificando = {
+      sucursalId: x.sucursalId, codigo: x.codigo, nombre: x.nombre, motivo, detalle,
+      tipo: motivo === 'salida' ? 'permiso_con_goce' : 'permiso_con_goce', nota: '', guardando: false,
+    };
+  }
+
+  get notaObligatoria(): boolean { return this.justificando?.tipo === 'otros'; }
+
+  async guardarJustificacion() {
+    const j = this.justificando;
+    if (!j || j.guardando) return;
+    if (this.notaObligatoria && !j.nota.trim()) { this.toast.alerta('Escribe el motivo: con "Otros" es lo único que explica la justificación.'); return; }
+    const t = this.tiposIncidencia.find((x) => x.tipo === j.tipo);
+    const ok = await this.toast.confirmar({
+      titulo: 'Justificar',
+      mensaje: `¿Seguro? Se registra "${t?.etiqueta || j.tipo}" para ${j.nombre} hoy` +
+        (j.nota.trim() ? ` (${j.nota.trim()})` : '') + '. ' +
+        (j.motivo === 'falta' ? 'Deja de contar como falta.' : 'La salida anticipada deja de contar como aviso.'),
+      textoConfirmar: 'Sí, justificar',
+    });
+    if (!ok) return;
+    j.guardando = true;
+    const hoy = this.datos?.fecha || aFechaLocal(new Date());
+    try {
+      await this.checador.crearIncidencia({
+        sucursalId: j.sucursalId, empleadoCodigo: j.codigo, tipo: j.tipo,
+        desde: hoy, hasta: hoy, nota: j.nota.trim(),
+      });
+      this.toast.exito(`${j.nombre}: justificado.`);
+      this.justificando = null;
+      const abierta = this.lista?.clave;
+      await this.cargar(true, true);
+      if (abierta) this.abrirLista(abierta);
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo guardar la justificación.');
+      if (this.justificando) this.justificando.guardando = false;
+    }
+  }
 
   /** 186 → "3 h 06 min". */
   duracion(min: number): string {
