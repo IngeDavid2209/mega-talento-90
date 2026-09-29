@@ -167,6 +167,9 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       b.personas.length - a.personas.length || a.nombre.localeCompare(b.nombre, 'es'));
   }
 
+  /** Desde cuántas personas una tarjeta ocupa todo el ancho y pone sus departamentos en columnas. */
+  readonly ANCHA = 10;
+
   /** Cuántos se ven por departamento antes de "ver todos". */
   readonly POR_DEPTO = 8;
   deptosAbiertos = new Set<string>();

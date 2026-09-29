@@ -70,7 +70,7 @@
 
     <div class="ue-grid">
       @for (e of escenas; track e.id) {
-        <article class="ue-esc" [attr.data-tipo]="e.tipo"
+        <article class="ue-esc" [attr.data-tipo]="e.tipo" [class.ancha]="e.trabajando.length + e.comiendo.length > ANCHA"
                  [class.vacia]="!e.trabajando.length && !e.comiendo.length"
                  [class.muda]="e.relojMudo"
                  [class.tenue]="buscando && !escenaCoincide(e)">
@@ -382,11 +382,12 @@
                       <ng-container *ngTemplateOutlet="pjs; context: { lista: [p], e: e }"></ng-container>
                       <div class="ue-persona-txt">
                         <span class="ue-persona-nom" [title]="p.nombre">{{ p.nombre }}</span>
-                        <span class="ue-persona-horas">
-                          Llegó <b>{{ p.entrada }}</b>
-                          @if (p.ultima !== p.entrada) { · marcó <b>{{ p.ultima }}</b> }
-                          @if (p.estado === 'comida') { <em class="ue-persona-est">en comida</em> }
-                        </span>
+                        @if (p.estado === 'comida') { <em class="ue-persona-est">En comida</em> }
+                      </div>
+                      <!-- Las horas en su propia columna, alineadas: se comparan de un vistazo. -->
+                      <div class="ue-persona-horas">
+                        <span>Llegó <b>{{ p.entrada }}</b></span>
+                        @if (p.ultima !== p.entrada) { <span>Marcó <b>{{ p.ultima }}</b></span> }
                       </div>
                     </li>
                   }

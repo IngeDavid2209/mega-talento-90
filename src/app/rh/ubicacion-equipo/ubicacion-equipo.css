@@ -281,6 +281,35 @@
 .ue-depto-mas { margin: 4px 0 2px; border: 0; background: none; padding: 4px 6px; font: inherit; font-size: 12px; font-weight: 700; color: var(--blue-text); cursor: pointer; border-radius: 6px; }
 .ue-depto-mas:hover { background: #fff; }
 
+/* ══ ACOMODO: MENOS ENCIMADO (29/09/2026) ══════════════════════════
+   · La tarjeta con mucha gente ocupa todo el ancho y pone sus departamentos
+     en columnas; las chicas siguen de tres en tres.
+   · Cada persona es un renglón: muñequito · nombre · horas alineadas a la
+     derecha, con aire entre renglones. En el renglón el muñequito ya no brinca
+     ni saca globo: todo lo que diría está escrito al lado. */
+.ue-esc.ancha { grid-column: 1 / -1; }
+.ue-esc.ancha .ue-deptos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); align-items: start; gap: 12px; }
+.ue-deptos { gap: 12px; padding: 14px 14px 8px; }
+.ue-depto { padding: 10px 12px 8px; background: #fff; }
+.ue-depto-head { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.ue-gente { display: flex; flex-direction: column; gap: 0; }
+.ue-persona {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; column-gap: 10px;
+  padding: 6px 4px; border-radius: 8px; border-bottom: 1px solid var(--border);
+}
+.ue-persona:last-child { border-bottom: 0; }
+.ue-persona .pj { width: 30px; height: 40px; }
+.ue-persona .pj svg { width: 30px; height: 39px; }
+.ue-persona .pj:hover { transform: none; }
+.ue-persona .pj-cuerpo, .ue-persona .pj.come .pj-cuerpo { animation: none; }
+.ue-persona .pj-tip { display: none !important; }
+.ue-persona-txt { gap: 2px; }
+.ue-persona-nom { font-size: 12.5px; line-height: 1.3; -webkit-line-clamp: 2; }
+.ue-persona-est { align-self: flex-start; margin: 0; padding: 1px 7px; border-radius: 999px; background: var(--amber-bg); color: var(--amber-text); font-size: 10.5px; font-weight: 700; font-style: normal; }
+.ue-persona.come { background: none; }
+.ue-persona-horas { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11px; color: var(--text3); white-space: nowrap; }
+.ue-persona-horas b { font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
 @media (max-width: 640px) {
   .ue-grid { grid-template-columns: 1fr; }
   .ue-total-n { font-size: 22px; }
