@@ -103,6 +103,7 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       const d = await this.checador.getEquipo();
       this.datos = d;
       this.escenas = this.armar(d);
+      this.aplicarFiltros();
       this.error = '';
     } catch (e: any) {
       if (!silencioso) {
@@ -175,10 +176,72 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
   deptosAbiertos = new Set<string>();
   claveDepto(e: Escena, g: GrupoDepto) { return `${e.id}|${g.nombre}`; }
   personasDe(e: Escena, g: GrupoDepto): Personaje[] {
-    const lista = this.buscando
-      ? g.personas.filter((p) => this.coincide(p)).concat(g.personas.filter((p) => !this.coincide(p)))
-      : g.personas;
-    return this.deptosAbiertos.has(this.claveDepto(e, g)) ? lista : lista.slice(0, this.POR_DEPTO);
+    return this.deptosAbiertos.has(this.claveDepto(e, g)) ? g.personas : g.personas.slice(0, this.POR_DEPTO);
+  }
+
+  // ══ FILTROS (29/09/2026) ══════════════════════════════════════════
+  //
+  // Buscador, lugar, departamento (uno o varios), estado y "ocultar lugares
+  // sin nadie". A diferencia de la primera versión del buscador —que solo
+  // atenuaba—, los filtros ESCONDEN lo que no coincide: con 150 personas en
+  // pantalla, atenuar no alcanza para encontrar a nadie.
+  //
+  // Los números grandes de arriba no cambian: son la foto de toda la empresa.
+  // Lo filtrado se dice aparte ("Mostrando 12 de 144").
+  lugarSel = '';
+  deptosSel = new Set<string>();
+  estadoSel: 'todos' | 'dentro' | 'comida' = 'todos';
+  ocultarVacios = false;
+  /** Lo que se pinta, ya filtrado. Se recalcula al cambiar un filtro o al llegar datos. */
+  vista: Escena[] = [];
+
+  get hayFiltros(): boolean {
+    return this.buscando || !!this.lugarSel || this.deptosSel.size > 0 || this.estadoSel !== 'todos';
+  }
+  private get filtraPersonas(): boolean {
+    return this.buscando || this.deptosSel.size > 0 || this.estadoSel !== 'todos';
+  }
+
+  aplicarFiltros() {
+    const pasa = (p: Personaje, e: Escena) =>
+      (this.estadoSel === 'todos' || p.estado === this.estadoSel) && this.coincide(p, e);
+    this.vista = this.escenas
+      .filter((e) => !this.lugarSel || e.id === this.lugarSel)
+      .map((e) => ({
+        ...e,
+        departamentos: e.departamentos
+          .filter((g) => !this.deptosSel.size || this.deptosSel.has(g.nombre))
+          .map((g) => {
+            const personas = g.personas.filter((p) => pasa(p, e));
+            return { ...g, personas, comiendo: personas.filter((p) => p.estado === 'comida').length };
+          })
+          .filter((g) => g.personas.length),
+      }))
+      // Un lugar sin nadie que pase los filtros se esconde; sin filtros de
+      // persona, solo si se pidió "ocultar lugares sin nadie".
+      .filter((e) => e.departamentos.length || (!this.filtraPersonas && !this.ocultarVacios));
+  }
+
+  alternarDeptoFiltro(nombre: string) {
+    if (this.deptosSel.has(nombre)) this.deptosSel.delete(nombre); else this.deptosSel.add(nombre);
+    this.aplicarFiltros();
+  }
+
+  limpiarFiltros() {
+    this.busqueda = ''; this.lugarSel = ''; this.deptosSel.clear();
+    this.estadoSel = 'todos'; this.ocultarVacios = false;
+    this.aplicarFiltros();
+  }
+
+  /** Personas a la vista y en total (para "Mostrando N de M"). */
+  get mostrando(): number { return this.vista.reduce((t, e) => t + e.departamentos.reduce((s, g) => s + g.personas.length, 0), 0); }
+  get totalPersonas(): number { return this.escenas.reduce((t, e) => t + e.trabajando.length + e.comiendo.length, 0); }
+  cuantosEn(e: Escena): number { return e.departamentos.reduce((s, g) => s + g.personas.length, 0); }
+
+  /** Los lugares para el selector, con cuánta gente hay en cada uno. */
+  get lugares(): { id: string; nombre: string; n: number }[] {
+    return this.escenas.map((e) => ({ id: e.id, nombre: e.alias, n: e.trabajando.length + e.comiendo.length }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }
   alternarDepto(e: Escena, g: GrupoDepto) {
     const k = this.claveDepto(e, g);
@@ -264,10 +327,10 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
 
   get buscando(): boolean { return !!this.busqueda.trim(); }
 
-  coincide(p: Personaje): boolean {
+  coincide(p: Personaje, e?: Escena): boolean {
     const q = this.norm(this.busqueda.trim());
     if (!q) return true;
-    const t = this.norm(`${p.nombre} ${p.codigo} ${p.departamento || ''}`);
+    const t = this.norm(`${p.nombre} ${p.codigo} ${p.departamento || ''} ${e ? e.alias + ' ' + e.plaza : ''}`);
     return q.split(/\s+/).every((x) => t.includes(x));
   }
 
@@ -280,7 +343,7 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
     if (!this.buscando) return [];
     const out: { nombre: string; donde: string; estado: string }[] = [];
     for (const e of this.escenas) for (const p of [...e.trabajando, ...e.comiendo]) {
-      if (this.coincide(p)) out.push({ nombre: p.nombre, donde: e.alias, estado: p.estado === 'comida' ? 'en comida' : 'trabajando' });
+      if (this.coincide(p, e)) out.push({ nombre: p.nombre, donde: e.alias, estado: p.estado === 'comida' ? 'en comida' : 'trabajando' });
     }
     return out.slice(0, 6);
   }

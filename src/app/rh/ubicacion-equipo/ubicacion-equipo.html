@@ -41,46 +41,79 @@
       }
     </div>
 
-    <div class="ue-barra">
+    <!-- ══ FILTROS ══ Esconden lo que no coincide. Los totales de arriba siguen
+         siendo de toda la empresa; lo filtrado se dice en "Mostrando N de M". -->
+    <div class="ue-filtros" role="search">
       <label class="ue-buscar">
         <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
-        <input type="search" [(ngModel)]="busqueda" placeholder="¿Dónde está…? Nombre, clave o departamento"
-               aria-label="Buscar a una persona" (keydown.escape)="busqueda = ''">
+        <input type="search" [(ngModel)]="busqueda" (ngModelChange)="aplicarFiltros()"
+               placeholder="Buscar: nombre, clave, departamento o lugar"
+               aria-label="Buscar a una persona" (keydown.escape)="busqueda = ''; aplicarFiltros()">
       </label>
-      @if (leyenda.length) {
-        <ul class="ue-leyenda" aria-label="Colores por departamento">
-          @for (l of leyenda; track l.nombre) {
-            <li><span class="ue-leyenda-dot" [style.background]="l.color"></span>{{ l.nombre }} <em>{{ l.n }}</em></li>
+      <label class="ue-filtro">
+        <span>Lugar</span>
+        <select [(ngModel)]="lugarSel" (ngModelChange)="aplicarFiltros()">
+          <option value="">Todos los lugares</option>
+          @for (l of lugares; track l.id) { <option [value]="l.id">{{ l.nombre }} ({{ l.n }})</option> }
+        </select>
+      </label>
+      <div class="ue-filtro">
+        <span>Estado</span>
+        <div class="ue-seg" role="radiogroup" aria-label="Estado">
+          @for (o of [{ v: 'todos', l: 'Todos' }, { v: 'dentro', l: 'Trabajando' }, { v: 'comida', l: 'En comida' }]; track o.v) {
+            <button type="button" role="radio" [attr.aria-checked]="estadoSel === o.v" [class.on]="estadoSel === o.v"
+                    (click)="estadoSel = $any(o.v); aplicarFiltros()">{{ o.l }}</button>
           }
-        </ul>
+        </div>
+      </div>
+      <label class="ue-check">
+        <input type="checkbox" [(ngModel)]="ocultarVacios" (ngModelChange)="aplicarFiltros()">
+        Ocultar lugares sin nadie
+      </label>
+      @if (hayFiltros || ocultarVacios) {
+        <button type="button" class="ue-limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
       }
     </div>
 
-    @if (buscando) {
-      <div class="ue-hallazgos" aria-live="polite">
-        @if (encontrados.length) {
-          @for (h of encontrados; track $index) {
-            <span><b>{{ h.nombre }}</b> está en <b>{{ h.donde }}</b> · {{ h.estado }}</span>
-          }
-        } @else {
-          <span>Nadie que coincida con "{{ busqueda }}" está en un reloj ahora mismo.</span>
+    <!-- Departamentos: cada etiqueta es un filtro (uno o varios). -->
+    @if (leyenda.length) {
+      <div class="ue-deptos-filtro" role="group" aria-label="Filtrar por departamento">
+        <span class="ue-deptos-lbl">Departamento</span>
+        @for (l of leyenda; track l.nombre) {
+          <button type="button" class="ue-chip-depto" [class.on]="deptosSel.has(l.nombre)"
+                  [attr.aria-pressed]="deptosSel.has(l.nombre)" (click)="alternarDeptoFiltro(l.nombre)"
+>
+            <span class="ue-leyenda-dot" [style.background]="l.color" aria-hidden="true"></span>{{ l.nombre }} <em>{{ l.n }}</em>
+          </button>
         }
       </div>
     }
 
+    @if (hayFiltros) {
+      <div class="ue-hallazgos" aria-live="polite">
+        <span>Mostrando <b>{{ mostrando }}</b> de {{ totalPersonas }} personas</span>
+        @if (buscando && encontrados.length && encontrados.length <= 3) {
+          @for (h of encontrados; track $index) {
+            <span>· <b>{{ h.nombre }}</b> está en <b>{{ h.donde }}</b> ({{ h.estado }})</span>
+          }
+        }
+        @if (!mostrando) { <span>· Nadie coincide con los filtros.</span> }
+      </div>
+    }
+
     <div class="ue-grid">
-      @for (e of escenas; track e.id) {
+      @for (e of vista; track e.id) {
         <article class="ue-esc" [attr.data-tipo]="e.tipo" [class.ancha]="e.trabajando.length + e.comiendo.length > ANCHA"
                  [class.vacia]="!e.trabajando.length && !e.comiendo.length"
                  [class.muda]="e.relojMudo"
-                 [class.tenue]="buscando && !escenaCoincide(e)">
+>
           <header class="ue-esc-head">
             <div class="ue-esc-id">
               <h3>{{ e.alias }}</h3>
               <span>{{ e.plaza }}@if (e.relojes.length > 1) { · {{ e.relojes.length }} relojes }</span>
             </div>
             <span class="ue-esc-n" [attr.aria-label]="(e.trabajando.length + e.comiendo.length) + ' personas aquí'">
-              {{ e.trabajando.length + e.comiendo.length }}
+              {{ hayFiltros ? cuantosEn(e) : e.trabajando.length + e.comiendo.length }}
             </span>
           </header>
 
@@ -368,7 +401,7 @@
               <p class="ue-nadie">Nadie por ahora</p>
             }
             @for (g of e.departamentos; track g.nombre) {
-              <section class="ue-depto" [class.tenue]="buscando && !grupoCoincide(g)" [style.border-left-color]="g.color">
+              <section class="ue-depto" [style.border-left-color]="g.color">
                 <header class="ue-depto-head">
                   <span class="ue-depto-dot" [style.background]="g.color" aria-hidden="true"></span>
                   <h4>{{ g.nombre }}</h4>
@@ -378,7 +411,7 @@
                 <ul class="ue-gente">
                   @for (p of personasDe(e, g); track p.clave) {
                     <li class="ue-persona" [class.recien]="p.recien" [class.come]="p.estado === 'comida'"
-                        [class.tenue]="buscando && !coincide(p)" [class.hallado]="buscando && coincide(p)">
+                        [class.hallado]="buscando">
                       <ng-container *ngTemplateOutlet="pjs; context: { lista: [p], e: e }"></ng-container>
                       <div class="ue-persona-txt">
                         <span class="ue-persona-nom" [title]="p.nombre">{{ p.nombre }}</span>
