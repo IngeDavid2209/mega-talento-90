@@ -89,6 +89,9 @@ const aHHMM = (m: number) => `${dd(Math.floor(m / 60))}:${dd(m % 60)}`;
 const esComedor = (texto: string) => /comida|desayuno|comedor/i.test(texto || '');
 
 function tipoDe(sucursalId: string, alias: string): TipoEscena {
+  // "RD" (el reloj .196, 29/09/2026) sigue dibujándose como oficina: antes lo
+  // decía su nombre, "Sin identificar (oficinas)"; con "RD" caería en tienda.
+  if (sucursalId === 'reloj-196') return 'oficina';
   const t = `${sucursalId} ${alias}`;
   if (esComedor(t)) return 'comedor';
   if (/cedis|bodega|almac/i.test(t)) return 'bodega';
