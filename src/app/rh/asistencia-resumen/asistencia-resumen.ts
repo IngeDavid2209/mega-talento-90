@@ -1422,7 +1422,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       : `de la ${a.numero} (${this.fechaLarga(a.inicio)}) a la ${b.numero} (${this.fechaLarga(b.fin)})`;
     return {
       numeros, total: b.total, esActual,
-      titulo: `Semana de nómina (jueves a miércoles) ${rango}. Numeración del calendario (ISO, lunes a domingo): toma el número del lunes que cae en esa semana. ` +
+      titulo: `Semana de nómina (jueves a miércoles) ${rango}. Calendario de nómina de 52 semanas (la semana 1 del ciclo 2026 fue del 18 al 24 de diciembre de 2025). ` +
         `Hoy vamos en la ${hoy.numero}.`,
     };
   }
