@@ -296,3 +296,18 @@
 .inc-horas label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
 .inc-horas input { width: 72px !important; }
 .inc-horas-ayuda { font-size: 11.5px; color: var(--text3); }
+
+/* ── Buscador global (30/09/2026) ── */
+.ar-buscar-global { position: relative; flex: 1 1 280px; max-width: 380px; }
+.ar-sug-ov { position: fixed; inset: 0; z-index: 1300; }
+.ar-sug { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 1301; min-width: 340px; max-height: 420px; overflow-y: auto; list-style: none; margin: 0; padding: 6px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); }
+.ar-sug button { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px; background: none; font: inherit; text-align: left; cursor: pointer; }
+.ar-sug button:hover, .ar-sug button:focus-visible { background: var(--surface2); outline: none; }
+.ar-sug button.tenue { opacity: .6; }
+.ar-sug-cod { font-size: 12px; font-weight: 800; color: var(--text3); font-variant-numeric: tabular-nums; }
+.ar-sug-cod.exacto { color: #fff; background: var(--ink); border-radius: 6px; padding: 2px 6px; justify-self: start; }
+.ar-sug-txt { display: flex; flex-direction: column; min-width: 0; }
+.ar-sug-txt b { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-sug-txt small { font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-sug-est { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--amber-bg); color: var(--amber-text); white-space: nowrap; }
+.ar-sug-vacio { padding: 12px; font-size: 13px; color: var(--text2); text-align: center; }

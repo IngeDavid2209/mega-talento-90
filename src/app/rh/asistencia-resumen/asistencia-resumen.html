@@ -31,16 +31,42 @@
 
     <!-- Buscador de trabajadores: filtra lo que se ve en Checadas, Tolerancia y
          Faltas. No cambia los totales ni lo que se exporta. -->
-    <div class="ar-field ar-field-buscar">
-      <label for="ar-buscar">Buscar</label>
+    <!-- BUSCADOR GLOBAL: cualquier persona de cualquier plaza, por nombre o
+         por número de usuario. Al elegirla, se cambia a su plaza y se abre su ficha. -->
+    <div class="ar-field ar-field-buscar ar-buscar-global">
+      <label for="ar-buscar">Buscar en todas las plazas</label>
       <div class="ar-buscar">
         <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
-        <input id="ar-buscar" type="search" [(ngModel)]="busqueda" placeholder="Nombre, clave o departamento"
-               autocomplete="off" (keydown.escape)="busqueda = ''">
-        @if (buscando) {
-          <button type="button" class="ar-buscar-x" (click)="busqueda = ''" aria-label="Borrar búsqueda">✕</button>
+        <input id="ar-buscar" type="search" [ngModel]="busquedaGlobal" (ngModelChange)="alEscribirGlobal($event)"
+               placeholder="Nombre o número de usuario" autocomplete="off" role="combobox"
+               [attr.aria-expanded]="sugerenciasAbiertas" aria-controls="ar-buscar-lista"
+               (focus)="cargarDirectorio(); sugerenciasAbiertas = !!busquedaGlobal.trim() && !codigoExacto"
+               (keydown.enter)="elegirPrimero()"
+               (keydown.escape)="sugerenciasAbiertas ? (sugerenciasAbiertas = false) : limpiarBusquedaGlobal()">
+        @if (busquedaGlobal) {
+          <button type="button" class="ar-buscar-x" (click)="limpiarBusquedaGlobal()" aria-label="Borrar búsqueda">✕</button>
         }
       </div>
+      @if (sugerenciasAbiertas) {
+        <div class="ar-sug-ov" (click)="sugerenciasAbiertas = false"></div>
+        <ul class="ar-sug" id="ar-buscar-lista" role="listbox">
+          @for (r of resultadosGlobales; track r.e.sucursalId + r.e.codigoChecador) {
+            <li role="option">
+              <button type="button" (click)="elegirGlobal(r)" [class.tenue]="!!r.estado">
+                <span class="ar-sug-cod" [class.exacto]="r.exacto">#{{ r.e.codigoChecador }}</span>
+                <span class="ar-sug-txt">
+                  <b>{{ r.nombre }}</b>
+                  <small>{{ r.plaza }}@if (r.e.departamento) { · {{ r.e.departamento }} }@if (r.e.nombre && r.e.nombre !== r.nombre) { · reloj "{{ r.e.nombre }}" }</small>
+                </span>
+                @if (r.estado === 'baja') { <em class="ar-sug-est">En la papelera</em> }
+                @else if (r.estado === 'promotora') { <em class="ar-sug-est">Promotoría</em> }
+              </button>
+            </li>
+          } @empty {
+            <li class="ar-sug-vacio">Nadie coincide en ninguna plaza.</li>
+          }
+        </ul>
+      }
     </div>
 
     <!-- Atajos de periodo -->

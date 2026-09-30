@@ -79,6 +79,7 @@
         [recargarToken]="recargaAsistencia"
         [vista]="vistaAsistencia"
         (conteos)="onConteos($event)"
+        (pedirSucursal)="sucursalFiltro = $event; onSucursalChange()"
         (archivo)="onArchivoSeleccionado($event)">
       </app-asistencia-resumen>
     </section>

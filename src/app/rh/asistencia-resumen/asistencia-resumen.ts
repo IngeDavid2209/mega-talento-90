@@ -238,6 +238,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * cero y hay que entrar para saberlo.
    */
   @Output() conteos = new EventEmitter<ConteosPendientes>();
+  /**
+   * El buscador global eligió a alguien de OTRA plaza: se le pide a la página
+   * que cambie de sucursal (es la dueña del selector). Si nadie escucha, el
+   * componente cambia la suya.
+   */
+  @Output() pedirSucursal = new EventEmitter<string>();
 
   SUCURSALES = CENTROS_CON_RELOJ;
 
@@ -730,13 +736,115 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   // que se lea como el de la plaza.
   busqueda = '';
 
-  get buscando(): boolean { return !!this.busqueda.trim(); }
+  get buscando(): boolean { return !!this.busqueda.trim() || !!this.codigoExacto; }
+
+  // ══ BUSCADOR GLOBAL (30/09/2026) ══════════════════════════════════
+  //
+  // Reemplaza al de "esta plaza". Busca a cualquier persona de TODAS las plazas
+  // por nombre (completo o el del reloj, sin acentos, palabras en cualquier
+  // orden) o por su NÚMERO de usuario. Al elegir a alguien se cambia a su
+  // plaza, la tabla se queda solo con esa persona (por número exacto: "12" no
+  // trae al 120) y se abre su ficha.
+  busquedaGlobal = '';
+  sugerenciasAbiertas = false;
+  /** La persona elegida: filtra por número EXACTO dentro de su plaza. */
+  codigoExacto: { suc: string; cod: string } | null = null;
+  /** Abrir su ficha en cuanto termine de cargar su plaza. */
+  private pendienteAbrir: { suc: string; cod: string } | null = null;
+  /** Todas las fichas de todas las plazas (se piden una vez al enfocar el buscador). */
+  private directorio: Empleado[] = [];
+  private directorioEn = 0;
+
+  async cargarDirectorio() {
+    if (this.directorio.length && Date.now() - this.directorioEn < 5 * 60 * 1000) return;
+    try {
+      this.directorio = await this.checador.getEmpleados();
+      this.directorioEn = Date.now();
+    } catch { /* sin directorio, el buscador filtra solo la plaza en pantalla */ }
+  }
+
+  alEscribirGlobal(texto: string) {
+    this.busquedaGlobal = texto;
+    this.codigoExacto = null;
+    // Mientras se escribe, la tabla de la plaza en pantalla también se filtra.
+    this.busqueda = texto;
+    this.sugerenciasAbiertas = !!texto.trim();
+    this.cargarDirectorio();
+  }
+
+  limpiarBusquedaGlobal() {
+    this.busquedaGlobal = ''; this.busqueda = ''; this.codigoExacto = null; this.sugerenciasAbiertas = false;
+  }
+
+  /** Los que coinciden en todas las plazas: número exacto primero. */
+  get resultadosGlobales(): { e: Empleado; nombre: string; plaza: string; estado: '' | 'baja' | 'promotora'; exacto: boolean }[] {
+    const q = this.sinAcentos(this.busquedaGlobal.trim().replace(/^#/, ''));
+    if (!q) return [];
+    const esNumero = /^\d+$/.test(q);
+    const out: { e: Empleado; nombre: string; plaza: string; estado: '' | 'baja' | 'promotora'; exacto: boolean; peso: number }[] = [];
+    for (const e of this.directorio) {
+      const cod = String(e.codigoChecador).trim();
+      const nombre = (e.nombreCompleto || '').trim() || e.nombre;
+      let peso = -1;
+      if (esNumero) {
+        if (cod === q) peso = 0;
+        else if (cod.startsWith(q)) peso = 2;
+      } else {
+        const t = this.sinAcentos(`${nombre} ${e.nombre} ${e.departamento || ''}`);
+        if (q.split(/\s+/).every((w) => t.includes(w))) peso = 1;
+      }
+      if (peso < 0) continue;
+      const estado = e.activo === false ? 'baja' : (e.esPromotora && !this.soloPromotoras) ? 'promotora' : '';
+      out.push({ e, nombre, plaza: this.nombreSucursal(e.sucursalId), estado, exacto: peso === 0,
+        // Activos antes que bajas; su plaza actual primero.
+        peso: peso * 10 + (estado ? 5 : 0) + (e.sucursalId === this.sucursalFiltro ? 0 : 1) });
+    }
+    return out.sort((a, b) => a.peso - b.peso || a.nombre.localeCompare(b.nombre, 'es')).slice(0, 12);
+  }
+
+  elegirGlobal(r: { e: Empleado; nombre: string; estado: string }) {
+    const e = r.e;
+    const cod = String(e.codigoChecador).trim();
+    this.sugerenciasAbiertas = false;
+    if (r.estado === 'baja') {
+      this.toast.alerta(`${r.nombre} (#${cod}) está en la Papelera de empleados. Regrésala desde ahí para verla aquí.`);
+      return;
+    }
+    if (r.estado === 'promotora') {
+      this.toast.alerta(`${r.nombre} (#${cod}) es promotora: su asistencia sale en la sección Promotoría.`);
+      return;
+    }
+    this.busquedaGlobal = `#${cod} ${r.nombre}`;
+    this.busqueda = '';
+    this.codigoExacto = { suc: e.sucursalId, cod };
+    this.pendienteAbrir = { suc: e.sucursalId, cod };
+    if (e.sucursalId === this.sucursalFiltro) { this.abrirPendiente(); return; }
+    if (this.pedirSucursal.observed) this.pedirSucursal.emit(e.sucursalId);
+    else { this.sucursalFiltro = e.sucursalId; this.cargar(); }
+  }
+
+  /** Enter en el buscador: elige el primero. */
+  elegirPrimero() {
+    const r = this.resultadosGlobales[0];
+    if (r) this.elegirGlobal(r);
+  }
+
+  private abrirPendiente() {
+    const p = this.pendienteAbrir;
+    if (!p || p.suc !== this.sucursalFiltro || this.cargando) return;
+    this.pendienteAbrir = null;
+    const e = this.lista.find((x) => x.codigo === p.cod);
+    if (e) this.abrirFicha(e);
+    else this.toast.alerta('Esa persona no tiene checadas en el periodo elegido: amplía las fechas para verla.');
+  }
 
   private sinAcentos(t: string): string {
     return (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
   coincide(e: EmpleadoAsistencia): boolean {
+    // Persona elegida en el buscador global: por número EXACTO en su plaza.
+    if (this.codigoExacto && this.codigoExacto.suc === this.sucursalFiltro) return e.codigo === this.codigoExacto.cod;
     const q = this.sinAcentos(this.busqueda.trim());
     if (!q) return true;
     const texto = this.sinAcentos([e.nombreCompleto, e.nombre, e.codigo, e.departamento, e.puesto].join(' '));
@@ -1678,6 +1786,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       this.lista = this.datos.personas.map(p => this.aVista(p));
       this.computarGraficas();
       this.computarTolerancia();
+      // El buscador global pidió abrir a alguien de esta plaza.
+      if (this.pendienteAbrir) setTimeout(() => this.abrirPendiente());
     } catch (e) {
       console.error('Error al cargar asistencia:', e);
       if (!silencioso) {
