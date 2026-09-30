@@ -674,8 +674,15 @@ export async function asistenciaPersonas(
       if (n) ausenciasPrevias.set(clave, n);
     }
 
+    // "Horario distinto" de RH: ese día se mide contra la hora que capturó.
+    const horarioDelDia = new Map<string, number>();
+    for (const [f, incs] of incPorDia.get(cod) || []) {
+      for (const i of incs) if (i.tipo === 'horario_distinto' && i.minutos != null) horarioDelDia.set(f, Number(i.minutos));
+    }
+
     const re = ho.entradaMin === null ? null : hd.retardosPorSemana(diasAMedir, {
       ...opciones,
+      horarioDelDia,
       entradaMin: ho.entradaMin,
       turnoPorFecha,
       diasLaborales: ho.diasLaborales,

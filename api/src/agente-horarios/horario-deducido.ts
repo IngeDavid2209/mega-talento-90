@@ -546,6 +546,8 @@ export interface DiaMedido {
    * semana todavía le quedaba un descanso por usar (ver `descansosDeLaSemana`).
    */
   descansoPorAusencia?: boolean;
+  /** Ese día RH capturó "Horario distinto": `referencia` es la hora de ese día. */
+  horarioDistinto?: boolean;
 }
 
 export interface SemanaMedida {
@@ -581,6 +583,11 @@ export interface OpcionesRetardo extends OpcionesHorario {
    * semana, esos días ya gastaron descansos que aquí no se ven.
    */
   ausenciasPrevias?: Map<string, number> | null;
+  /**
+   * HORARIO DISTINTO por día (fecha → minuto de entrada), capturado por RH:
+   * ese día el retardo se mide contra esa hora y no contra su turno.
+   */
+  horarioDelDia?: Map<string, number> | null;
   /**
    * false = la plaza no tiene hora límite de entrada (sucursales): los días
    * con marcas salen "a tiempo" sin atraso, ni tolerancia, ni día atípico.
@@ -633,7 +640,7 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
     entradaMin, bolsaMin = BOLSA_SEMANAL_MIN,
     diasLaborales = null, diaInicioSemana = DIA_INICIO_SEMANA,
     turnoPorFecha = null, atipicoFijoMin = 120, duplicadaMin = DUPLICADA_MIN,
-    ausenciasPrevias = null, medirRetardo = true,
+    ausenciasPrevias = null, medirRetardo = true, horarioDelDia = null,
   } = opciones;
   const descansosSemana = descansosDeLaSemana(diasLaborales);
 
@@ -717,7 +724,10 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
       // el bloque de :00/:30 más cercano a su entrada (14:10 → 14:00 → 10 min).
       // Dentro del margen se sigue midiendo contra su turno de siempre.
       const lejos = t ? !!t.atipico : Math.abs((d.entrada as number) - suTurno) > atipicoFijoMin;
-      const referencia = lejos ? (bloqueMasCercano(d.entrada as number) as number) : suTurno;
+      // RH dijo que ese día entró en otro horario: manda sobre todo lo demás.
+      const delDia = horarioDelDia?.get(d.fecha);
+      const referencia = delDia !== undefined ? delDia
+        : lejos ? (bloqueMasCercano(d.entrada as number) as number) : suTurno;
 
       // `medirRetardo: false` apaga el retardo en una plaza (hoy ninguna lo usa).
       const atraso = medirRetardo ? Math.max(0, (d.entrada as number) - referencia) : 0;
@@ -742,6 +752,7 @@ export function retardosPorSemana(dias: DiaCrudo[], opciones: OpcionesRetardo = 
         referencia: aHora(referencia),
         atrasoMin: atraso, absorbidoMin: absorbido, retardoRealMin: real,
         bolsaAntes, bolsaDespues: bolsa, atipico, marcas: d.marcas,
+        ...(delDia !== undefined ? { horarioDistinto: true } : {}),
       });
     }
 

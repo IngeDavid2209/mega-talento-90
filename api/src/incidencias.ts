@@ -46,6 +46,11 @@ export const TIPOS_INCIDENCIA: TipoIncidencia[] = [
   // "Otros" JUSTIFICA desde el 29/09/2026: el portal exige escribir el motivo, y
   // RH lo usa para lo que no tiene tipo propio (una junta, un trámite).
   { tipo: 'otros',               etiqueta: 'Otros',                      codigo: 'OTR', excusaFalta: true },
+  // HORARIO DISTINTO (30/09/2026): ese día entró en otro horario (le cambiaron
+  // la entrada, cubrió otro turno). NO justifica: su retardo de ESE día se mide
+  // contra la hora nueva, que va en `minutos` (minuto del día: 600 = 10:00).
+  // Es de UN solo día; su horario de siempre no cambia.
+  { tipo: 'horario_distinto',    etiqueta: 'Horario distinto',           codigo: 'HD',  excusaFalta: false },
 ];
 
 const POR_TIPO = new Map(TIPOS_INCIDENCIA.map((t) => [t.tipo, t]));
@@ -145,6 +150,15 @@ incidenciasRouter.post('/', async (req: AuthedRequest, res: Response) => {
       minutos = Math.round(Number(req.body?.minutos));
       if (!Number.isFinite(minutos) || minutos < 1 || minutos > 720) {
         return res.status(400).json({ error: 'Indica cuántas horas extra usó (entre 1 minuto y 12 horas).' });
+      }
+    }
+    if (tipo === 'horario_distinto') {
+      minutos = Math.round(Number(req.body?.minutos));
+      if (!Number.isFinite(minutos) || minutos < 0 || minutos > 1439) {
+        return res.status(400).json({ error: 'Falta la hora de entrada de ese día.' });
+      }
+      if ((req.body?.hasta || desde) !== desde) {
+        return res.status(400).json({ error: 'El horario distinto es de un solo día.' });
       }
     }
     if (tipo === 'otros' && !String(nota || '').trim()) {

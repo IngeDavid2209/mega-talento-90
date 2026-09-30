@@ -1153,8 +1153,17 @@
             <li>
               <span class="fic-fecha">{{ d.diaLabel }}</span>
               @if (d.items.length) {
-                <button type="button" class="fic-justificar" (click)="justificarDia(d.fecha)"
-                        [attr.aria-label]="'Justificar el ' + d.diaLabel">Justificar</button>
+                <span class="fic-acciones">
+                  @if (tieneRetardo(d.items) && horarioDistintoDe(d.fecha); as h) {
+                    <button type="button" class="fic-hdist" (click)="horarioDistinto(d.fecha)" [disabled]="guardandoInc"
+                            [title]="'Checó ' + h.entrada + ': tomar las ' + h.nueva + ' como su entrada de ese día'"
+                            [attr.aria-label]="'Horario distinto el ' + d.diaLabel">Horario distinto</button>
+                  }
+                  <button type="button" class="fic-justificar" (click)="justificarDia(d.fecha)"
+                          [attr.aria-label]="'Justificar el ' + d.diaLabel">Justificar</button>
+                </span>
+              } @else if (esSoloHorario(d.incs)) {
+                <span class="fic-just-ok">✓ A tiempo en su horario</span>
               } @else if (d.incs.length) {
                 <span class="fic-just-ok">✓ Justificado</span>
               }
@@ -1167,7 +1176,11 @@
                 @for (c of d.incs; track c.id) {
                   <span class="fic-item fic-item-inc">
                     <span class="inc-cod" [attr.data-t]="c.tipo">{{ c.codigo }}</span>
-                    {{ c.etiqueta }}@if (c.minutos) { ({{ textoMinutos(c.minutos) }})}@if (c.nota) {: {{ c.nota }}}
+                    @if (c.tipo === 'horario_distinto') {
+                      Horario distinto: entró a las {{ aHoraMin(c.minutos || 0) }}
+                    } @else {
+                      {{ c.etiqueta }}@if (c.minutos) { ({{ textoMinutos(c.minutos) }})}@if (c.nota) {: {{ c.nota }}}
+                    }
                   </span>
                 }
               </span>

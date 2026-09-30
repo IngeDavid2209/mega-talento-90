@@ -692,7 +692,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       if (d.justificado || d.estadoDia === 'descanso') continue;
       // Un día con una incidencia que justifica (permiso, horas extra, otros con
       // su motivo…) ya no es malo: se ve justificado en la ficha, no en rojo.
-      if (d.incidencias.some((i) => i.tipo !== 'falta_injustificada' && i.tipo !== 'amonestacion')) continue;
+      // "Horario distinto" no justifica: el retardo ya se midió contra la hora nueva.
+      if (d.incidencias.some((i) => i.tipo !== 'falta_injustificada' && i.tipo !== 'amonestacion' && i.tipo !== 'horario_distinto')) continue;
       if (d.falta) out.push({ ...base, nivel: 'alta', tipo: 'falta', texto: 'Falta' });
       // El retardo solo es irregularidad si el número se puede usar: con el
       // horario por confirmar, el minuto no es de fiar y no se acusa con él.
@@ -940,6 +941,61 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return aFechaLocal(d);
   }
 
+  // ══ HORARIO DISTINTO (30/09/2026) ════════════════════════════════
+  //
+  // Quien "llegó tarde" porque ese día le cambiaron el horario: con un clic se
+  // toma como su entrada de ESE DÍA la media hora más cercana a la que checó
+  // (9:59 → 10:00) y su retardo de ese día se mide contra ella. Solo ese día;
+  // su horario de siempre no cambia. Se quita como cualquier incidencia.
+
+  /** La hora que se tomaría para ese día, o null si no hay otra que tomar. */
+  horarioDistintoDe(fecha: string): { entrada: string; nueva: string; min: number; antes: string } | null {
+    const d = this.ficha?.diasPorFecha.get(fecha);
+    const m = /^(\d{1,2}):(\d{2})/.exec(d?.entrada || '');
+    if (!d || !m || d.noMedible) return null;
+    const ent = +m[1] * 60 + +m[2];
+    const min = Math.ceil(ent / 30 - 0.5) * 30;
+    const nueva = this.aHoraMin(min);
+    // Si la media hora más cercana ES su horario de siempre, no hay otro que tomar.
+    if (nueva === d.referencia) return null;
+    return { entrada: d.entrada, nueva, min, antes: d.referencia };
+  }
+
+  tieneRetardo(items: Irregularidad[]): boolean { return items.some((i) => i.tipo === 'retardo'); }
+  esSoloHorario(incs: FichaInc[]): boolean { return !!incs.length && incs.every((i) => i.tipo === 'horario_distinto'); }
+
+  aHoraMin(min: number): string {
+    return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  }
+
+  async horarioDistinto(fecha: string) {
+    const e = this.ficha, h = this.horarioDistintoDe(fecha);
+    if (!e || !h || this.guardandoInc) return;
+    const ok = await this.toast.confirmar({
+      titulo: 'Horario distinto',
+      mensaje: `¿Seguro que quieres cambiar su horario del ${this.fechaLarga(fecha)}? Checó a las ${h.entrada}, ` +
+        `así que su entrada de ese día se toma como las ${h.nueva} (en vez de las ${h.antes}) y su retardo se mide contra esa hora. ` +
+        'Solo cambia ese día: su horario de siempre se queda igual.',
+      textoConfirmar: `Sí, entró a las ${h.nueva}`,
+    });
+    if (!ok) return;
+    this.guardandoInc = true;
+    try {
+      await this.checador.crearIncidencia({
+        sucursalId: this.sucursalFiltro, empleadoCodigo: e.codigo, tipo: 'horario_distinto',
+        desde: fecha, hasta: fecha, minutos: h.min,
+        nota: `Checó ${h.entrada}; ese día entró a las ${h.nueva} (su horario: ${h.antes})`,
+      });
+      this.toast.exito(`${this.fechaLarga(fecha)}: su entrada de ese día queda a las ${h.nueva}.`);
+      await this.recargarConservandoAbiertos();
+    } catch (err) {
+      console.error(err);
+      this.toast.error('No se pudo cambiar el horario de ese día.');
+    } finally {
+      this.guardandoInc = false;
+    }
+  }
+
   /** "Otros" sin descripción no dice nada: la nota es lo que explica qué pasó. */
   get incNotaObligatoria(): boolean { return this.incForm?.tipo.tipo === 'otros'; }
 
@@ -1005,7 +1061,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   guardandoInc = false;
 
   private async cargarTiposIncidencia() {
-    try { this.tiposIncidencia = await this.checador.getTiposIncidencia(); }
+    // "Horario distinto" no va en los menús: se captura con su botón en la
+    // ficha, que calcula la hora sola.
+    try { this.tiposIncidencia = (await this.checador.getTiposIncidencia()).filter((t) => t.tipo !== 'horario_distinto'); }
     catch { /* sin catálogo el botón queda deshabilitado; el resto sigue */ }
   }
 

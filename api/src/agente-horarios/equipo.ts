@@ -199,7 +199,7 @@ export async function equipoAhora(fresco = false): Promise<EquipoAhora> {
     try {
       for (const i of await incidenciasEnRango(suc, fecha, fecha)) {
         // Una falta injustificada o una amonestación no justifican nada.
-        if (i.tipo === 'falta_injustificada' || i.tipo === 'amonestacion') continue;
+        if (i.tipo === 'falta_injustificada' || i.tipo === 'amonestacion' || i.tipo === 'horario_distinto') continue;
         const t = tipoIncidencia(i.tipo);
         justificadas.set(`${suc}|${i.empleadoCodigo}`, `${t?.etiqueta || i.tipo}${i.nota ? ': ' + i.nota : ''}`);
       }
