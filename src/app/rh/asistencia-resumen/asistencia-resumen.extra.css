@@ -318,3 +318,9 @@
 .fic-hdist { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
 .fic-hdist:hover:not(:disabled) { background: var(--ink); color: #fff; border-color: var(--ink); }
 .fic-hdist:disabled { opacity: .5; cursor: default; }
+.fic-hdist.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.fic-hd-elegir { order: 5; flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface2); font-size: 12.5px; color: var(--text2); }
+.fic-hd-elegir b { color: var(--ink); }
+.fic-hd-op { height: 30px; min-width: 64px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; cursor: pointer; }
+.fic-hd-op:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.fic-hd-no { height: 30px; padding: 0 8px; border: 0; background: none; color: var(--text3); font: inherit; font-size: 12px; cursor: pointer; margin-left: auto; }

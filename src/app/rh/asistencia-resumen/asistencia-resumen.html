@@ -1155,13 +1155,23 @@
               @if (d.items.length) {
                 <span class="fic-acciones">
                   @if (tieneRetardo(d.items) && horarioDistintoDe(d.fecha); as h) {
-                    <button type="button" class="fic-hdist" (click)="horarioDistinto(d.fecha)" [disabled]="guardandoInc"
-                            [title]="'Checó ' + h.entrada + ': tomar las ' + h.nueva + ' como su entrada de ese día'"
+                    <button type="button" class="fic-hdist" [class.on]="hdAbierto === d.fecha" [disabled]="guardandoInc"
+                            (click)="hdAbierto = hdAbierto === d.fecha ? null : d.fecha"
+                            [attr.aria-expanded]="hdAbierto === d.fecha"
                             [attr.aria-label]="'Horario distinto el ' + d.diaLabel">Horario distinto</button>
                   }
                   <button type="button" class="fic-justificar" (click)="justificarDia(d.fecha)"
                           [attr.aria-label]="'Justificar el ' + d.diaLabel">Justificar</button>
                 </span>
+              @if (hdAbierto === d.fecha && horarioDistintoDe(d.fecha); as h) {
+                <span class="fic-hd-elegir">
+                  <span>Checó a las <b>{{ h.entrada }}</b>. ¿A qué hora entró ese día?</span>
+                  @for (o of h.opciones; track o.min) {
+                    <button type="button" class="fic-hd-op" (click)="horarioDistinto(d.fecha, o)" [disabled]="guardandoInc">{{ o.hora }}</button>
+                  }
+                  <button type="button" class="fic-hd-no" (click)="hdAbierto = null">Cancelar</button>
+                </span>
+              }
               } @else if (esSoloHorario(d.incs)) {
                 <span class="fic-just-ok">✓ A tiempo en su horario</span>
               } @else if (d.incs.length) {

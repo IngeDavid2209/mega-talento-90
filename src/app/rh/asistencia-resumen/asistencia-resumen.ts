@@ -943,22 +943,27 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   // ══ HORARIO DISTINTO (30/09/2026) ════════════════════════════════
   //
-  // Quien "llegó tarde" porque ese día le cambiaron el horario: con un clic se
-  // toma como su entrada de ESE DÍA la media hora más cercana a la que checó
-  // (9:59 → 10:00) y su retardo de ese día se mide contra ella. Solo ese día;
-  // su horario de siempre no cambia. Se quita como cualquier incidencia.
+  // Quien "llegó tarde" porque ese día le cambiaron el horario: se elige como
+  // su entrada de ESE DÍA la media hora de antes o la de después de la hora a
+  // la que checó (checó 9:40 → 9:30 o 10:00) y su retardo de ese día se mide
+  // contra ella. Solo ese día; su horario de siempre no cambia. Se quita como
+  // cualquier incidencia.
 
-  /** La hora que se tomaría para ese día, o null si no hay otra que tomar. */
-  horarioDistintoDe(fecha: string): { entrada: string; nueva: string; min: number; antes: string } | null {
+  /** El día con el selector de media hora abierto. */
+  hdAbierto: string | null = null;
+
+  /**
+   * Las dos medias horas que rodean su entrada (una sola si checó en punto),
+   * sin la que ya es su horario de siempre; null si no queda ninguna.
+   */
+  horarioDistintoDe(fecha: string): { entrada: string; antes: string; opciones: { min: number; hora: string }[] } | null {
     const d = this.ficha?.diasPorFecha.get(fecha);
     const m = /^(\d{1,2}):(\d{2})/.exec(d?.entrada || '');
     if (!d || !m || d.noMedible) return null;
     const ent = +m[1] * 60 + +m[2];
-    const min = Math.ceil(ent / 30 - 0.5) * 30;
-    const nueva = this.aHoraMin(min);
-    // Si la media hora más cercana ES su horario de siempre, no hay otro que tomar.
-    if (nueva === d.referencia) return null;
-    return { entrada: d.entrada, nueva, min, antes: d.referencia };
+    const mins = [...new Set([Math.floor(ent / 30) * 30, Math.ceil(ent / 30) * 30])].filter((x) => x < 24 * 60);
+    const opciones = mins.map((min) => ({ min, hora: this.aHoraMin(min) })).filter((o) => o.hora !== d.referencia);
+    return opciones.length ? { entrada: d.entrada, antes: d.referencia, opciones } : null;
   }
 
   tieneRetardo(items: Irregularidad[]): boolean { return items.some((i) => i.tipo === 'retardo'); }
@@ -968,17 +973,19 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
   }
 
-  async horarioDistinto(fecha: string) {
-    const e = this.ficha, h = this.horarioDistintoDe(fecha);
-    if (!e || !h || this.guardandoInc) return;
+  async horarioDistinto(fecha: string, opcion: { min: number; hora: string }) {
+    const e = this.ficha, h0 = this.horarioDistintoDe(fecha);
+    if (!e || !h0 || this.guardandoInc) return;
+    const h = { entrada: h0.entrada, antes: h0.antes, nueva: opcion.hora, min: opcion.min };
     const ok = await this.toast.confirmar({
       titulo: 'Horario distinto',
-      mensaje: `¿Seguro que quieres cambiar su horario del ${this.fechaLarga(fecha)}? Checó a las ${h.entrada}, ` +
-        `así que su entrada de ese día se toma como las ${h.nueva} (en vez de las ${h.antes}) y su retardo se mide contra esa hora. ` +
+      mensaje: `¿Seguro que quieres cambiar su horario del ${this.fechaLarga(fecha)}? Checó a las ${h.entrada}: ` +
+        `su entrada de ese día será a las ${h.nueva} (en vez de las ${h.antes}) y su retardo se mide contra esa hora. ` +
         'Solo cambia ese día: su horario de siempre se queda igual.',
       textoConfirmar: `Sí, entró a las ${h.nueva}`,
     });
     if (!ok) return;
+    this.hdAbierto = null;
     this.guardandoInc = true;
     try {
       await this.checador.crearIncidencia({
