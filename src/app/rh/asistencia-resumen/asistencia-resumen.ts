@@ -65,7 +65,8 @@ interface FichaInc { id: string; tipo: string; codigo: string; etiqueta: string;
 export interface Irregularidad {
   fecha: string; diaLabel: string;
   nivel: 'alta' | 'baja';
-  tipo: 'falta' | 'retardo' | 'desayuno' | 'una_marca' | 'atipico';
+  /** 'tolerancia': llegó tarde pero lo cubrió su bolsa de la semana. */
+  tipo: 'falta' | 'retardo' | 'tolerancia' | 'desayuno' | 'una_marca' | 'atipico';
   /** Dos o tres palabras: "Falta", "Llegó 12 min tarde". */
   texto: string;
 }
@@ -697,8 +698,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       if (d.falta) out.push({ ...base, nivel: 'alta', tipo: 'falta', texto: 'Falta' });
       // El retardo solo es irregularidad si el número se puede usar: con el
       // horario por confirmar, el minuto no es de fiar y no se acusa con él.
+      // Los minutos son los de la tabla (primera checada contra su horario). Antes
+      // la ficha solo listaba el retardo que ya pasó la tolerancia, y un día en
+      // rojo en la tabla (llegó 7:38 a las 7:30) no aparecía aquí (30/09/2026).
       if (d.retardoMin > 0 && usable) {
-        out.push({ ...base, nivel: 'alta', tipo: 'retardo', texto: `Llegó ${d.retardoMin} min tarde` });
+        const extra = d.atrasoMin > d.retardoMin ? ` (${d.retardoMin} fuera de tolerancia)` : '';
+        out.push({ ...base, nivel: 'alta', tipo: 'retardo', texto: `Llegó ${Math.max(d.atrasoMin, d.retardoMin)} min tarde${extra}` });
+      } else if (d.atrasoMin > 0 && usable) {
+        out.push({ ...base, nivel: 'alta', tipo: 'tolerancia', texto: `Llegó ${d.atrasoMin} min tarde (dentro de su tolerancia)` });
       }
       if ((d.desayunoExcesoMin || 0) >= umbralDesayuno) {
         out.push({ ...base, nivel: 'alta', tipo: 'desayuno', texto: `Desayuno +${d.desayunoExcesoMin} min` });
@@ -706,12 +713,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       if (d.noMedible) out.push({ ...base, nivel: 'baja', tipo: 'una_marca', texto: 'Solo checó una vez' });
       if (d.atipico) out.push({ ...base, nivel: 'baja', tipo: 'atipico', texto: 'Fuera de su horario' });
     }
-    return { irregularidades: out, irregularAlta: out.some(i => i.nivel === 'alta') };
+    return { irregularidades: out, irregularAlta: out.some(i => i.nivel === 'alta' && i.tipo !== 'tolerancia') };
   }
 
   /** Cuántas altas y bajas trae, para la pastilla de la fila. */
   cuentaIrregular(e: EmpleadoAsistencia, nivel: 'alta' | 'baja'): number {
-    return e.irregularidades.filter(i => i.nivel === nivel).length;
+    return e.irregularidades.filter(i => i.nivel === nivel && i.tipo !== 'tolerancia').length;
   }
 
   /** Personas con fila en rojo, para el aviso de arriba de la tabla. */
@@ -966,7 +973,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return opciones.length ? { entrada: d.entrada, antes: d.referencia, opciones } : null;
   }
 
-  tieneRetardo(items: Irregularidad[]): boolean { return items.some((i) => i.tipo === 'retardo'); }
+  tieneRetardo(items: Irregularidad[]): boolean { return items.some((i) => i.tipo === 'retardo' || i.tipo === 'tolerancia'); }
   esSoloHorario(incs: FichaInc[]): boolean { return !!incs.length && incs.every((i) => i.tipo === 'horario_distinto'); }
 
   aHoraMin(min: number): string {
