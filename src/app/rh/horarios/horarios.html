@@ -49,6 +49,12 @@
       Faltas
       @if (conteos.faltas) { <span class="hz-tab-num hz-tab-alerta">{{ conteos.faltas }}</span> }
     </button>
+    <!-- Calificar lo entregado, cerrar la semana para prenómina y auditar. -->
+    <button [class.active]="tabActiva === 'incidencias'" (click)="cambiarTab('incidencias')"
+            title="Calificar lo que entregan los encargados, cerrar la semana para prenómina y auditar.">
+      Incidencias
+      @if (incPorCalificar) { <span class="hz-tab-num hz-tab-alerta">{{ incPorCalificar }}</span> }
+    </button>
     <button [class.active]="tabActiva === 'cruces'" (click)="cambiarTab('cruces')"
             title="Quién checó en el reloj de otra plaza. Mira todas las plazas a la vez.">
       Cruces
@@ -82,6 +88,14 @@
         (pedirSucursal)="sucursalFiltro = $event; onSucursalChange()"
         (archivo)="onArchivoSeleccionado($event)">
       </app-asistencia-resumen>
+    </section>
+  }
+
+  <!-- ================= INCIDENCIAS Y CIERRE DE SEMANA ================= -->
+  @if (tabActiva === 'incidencias') {
+    <section class="hz-panel">
+      <app-incidencias-bandeja [sucursalId]="sucursalFiltro" [empleados]="empleados"
+                               (pendientes)="incPorCalificar = $event"></app-incidencias-bandeja>
     </section>
   }
 

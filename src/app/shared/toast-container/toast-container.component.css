@@ -184,6 +184,29 @@
   line-height: 1.5;
 }
 
+/* Renglón para escribir un motivo (toast.pedirTexto). */
+.tc-modal-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  margin: -8px 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A2F4E;
+}
+.tc-modal-campo small { font-weight: 400; color: #718096; }
+.tc-modal-campo input {
+  padding: 10px 12px;
+  border: 1px solid rgba(26, 47, 78, 0.22);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 400;
+  color: #1A2F4E;
+}
+.tc-modal-campo input:focus { outline: 2px solid #C8830A; outline-offset: 1px; }
+.tc-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
 .tc-modal-acciones {
   display: flex;
   gap: 10px;

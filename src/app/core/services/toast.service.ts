@@ -17,10 +17,17 @@ export interface ConfirmacionConfig {
   textoCancelar?: string;
   /** Si es true, el botón de confirmar se muestra en rojo (destructivo) */
   destructivo?: boolean;
+  /**
+   * Un renglón para escribir (un motivo, una nota). Con `obligatorio`, el botón
+   * de confirmar no se habilita hasta que se escribe algo. Ver `pedirTexto`.
+   */
+  campo?: { etiqueta: string; placeholder?: string; obligatorio?: boolean };
 }
 
 interface ConfirmacionPendiente extends ConfirmacionConfig {
   resolve: (v: boolean) => void;
+  /** Lo escrito en `campo`. */
+  valor: string;
 }
 
 /**
@@ -72,8 +79,30 @@ export class ToastService {
    */
   confirmar(cfg: ConfirmacionConfig): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
-      this.confirmacion.set({ ...cfg, resolve });
+      this.confirmacion.set({ ...cfg, resolve, valor: '' });
     });
+  }
+
+  /**
+   * Como `confirmar`, pero con un renglón para escribir. Devuelve lo escrito
+   * (sin espacios a los lados) o null si se cancela.
+   *
+   *   const motivo = await toast.pedirTexto({ titulo: 'Quitar', mensaje: '…',
+   *     campo: { etiqueta: '¿Por qué?', obligatorio: true } });
+   */
+  async pedirTexto(cfg: ConfirmacionConfig & { campo: NonNullable<ConfirmacionConfig['campo']> }): Promise<string | null> {
+    let valor = '';
+    const ok = await new Promise<boolean>((resolve) => {
+      const pendiente: ConfirmacionPendiente = { ...cfg, valor: '', resolve: (v) => { valor = pendiente.valor; resolve(v); } };
+      this.confirmacion.set(pendiente);
+    });
+    return ok ? valor.trim() : null;
+  }
+
+  /** Lo escrito en el renglón del modal (lo llama el componente). */
+  escribir(texto: string): void {
+    const c = this.confirmacion();
+    if (c) c.valor = texto;
   }
 
   /** Llamado por el componente cuando el usuario elige */

@@ -55,7 +55,7 @@
 
 <!-- Modal de confirmación -->
 @if (toast.confirmacion(); as cfg) {
-  <div class="tc-backdrop" (click)="toast.resolverConfirmacion(false)">
+  <div class="tc-backdrop" (click)="resolver(false, cfg)">
     <div class="tc-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
       <div class="tc-modal-icono" [class.tc-modal-icono-destructivo]="cfg.destructivo">
         @if (cfg.destructivo) {
@@ -76,17 +76,27 @@
       <h3 class="tc-modal-titulo">{{ cfg.titulo }}</h3>
       <p class="tc-modal-mensaje">{{ cfg.mensaje }}</p>
 
+      @if (cfg.campo) {
+        <label class="tc-modal-campo">
+          <span>{{ cfg.campo.etiqueta }}@if (cfg.campo.obligatorio) { <small>(obligatorio)</small> }</span>
+          <input type="text" maxlength="300" [value]="texto" [placeholder]="cfg.campo.placeholder || ''"
+                 (input)="escribir($any($event.target).value)"
+                 (keydown.enter)="resolver(true, cfg)" autofocus>
+        </label>
+      }
+
       <div class="tc-modal-acciones">
         <button type="button"
                 class="tc-btn tc-btn-cancelar"
-                (click)="toast.resolverConfirmacion(false)">
+                (click)="resolver(false, cfg)">
           {{ cfg.textoCancelar || 'Cancelar' }}
         </button>
         <button type="button"
                 class="tc-btn"
                 [class.tc-btn-confirmar]="!cfg.destructivo"
                 [class.tc-btn-destructivo]="cfg.destructivo"
-                (click)="toast.resolverConfirmacion(true)">
+                [disabled]="faltaTexto(cfg)"
+                (click)="resolver(true, cfg)">
           {{ cfg.textoConfirmar || 'Confirmar' }}
         </button>
       </div>

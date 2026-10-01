@@ -1,0 +1,69 @@
+.ib { display: flex; flex-direction: column; gap: 14px; }
+.ib-head h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+.ib-sub { margin: 4px 0 0; font-size: 13px; color: var(--text2); max-width: 760px; line-height: 1.5; }
+
+/* ── Semanas de nómina ── */
+.ib-semanas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.ib-semana { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.ib-semana.cerrada { background: var(--surface2); border-color: var(--border-med); }
+.ib-sem-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink); font-size: 14px; }
+.ib-sem-fechas { font-size: 12.5px; color: var(--text2); }
+.ib-sem-quien { font-size: 11.5px; color: var(--text3); }
+.ib-sem-acc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.ib-chip { padding: 1px 8px; border-radius: 999px; background: var(--surface2); color: var(--text2); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.ib-chip-ok { background: var(--ink); color: #fff; }
+.ib-chip-pend { background: var(--amber-bg); color: var(--amber-text); }
+.ib-hist { font-size: 12.5px; color: var(--text2); }
+.ib-hist summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+.ib-hist ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+/* ── Barra ── */
+.ib-barra { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.ib-campo { display: flex; flex-direction: column; gap: 4px; }
+.ib-campo span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); }
+.ib-campo input { height: 36px; border: 1px solid var(--border-med); border-radius: 10px; padding: 0 10px; font: inherit; font-size: 13px; color: var(--ink); background: #fff; }
+.ib-filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+.ib-filtro { height: 36px; padding: 0 12px; border: 1px solid var(--border-med); border-radius: 999px; background: #fff; color: var(--text2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ib-filtro.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.ib-n { margin-left: 4px; font-variant-numeric: tabular-nums; opacity: .75; }
+.ib-barra-acc { display: flex; gap: 6px; margin-left: auto; }
+
+/* ── Botones ── */
+.ib-btn { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border: 1px solid var(--ink); border-radius: 9px; background: #fff; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.ib-btn:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.ib-btn-fuerte { background: var(--ink); color: #fff; }
+.ib-btn-quieto { border-color: var(--border-med); color: var(--text2); }
+.ib-btn:disabled { opacity: .45; cursor: not-allowed; }
+.ib-link { border: 0; background: none; padding: 0 4px; color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* ── Tabla ── */
+.ib-vacio { margin: 0; padding: 28px; text-align: center; color: var(--text2); }
+.ib-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--red-bg); color: var(--red-text); }
+.ib-error button { border: 0; border-radius: 8px; padding: 7px 12px; background: var(--ink); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.ib-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.ib-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ib-tabla th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); background: var(--surface3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.ib-tabla td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+.ib-tabla small { display: block; font-size: 11.5px; }
+.ib-tabla tr[data-e="anulada"] td, .ib-tabla tr[data-e="rechazada"] td { opacity: .7; }
+.ib-per b { color: var(--ink); }
+.ib-per small, .ib-gris { color: var(--text3); }
+.ib-rojo { color: var(--red-text); }
+.ib-nota { max-width: 320px; }
+.ib-pasos small { color: var(--text3); white-space: nowrap; }
+.ib-cod { display: inline-block; min-width: 30px; padding: 1px 5px; border-radius: 5px; background: var(--surface2); color: var(--ink); font-size: 10.5px; font-weight: 800; text-align: center; }
+.ib-estado { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; background: var(--surface2); color: var(--text2); }
+.ib-estado[data-e="capturada"] { background: var(--amber-bg); color: var(--amber-text); }
+.ib-estado[data-e="calificada"], .ib-estado[data-e="cerrada"] { background: var(--green-bg); color: var(--green-text); }
+.ib-estado[data-e="auditada"] { background: var(--ink); color: #fff; }
+.ib-estado[data-e="rechazada"], .ib-estado[data-e="anulada"] { background: var(--red-bg); color: var(--red-text); }
+.ib-bandera { display: inline-block; margin: 4px 4px 0 0; padding: 0 6px; border: 1px solid var(--amber); border-radius: 4px; color: var(--amber-text); font-size: 10.5px; font-weight: 700; cursor: help; white-space: nowrap; }
+.ib-acc { width: 1%; white-space: nowrap; text-align: right; }
+.ib-acc .ib-btn { margin-left: 4px; }
+.ib-bit-fila td { background: var(--surface3); }
+.ib-bit { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.ib-bit b { color: var(--ink); }
+
+@media (max-width: 640px) {
+  .ib-barra-acc { margin-left: 0; }
+}

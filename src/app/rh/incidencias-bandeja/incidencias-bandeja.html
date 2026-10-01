@@ -1,0 +1,169 @@
+<section class="ib">
+  <header class="ib-head">
+    <div>
+      <h2>Incidencias y cierre de semana</h2>
+      <p class="ib-sub">
+        Lo que entregan los encargados llega <b>por calificar</b> y no cuenta hasta que servicios al personal lo califica.
+        Al cerrar la semana se guarda la foto para prenómina y se bloquea. Contabilidad audita lo cerrado.
+        Nada se borra: todo paso queda en la bitácora.
+      </p>
+    </div>
+  </header>
+
+  <!-- ══ CIERRE DE SEMANA ══ -->
+  <div class="ib-semanas" role="list" aria-label="Semanas de nómina">
+    @for (s of semanas; track s.desde) {
+      <div class="ib-semana" role="listitem" [class.cerrada]="s.cierre">
+        <div class="ib-sem-top">
+          <b>Semana {{ s.numero }}</b>
+          @if (s.cierre) { <span class="ib-chip ib-chip-ok">🔒 Cerrada</span> }
+          @else if (s.pendientes) { <span class="ib-chip ib-chip-pend">{{ s.pendientes }} por calificar</span> }
+          @else { <span class="ib-chip">Abierta</span> }
+        </div>
+        <span class="ib-sem-fechas">{{ fechaCorta(s.desde) }} → {{ fechaCorta(s.hasta) }}</span>
+        @if (s.cierre) {
+          <span class="ib-sem-quien">Cerró {{ quien(s.cierre.cerradoPor) }} · {{ cuandoFue(s.cierre.cerradoEn) }}</span>
+          @if (s.cierre.resumen; as r) {
+            <span class="ib-sem-quien">{{ r.personas }} personas · {{ r.faltas ?? '—' }} faltas · {{ r.incidencias }} incidencias</span>
+          }
+          <div class="ib-sem-acc">
+            <button type="button" class="ib-btn" (click)="descargarFoto(s.cierre)" [disabled]="!!trabajando">Descargar foto</button>
+            <button type="button" class="ib-btn ib-btn-quieto" (click)="reabrir(s)" [disabled]="!!trabajando">Reabrir</button>
+          </div>
+        } @else {
+          <div class="ib-sem-acc">
+            <button type="button" class="ib-btn ib-btn-fuerte" (click)="cerrar(s)" [disabled]="!!trabajando || s.pendientes > 0"
+                    [title]="s.pendientes ? 'Primero califica o rechaza lo pendiente de esta semana' : 'Guarda la foto y bloquea la semana'">
+              {{ trabajando === s.desde ? 'Cerrando…' : 'Cerrar para prenómina' }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (historialCierres.length) {
+    <details class="ib-hist">
+      <summary>{{ historialCierres.length }} cierre{{ historialCierres.length === 1 ? '' : 's' }} reabierto{{ historialCierres.length === 1 ? '' : 's' }}</summary>
+      <ul>
+        @for (c of historialCierres; track c.id) {
+          <li>
+            {{ fechaCorta(c.desde) }} → {{ fechaCorta(c.hasta) }} · cerró {{ quien(c.cerradoPor) }} ({{ cuandoFue(c.cerradoEn) }}),
+            reabrió {{ quien(c.reabiertoPor) }} ({{ cuandoFue(c.reabiertoEn) }}): <em>{{ c.motivoReapertura }}</em>
+            <button type="button" class="ib-link" (click)="descargarFoto(c)" [disabled]="!!trabajando">foto</button>
+          </li>
+        }
+      </ul>
+    </details>
+  }
+
+  <!-- ══ BANDEJA ══ -->
+  <div class="ib-barra">
+    <label class="ib-campo"><span>Desde</span><input type="date" [(ngModel)]="desde" (change)="cambiarPeriodo()"></label>
+    <label class="ib-campo"><span>Hasta</span><input type="date" [(ngModel)]="hasta" [min]="desde" (change)="cambiarPeriodo()"></label>
+    <div class="ib-filtros" role="group" aria-label="Filtrar por estado">
+      @for (x of FILTROS; track x.f) {
+        <button type="button" class="ib-filtro" [class.on]="filtro === x.f" [title]="x.t" (click)="filtro = x.f">
+          {{ x.l }} <span class="ib-n">{{ cuantas(x.f) }}</span>
+        </button>
+      }
+    </div>
+    <div class="ib-barra-acc">
+      @if (filtro === 'pendientes' && calificablesSinBandera.length) {
+        <button type="button" class="ib-btn" (click)="calificarSinBandera()" [disabled]="!!trabajando">
+          Calificar {{ calificablesSinBandera.length }} sin bandera
+        </button>
+      }
+      <button type="button" class="ib-btn ib-btn-quieto" (click)="exportar()">Exportar</button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="ib-error">{{ error }} <button type="button" (click)="cargarLista()">Reintentar</button></div>
+  } @else if (cargando && !lista.length) {
+    <p class="ib-vacio">Cargando…</p>
+  } @else if (!visibles.length) {
+    <p class="ib-vacio">
+      @switch (filtro) {
+        @case ('pendientes') { No hay nada por calificar en este periodo. }
+        @case ('auditar') { No hay incidencias cerradas esperando auditoría en este periodo. }
+        @default { No hay incidencias en este filtro. }
+      }
+    </p>
+  } @else {
+    <div class="ib-scroll">
+      <table class="ib-tabla">
+        <thead>
+          <tr><th>Persona</th><th>Incidencia</th><th>Qué y quién autorizó</th><th>Pasos</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (i of visibles; track i.id) {
+            <tr [attr.data-e]="estadoDe(i)">
+              <td class="ib-per"><b>{{ nombre(i.empleadoCodigo) }}</b><small>#{{ i.empleadoCodigo }}</small></td>
+              <td>
+                <span class="ib-cod">{{ tipoInfo(i.tipo).codigo }}</span> {{ tipoInfo(i.tipo).etiqueta }}
+                <small class="ib-gris">{{ periodoDe(i) }}</small>
+                @if (i.tipo === 'horario_distinto') {
+                  <small class="ib-gris">Entró {{ hora(i.minutos) }} · su horario {{ hora(i.horarioBaseMin) }} <b>{{ corrimiento(i) }}</b></small>
+                }
+                @if (i.tipo === 'horas_extra' && i.minutos) { <small class="ib-gris">{{ i.minutos }} min por día</small> }
+              </td>
+              <td class="ib-nota">
+                {{ i.nota || '—' }}
+                @if (i.autorizo) { <small class="ib-gris">Autorizó: {{ i.autorizo }}</small> }
+                @if (i.motivoRechazo) { <small class="ib-rojo">Rechazo: {{ i.motivoRechazo }}</small> }
+                @if (i.motivoAnulacion) { <small class="ib-rojo">Se quitó: {{ i.motivoAnulacion }}</small> }
+                @if (i.notaAuditoria) { <small class="ib-gris">Auditoría: {{ i.notaAuditoria }}</small> }
+              </td>
+              <td class="ib-pasos">
+                <small>Capturó {{ quien(i.creadoPor) }} · {{ cuandoFue(i.creadoEn) }}</small>
+                @if (i.calificadoPor) { <small>{{ estadoDe(i) === 'rechazada' ? 'Rechazó' : 'Calificó' }} {{ quien(i.calificadoPor) }}</small> }
+                @if (i.auditadoPor && estadoDe(i) === 'auditada') { <small>Auditó {{ quien(i.auditadoPor) }}</small> }
+                @if (i.anuladoPor) { <small>Quitó {{ quien(i.anuladoPor) }}</small> }
+              </td>
+              <td>
+                <span class="ib-estado" [attr.data-e]="estadoDe(i)">{{ ETIQUETA_ESTADO_INC[estadoDe(i)] }}</span>
+                @for (b of i.banderas || []; track b) {
+                  <span class="ib-bandera" [title]="ETIQUETA_BANDERA[b].larga">{{ ETIQUETA_BANDERA[b].corta }}</span>
+                }
+              </td>
+              <td class="ib-acc">
+                @switch (estadoDe(i)) {
+                  @case ('capturada') {
+                    <button type="button" class="ib-btn ib-btn-fuerte" (click)="calificar(i)" [disabled]="!!trabajando">Calificar</button>
+                    <button type="button" class="ib-btn" (click)="rechazar(i)" [disabled]="!!trabajando">Rechazar</button>
+                  }
+                  @case ('calificada') {
+                    <button type="button" class="ib-btn ib-btn-quieto" (click)="anular(i)" [disabled]="!!trabajando">Quitar</button>
+                  }
+                  @case ('cerrada') {
+                    <button type="button" class="ib-btn ib-btn-fuerte" (click)="auditar(i)" [disabled]="!!trabajando">Auditar</button>
+                  }
+                }
+                <button type="button" class="ib-link" (click)="verBitacora(i)" [attr.aria-expanded]="!!bitacoraDe(i)">Bitácora</button>
+              </td>
+            </tr>
+            @if (bitacoraDe(i); as b) {
+              <tr class="ib-bit-fila">
+                <td colspan="6">
+                  @if (b === 'cargando') { Cargando… }
+                  @else {
+                    <ol class="ib-bit">
+                      @for (p of b; track $index) {
+                        <li>
+                          <b>{{ ACCION_TXT[p.accion] || p.accion }}</b> {{ quien(p.quien) }} · {{ cuandoFue(p.cuando) }}
+                          @if (p.estadoAntes) { <small>({{ p.estadoAntes }} → {{ p.estadoDespues }})</small> }
+                          @if (p.detalle) { — <em>{{ p.detalle }}</em> }
+                        </li>
+                      }
+                    </ol>
+                  }
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

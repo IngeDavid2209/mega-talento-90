@@ -129,6 +129,16 @@
     </div>
   </div>
 
+  <!-- ══ SEMANA CERRADA ══ Lo que se ve se recalcula al momento; lo que se
+       pagó es la foto del cierre. Aquí no se puede capturar ni quitar nada. -->
+  @for (c of cierresPeriodo; track c.id) {
+    <div class="ar-cierre" role="note">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+      <span><b>{{ textoCierre(c) }} cerrada para prenómina</b> · la cerró {{ quienCorto(c.cerradoPor) }}.
+        En esos días no se captura ni se quita nada; para cambiarla hay que reabrirla en la pestaña Incidencias.</span>
+    </div>
+  }
+
   <!-- ══ SEMÁFORO DE RELOJES ══════════════════════════════════════════
        La pantalla nunca debe parecer al día cuando no lo está.
 
@@ -1135,7 +1145,32 @@
         }
       </div>
 
-      @if (ficha.incidencias.length) {
+      <!-- Con el detalle cargado, cada incidencia dice su estado y quién dio cada
+           paso; lo que espera calificación todavía no cuenta en el número. -->
+      @if (fichaIncs?.length) {
+        <div class="fic-aviso-inc" role="note">
+          <b>Tiene incidencia en este periodo:</b>
+          @for (i of fichaIncs; track i.id) {
+            <span class="fic-inc-flujo">
+              <span class="inc-cod" [attr.data-t]="i.tipo">{{ tipoInfo(i.tipo).codigo }}</span>
+              {{ tipoInfo(i.tipo).etiqueta }} · {{ periodoCorto(i) }}
+              <em class="inc-estado" [attr.data-e]="i.estado">{{ ETIQUETA_ESTADO_INC[i.estado!] }}</em>
+              @for (b of i.banderas || []; track b) {
+                <em class="inc-bandera" [title]="ETIQUETA_BANDERA[b].larga">{{ ETIQUETA_BANDERA[b].corta }}</em>
+              }
+              @if (i.nota) { · <em class="fic-inc-nota">{{ i.nota }}</em> }
+              <small class="fic-inc-quien">
+                Capturó {{ quienCorto(i.creadoPor || '') }}@if (i.autorizo) { · autorizó {{ i.autorizo }} }@if (i.calificadoPor && i.estado !== 'capturada') { · {{ i.estado === 'rechazada' ? 'rechazó' : 'calificó' }} {{ quienCorto(i.calificadoPor) }} }@if (i.estado === 'auditada') { · auditó {{ quienCorto(i.auditadoPor || '') }} }
+                @if (i.estado === 'capturada') { · todavía no cuenta en el número }
+                @if (i.estado === 'rechazada' && i.motivoRechazo) { · {{ i.motivoRechazo }} }
+              </small>
+              @if ((i.estado === 'capturada' || i.estado === 'calificada') && !diaCerrado(i.desde)) {
+                <button type="button" class="inc-x" (click)="borrarIncidencia(i)" [attr.aria-label]="'Quitar incidencia'" title="Quitar">✕</button>
+              }
+            </span>
+          }
+        </div>
+      } @else if (ficha.incidencias.length) {
         <div class="fic-aviso-inc" role="note">
           <b>Tiene incidencia en este periodo:</b>
           @for (i of ficha.incidencias; track i.id) {
@@ -1145,38 +1180,83 @@
         </div>
       }
 
-      @if (!fichaPorDia.length) {
+      @if (fichaSinIrregularidades) {
         <p class="fic-ok">Sin irregularidades en este periodo.</p>
-      } @else {
+      }
+      @if (fichaPausas.desayuno != null || fichaPausas.comida != null) {
+        <p class="fic-pausas">
+          @if (fichaPausas.desayuno != null) { <span>Desayuno promedio <b>{{ fichaPausas.desayuno }} min</b></span> }
+          @if (fichaPausas.comida != null) { <span>Comida promedio <b>{{ fichaPausas.comida }} min</b></span> }
+        </p>
+      }
+      @if (fichaPorDia.length) {
         <ul class="fic-dias">
           @for (d of fichaPorDia; track d.fecha) {
-            <li>
+            <li [class.fic-descanso]="d.descanso && !d.items.length && !d.incs.length">
               <span class="fic-fecha">{{ d.diaLabel }}</span>
-              @if (d.items.length) {
-                <span class="fic-acciones">
-                  @if (tieneRetardo(d.items) && horarioDistintoDe(d.fecha); as h) {
-                    <button type="button" class="fic-hdist" [class.on]="hdAbierto === d.fecha" [disabled]="guardandoInc"
-                            (click)="hdAbierto = hdAbierto === d.fecha ? null : d.fecha"
-                            [attr.aria-expanded]="hdAbierto === d.fecha"
-                            [attr.aria-label]="'Horario distinto el ' + d.diaLabel">Horario distinto</button>
-                  }
+              <!-- Su jornada, desayuno y comida de ese día. -->
+              <span class="fic-jornada">
+                @if (d.jornada) { <b>{{ d.jornada }}</b> } @else if (d.descanso) { Descanso } @else { Sin checadas }
+                @if (d.desayunoMin != null) { <span class="fic-pausa">Desayuno {{ d.desayunoMin }} min</span> }
+                @if (d.comidaMin != null) { <span class="fic-pausa">Comida {{ d.comidaMin }} min</span> }
+                @if (d.horas) { <span class="fic-pausa">{{ d.horas }}</span> }
+              </span>
+              <!-- Semana cerrada para prenómina: no se captura nada (la API lo rechazaría igual). -->
+              @if (diaCerrado(d.fecha)) {
+                <span class="fic-cerrado" title="La semana ya se cerró para prenómina">🔒 Semana cerrada</span>
+              } @else {
+              <!-- Horario distinto e incidencias en CUALQUIER día, esté en rojo o no. -->
+              <span class="fic-acciones">
+                @if (d.jornada && horarioDistintoDe(d.fecha); as h) {
+                  <button type="button" class="fic-hdist" [class.on]="hdAbierto === d.fecha" [disabled]="guardandoInc"
+                          (click)="hdAbierto = hdAbierto === d.fecha ? null : d.fecha; hdForm = null"
+                          [attr.aria-expanded]="hdAbierto === d.fecha"
+                          [attr.aria-label]="'Horario distinto el ' + d.diaLabel">Horario distinto</button>
+                }
+                @if (d.items.length) {
                   <button type="button" class="fic-justificar" (click)="justificarDia(d.fecha)"
                           [attr.aria-label]="'Justificar el ' + d.diaLabel">Justificar</button>
-                </span>
+                } @else {
+                  <button type="button" class="fic-hdist" (click)="justificarDia(d.fecha, true)"
+                          [attr.aria-label]="'Agregar incidencia el ' + d.diaLabel">+ Incidencia</button>
+                }
+              </span>
+              }
+              @if (!d.items.length && esSoloHorario(d.incs)) {
+                <span class="fic-just-ok">✓ A tiempo en su horario</span>
+              } @else if (!d.items.length && d.incs.length) {
+                <span class="fic-just-ok">✓ Justificado</span>
+              }
               @if (hdAbierto === d.fecha && horarioDistintoDe(d.fecha); as h) {
                 <span class="fic-hd-elegir">
                   <span>Checó a las <b>{{ h.entrada }}</b>. ¿A qué hora entró ese día?</span>
                   @for (o of h.opciones; track o.min) {
-                    <button type="button" class="fic-hd-op" (click)="horarioDistinto(d.fecha, o)" [disabled]="guardandoInc">{{ o.hora }}</button>
+                    <button type="button" class="fic-hd-op" [class.on]="hdForm?.opcion?.min === o.min"
+                            (click)="elegirHoraHd(d.fecha, o)" [disabled]="guardandoInc">{{ o.hora }}</button>
                   }
-                  <button type="button" class="fic-hd-no" (click)="hdAbierto = null">Cancelar</button>
+                  <button type="button" class="fic-hd-no" (click)="hdAbierto = null; hdForm = null">Cancelar</button>
                 </span>
+                <!-- Motivo y quién lo autorizó: sin esto contabilidad no distingue
+                     un cambio de turno de un retardo borrado. -->
+                @if (hdForm && hdForm.fecha === d.fecha) {
+                  <span class="fic-hd-form">
+                    <label><span>¿Por qué entró a las {{ hdForm.opcion.hora }}?</span>
+                      <input type="text" maxlength="200" [(ngModel)]="hdForm.motivo"
+                             placeholder="Ej. cubrió el turno de la tarde de Juan"></label>
+                    <label><span>¿Quién lo autorizó?</span>
+                      <input type="text" maxlength="80" [(ngModel)]="hdForm.autorizo"
+                             placeholder="Ej. Lic. Pérez, encargado de sucursal"></label>
+                    <button type="button" class="fic-hd-op on" (click)="horarioDistinto()"
+                            [disabled]="guardandoInc || !hdForm.motivo.trim() || !hdForm.autorizo.trim()">
+                      {{ guardandoInc ? 'Guardando…' : 'Guardar' }}
+                    </button>
+                    @if (hdCorrimiento >= 60) {
+                      <small class="fic-hd-aviso">Corre su entrada {{ textoMinutos(hdCorrimiento) }}: queda marcado para auditoría.</small>
+                    }
+                  </span>
+                }
               }
-              } @else if (esSoloHorario(d.incs)) {
-                <span class="fic-just-ok">✓ A tiempo en su horario</span>
-              } @else if (d.incs.length) {
-                <span class="fic-just-ok">✓ Justificado</span>
-              }
+
               <span class="fic-items">
                 @for (i of d.items; track i.tipo) {
                   <span class="fic-item" [attr.data-t]="i.tipo" [attr.data-n]="i.nivel">
@@ -1209,7 +1289,7 @@
       @if (fichaTipos) {
         <div class="fic-tipos" role="group" aria-label="Tipo de incidencia">
           @for (t of tiposIncidencia; track t.tipo) {
-            <button type="button" (click)="abrirIncidencia(t, ficha.codigo, fichaPorDia[0]?.fecha || '')">
+            <button type="button" (click)="abrirIncidencia(t, ficha.codigo, fichaPrimerDia)">
               <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>{{ t.etiqueta }}
             </button>
           }
@@ -1287,7 +1367,7 @@
         <label class="inc-campo">
           <span>¿Por qué?</span>
           <select [ngModel]="incForm.tipo.tipo" (ngModelChange)="cambiarTipoInc($event)">
-            @for (t of tiposQueJustifican; track t.tipo) { <option [value]="t.tipo">{{ t.etiqueta }}</option> }
+            @for (t of (incForm.todosTipos ? tiposIncidencia : tiposQueJustifican); track t.tipo) { <option [value]="t.tipo">{{ t.etiqueta }}</option> }
           </select>
         </label>
       }

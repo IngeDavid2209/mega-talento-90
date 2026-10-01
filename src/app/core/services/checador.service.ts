@@ -79,14 +79,51 @@ export interface IncidenciaDia {
   /** "Uso de horas extra": minutos que se suman a las horas del día. */
   minutos?: number | null;
 }
+/**
+ * El camino de una incidencia (01/10/2026). Solo calificada, cerrada y
+ * auditada cambian el cálculo. Ver api/src/incidencias.ts.
+ */
+export type EstadoIncidencia = 'capturada' | 'calificada' | 'rechazada' | 'cerrada' | 'auditada' | 'anulada';
+/** Lo que la auditoría tiene que mirar (no bloquea nada). */
+export type BanderaIncidencia = 'corrimiento_60' | 'hd_frecuente' | 'autocalificada' | 'sin_nota' | 'retroactiva';
+
 /** La incidencia completa, con su periodo. */
 export interface Incidencia {
   id?: string;
   sucursalId: string; empleadoCodigo: string; tipo: string;
   desde: string; hasta: string; nota?: string;
-  /** Solo "Uso de horas extra": minutos usados por día. */
+  /** "Uso de horas extra": minutos usados por día. "Horario distinto": su entrada de ese día. */
   minutos?: number | null;
   creadoPor?: string; creadoEn?: string;
+  /** Quién lo autorizó (obligatorio en "Horario distinto"). */
+  autorizo?: string;
+  /** Al crear un "Horario distinto": por qué (obligatorio) y su entrada de siempre. */
+  motivo?: string;
+  horarioBase?: number | null;
+  /** Al crear: dejarla por calificar aunque quien captura pueda calificar. */
+  entregar?: boolean;
+  // ── Lo que responde la API ──
+  estado?: EstadoIncidencia;
+  horarioBaseMin?: number | null;
+  calificadoPor?: string; calificadoEn?: string | null; motivoRechazo?: string;
+  auditadoPor?: string; auditadoEn?: string | null; notaAuditoria?: string;
+  anuladoPor?: string; anuladoEn?: string | null; motivoAnulacion?: string;
+  banderas?: BanderaIncidencia[];
+}
+/** Un paso en la bitácora de una incidencia. */
+export interface PasoBitacora {
+  accion: string; estadoAntes: string | null; estadoDespues: string | null;
+  quien: string; cuando: string; detalle: string;
+}
+/** Una semana cerrada para prenómina. `foto` solo viene al pedir un cierre por id. */
+export interface CierreSemana {
+  id: string; sucursalId: string; desde: string; hasta: string;
+  cerradoPor: string; cerradoEn: string;
+  resumen: { personas: number; usables: number | null; faltas: number | null;
+             retardoRealMin: number | null; horasTrabajadas: number | null; incidencias: number } | null;
+  reabiertoPor: string; reabiertoEn: string | null; motivoReapertura: string;
+  vigente: boolean;
+  foto?: AsistenciaPersonas;
 }
 
 // ══ CAMBIOS EN LOS RELOJES (eliminar / renombrar) ════════════════
@@ -636,8 +673,38 @@ export class ChecadorService {
   async crearIncidencia(i: Incidencia): Promise<Incidencia> {
     return this.api.post<Incidencia>('/checador/incidencias', i);
   }
-  async eliminarIncidencia(id: string): Promise<void> {
-    await this.api.delete(`/checador/incidencias/${id}`);
+  /** Ya no borra: la ANULA con su motivo (queda en la bitácora). */
+  async eliminarIncidencia(id: string, motivo: string): Promise<void> {
+    await this.api.delete(`/checador/incidencias/${id}?motivo=${encodeURIComponent(motivo)}`);
+  }
+  /** Las incidencias de la plaza en el periodo, con estado y banderas. `estados='todas'` incluye las anuladas. */
+  async getIncidencias(sucursalId: string, desde: string, hasta: string,
+                       opc: { codigo?: string; estados?: string } = {}): Promise<Incidencia[]> {
+    return this.api.get<Incidencia[]>('/checador/incidencias', { sucursalId, desde, hasta, ...opc });
+  }
+  async pasoIncidencia(id: string, accion: 'calificar' | 'rechazar' | 'anular' | 'auditar', motivo = ''): Promise<Incidencia> {
+    return this.api.post<Incidencia>(`/checador/incidencias/${id}/${accion}`, { motivo });
+  }
+  async getBitacoraIncidencia(id: string): Promise<PasoBitacora[]> {
+    return this.api.get<PasoBitacora[]>(`/checador/incidencias/${id}/bitacora`);
+  }
+
+  // ===================== CIERRE DE SEMANA =====================
+  async getCierres(sucursalId: string): Promise<CierreSemana[]> {
+    return this.api.get<CierreSemana[]>('/checador/cierres', { sucursalId });
+  }
+  /** Las semanas CERRADAS que toca el periodo (vacío = todo abierto). */
+  async getCierresEnPeriodo(sucursalId: string, desde: string, hasta: string): Promise<CierreSemana[]> {
+    return this.api.get<CierreSemana[]>('/checador/cierres/estado', { sucursalId, desde, hasta });
+  }
+  async getCierre(id: string): Promise<CierreSemana> {
+    return this.api.get<CierreSemana>(`/checador/cierres/${id}`);
+  }
+  async cerrarSemana(sucursalId: string, desde: string): Promise<CierreSemana> {
+    return this.api.post<CierreSemana>('/checador/cierres', { sucursalId, desde });
+  }
+  async reabrirSemana(id: string, motivo: string): Promise<CierreSemana> {
+    return this.api.post<CierreSemana>(`/checador/cierres/${id}/reabrir`, { motivo });
   }
 
   // ===================== CAMBIOS EN LOS RELOJES =====================

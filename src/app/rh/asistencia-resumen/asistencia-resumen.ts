@@ -5,8 +5,10 @@ import * as XLSX from 'xlsx';
 import {
   ChecadorService, RevisionDia, EstadoRevision,
   AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi,
-  EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia, CambiosReloj, ComandoReloj
+  EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia, CambiosReloj, ComandoReloj,
+  Incidencia, CierreSemana
 } from '../../core/services/checador.service';
+import { ETIQUETA_ESTADO_INC, ETIQUETA_BANDERA, mensajeDeError } from '../incidencias-bandeja/incidencias-flujo';
 import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
 import { semanaFiscal, SemanaFiscal } from '../../core/models/semana-fiscal';
 import { aFechaLocal, Empleado } from '../../core/models/checador.model';
@@ -60,6 +62,14 @@ interface DiaAsistencia {
  *               rojo dejaría de avisar de algo.
  */
 /** Una incidencia tal como se lista en un día de la ficha. */
+/** Un renglón de la ficha: un día del periodo. */
+interface FichaDia {
+  fecha: string; diaLabel: string; items: Irregularidad[]; incs: FichaInc[];
+  /** "07:55 – 17:40" (o solo la entrada si checó una vez). */
+  jornada: string; horas: string;
+  desayunoMin: number | null; comidaMin: number | null;
+  descanso: boolean;
+}
 interface FichaInc { id: string; tipo: string; codigo: string; etiqueta: string; nota: string; minutos?: number | null; }
 
 export interface Irregularidad {
@@ -873,10 +883,58 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   /** La ficha rápida (clic en la fila). */
   ficha: EmpleadoAsistencia | null = null;
   abrirFicha(e: EmpleadoAsistencia) {
-    this.ficha = e; this.menuIncidencia = false; this.fichaTipos = false;
+    this.ficha = e; this.menuIncidencia = false; this.fichaTipos = false; this.hdForm = null;
     this.cargarCambiosReloj(e);
+    this.cargarIncidenciasFicha(e);
   }
-  cerrarFicha() { this.ficha = null; this.fichaTipos = false; this.fichaReloj = null; }
+  cerrarFicha() { this.ficha = null; this.fichaTipos = false; this.fichaReloj = null; this.fichaIncs = null; this.hdForm = null; }
+
+  // ══ EL ESTADO DE CADA INCIDENCIA, EN LA FICHA (01/10/2026) ═══════
+  //
+  // El cálculo solo trae las incidencias que YA cuentan (calificadas). Lo que se
+  // entregó y espera calificación no mueve el número, pero tiene que verse: si
+  // no, quien la entregó cree que se perdió y la vuelve a capturar. Aquí se piden
+  // todas las de la persona, con su estado y quién dio cada paso.
+  fichaIncs: Incidencia[] | null = null;
+  readonly ETIQUETA_ESTADO_INC = ETIQUETA_ESTADO_INC;
+  readonly ETIQUETA_BANDERA = ETIQUETA_BANDERA;
+
+  private async cargarIncidenciasFicha(e: EmpleadoAsistencia) {
+    this.fichaIncs = null;
+    try {
+      const l = await this.checador.getIncidencias(this.sucursalFiltro, this.desde, this.hasta, { codigo: e.codigo });
+      if (this.ficha?.codigo === e.codigo) this.fichaIncs = l;
+    } catch { /* sin esto la ficha usa lo que trae el cálculo */ }
+  }
+
+  /** Código y nombre de un tipo (el catálogo de los menús no trae "Horario distinto"). */
+  tipoInfo(tipo: string): { codigo: string; etiqueta: string } {
+    if (tipo === 'horario_distinto') return { codigo: 'HD', etiqueta: 'Horario distinto' };
+    const t = this.tiposIncidencia.find((x) => x.tipo === tipo);
+    return { codigo: t?.codigo || 'OTR', etiqueta: t?.etiqueta || tipo };
+  }
+
+  /** "jsolorio" de "jsolorio@empresa.com": cabe en la ficha. */
+  quienCorto(correo: string): string { return (correo || '').split('@')[0] || '—'; }
+
+  // ══ SEMANA CERRADA (01/10/2026) ═══════════════════════════════════
+  //
+  // Si el periodo toca una semana ya cerrada para prenómina, se dice arriba, y
+  // los botones de capturar de esos días se apagan: la API los rechazaría igual.
+  cierresPeriodo: CierreSemana[] = [];
+
+  private async cargarCierresPeriodo() {
+    try { this.cierresPeriodo = await this.checador.getCierresEnPeriodo(this.sucursalFiltro, this.desde, this.hasta); }
+    catch { this.cierresPeriodo = []; }
+  }
+
+  diaCerrado(fecha: string): boolean {
+    return this.cierresPeriodo.some((c) => c.desde <= fecha && c.hasta >= fecha);
+  }
+
+  textoCierre(c: CierreSemana): string {
+    return `Semana ${semanaFiscal(c.desde, this.diaCorte).numero} (${this.fechaLarga(c.desde)} → ${this.fechaLarga(c.hasta)})`;
+  }
 
   /** Relojes de la plaza y los cambios de esta persona (para la ficha). */
   fichaReloj: CambiosReloj | null = null;
@@ -920,13 +978,22 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   /** Las irregularidades de la ficha, agrupadas por día (un renglón por fecha). */
-  get fichaPorDia(): { fecha: string; diaLabel: string; items: Irregularidad[]; incs: FichaInc[] }[] {
+  /**
+   * TODOS los días del periodo en la ficha (01/10/2026), no solo los rojos:
+   * cada uno con su jornada, su desayuno y su comida, y con la opción de
+   * capturarle cualquier incidencia o un horario distinto aunque no marque nada.
+   */
+  get fichaPorDia(): FichaDia[] {
     if (!this.ficha) return [];
-    const m = new Map<string, { fecha: string; diaLabel: string; items: Irregularidad[]; incs: FichaInc[] }>();
+    const m = new Map<string, FichaDia>();
     const dia = (fecha: string, label?: string) => {
-      if (!m.has(fecha)) m.set(fecha, { fecha, diaLabel: label || this.etiquetaDia(fecha), items: [], incs: [] });
+      if (!m.has(fecha)) {
+        const d = this.ficha!.diasPorFecha.get(fecha);
+        m.set(fecha, { fecha, diaLabel: label || d?.diaLabel || this.etiquetaDia(fecha), items: [], incs: [], ...this.resumenDia(d) });
+      }
       return m.get(fecha)!;
     };
+    for (const f of [...this.ficha.diasPorFecha.keys()]) if (f >= this.desde && f <= this.hasta) dia(f);
     for (const i of this.ficha.irregularidades) dia(i.fecha, i.diaLabel).items.push(i);
     // El día que tiene incidencia la dice AHÍ MISMO: antes el jueves salía como
     // "Falta" a secas y la incidencia de ese día solo aparecía arriba, sin decir
@@ -940,6 +1007,41 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       }
     }
     return [...m.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }
+
+  /** ¿Algo en rojo o por revisar en la ficha? (para el aviso verde). */
+  get fichaSinIrregularidades(): boolean { return !this.ficha?.irregularidades.length; }
+
+  /** El primer día con algo que atender, para el botón "Incidencia" de abajo. */
+  get fichaPrimerDia(): string { return this.ficha?.irregularidades[0]?.fecha || this.fichaPorDia[0]?.fecha || ''; }
+
+  /**
+   * Jornada, desayuno y comida de un día. Las pausas llegan como tramos
+   * "HH:MM – HH:MM" (separados por " · "); si la API identificó desayuno, es
+   * el PRIMER tramo y el resto es comida.
+   */
+  private resumenDia(d: DiaAsistencia | undefined): Pick<FichaDia, 'jornada' | 'desayunoMin' | 'comidaMin' | 'horas' | 'descanso'> {
+    if (!d) return { jornada: '', desayunoMin: null, comidaMin: null, horas: '', descanso: false };
+    const hay = (x: string) => !!x && x !== '—';
+    const jornada = hay(d.entrada) && hay(d.salida) ? `${d.entrada} – ${d.salida}` : hay(d.entrada) ? d.entrada : '';
+    const tramos = (d.comida || '').split(' · ').map((t) => /(\d{1,2}):(\d{2})\s*–\s*(\d{1,2}):(\d{2})/.exec(t))
+      .filter((x): x is RegExpExecArray => !!x)
+      .map((x) => (+x[3] * 60 + +x[4]) - (+x[1] * 60 + +x[2]));
+    let desayunoMin: number | null = null;
+    if (d.desayunoMin != null && tramos.length) { desayunoMin = d.desayunoMin; tramos.shift(); }
+    const comidaMin = tramos.length ? tramos.reduce((a, b) => a + b, 0) : null;
+    return { jornada, desayunoMin, comidaMin, horas: hay(d.horasNetas) ? d.horasNetas : '',
+      descanso: d.estadoDia === 'descanso' && !jornada };
+  }
+
+  /** Promedio de desayuno y comida en el periodo, para el encabezado de la ficha. */
+  get fichaPausas(): { desayuno: number | null; comida: number | null } {
+    const dias = this.fichaPorDia;
+    const prom = (xs: (number | null)[]) => {
+      const v = xs.filter((x): x is number => x != null);
+      return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+    };
+    return { desayuno: prom(dias.map((d) => d.desayunoMin)), comida: prom(dias.map((d) => d.comidaMin)) };
   }
 
   private diaSiguiente(iso: string): string {
@@ -980,31 +1082,66 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
   }
 
-  async horarioDistinto(fecha: string, opcion: { min: number; hora: string }) {
-    const e = this.ficha, h0 = this.horarioDistintoDe(fecha);
-    if (!e || !h0 || this.guardandoInc) return;
-    const h = { entrada: h0.entrada, antes: h0.antes, nueva: opcion.hora, min: opcion.min };
+  /**
+   * MOTIVO Y QUIÉN LO AUTORIZÓ (01/10/2026). Elegir la hora ya no guarda: abre
+   * dos renglones obligatorios. En sus dos primeros días el botón se usó 63
+   * veces —40 corriendo la entrada una hora o más— y la única nota era la que
+   * arma la pantalla ("Checó 10:04; entró a las 10:00"), que dice QUÉ pasó pero
+   * no POR QUÉ ni quién lo pidió. Sin eso, contabilidad no distingue un cambio
+   * de turno de un retardo borrado.
+   */
+  hdForm: { fecha: string; opcion: { min: number; hora: string }; motivo: string; autorizo: string } | null = null;
+
+  elegirHoraHd(fecha: string, opcion: { min: number; hora: string }) {
+    this.hdForm = { fecha, opcion, motivo: '', autorizo: '' };
+  }
+
+  private aMinutos(hhmm: string): number | null {
+    const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || '');
+    return m ? +m[1] * 60 + +m[2] : null;
+  }
+
+  /** Cuántos minutos se corre su entrada con la hora elegida (para avisar antes de guardar). */
+  get hdCorrimiento(): number {
+    const f = this.hdForm;
+    const h0 = f ? this.horarioDistintoDe(f.fecha) : null;
+    const base = h0 ? this.aMinutos(h0.antes) : null;
+    return f && base != null ? f.opcion.min - base : 0;
+  }
+
+  async horarioDistinto() {
+    const e = this.ficha, f = this.hdForm, h0 = f ? this.horarioDistintoDe(f.fecha) : null;
+    if (!e || !f || !h0 || this.guardandoInc) return;
+    if (!f.motivo.trim() || !f.autorizo.trim()) {
+      this.toast.alerta('Escribe por qué entró en otro horario y quién lo autorizó.');
+      return;
+    }
+    const fecha = f.fecha;
+    const h = { entrada: h0.entrada, antes: h0.antes, nueva: f.opcion.hora, min: f.opcion.min };
     const ok = await this.toast.confirmar({
       titulo: 'Horario distinto',
       mensaje: `¿Seguro que quieres cambiar su horario del ${this.fechaLarga(fecha)}? Checó a las ${h.entrada}: ` +
         `su entrada de ese día será a las ${h.nueva} (en vez de las ${h.antes}) y su retardo se mide contra esa hora. ` +
-        'Solo cambia ese día: su horario de siempre se queda igual.',
+        'Solo cambia ese día: su horario de siempre se queda igual.' +
+        (this.hdCorrimiento >= 60 ? ` Corre su entrada ${this.textoMinutos(this.hdCorrimiento)}: queda marcado para auditoría.` : ''),
       textoConfirmar: `Sí, entró a las ${h.nueva}`,
     });
     if (!ok) return;
-    this.hdAbierto = null;
     this.guardandoInc = true;
     try {
       await this.checador.crearIncidencia({
         sucursalId: this.sucursalFiltro, empleadoCodigo: e.codigo, tipo: 'horario_distinto',
         desde: fecha, hasta: fecha, minutos: h.min,
+        motivo: f.motivo.trim(), autorizo: f.autorizo.trim(), horarioBase: this.aMinutos(h.antes),
         nota: `Checó ${h.entrada}; ese día entró a las ${h.nueva} (su horario: ${h.antes})`,
       });
+      this.hdAbierto = null;
+      this.hdForm = null;
       this.toast.exito(`${this.fechaLarga(fecha)}: su entrada de ese día queda a las ${h.nueva}.`);
       await this.recargarConservandoAbiertos();
     } catch (err) {
       console.error(err);
-      this.toast.error('No se pudo cambiar el horario de ese día.');
+      this.toast.error(mensajeDeError(err, 'No se pudo cambiar el horario de ese día.'));
     } finally {
       this.guardandoInc = false;
     }
@@ -1045,6 +1182,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     horas?: number | null; mins?: number | null;
     /** Se abrió desde "Justificar" en la ficha: se deja elegir el motivo. */
     elegirTipo?: boolean;
+    /** Abierto desde un día sin nada en rojo: se ofrecen TODOS los tipos. */
+    todosTipos?: boolean;
   } | null = null;
 
   /** Los que justifican, para el selector de "Justificar". */
@@ -1065,12 +1204,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * JUSTIFICAR UN DÍA desde la ficha (29/09/2026): abre el formulario de
    * incidencia con la persona y el día ya puestos y el motivo por elegir.
    */
-  justificarDia(fecha: string) {
+  justificarDia(fecha: string, todos = false) {
     const e = this.ficha;
     const t = this.tiposIncidencia.find((x) => x.tipo === 'permiso_con_goce') || this.tiposQueJustifican[0];
     if (!e || !t) return;
     this.abrirIncidencia(t, e.codigo, fecha);
-    if (this.incForm) this.incForm.elegirTipo = true;
+    if (this.incForm) { this.incForm.elegirTipo = true; this.incForm.todosTipos = todos; }
   }
   guardandoInc = false;
 
@@ -1143,13 +1282,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (!ok) return;
     this.guardandoInc = true;
     try {
-      await this.checador.crearIncidencia({
+      const r = await this.checador.crearIncidencia({
         sucursalId: this.sucursalFiltro, empleadoCodigo: f.codigo,
         tipo: f.tipo.tipo, desde: p.desde, hasta: p.hasta, nota: f.nota,
         minutos: this.esHorasExtra ? this.incMinutos : null,
       });
       const quien = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
-      this.toast.exito(`${f.tipo.etiqueta} · ${quien} · ${this.incDias} día(s).`);
+      this.toast.exito(`${f.tipo.etiqueta} · ${quien} · ${this.incDias} día(s).` +
+        (r.estado === 'capturada' ? ' Quedó entregada: cuenta cuando servicios al personal la califique.' : ''));
       // Una incidencia de hace semanas VALE igual: el cálculo la lee cada vez.
       // Pero si cae fuera del periodo en pantalla no se ve, y parecería que no
       // se guardó: se dice.
@@ -1161,25 +1301,32 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       await this.recargarConservandoAbiertos();
     } catch (e) {
       console.error(e);
-      this.toast.error('No se pudo guardar la incidencia.');
+      this.toast.error(mensajeDeError(e, 'No se pudo guardar la incidencia.'));
     } finally {
       this.guardandoInc = false;
     }
   }
 
-  async borrarIncidencia(i: { id: string; etiqueta: string }) {
-    const ok = await this.toast.confirmar({
+  /**
+   * Quitar ya no borra: ANULA, con motivo obligatorio. La fila y su bitácora se
+   * quedan para que la auditoría vea qué se quitó, quién y por qué.
+   */
+  async borrarIncidencia(i: { id?: string; etiqueta?: string; tipo?: string }) {
+    if (!i.id) return;
+    const etiqueta = i.etiqueta || this.tiposIncidencia.find((t) => t.tipo === i.tipo)?.etiqueta || 'la incidencia';
+    const motivo = await this.toast.pedirTexto({
       titulo: 'Quitar incidencia',
-      mensaje: `¿Quitar "${i.etiqueta}"? Si excusaba faltas, vuelven a contar.`,
+      mensaje: `¿Quitar "${etiqueta}"? Si excusaba faltas, vuelven a contar. No se borra: queda anulada en el registro.`,
       destructivo: true, textoConfirmar: 'Quitar',
+      campo: { etiqueta: '¿Por qué se quita?', placeholder: 'Ej. se capturó a la persona equivocada', obligatorio: true },
     });
-    if (!ok) return;
+    if (!motivo) return;
     try {
-      await this.checador.eliminarIncidencia(i.id);
+      await this.checador.eliminarIncidencia(i.id, motivo);
       await this.recargarConservandoAbiertos();
     } catch (e) {
       console.error(e);
-      this.toast.error('No se pudo quitar la incidencia.');
+      this.toast.error(mensajeDeError(e, 'No se pudo quitar la incidencia.'));
     }
   }
 
@@ -1192,6 +1339,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const fichaCod = this.ficha?.codigo, detCod = this.detalle?.codigo;
     await this.cargar();
     if (fichaCod) this.ficha = this.lista.find(e => e.codigo === fichaCod) || null;
+    if (this.ficha) this.cargarIncidenciasFicha(this.ficha);
     if (detCod) this.detalle = this.lista.find(e => e.codigo === detCod) || null;
   }
 
@@ -1856,6 +2004,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       this.datos = await this.checador.getAsistencia(
         this.sucursalFiltro, this.desde, this.hasta, this.soloPromotoras);
       this.lista = this.datos.personas.map(p => this.aVista(p));
+      this.cargarCierresPeriodo();
       this.computarGraficas();
       this.computarTolerancia();
       // El buscador global pidió abrir a alguien de esta plaza.

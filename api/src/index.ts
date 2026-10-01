@@ -5,6 +5,7 @@ import { pool } from './db';
 import { authRouter } from './auth';
 import { checadorRouter } from './checador';
 import { incidenciasRouter } from './incidencias';
+import { cierresRouter } from './cierres';
 import { relojComandosRouter } from './reloj-comandos';
 import { agenteHorariosRouter, agenteCallbackRouter, arrancarCorredor } from './agente-horarios';
 import { candidatosRouter } from './candidatos';
@@ -61,6 +62,7 @@ app.use('/checador/agente/callback', agenteCallbackRouter); // Fase 2b: justific
 // checadorRouter tiene requireAuth global. Este router lleva su propio JWT.
 app.use('/checador/relojes', relojesRouter);   // semáforo de relojes + padrón por SERIE
 app.use('/checador/incidencias', incidenciasRouter); // vacaciones, permisos, incapacidades…
+app.use('/checador/cierres', cierresRouter);         // cierre de semana para prenómina (foto + bloqueo)
 app.use('/checador/reloj-comandos', relojComandosRouter); // eliminar/renombrar en los relojes (vía agente)
 app.use('/checador', checadorRouter);
 app.use('/checador/agente', agenteHorariosRouter); // Agente de Horarios (Fase 1)

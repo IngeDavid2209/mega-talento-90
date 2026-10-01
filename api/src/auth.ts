@@ -83,6 +83,19 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
   }
 }
 
+/**
+ * ¿El usuario del token es administrador? La base guarda el rol en dos
+ * escrituras (`admin` y `Administrador`), así que se compara por prefijo.
+ */
+export function esAdminReq(req: AuthedRequest): boolean {
+  return String(req.usuario?.rol || '').toLowerCase().startsWith('admin');
+}
+
+/** Quién firma un paso: el correo del token (o su id si no trae correo). */
+export function quienReq(req: AuthedRequest): string {
+  return req.usuario?.email || req.usuario?.sub || 'desconocido';
+}
+
 /** GET /auth/me — datos del usuario del token. */
 authRouter.get('/me', requireAuth, (req: AuthedRequest, res: Response) => {
   return res.json({ usuario: req.usuario });
