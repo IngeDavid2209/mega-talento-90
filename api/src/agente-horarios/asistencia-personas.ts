@@ -680,15 +680,26 @@ export async function asistenciaPersonas(
       for (const i of incs) if (i.tipo === 'horario_distinto' && i.minutos != null) horarioDelDia.set(f, Number(i.minutos));
     }
 
-    const re = ho.entradaMin === null ? null : hd.retardosPorSemana(diasAMedir, {
+    // SIN HORARIO (01/10/2026): quien casi siempre checa UNA vez al día (el
+    // vendedor que entra y se va a ruta) no deja deducir horario. Antes, sin
+    // horario no se armaba NINGÚN día y salía en 0 aunque el reloj tuviera sus
+    // checadas: RH veía "0" y en el equipo sí había marcas. Ahora sus días se
+    // arman igual —con sus checadas, horas y faltas— y solo el RETARDO queda
+    // apagado, porque no hay contra qué medirlo.
+    const sinHorario = ho.entradaMin === null;
+    const re = hd.retardosPorSemana(diasAMedir, {
       ...opciones,
-      horarioDelDia,
-      entradaMin: ho.entradaMin,
-      turnoPorFecha,
+      horarioDelDia: sinHorario ? null : horarioDelDia,
+      entradaMin: sinHorario ? 0 : ho.entradaMin,
+      turnoPorFecha: sinHorario ? null : turnoPorFecha,
       diasLaborales: ho.diasLaborales,
       ausenciasPrevias,
-      medirRetardo: cfg.medirRetardo !== false,
+      medirRetardo: !sinHorario && cfg.medirRetardo !== false,
     });
+    if (sinHorario) {
+      for (const s of re.semanas) for (const d of s.dias) d.referencia = null;
+      re.diasEvaluados = 0;
+    }
 
     // ── LAS MARCAS: por qué este número puede no ser de fiar ──
     const marcas: Marca[] = [];
