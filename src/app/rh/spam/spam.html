@@ -1,0 +1,50 @@
+<div class="nr-wrap">
+  <header class="nr-head">
+    <div>
+      <h1>Spam</h1>
+      <p class="sub">
+        Postulaciones que no se pueden asignar a ninguna vacante, como las que llegaron
+        sin ciudad y sin puesto. No aparecen en la lista de candidatos ni en los conteos.
+        No están borradas: si alguna no debía estar aquí, sácala de spam y vuelve tal cual.
+      </p>
+    </div>
+    <button type="button" class="pill refresh" (click)="cargar()" title="Volver a revisar">↻</button>
+  </header>
+
+  @if (cargando) {
+    <div class="estado">Cargando…</div>
+  } @else if (error) {
+    <div class="estado err">{{ error }}</div>
+  } @else if (!lista.length) {
+    <div class="sin-dato">No hay nada en spam.</div>
+  } @else {
+    <section class="bloque">
+      <h2>{{ lista.length }} postulación(es)</h2>
+      <div class="nr-lista">
+        @for (c of lista; track c.id) {
+          <article class="nr-fila" (click)="abrir(c.id)">
+            <div class="nr-quien">
+              <div class="nr-nom">{{ c.nombre || '(sin nombre)' }}</div>
+              <div class="nr-meta">
+                {{ c.puesto || 'Sin puesto' }} · {{ c.ciudad || 'Sin ciudad' }}
+                @if (c.telefono) { · {{ c.telefono }} }
+                · se postuló el {{ fecha(c.createdAt) }}
+              </div>
+            </div>
+            <div class="nr-porque">
+              <div class="nr-motivo">{{ c.spamMotivo }}</div>
+              <div class="nr-firma">
+                {{ c.spamPor || 'RH' }} · {{ fecha(c.spamEn) }}
+              </div>
+            </div>
+            <button type="button" class="nr-quitar" (click)="sacar(c, $event)"
+                    [disabled]="sacando === c.id"
+                    title="Regresarlo a la lista de candidatos">
+              {{ sacando === c.id ? 'Sacando…' : 'Sacar de spam' }}
+            </button>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</div>

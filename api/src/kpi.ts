@@ -4,7 +4,7 @@ import { requireAuth, AuthedRequest } from './auth';
 // Qué cuenta como postulación y qué es una conversación del bot a medias. Se
 // importa en vez de repetirse: dos listas del mismo dato con criterios distintos
 // es la forma más segura de que una de las dos mienta.
-import { ES_POSTULACION } from './candidatos';
+import { ES_POSTULACION, NO_ES_SPAM } from './candidatos';
 
 /**
  * =====================================================================
@@ -362,7 +362,7 @@ kpiRouter.get('/novedades', async (req: Request, res: Response) => {
               ${hora('creado_en')} AS hora
          FROM candidatos
         WHERE deleted_at IS NULL AND ${dia('creado_en')} = $1::date
-          AND ${ES_POSTULACION}
+          AND ${ES_POSTULACION} AND ${NO_ES_SPAM}
         ORDER BY creado_en DESC`,
       [D]
     );
@@ -491,7 +491,7 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
       `WITH dias AS (SELECT generate_series($1::date, $2::date, '1 day')::date AS dia),
        post AS (
          SELECT ${dia('creado_en')} AS dia, count(*) AS n
-           FROM candidatos WHERE deleted_at IS NULL
+           FROM candidatos WHERE deleted_at IS NULL AND ${NO_ES_SPAM}
             AND ${dia('creado_en')} BETWEEN $1 AND $2 GROUP BY 1
        ),
        bot_out AS (
@@ -560,7 +560,7 @@ kpiRouter.get('/concentrado', async (req: Request, res: Response) => {
     const embudo = await pool.query(
       `SELECT coalesce(nullif(portal_status,''), 'filtro_inicial') AS etapa,
               count(*)::int AS n
-         FROM candidatos WHERE deleted_at IS NULL
+         FROM candidatos WHERE deleted_at IS NULL AND ${NO_ES_SPAM}
         GROUP BY 1 ORDER BY n DESC`
     );
 

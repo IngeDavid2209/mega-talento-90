@@ -34,6 +34,7 @@ import { RequisicionesComponent } from './rh/requisiciones/requisiciones';
 import { PermanenciaComponent } from './rh/permanencia/permanencia';
 import { RequisicionPublicaComponent } from '../portal/requisicion/requisicion';
 import { NoRecontratablesComponent } from './rh/no-recontratables/no-recontratables';
+import { SpamComponent } from './rh/spam/spam';
 
 export const routes: Routes = [
   {
@@ -77,6 +78,7 @@ export const routes: Routes = [
       // Horarios y checadas (29/09/2026). La dirección vieja lleva ahí.
       { path: 'mapa', redirectTo: 'horarios', pathMatch: 'full' },
       { path: 'no-recontratables', component: NoRecontratablesComponent }, // lista negra + alerta de reingresos
+      { path: 'spam',       component: SpamComponent },             // postulaciones sin ciudad ni puesto (06/10/2026)
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },

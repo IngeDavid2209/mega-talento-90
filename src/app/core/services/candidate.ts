@@ -106,6 +106,16 @@ export class CandidateService {
     return this.api.get<any[]>('/candidatos/lista/no-recontratables');
   }
 
+  /** Manda a spam (o saca de spam) a un candidato. */
+  async marcarSpam(id: string, marcar: boolean, motivo?: string): Promise<any> {
+    return this.api.post(`/candidatos/${id}/spam`, { marcar, motivo });
+  }
+
+  /** Los que están en spam (no aparecen en la lista de candidatos). */
+  async getSpam(): Promise<any[]> {
+    return this.api.get<any[]>('/candidatos/lista/spam');
+  }
+
   /**
    * Quién de los que están en proceso AHORA coincide con alguien marcado. Es lo
    * que evita que un reingreso vetado se cuele: una lista que hay que ir a

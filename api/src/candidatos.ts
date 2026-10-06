@@ -133,6 +133,11 @@ function mapCandidato(r: any) {
   if (r.no_recontratable_motivo != null) out.noRecontratableMotivo = r.no_recontratable_motivo;
   if (r.no_recontratable_por != null) out.noRecontratablePor = r.no_recontratable_por;
   if (r.no_recontratable_en != null) out.noRecontratableEn = r.no_recontratable_en;
+  // Marcado como spam (no aparece en la lista; se ve en su propio apartado).
+  out.spam = r.spam === true;
+  if (r.spam_motivo != null) out.spamMotivo = r.spam_motivo;
+  if (r.spam_por != null) out.spamPor = r.spam_por;
+  if (r.spam_en != null) out.spamEn = r.spam_en;
   if (r.estado != null) out.estadoBot = r.estado;  // estado del bot (p.ej. 'esperando_cv') para el chip de CV
   if (r.solicitud_electronica != null) out.solicitudElectronica = r.solicitud_electronica;
   if (r.rubrica_aptitudes != null) out.rubricaAptitudes = r.rubrica_aptitudes;
@@ -190,6 +195,20 @@ export const ES_POSTULACION = `(
        AND COALESCE(d->>'url', d->>'archivo_local', '') <> ''
   )
   OR portal_status IS NOT NULL
+)`;
+
+/** Lo marcado como spam no se lista ni se cuenta (ver /lista/spam). */
+export const NO_ES_SPAM = `NOT coalesce(spam, false)`;
+
+/**
+ * Postulación SIN ciudad y SIN puesto: no se puede asignar a ninguna vacante ni
+ * plaza. Es el criterio con el que se mandaron a spam el 06/10/2026 (ver
+ * scripts/spam-sin-ciudad-puesto.ts). Vacío, solo espacios o un guion cuentan
+ * como "sin dato".
+ */
+export const SIN_CIUDAD_NI_PUESTO = `(
+  coalesce(btrim(ciudad_sucursal), '') IN ('', '-', '—', '.')
+  AND coalesce(btrim(puesto_interes), '') IN ('', '-', '—', '.')
 )`;
 
 const soloDigitos = (s: string) => (s || '').replace(/\D/g, '');
@@ -265,6 +284,13 @@ candidatosRouter.post('/', async (req: Request, res: Response) => {
     const tieneCv = !!(d.cvUrl && String(d.cvUrl).trim()) || !!(d.cvUrlReverso && String(d.cvUrlReverso).trim());
     if (!esBot && !tieneCv) {
       return res.status(400).json({ error: 'Es obligatorio adjuntar tu CV para postularte.' });
+    }
+    // Ciudad y puesto, igual que el CV: el formulario los exige en el navegador,
+    // pero el endpoint es público, y por aquí entraban postulaciones sin ninguno
+    // de los dos (06/10/2026). El bot ya no deja avanzar sin ellos.
+    const falta = (v: any) => !String(v ?? '').trim();
+    if (!esBot && (falta(d.ciudad) || falta(d.puesto))) {
+      return res.status(400).json({ error: 'Elige la ciudad y el puesto que te interesan para postularte.' });
     }
 
     const esp = columnasEspejo(d);
@@ -521,7 +547,7 @@ candidatosRouter.get('/', requireAuth, async (req: Request, res: Response) => {
     const enProceso = /^(1|true|si|sí|on)$/i.test(String((req.query as any).enProceso || ''));
     const filtroPostulados = enProceso ? '' : ` AND ${ES_POSTULACION}`;
     const { rows } = await pool.query(
-      `SELECT * FROM candidatos WHERE deleted_at IS NULL${filtroPostulados} ORDER BY creado_en DESC`
+      `SELECT * FROM candidatos WHERE deleted_at IS NULL AND ${NO_ES_SPAM}${filtroPostulados} ORDER BY creado_en DESC`
     );
     return res.json(rows.map(mapCandidato));
   } catch (e) { return fallo(res, e, 'Error al listar candidatos.'); }
@@ -586,6 +612,51 @@ candidatosRouter.get('/lista/no-recontratables', requireAuth, async (_req: Reque
         ORDER BY no_recontratable_en DESC NULLS LAST`);
     return res.json(rows.map(mapCandidato));
   } catch (e) { return fallo(res, e, 'No se pudo leer la lista.'); }
+});
+
+/**
+ * SPAM · POST /candidatos/:id/spam   body: { marcar?: boolean, motivo?: string }
+ *
+ * Marca (o quita la marca). No borra nada: quien sale de spam vuelve tal cual a
+ * la lista. Queda en la bitácora del candidato quién lo hizo y por qué.
+ */
+candidatosRouter.post('/:id/spam', requireAuth, async (req: any, res: Response) => {
+  const id = await idValido(req, res);
+  if (!id) return;
+  const b = req.body || {};
+  const marcar = b.marcar !== false;
+  const motivo = String(b.motivo || '').trim().slice(0, 500) || 'Marcado como spam desde el portal';
+  try {
+    const quien = req.usuario?.nombre || req.usuario?.email || 'RH';
+    const { rows } = await pool.query(
+      `UPDATE candidatos
+          SET spam        = $2,
+              spam_motivo = CASE WHEN $2 THEN $3 ELSE NULL END,
+              spam_por    = CASE WHEN $2 THEN $4 ELSE NULL END,
+              spam_en     = CASE WHEN $2 THEN now() ELSE NULL END
+        WHERE id = $1::uuid AND deleted_at IS NULL
+        RETURNING *`,
+      [id, marcar, motivo, quien]);
+    if (!rows.length) return res.status(404).json({ error: 'Candidato no encontrado.' });
+
+    await pool.query(
+      `INSERT INTO candidatos_eventos (candidato_id, tipo, canal, nota, por)
+       VALUES ($1::uuid, 'nota', 'portal', $2, $3)`,
+      [id, marcar ? `Enviado a SPAM: ${motivo}` : 'Se sacó de SPAM.', quien]);
+
+    return res.json(mapCandidato(rows[0]));
+  } catch (e) { return fallo(res, e, 'No se pudo guardar la marca de spam.'); }
+});
+
+/** GET /candidatos/lista/spam — el apartado de SPAM. */
+candidatosRouter.get('/lista/spam', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM candidatos
+        WHERE spam AND deleted_at IS NULL
+        ORDER BY spam_en DESC NULLS LAST`);
+    return res.json(rows.map(mapCandidato));
+  } catch (e) { return fallo(res, e, 'No se pudo leer el spam.'); }
 });
 
 /**

@@ -222,3 +222,20 @@ ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_role_check
     'Promotoria',                  -- este portal (21/08/2026)
     'evaluador', 'comprador'       -- el otro sistema, misma base
   ]));
+
+-- =====================================================================
+-- SPAM (06/10/2026)
+-- =====================================================================
+--
+-- Postulaciones que no sirven para nada: sin ciudad y sin puesto no se pueden
+-- asignar a ninguna vacante ni plaza. El formulario /unete pide los dos, pero
+-- solo en el navegador; el endpoint es público y algo las estaba metiendo.
+--
+-- Es una MARCA y no un borrado, igual que no_recontratable: si se marcó a
+-- alguien de más, se le saca de spam y vuelve tal cual a la lista. Mientras
+-- esté marcado no aparece en la lista de candidatos ni en los conteos.
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS spam        BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS spam_motivo TEXT;
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS spam_por    TEXT;
+ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS spam_en     TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_candidatos_spam ON candidatos (spam_en DESC) WHERE spam;
