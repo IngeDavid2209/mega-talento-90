@@ -408,3 +408,43 @@
 .rep-persona .rep-sin { color: var(--amber); font-weight: 700; }
 .rep-persona tr.rep-desc td { color: var(--text3); background: var(--surface3); }
 .rep-persona tr.rep-desc td.rep-fecha { background: var(--surface3); }
+
+/* ══ HORARIO DE CADA PERSONA (06/10/2026) ══ */
+.hor-wrap { position: relative; }
+.hor-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 41; width: min(380px, 92vw);
+  background: #fff; border: 1px solid var(--border-med); border-radius: 12px;
+  box-shadow: 0 12px 28px -12px rgba(26, 47, 78, .28); padding: 14px;
+  display: flex; flex-direction: column; gap: 12px; text-align: left;
+}
+.hor-pop h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--ink); }
+.hor-nota { margin: -6px 0 0; font-size: 12px; line-height: 1.4; color: var(--text2); }
+.hor-fila { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.hor-campo { display: flex; flex-direction: column; gap: 5px; }
+.hor-campo span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); }
+.hor-campo input, .hor-campo select {
+  border: 1px solid var(--border-med); border-radius: 9px; padding: 7px 8px;
+  font: inherit; font-size: 13.5px; color: var(--ink); background: #fff; min-width: 0;
+}
+.hor-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); cursor: pointer; }
+.hor-check input { width: 15px; height: 15px; accent-color: var(--ink); margin: 0; }
+.hor-pie { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.hor-botones { display: flex; gap: 8px; }
+.hor-pie .ar-btn { height: 32px; }
+.hor-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 9px 16px;
+  background: var(--brand-bg); border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--ink-soft);
+}
+.hor-bar svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.hor-bar span { flex: 1 1 260px; }
+.hor-bar b { color: var(--ink); }
+.hor-bar.hor-bar-vacia { background: var(--surface3); color: var(--text2); }
+.hor-quien { font-style: normal; font-size: 11px; font-weight: 700; color: var(--green); }
+.rep-tabla .rep-hor { text-align: left; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+.hor-ded { color: var(--text3); }
+.hor-d { display: block; font-size: 10.5px; font-weight: 800; line-height: 1.15; }
+.hor-rojo { color: var(--red); }
+.hor-ambar { color: var(--amber); }
+.rep-tabla .hor-antes { color: var(--amber); font-weight: 700; }
+.rep-tabla td.hor-menos { color: var(--red); font-weight: 800; }
+.rep-tabla td.hor-mas { color: var(--green); font-weight: 700; }

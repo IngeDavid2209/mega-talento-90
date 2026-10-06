@@ -23,6 +23,7 @@ async function main() {
     'papelera-empleados.sql', // cuándo y quién dio de baja (Papelera de empleados)
     'departamentos-mayusculas.sql', // una sola escritura por departamento
     'incidencias-flujo.sql', // estados de la incidencia + bitácora + cierre de semana
+    'horario-asignado.sql',  // el horario de cada persona, puesto por RH
   ];
   const dirDb = join(__dirname, '..', '..', 'db');
   for (const archivo of archivos) {

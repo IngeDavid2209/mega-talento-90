@@ -526,6 +526,57 @@
         </div>
         }
         <div class="rep-acciones">
+          <!-- ══ HORARIO (06/10/2026) ══ El de la persona que se ve, o el mismo
+               para todos los que se ven; después se ajusta persona por persona. -->
+          <div class="hor-wrap">
+            <button type="button" class="ar-btn ar-btn-ghost" [attr.aria-expanded]="horarioAbierto"
+                    [disabled]="!destinoHorario.length" (click)="abrirHorario()"
+                    title="El horario de cada persona: contra él se miden su retardo, horas y faltas">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5v3.2l2.1 1.3"/></svg>
+              Horario
+            </button>
+            @if (horarioAbierto) {
+              <div class="per-ov" (click)="horarioAbierto = false"></div>
+              <div class="hor-pop" role="dialog" aria-label="Horario" (keydown.escape)="horarioAbierto = false">
+                @if (destinoHorario.length === 1) {
+                  <h4>Horario de {{ destinoHorario[0].nombreCompleto }}</h4>
+                  <p class="hor-nota">Es su horario: contra él se miden su retardo, su tolerancia, sus horas y sus faltas en todo el portal.</p>
+                } @else {
+                  <h4>Horario para {{ destinoHorario.length }} personas</h4>
+                  <p class="hor-nota">Se le pone el mismo horario a cada una de las personas que se ven en el reporte@if (seleccionParcial) { ({{ etiquetaSeleccion }})}.
+                    Después se puede ajustar persona por persona.
+                    @if (destinoConHorario) { <b>{{ destinoConHorario }}</b> ya tiene{{ destinoConHorario > 1 ? 'n' : '' }} uno y se reemplaza. }</p>
+                }
+                <div class="hor-fila">
+                  <label class="hor-campo"><span>Entrada</span><input type="time" [(ngModel)]="horarioForm.entrada"></label>
+                  <label class="hor-campo"><span>Salida</span><input type="time" [(ngModel)]="horarioForm.salida"></label>
+                  <label class="hor-campo"><span>Comida</span>
+                    <select [(ngModel)]="horarioForm.comidaMin">
+                      @for (m of OPCIONES_COMIDA; track m) { <option [ngValue]="m">{{ comidaTexto(m) }}</option> }
+                    </select>
+                  </label>
+                </div>
+                <label class="hor-check"><input type="checkbox" [(ngModel)]="horarioForm.sabado"> También trabaja el sábado</label>
+                @if (horarioForm.sabado) {
+                  <div class="hor-fila">
+                    <label class="hor-campo"><span>Entrada sábado</span><input type="time" [(ngModel)]="horarioForm.sabadoEntrada"></label>
+                    <label class="hor-campo"><span>Salida sábado</span><input type="time" [(ngModel)]="horarioForm.sabadoSalida"></label>
+                  </div>
+                }
+                <div class="hor-pie">
+                  @if (destinoConHorario) {
+                    <button type="button" class="per-limpiar" (click)="quitarHorario()" [disabled]="guardandoHorario">
+                      {{ destinoHorario.length === 1 ? 'Quitar (volver al deducido)' : 'Quitárselo a ' + destinoConHorario }}</button>
+                  } @else { <span></span> }
+                  <span class="hor-botones">
+                    <button type="button" class="ar-btn ar-btn-ghost" (click)="horarioAbierto = false">Cancelar</button>
+                    <button type="button" class="ar-btn ar-btn-primary" (click)="guardarHorario()" [disabled]="guardandoHorario">
+                      {{ guardandoHorario ? 'Guardando…' : destinoHorario.length === 1 ? 'Guardar' : 'Guardar para ' + destinoHorario.length }}</button>
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
           <!-- ══ INCIDENCIAS ══ Un botón, un menú con los tipos, y el formulario
                pregunta a quién y cuándo ("solo hoy" a un clic). -->
           <div class="inc-menu-wrap">
@@ -562,6 +613,20 @@
         </div>
       </div>
 
+      @if (personaUnica; as p) {
+        @if (p.horarioAsignado; as h) {
+          <div class="hor-bar"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5v3.2l2.1 1.3"/></svg><span>Horario de {{ p.nombreCompleto }} <em class="hor-quien">asignado por RH</em>: <b>{{ textoHorario(h) }}</b></span>
+            <button type="button" class="ar-chip" (click)="abrirHorario()">Cambiar</button></div>
+        } @else {
+          <div class="hor-bar hor-bar-vacia"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5v3.2l2.1 1.3"/></svg><span>{{ p.nombreCompleto }} no tiene horario asignado.
+            @if (p.horario && p.horario !== '—') { Se mide con el que se deduce de sus checadas: entra {{ hora12(p.horario) }}. }
+            @else { Todavía no hay checadas suficientes para deducirle uno. }</span>
+            <button type="button" class="ar-chip" (click)="abrirHorario()">Asignarle horario</button></div>
+        }
+      } @else if (hayHorariosAsignados) {
+        <div class="hor-bar"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5v3.2l2.1 1.3"/></svg><span><b>{{ conHorarioAsignado }} de {{ totalEnReporte }}</b> tienen horario asignado por RH; los demás se miden con el que se deduce de sus checadas.</span></div>
+      }
+
       @if (!porDepartamento.length) {
         <div class="ar-empty">Las personas que elegiste no tienen asistencia en este periodo.
           <button type="button" class="per-limpiar" (click)="todaLaPlaza()">Ver toda la plaza</button></div>
@@ -578,6 +643,7 @@
                 <th>Entrada</th><th>Desayuno</th><th>Comida</th><th>Salida</th>
                 <th class="rep-hrs">Horas</th>
                 <th class="rep-ret">{{ mideRetardo ? 'Min. retardo' : 'Retardo' }}</th>
+                @if (p.horarioAsignado) { <th class="rep-ret" title="Horas trabajadas menos las que pide su horario">vs. horario</th> }
               </tr>
             </thead>
             <tbody>
@@ -586,26 +652,41 @@
                     (click)="abrirFicha(p)" title="Ver su ficha y justificar">
                   <td class="rep-fecha">{{ r.etiqueta }}</td>
                   @if (r.tipo === 'normal' && r.d; as d) {
-                    <td [class.rep-tarde]="mideRetardo && d.atrasoMin > 0">{{ d.entrada }}</td>
+                    <td [class.rep-tarde]="mideRetardo && d.atrasoMin > 0">{{ d.entrada }}
+                      @if (p.horarioAsignado && mideRetardo && d.atrasoMin > 0) { <small class="hor-d hor-rojo">+{{ d.atrasoMin }} min</small> }</td>
                     <td>{{ desayunoDe(d) || '—' }}</td>
-                    <td>{{ d.comida && d.comida !== '—' ? d.comida : '—' }}</td>
-                    <td>@if (d.salida && d.salida !== '—') { {{ d.salida }} } @else { <span class="rep-sin">Sin checada</span> }</td>
+                    <td>{{ comidaDe(d) || '—' }}
+                      @if (d.comidaExcesoMin) { <small class="hor-d hor-ambar">+{{ d.comidaExcesoMin }} min</small> }</td>
+                    <td>@if (d.salida && d.salida !== '—') { {{ d.salida }} } @else { <span class="rep-sin">Sin checada</span> }
+                      @if (d.salidaAntesMin) { <small class="hor-d hor-ambar">−{{ d.salidaAntesMin }} min</small> }</td>
                     <td class="rep-hrs">{{ horasTexto(d.netasMin) }}</td>
                     <td class="rep-ret" [class.rep-ret-min]="mideRetardo && d.atrasoMin > 0">
                       @if (mideRetardo) { {{ d.atrasoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
                     </td>
+                    @if (p.horarioAsignado) {
+                      <td class="rep-ret" [class.hor-menos]="(d.netasMin || 0) < (d.esperadoMin || 0)" [class.hor-mas]="(d.netasMin || 0) > (d.esperadoMin || 0)">
+                        {{ d.esperadoMin != null ? firmaHoras((d.netasMin || 0) - d.esperadoMin) : '' }}</td>
+                    }
                   } @else {
                     <td colspan="4" [class.rep-falta]="r.tipo === 'falta'">{{ r.texto }}</td>
                     <td class="rep-hrs"></td><td class="rep-ret"></td>
+                    @if (p.horarioAsignado) {
+                      <td class="rep-ret" [class.hor-menos]="r.tipo === 'falta' && !!r.d?.esperadoMin">
+                        {{ r.tipo === 'falta' && r.d?.esperadoMin ? firmaHoras(-(r.d?.esperadoMin || 0)) : '' }}</td>
+                    }
                   }
                 </tr>
               }
             </tbody>
             <tfoot>
               <tr class="rep-total">
-                <td colspan="5">Totales@if (p.faltas) { · {{ p.faltas }} falta{{ p.faltas > 1 ? 's' : '' }} }</td>
+                <td colspan="5">Totales@if (p.faltas) { · {{ p.faltas }} falta{{ p.faltas > 1 ? 's' : '' }} }
+                  @if (p.horarioAsignado && p.minutosEsperados != null) { · su horario pide {{ horasTexto(p.minutosEsperados) }} }</td>
                 <td class="rep-hrs">{{ horasTexto(p.minutosTrabajados) }}</td>
                 <td class="rep-ret">{{ mideRetardo ? (p.atrasoBrutoMin || 0) : '—' }}</td>
+                @if (p.horarioAsignado) {
+                  <td class="rep-ret" [class.hor-menos]="(difHorario(p) || 0) < 0" [class.hor-mas]="(difHorario(p) || 0) > 0">{{ firmaHoras(difHorario(p)) }}</td>
+                }
               </tr>
             </tfoot>
           </table>
@@ -631,6 +712,7 @@
             <tr>
               <th class="rep-clv">Clv</th>
               <th class="rep-nom">Nombre</th>
+              <th class="rep-hor" title="Asignado por RH, o el que se deduce de sus checadas">Horario</th>
               @for (c of columnasDia; track c.fecha) {
                 <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
               }
@@ -638,13 +720,14 @@
               <th class="rep-ret"
                   [title]="mideRetardo ? 'Minutos tarde en la ENTRADA (primera checada) contra su hora exacta, que siempre es :00 o :30. La tolerancia semanal de 15 min se aplica en la pestaña Tolerancia.' : 'Esta plaza no tiene hora límite de entrada: no se mide retardo.'">
                 {{ mideRetardo ? 'Min. retardo' : 'Retardo' }}</th>
+              @if (hayHorariosAsignados) { <th class="rep-ret" title="Horas trabajadas menos las que pide su horario asignado">vs. horario</th> }
               <th class="rep-acc"><span class="rep-sr">Acciones</span></th>
             </tr>
           </thead>
           <tbody>
             @for (g of porDepartamento; track g.departamento) { @if (empleadosVisibles(g).length) {
               <tr class="rep-depto">
-                <td [attr.colspan]="columnasDia.length + 5">
+                <td [attr.colspan]="columnasDia.length + 6 + (hayHorariosAsignados ? 1 : 0)">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length === totalDepto(g.departamento) ? g.empleados.length : g.empleados.length + ' de ' + totalDepto(g.departamento) }})</span>
                 </td>
               </tr>
@@ -670,20 +753,28 @@
                       <span class="inc-cod rep-inc" [attr.data-t]="i.tipo" [title]="i.titulo">{{ i.codigo }}</span>
                     }
                   </td>
+                  <td class="rep-hor">
+                    @if (e.horarioAsignado; as h) { {{ horarioCorto(h) }} }
+                    @else if (e.horario && e.horario !== '—') { <span class="hor-ded">Deducido · {{ hora12(e.horario) }}</span> }
+                    @else { <span class="hor-ded">—</span> }
+                  </td>
                   @for (c of columnasDia; track c.fecha) {
                     <td class="rep-celda"
                         [class.rep-falta]="celda(e, c.fecha).falta"
                         [class.rep-tarde]="celda(e, c.fecha).retardo"
                         [class.rep-con-inc]="!!celda(e, c.fecha).inc"
                         [attr.title]="celda(e, c.fecha).incTitulo || null">
-                      <span class="rep-jornada">{{ celda(e, c.fecha).jornada }}</span>
-                      <span class="rep-comida">{{ celda(e, c.fecha).comida }}</span>
+                      <span class="rep-jornada" [class.hor-antes]="celda(e, c.fecha).salioAntes">{{ celda(e, c.fecha).jornada }}</span>
+                      <span class="rep-comida" [class.hor-antes]="celda(e, c.fecha).comidaExcedida">{{ celda(e, c.fecha).comida }}</span>
                     </td>
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
                   <td class="rep-ret" [class.rep-ret-min]="mideRetardo && e.atrasoBrutoMin > 0">
                     @if (mideRetardo) { {{ e.atrasoBrutoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
                   </td>
+                  @if (hayHorariosAsignados) {
+                    <td class="rep-ret" [class.hor-menos]="(difHorario(e) || 0) < 0" [class.hor-mas]="(difHorario(e) || 0) > 0">{{ firmaHoras(difHorario(e)) }}</td>
+                  }
                   <td class="rep-acc">
                     <button type="button" class="rep-acc-btn" [class.on]="accMenu?.emp === e"
                             [attr.aria-label]="'Acciones para ' + e.nombreCompleto"
@@ -698,22 +789,24 @@
                    puesta se leería como la suma de los renglones visibles. -->
               @if (!buscando) {
               <tr class="rep-subtotal">
-                <td [attr.colspan]="columnasDia.length + 2"></td>
+                <td [attr.colspan]="columnasDia.length + 3"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
                 <td class="rep-ret">{{ mideRetardo ? (g.retardos || 0) : '' }}</td>
+                @if (hayHorariosAsignados) { <td></td> }
                 <td></td>
               </tr>
               }
             } }
             @if (buscando && !coincidencias) {
-              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 5">Nadie coincide con "{{ busqueda }}".</td></tr>
+              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 6 + (hayHorariosAsignados ? 1 : 0)">Nadie coincide con "{{ busqueda }}".</td></tr>
             }
           </tbody>
           <tfoot>
             <tr class="rep-total">
-              <td [attr.colspan]="columnasDia.length + 2">Totales</td>
+              <td [attr.colspan]="columnasDia.length + 3">Totales</td>
               <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
               <td class="rep-ret">{{ mideRetardo ? totalRetardos : '—' }}</td>
+              @if (hayHorariosAsignados) { <td></td> }
               <td></td>
             </tr>
           </tfoot>

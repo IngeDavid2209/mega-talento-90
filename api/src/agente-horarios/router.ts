@@ -12,6 +12,7 @@ import { asistenciaPersonas } from './asistencia-personas';
 import { presenciaAhora } from './presencia';
 import { equipoAhora } from './equipo';
 import { crucesEntrePlazas } from './cruces-plazas';
+import { pool } from '../db';
 
 /** Umbral de ex-trabajador, el mismo que usa el corredor (ver corredor.ts). */
 const DIAS_EX = Math.max(0, parseInt(process.env.AGENTE_DIAS_EX || '21', 10) || 21);
@@ -382,4 +383,84 @@ agenteCallbackRouter.post('/justificar', async (req: Request, res: Response) => 
       },
     });
   } catch (e) { fallo(res, e, 'No se pudo guardar la justificación.'); }
+});
+
+// ══ EL HORARIO DE CADA PERSONA (06/10/2026) ═════════════════════════
+//
+// RH le pone su horario a una persona, o el mismo a varias de un jalón (un
+// departamento entero), y luego lo ajusta persona por persona. Se guarda en
+// `horarios_confirmados`, que es la tabla que el cálculo ya obedece: ver
+// HorarioAsignado en asistencia-personas.ts.
+
+const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const aMin = (h: string) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };
+
+/** Valida lo que llega; devuelve el error en palabras de RH, o null si está bien. */
+function errorDeHorario(b: any): string | null {
+  if (!RE_HORA.test(String(b.entrada || '')) || !RE_HORA.test(String(b.salida || ''))) {
+    return 'La entrada y la salida deben venir como HH:MM (por ejemplo 08:00 y 18:00).';
+  }
+  if (aMin(b.salida) <= aMin(b.entrada)) return 'La salida tiene que ser después de la entrada.';
+  const com = Number(b.comidaMin);
+  if (!Number.isInteger(com) || com < 0 || com > 180) return 'La comida va de 0 a 180 minutos.';
+  if (aMin(b.salida) - aMin(b.entrada) - com < 60) return 'Con esa comida no le queda ni una hora de trabajo: revisa las horas.';
+  if (b.sabado) {
+    if (!RE_HORA.test(String(b.sabadoEntrada || '')) || !RE_HORA.test(String(b.sabadoSalida || ''))) {
+      return 'El sábado necesita su hora de entrada y de salida.';
+    }
+    if (aMin(b.sabadoSalida) <= aMin(b.sabadoEntrada)) return 'La salida del sábado tiene que ser después de su entrada.';
+  }
+  return null;
+}
+
+/**
+ * PUT /checador/agente/horario-asignado
+ * body: { sucursalId, codigos: string[], entrada, salida, comidaMin, sabado, sabadoEntrada?, sabadoSalida? }
+ */
+agenteHorariosRouter.put('/horario-asignado', async (req: AuthedRequest, res: Response) => {
+  const b = req.body || {};
+  const sucursalId = String(b.sucursalId || '').trim();
+  const codigos: string[] = Array.isArray(b.codigos)
+    ? [...new Set<string>(b.codigos.map((c: any) => String(c).trim()).filter(Boolean))] : [];
+  if (!sucursalId || !codigos.length) return res.status(400).json({ error: 'Faltan la sucursal y a quién se le pone el horario.' });
+  if (codigos.length > 500) return res.status(400).json({ error: 'Son demasiadas personas de una vez.' });
+  const err = errorDeHorario(b);
+  if (err) return res.status(400).json({ error: err });
+
+  const quien = req.usuario?.email || req.usuario?.sub || 'RH';
+  const sabado = !!b.sabado;
+  try {
+    const { rowCount } = await pool.query(
+      `INSERT INTO horarios_confirmados
+         (sucursal_id, empleado_codigo, turnos, salida, comida_min, sabado, sabado_entrada, sabado_salida,
+          nota, confirmado_por)
+       SELECT $1, c, ARRAY[$3::text], $4, $5, $6, $7, $8, 'Horario asignado desde el portal', $9
+         FROM unnest($2::text[]) AS c
+       ON CONFLICT (sucursal_id, empleado_codigo) DO UPDATE
+         SET turnos = EXCLUDED.turnos, salida = EXCLUDED.salida, comida_min = EXCLUDED.comida_min,
+             sabado = EXCLUDED.sabado, sabado_entrada = EXCLUDED.sabado_entrada,
+             sabado_salida = EXCLUDED.sabado_salida, nota = EXCLUDED.nota,
+             confirmado_por = EXCLUDED.confirmado_por, actualizado_en = now()`,
+      [sucursalId, codigos, b.entrada, b.salida, Number(b.comidaMin), sabado,
+       sabado ? b.sabadoEntrada : null, sabado ? b.sabadoSalida : null, quien]);
+    res.json({ ok: true, guardados: rowCount });
+  } catch (e) { fallo(res, e, 'No se pudo guardar el horario.'); }
+});
+
+/**
+ * POST /checador/agente/horario-asignado/quitar   body: { sucursalId, codigos: string[] }
+ * La persona vuelve a medirse con el horario deducido de sus checadas.
+ * (POST y no DELETE: un DELETE con cuerpo no lo pasan todos los proxies.)
+ */
+agenteHorariosRouter.post('/horario-asignado/quitar', async (req: AuthedRequest, res: Response) => {
+  const b = req.body || {};
+  const sucursalId = String(b.sucursalId || '').trim();
+  const codigos: string[] = Array.isArray(b.codigos) ? b.codigos.map((c: any) => String(c).trim()).filter(Boolean) : [];
+  if (!sucursalId || !codigos.length) return res.status(400).json({ error: 'Faltan la sucursal y a quién se le quita el horario.' });
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM horarios_confirmados WHERE sucursal_id = $1 AND empleado_codigo = ANY($2::text[])`,
+      [sucursalId, codigos]);
+    res.json({ ok: true, quitados: rowCount });
+  } catch (e) { fallo(res, e, 'No se pudo quitar el horario.'); }
 });

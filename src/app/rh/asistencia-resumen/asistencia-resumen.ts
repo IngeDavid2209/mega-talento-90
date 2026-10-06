@@ -6,7 +6,7 @@ import {
   ChecadorService, RevisionDia, EstadoRevision,
   AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi,
   EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia, CambiosReloj, ComandoReloj,
-  Incidencia, CierreSemana
+  Incidencia, CierreSemana, HorarioAsignado
 } from '../../core/services/checador.service';
 import { ETIQUETA_ESTADO_INC, ETIQUETA_BANDERA, mensajeDeError } from '../incidencias-bandeja/incidencias-flujo';
 import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
@@ -48,6 +48,11 @@ interface DiaAsistencia {
   descansoPorAusencia: boolean;
   /** Incidencias de RH que cubren el día. */
   incidencias: IncidenciaDia[];
+  // ── Contra su horario asignado (null si no tiene) ──
+  comidaMin: number | null;
+  comidaExcesoMin: number | null;
+  salidaAntesMin: number | null;
+  esperadoMin: number | null;
 }
 
 /**
@@ -129,6 +134,10 @@ interface EmpleadoAsistencia {
   // ── Por qué el número puede no servir ──
   usable: boolean; bloqueadoPor: string[]; marcas: MarcaAsistencia[];
   semanas: SemanaAsistencia[];
+  /** Su horario, asignado por RH (null = se mide con el deducido). */
+  horarioAsignado: HorarioAsignado | null;
+  /** Lo que su horario pide trabajar en el periodo. */
+  minutosEsperados: number | null;
 }
 
 /**
@@ -625,7 +634,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const sel = new Set(this.personasSel);
     for (const e of g.empleados) todos ? sel.delete(e.codigo) : sel.add(e.codigo);
     this.personasSel = sel;
-    this.alCambiarPersonas();
+    this.horarioAbierto = false;
   }
 
   togglePersona(e: EmpleadoAsistencia) {
@@ -633,14 +642,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const sel = new Set(this.personasSel);
     sel.has(e.codigo) ? sel.delete(e.codigo) : sel.add(e.codigo);
     this.personasSel = sel;
-    this.alCambiarPersonas();
+    this.horarioAbierto = false;
   }
 
   /** Clic en un renglón de la tabla semanal: ver solo a esa persona. */
   verSolo(e: EmpleadoAsistencia) {
     this.personasSel = new Set([e.codigo]);
     this.personasSuc = this.sucursalFiltro;
-    this.alCambiarPersonas();
+    this.horarioAbierto = false;
   }
 
   /** Cuántas personas tiene el departamento completo (para "2 de 4"). */
@@ -658,7 +667,116 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   todaLaPlaza() {
     this.personasSel = new Set();
     this.personasAbierto = false;
-    this.alCambiarPersonas();
+    this.horarioAbierto = false;
+  }
+
+  // ══ EL HORARIO DE CADA PERSONA (06/10/2026) ══════════════════════
+  //
+  // RH le pone su horario a una persona (entrada, salida, comida y sábado), o
+  // el mismo a todos los que está viendo, y luego lo ajusta persona por persona.
+  // Es SU horario: la API mide contra él retardo, tolerancia, faltas, salida
+  // antes, comida y horas. Quitarlo la regresa al horario deducido.
+  horarioAbierto = false;
+  readonly OPCIONES_COMIDA = [0, 30, 45, 60, 90, 120];
+  guardandoHorario = false;
+  horarioForm: HorarioAsignado = this.horarioPorOmision();
+
+  private horarioPorOmision(): HorarioAsignado {
+    return { entrada: '08:00', salida: '18:00', comidaMin: 60, sabado: true, sabadoEntrada: '08:00', sabadoSalida: '14:00' };
+  }
+
+  /** A quién se le guarda lo que se capture: la persona sola, o todos los que se ven. */
+  get destinoHorario(): EmpleadoAsistencia[] {
+    const uno = this.personaUnica;
+    if (uno) return [uno];
+    return this.porDepartamento.flatMap(g => g.empleados).filter(e => e.registrado);
+  }
+
+  /** Cuántos de los destinatarios ya tienen uno (y se les va a reemplazar). */
+  get destinoConHorario(): number {
+    return this.destinoHorario.filter(e => e.horarioAsignado).length;
+  }
+
+  abrirHorario() {
+    if (this.horarioAbierto) { this.horarioAbierto = false; return; }
+    const d = this.destinoHorario;
+    const propio = d.length === 1 ? d[0].horarioAsignado : null;
+    this.horarioForm = propio
+      ? { ...propio, sabadoEntrada: propio.sabadoEntrada || '08:00', sabadoSalida: propio.sabadoSalida || '14:00' }
+      : this.horarioPorOmision();
+    this.horarioAbierto = true;
+  }
+
+  async guardarHorario() {
+    const d = this.destinoHorario;
+    if (!d.length || this.guardandoHorario) return;
+    this.guardandoHorario = true;
+    try {
+      await this.checador.asignarHorario(this.sucursalFiltro, d.map(e => e.codigo), this.horarioForm);
+      this.toast.exito(d.length === 1 ? `Guardado el horario de ${d[0].nombreCompleto}.` : `Guardado el horario de ${d.length} personas.`);
+      this.horarioAbierto = false;
+      await this.cargar(true);
+    } catch (e: any) {
+      this.toast.error(e?.error?.error || 'No se pudo guardar el horario.');
+    } finally {
+      this.guardandoHorario = false;
+    }
+  }
+
+  async quitarHorario() {
+    const d = this.destinoHorario.filter(e => e.horarioAsignado);
+    if (!d.length || this.guardandoHorario) return;
+    this.guardandoHorario = true;
+    try {
+      await this.checador.quitarHorario(this.sucursalFiltro, d.map(e => e.codigo));
+      this.toast.exito(d.length === 1 ? `${d[0].nombreCompleto} vuelve a medirse con su horario deducido.` : `${d.length} personas vuelven a su horario deducido.`);
+      this.horarioAbierto = false;
+      await this.cargar(true);
+    } catch (e: any) {
+      this.toast.error(e?.error?.error || 'No se pudo quitar el horario.');
+    } finally {
+      this.guardandoHorario = false;
+    }
+  }
+
+  /** "08:00" → "8:00 am". */
+  hora12(h: string | null | undefined): string {
+    const m = String(h || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return h || '';
+    const a = +m[1];
+    return `${a % 12 || 12}:${m[2]} ${a < 12 ? 'am' : 'pm'}`;
+  }
+  comidaTexto(min: number): string {
+    if (!min) return 'sin comida';
+    return min % 60 === 0 ? `${min / 60} h` : min > 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
+  }
+  /** "8:00 am a 6:00 pm · comida 1 h · sábado 8:00 am a 2:00 pm". */
+  textoHorario(h: HorarioAsignado): string {
+    return `${this.hora12(h.entrada)} a ${this.hora12(h.salida)} · comida ${this.comidaTexto(h.comidaMin)}` +
+      (h.sabado ? ` · sábado ${this.hora12(h.sabadoEntrada || h.entrada)} a ${this.hora12(h.sabadoSalida || h.salida)}` : ' · sin sábado');
+  }
+  /** Para la columna del reporte: "8–6 · 1 h". */
+  horarioCorto(h: HorarioAsignado): string {
+    const c = (t: string) => { const [a, b] = t.split(':').map(Number); return `${a % 12 || 12}${b ? ':' + String(b).padStart(2, '0') : ''}`; };
+    return `${c(h.entrada)}–${c(h.salida)} · ${this.comidaTexto(h.comidaMin)}`;
+  }
+
+  /** ¿Alguien de lo que se ve tiene horario asignado? Decide si sale la columna "vs. horario". */
+  get hayHorariosAsignados(): boolean {
+    return this.porDepartamento.some(g => g.empleados.some(e => e.horarioAsignado));
+  }
+  get conHorarioAsignado(): number {
+    return this.porDepartamento.reduce((t, g) => t + g.empleados.filter(e => e.horarioAsignado).length, 0);
+  }
+  /** Horas trabajadas menos las que pide su horario (null sin horario asignado). */
+  difHorario(e: EmpleadoAsistencia): number | null {
+    return e.horarioAsignado && e.minutosEsperados != null ? e.minutosTrabajados - e.minutosEsperados : null;
+  }
+  /** -47 → "−0:47". */
+  firmaHoras(min: number | null): string {
+    if (min == null) return '';
+    const a = Math.abs(min);
+    return `${min < 0 ? '−' : '+'}${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')}`;
   }
 
   abrirPersonas(si: boolean) {
@@ -693,53 +811,30 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       .filter(g => g.empleados.length);
   }
 
-  // ── Una sola persona: su desayuno con horas, de sus checadas crudas ──
+  // ── Una sola persona: desayuno y comida, separados ──
   //
-  // El cálculo de asistencia trae la DURACIÓN del desayuno, no a qué hora salió
-  // y regresó. Para la tabla de una persona se piden sus checadas del periodo
-  // (una consulta) y el desayuno es el par de marcas entre la entrada y la
-  // salida que no es la comida. Si no se puede saber, se muestran los minutos.
-  private desayunoHoras = new Map<string, string>();
-  private desayunoClave = '';
-
-  private alCambiarPersonas() { this.cargarDesayunos(); }
-
-  private async cargarDesayunos(forzar = false) {
-    const e = this.personaUnica;
-    if (!e) { this.desayunoHoras = new Map(); this.desayunoClave = ''; return; }
-    const clave = `${this.sucursalFiltro}|${e.codigo}|${this.desde}|${this.hasta}`;
-    if (clave === this.desayunoClave && !forzar) return;
-    this.desayunoClave = clave;
-    try {
-      const checadas = await this.checador.getChecadas(this.sucursalFiltro, this.desde, this.hasta, e.codigo);
-      if (clave !== this.desayunoClave) return;   // ya se eligió a otra persona
-      const porDia = new Map<string, string[]>();
-      for (const c of checadas) {
-        const h = String(c.hora || '').slice(0, 5);
-        if (!h) continue;
-        if (!porDia.has(c.fecha)) porDia.set(c.fecha, []);
-        porDia.get(c.fecha)!.push(h);
-      }
-      const out = new Map<string, string>();
-      for (const [fecha, horas] of porDia) {
-        const d = e.diasPorFecha.get(fecha);
-        if (!d || !d.entrada || d.entrada === '—') continue;
-        const sal = d.salida && d.salida !== '—' ? d.salida : '';
-        const comida = (d.comida || '').split(/\s*[–-]\s*/).map(s => s.trim()).filter(Boolean);
-        const medio = [...new Set(horas)].sort()
-          .filter(h => h > d.entrada && (!sal || h < sal) && !comida.includes(h));
-        if (medio.length >= 2) out.set(fecha, `${medio[0]} – ${medio[1]}`);
-      }
-      this.desayunoHoras = out;
-    } catch {
-      this.desayunoHoras = new Map();   // sin horas, la tabla muestra los minutos
-    }
+  // El día trae sus pausas como tramos ("10:58 – 11:14 · 14:02 – 14:58") y la
+  // duración del desayuno. El desayuno es el tramo que dura eso; la comida, el
+  // resto. Sin desayuno identificado, todo es comida.
+  private tramosDe(d: DiaAsistencia): string[] {
+    return (d.comida || '').split('·').map(t => t.trim()).filter(t => t && t !== '—');
   }
-
-  /** Desayuno de un día para la tabla de una persona: horas, o minutos, o nada. */
+  private duracionTramo(t: string): number | null {
+    const m = t.match(/^(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})$/);
+    return m ? (+m[3] * 60 + +m[4]) - (+m[1] * 60 + +m[2]) : null;
+  }
+  private tramoDesayuno(d: DiaAsistencia): string | null {
+    if (d.desayunoMin == null) return null;
+    return this.tramosDe(d).find(t => this.duracionTramo(t) === d.desayunoMin) || null;
+  }
   desayunoDe(d: DiaAsistencia | undefined): string {
     if (!d) return '';
-    return this.desayunoHoras.get(d.fecha) || (d.desayunoMin != null ? `${d.desayunoMin} min` : '');
+    return this.tramoDesayuno(d) || (d.desayunoMin != null ? `${d.desayunoMin} min` : '');
+  }
+  comidaDe(d: DiaAsistencia | undefined): string {
+    if (!d) return '';
+    const des = this.tramoDesayuno(d);
+    return this.tramosDe(d).filter(t => t !== des).join(' · ');
   }
 
   /** Un renglón por día del periodo, para la tabla de una persona. */
@@ -803,6 +898,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     jornada: string; comida: string; retardo: boolean; falta: boolean;
     /** Código de la incidencia de RH ese día ("VAC", "INC"…), o ''. */
     inc: string; incTitulo: string;
+    /** Contra su horario asignado: se fue antes / se pasó de la comida. */
+    salioAntes?: boolean; comidaExcedida?: boolean;
   } {
     const d = e.diasPorFecha.get(fecha);
     // La incidencia se busca también en los PERIODOS de la persona: quien estuvo
@@ -833,6 +930,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       retardo: d.atrasoMin > 0,
       falta: d.falta,
       inc, incTitulo,
+      salioAntes: (d.salidaAntesMin || 0) > 0,
+      comidaExcedida: (d.comidaExcesoMin || 0) > 0,
     };
   }
 
@@ -1981,9 +2080,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       doc.setFontSize(13); doc.setTextColor(26, 47, 78);
       doc.text(e.nombreCompleto, 14, 16);
       doc.setFontSize(9); doc.setTextColor(90, 105, 130);
-      const horario = e.horario && e.horario !== '—' ? ` · entra ${e.horario}` : '';
+      const asig = e.horarioAsignado;
+      const horario = asig ? '' : e.horario && e.horario !== '—' ? ` · entra ${e.horario}` : '';
       doc.text(`#${e.codigo} · ${e.departamento || this.SIN_DEPTO} · ${this.nombreSucursal(this.sucursalFiltro)}${horario}`, 14, 22);
       doc.text(this.tituloReporte, 14, 27);
+      // Con horario asignado, la hoja dice cuál es: es contra lo que se midió.
+      let y0 = 32;
+      if (asig) { doc.text(`Su horario (asignado por RH): ${this.textoHorario(asig)}`, 14, 32); y0 = 37; }
 
       const body = this.diasDePersona(e).map(r => {
         if (r.tipo !== 'normal') {
@@ -1997,8 +2100,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           r.etiqueta,
           { content: d.entrada, styles: tarde ? { textColor: [161, 38, 38] as [number, number, number], fontStyle: 'bold' as const } : {} },
           this.desayunoDe(d) || '—',
-          d.comida && d.comida !== '—' ? d.comida : '—',
-          d.salida && d.salida !== '—' ? d.salida : 'Sin checada',
+          (this.comidaDe(d) || '—') + (d.comidaExcesoMin ? `\n+${d.comidaExcesoMin} min` : ''),
+          (d.salida && d.salida !== '—' ? d.salida : 'Sin checada') + (d.salidaAntesMin ? `\n−${d.salidaAntesMin} min` : ''),
           this.horasTexto(d.netasMin),
           this.mideRetardo ? (d.atrasoMin || '') : '—',
         ];
@@ -2007,10 +2110,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       autoTable(doc, {
         head: [['Día', 'Entrada', 'Desayuno', 'Comida', 'Salida', 'Horas', this.mideRetardo ? 'Min. retardo' : 'Retardo']],
         body,
-        foot: [[{ content: `Totales${e.faltas ? ` · ${e.faltas} falta${e.faltas > 1 ? 's' : ''}` : ''}`, colSpan: 5, styles: { halign: 'right' as const } },
+        foot: [[{ content: `Totales${e.faltas ? ` · ${e.faltas} falta${e.faltas > 1 ? 's' : ''}` : ''}` +
+                    (asig && e.minutosEsperados != null ? ` · su horario pide ${this.horasTexto(e.minutosEsperados)} (${this.firmaHoras(this.difHorario(e))})` : ''),
+                  colSpan: 5, styles: { halign: 'right' as const } },
                 { content: this.horasTexto(e.minutosTrabajados), styles: { halign: 'center' as const } },
                 { content: this.mideRetardo ? String(e.atrasoBrutoMin || 0) : '—', styles: { halign: 'center' as const } }]],
-        startY: 32,
+        startY: y0,
         margin: { left: 14, right: 14, bottom: 14 },
         styles: { fontSize: 9, cellPadding: 1.6, lineColor: [214, 222, 235], lineWidth: 0.1, valign: 'middle', halign: 'center' },
         headStyles: { fillColor: [26, 47, 78], textColor: 255, halign: 'center' },
@@ -2253,8 +2358,6 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       this.cargarCierresPeriodo();
       this.computarGraficas();
       this.computarTolerancia();
-      // Con una persona elegida, su desayuno con horas sale de sus checadas.
-      this.cargarDesayunos(true);
       // El buscador global pidió abrir a alguien de esta plaza.
       if (this.pendienteAbrir) setTimeout(() => this.abrirPendiente());
     } catch (e) {
@@ -2307,6 +2410,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         desayunoPagado: !!d.desayunoPagado,
         descansoPorAusencia: !!d.descansoPorAusencia,
         incidencias: d.incidencias || [],
+        comidaMin: d.comidaMin ?? null,
+        comidaExcesoMin: d.comidaExcesoMin ?? null,
+        salidaAntesMin: d.salidaAntesMin ?? null,
+        esperadoMin: d.esperadoMin ?? null,
       }))
     }));
 
@@ -2347,6 +2454,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       pctATiempo: p.pctATiempo,
       usable: p.usable,
       bloqueadoPor: p.bloqueadoPor,
+      horarioAsignado: p.horarioAsignado ?? null,
+      minutosEsperados: p.minutosEsperados ?? null,
       marcas: p.marcas,
       semanas
     };

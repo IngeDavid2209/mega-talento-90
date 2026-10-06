@@ -65,6 +65,18 @@ export interface DiaApi {
   descansoPorAusencia?: boolean;
   /** Incidencias de RH que cubren este día. */
   incidencias?: IncidenciaDia[];
+  // ── Contra el horario que RH le asignó (solo si tiene uno) ──
+  comidaMin?: number | null;
+  comidaExcesoMin?: number | null;
+  salidaAntesMin?: number | null;
+  esperadoMin?: number | null;
+}
+
+/** El horario de una persona, asignado por RH (manda sobre el deducido). */
+export interface HorarioAsignado {
+  entrada: string; salida: string; comidaMin: number;
+  sabado: boolean; sabadoEntrada: string | null; sabadoSalida: string | null;
+  asignadoPor?: string | null; actualizadoEn?: string | null;
 }
 
 // ══ INCIDENCIAS DE PERSONAL ══════════════════════════════════════
@@ -258,6 +270,10 @@ export interface PersonaAsistencia {
   marcas: MarcaAsistencia[];
   usable: boolean;
   bloqueadoPor: string[];
+  /** Su horario asignado por RH, o null si se mide con el deducido. */
+  horarioAsignado?: HorarioAsignado | null;
+  /** Lo que su horario pide trabajar en el periodo (null sin horario asignado). */
+  minutosEsperados?: number | null;
 }
 
 export interface AsistenciaPersonas {
@@ -621,6 +637,17 @@ export class ChecadorService {
    */
   async restaurarEmpleado(sucursalId: string, codigo: string): Promise<{ relojes: number }> {
     return this.api.post('/checador/reloj-comandos/restaurar', { sucursalId, codigo });
+  }
+
+  // ===================== HORARIO DE CADA PERSONA =====================
+  /** Le pone el mismo horario a una o varias personas de una plaza. */
+  async asignarHorario(sucursalId: string, codigos: string[], h: HorarioAsignado): Promise<{ guardados: number }> {
+    return this.api.put('/checador/agente/horario-asignado', { sucursalId, codigos, ...h });
+  }
+
+  /** Les quita el horario asignado: vuelven a medirse con el deducido. */
+  async quitarHorario(sucursalId: string, codigos: string[]): Promise<{ quitados: number }> {
+    return this.api.post('/checador/agente/horario-asignado/quitar', { sucursalId, codigos });
   }
 
   // ===================== CHECADAS =====================
