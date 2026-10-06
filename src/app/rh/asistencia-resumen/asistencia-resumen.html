@@ -29,6 +29,48 @@
       </div>
     </div>
 
+    <!-- PERSONAS (06/10/2026): toda la plaza, un departamento, varias personas
+         o una sola. Filtra el reporte de checadas y lo que se exporta. -->
+    @if (vista !== 'tolerancia' && vista !== 'faltas') {
+      <div class="ar-field ar-field-personas">
+        <label id="per-lbl">Personas</label>
+        <button type="button" class="per-btn" aria-haspopup="true" [attr.aria-expanded]="personasAbierto"
+                aria-labelledby="per-lbl" [disabled]="!lista.length" (click)="abrirPersonas(!personasAbierto)">
+          <span>{{ textoPersonas }}</span>
+          @if (personasSel.size > 1 && seleccionParcial) { <em class="per-n">{{ personasSel.size }}</em> }
+        </button>
+        @if (personasAbierto) {
+          <div class="per-ov" (click)="abrirPersonas(false)"></div>
+          <div class="per-pop" role="dialog" aria-label="Elegir personas" (keydown.escape)="abrirPersonas(false)">
+            <div class="per-buscar">
+              <input type="search" [(ngModel)]="personasFiltro" placeholder="Buscar nombre o número" autocomplete="off"
+                     aria-label="Buscar persona">
+            </div>
+            <div class="per-lista">
+              @for (g of gruposPersonas; track g.departamento) {
+                <label class="per-op per-dep">
+                  <input type="checkbox" [checked]="deptoCompleto(g)" [indeterminate]="deptoParcial(g)" (change)="toggleDepto(g)">
+                  {{ g.departamento }}<small>{{ g.empleados.length }}</small>
+                </label>
+                @for (e of g.visibles; track e.codigo) {
+                  <label class="per-op per-ind">
+                    <input type="checkbox" [checked]="personaElegida(e)" (change)="togglePersona(e)">
+                    <span class="per-nom">{{ e.nombreCompleto }}</span><small>#{{ e.codigo }}</small>
+                  </label>
+                }
+              } @empty {
+                <p class="per-vacio">Nadie coincide.</p>
+              }
+            </div>
+            <div class="per-pie">
+              <button type="button" class="per-limpiar" (click)="todaLaPlaza()">Toda la plaza</button>
+              <button type="button" class="ar-btn ar-btn-primary" (click)="abrirPersonas(false)">Listo</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     <!-- Buscador de trabajadores: filtra lo que se ve en Checadas, Tolerancia y
          Faltas. No cambia los totales ni lo que se exporta. -->
     <!-- BUSCADOR GLOBAL: cualquier persona de cualquier plaza, por nombre o
@@ -460,6 +502,15 @@
          y la comida abajo, retardos por persona, subtotal por depto y total. -->
     <div class="rep">
       <div class="rep-head">
+        @if (personaUnica; as p) {
+        <div>
+          <h3 class="rep-titulo">{{ p.nombreCompleto }}</h3>
+          <p class="rep-sub">
+            #{{ p.codigo }} · {{ p.departamento || SIN_DEPTO }} · {{ nombreSucursal(sucursalFiltro) }} · {{ tituloReporte }}
+            @if (p.horario && p.horario !== '—') { · entra {{ p.horario }} }
+          </p>
+        </div>
+        } @else {
         <div>
           <h3 class="rep-titulo">{{ nombreSucursal(sucursalFiltro) }}</h3>
           <p class="rep-sub">
@@ -473,6 +524,7 @@
             }
           </p>
         </div>
+        }
         <div class="rep-acciones">
           <!-- ══ INCIDENCIAS ══ Un botón, un menú con los tipos, y el formulario
                pregunta a quién y cuándo ("solo hoy" a un clic). -->
@@ -490,7 +542,7 @@
               <ul class="inc-menu" role="menu">
                 @for (t of tiposIncidencia; track t.tipo) {
                   <li role="none">
-                    <button type="button" role="menuitem" (click)="abrirIncidencia(t)">
+                    <button type="button" role="menuitem" (click)="abrirIncidencia(t, personaUnica?.codigo || '')">
                       <span class="inc-cod" [attr.data-t]="t.tipo">{{ t.codigo }}</span>
                       {{ t.etiqueta }}
                     </button>
@@ -510,34 +562,55 @@
         </div>
       </div>
 
-      <!-- Secciones: se apagan y se prenden, y los dos exports (PDF y Excel)
-           siguen lo que quedó encendido. "Solo esta" es el atajo real: lo que
-           RH pide es un archivo por sección, no una combinación. -->
-      @if (seccionesTodas.length > 1) {
-        <div class="rep-secciones">
-          <span class="rep-secciones-lbl">Secciones</span>
-          @for (g of seccionesTodas; track g.departamento) {
-            <span class="rep-sec" [class.off]="!seccionVisible(g.departamento)">
-              <button type="button" class="rep-sec-tog"
-                      [attr.aria-pressed]="seccionVisible(g.departamento)"
-                      [title]="seccionVisible(g.departamento) ? 'Quitar del reporte y de la exportación' : 'Volver a incluirla'"
-                      (click)="toggleSeccion(g.departamento)">
-                {{ g.departamento }}
-                <em class="rep-sec-n">{{ g.empleados.length }}</em>
-              </button>
-              <button type="button" class="rep-sec-solo" title="Dejar solo esta sección"
-                      (click)="soloEstaSeccion(g.departamento)">solo</button>
-            </span>
-          }
-          @if (seccionesOcultas.size) {
-            <button type="button" class="rep-sec-todas" (click)="todasLasSecciones()">Ver todas</button>
-          }
-        </div>
+      @if (!porDepartamento.length) {
+        <div class="ar-empty">Las personas que elegiste no tienen asistencia en este periodo.
+          <button type="button" class="per-limpiar" (click)="todaLaPlaza()">Ver toda la plaza</button></div>
       }
 
-      @if (!porDepartamento.length) {
-        <div class="ar-empty">Apagaste todas las secciones: no hay nada que mostrar ni que exportar.</div>
-      }
+      <!-- ══ UNA PERSONA (06/10/2026) ══ La misma tabla, con un día por renglón.
+           Tocar un día abre su ficha, que es donde se justifica. -->
+      @if (personaUnica; as p) {
+        <div class="rep-scroll rep-scroll-persona">
+          <table class="rep-tabla rep-persona">
+            <thead>
+              <tr>
+                <th class="rep-fecha">Día</th>
+                <th>Entrada</th><th>Desayuno</th><th>Comida</th><th>Salida</th>
+                <th class="rep-hrs">Horas</th>
+                <th class="rep-ret">{{ mideRetardo ? 'Min. retardo' : 'Retardo' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of diasDePersona(p); track r.fecha) {
+                <tr class="rep-fila-click" [class.rep-desc]="r.tipo === 'descanso' || r.tipo === 'incidencia' || r.tipo === 'sin'"
+                    (click)="abrirFicha(p)" title="Ver su ficha y justificar">
+                  <td class="rep-fecha">{{ r.etiqueta }}</td>
+                  @if (r.tipo === 'normal' && r.d; as d) {
+                    <td [class.rep-tarde]="mideRetardo && d.atrasoMin > 0">{{ d.entrada }}</td>
+                    <td>{{ desayunoDe(d) || '—' }}</td>
+                    <td>{{ d.comida && d.comida !== '—' ? d.comida : '—' }}</td>
+                    <td>@if (d.salida && d.salida !== '—') { {{ d.salida }} } @else { <span class="rep-sin">Sin checada</span> }</td>
+                    <td class="rep-hrs">{{ horasTexto(d.netasMin) }}</td>
+                    <td class="rep-ret" [class.rep-ret-min]="mideRetardo && d.atrasoMin > 0">
+                      @if (mideRetardo) { {{ d.atrasoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
+                    </td>
+                  } @else {
+                    <td colspan="4" [class.rep-falta]="r.tipo === 'falta'">{{ r.texto }}</td>
+                    <td class="rep-hrs"></td><td class="rep-ret"></td>
+                  }
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="rep-total">
+                <td colspan="5">Totales@if (p.faltas) { · {{ p.faltas }} falta{{ p.faltas > 1 ? 's' : '' }} }</td>
+                <td class="rep-hrs">{{ horasTexto(p.minutosTrabajados) }}</td>
+                <td class="rep-ret">{{ mideRetardo ? (p.atrasoBrutoMin || 0) : '—' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      } @else {
 
       <!-- Irregulares: se dice cuántos y se pueden aislar. La fila en rojo es
            el aviso; esta línea es para no tener que recorrer la tabla. -->
@@ -572,11 +645,7 @@
             @for (g of porDepartamento; track g.departamento) { @if (empleadosVisibles(g).length) {
               <tr class="rep-depto">
                 <td [attr.colspan]="columnasDia.length + 5">
-                  {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length }})</span>
-                  <!-- El atajo donde se está mirando: aislar esta sección sin
-                       subir a los chips. No va al papel (rep-solo-fila). -->
-                  <button type="button" class="rep-solo-fila" title="Dejar solo esta sección en el reporte y en la exportación"
-                          (click)="soloEstaSeccion(g.departamento)">solo esta</button>
+                  {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length === totalDepto(g.departamento) ? g.empleados.length : g.empleados.length + ' de ' + totalDepto(g.departamento) }})</span>
                 </td>
               </tr>
               <!-- La fila entera se toca: abre la ficha rápida (qué día, por qué).
@@ -650,6 +719,7 @@
           </tfoot>
         </table>
       </div>
+      }
     </div>
   } @else {
     <div class="ar-vista-switch">
@@ -1015,6 +1085,9 @@
          [style.top.px]="accMenu.top" [style.left.px]="accMenu.left"
          [attr.aria-label]="'Acciones para ' + accMenu.emp.nombreCompleto">
       <div class="acc-quien">{{ accMenu.emp.nombreCompleto }} <span>#{{ accMenu.emp.codigo }}</span></div>
+      <button type="button" role="menuitem" (click)="accVerSolo()">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.5" r="2.7"/><path d="M2.8 14c.6-2.8 2.7-4.3 5.2-4.3s4.6 1.5 5.2 4.3"/></svg>Ver solo a esta persona
+      </button>
       @if (accMenu.emp.registrado) {
         <button type="button" role="menuitem" (click)="accEditar('nombre')">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13h2.5L12 6.5 9.5 4 3 10.5V13zM9.5 4l2.5 2.5"/></svg>Cambiar nombre

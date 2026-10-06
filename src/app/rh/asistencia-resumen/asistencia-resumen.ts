@@ -534,67 +534,233 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     return cols;
   }
 
-  private readonly SIN_DEPTO = 'SIN DEPARTAMENTO';
+  readonly SIN_DEPTO = 'SIN DEPARTAMENTO';
   private readonly PRACTICANTES = 'PRACTICANTES';
 
   /** La lista agrupada por departamento, cada grupo ordenado por código. */
-  // ══ EXPORTAR POR SECCIONES ══════════════════════════════════════
+  // ══ PERSONAS: PLAZA, DEPARTAMENTO, VARIAS O UNA (06/10/2026) ═════
   //
-  // RH no siempre necesita el reporte completo: pide "nada más practicantes"
-  // o "nada más los que no tienen departamento" para mandárselo a quien le
-  // toca. Antes había que exportar todo y borrar filas en Excel a mano.
+  // RH no siempre necesita el reporte completo: pide "nada más Sistemas", "a
+  // estos tres" o "las checadas de Jorge". Un solo campo lo resuelve todo:
+  //   · nada elegido ........... toda la plaza, por departamento
+  //   · un departamento ........ ese departamento (marca a todos los suyos)
+  //   · varias personas ........ solo ellas, agrupadas por su departamento
+  //   · una persona ............ su tabla día por día
+  // Reemplaza a los chips de "Secciones": elegir un departamento entero es lo
+  // mismo que antes era "solo esta".
   //
   // Se filtra la VISTA, no el export: así lo que se ve es lo que sale, en PDF
-  // y en Excel, y no hay dos caminos que puedan discrepar. El PDF sale de la
-  // pantalla (regla de impresión en styles.css), así que esconder una sección
-  // aquí ya la deja fuera del papel sin tocar una línea de CSS.
+  // y en Excel, y no hay dos caminos que puedan discrepar.
   //
-  // Las secciones se guardan como OCULTAS y no como seleccionadas: si mañana
-  // aparece un departamento nuevo en el padrón, sale a la vista por omisión en
-  // vez de quedarse escondido sin que nadie se entere.
-  seccionesOcultas = new Set<string>();
+  // La selección guarda su PLAZA: los números de usuario se repiten entre
+  // plazas, y al cambiar de sucursal el #112 de aquí no es el #112 de allá.
+  personasSel = new Set<string>();
+  private personasSuc = '';
+  personasAbierto = false;
+  personasFiltro = '';
 
-  /** Todas las secciones de la plaza, con o sin filtro. Para los chips. */
+  /** Todos los departamentos de la plaza, sin filtrar. Para la lista del campo. */
   get seccionesTodas(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
     return this.agruparPorDepartamento();
   }
 
+  /** ¿Hay una selección vigente para la plaza que está en pantalla? */
+  private get hayPersonas(): boolean {
+    return this.personasSel.size > 0 && this.personasSuc === this.sucursalFiltro;
+  }
+
   /** ¿Se está viendo un pedazo del reporte y no la plaza completa? */
   get seleccionParcial(): boolean {
-    return this.seccionesOcultas.size > 0 && this.porDepartamento.length > 0;
+    return this.hayPersonas && this.porDepartamento.length > 0;
+  }
+
+  /** La persona sola, cuando se eligió exactamente a una. */
+  get personaUnica(): EmpleadoAsistencia | null {
+    if (!this.hayPersonas || this.personasSel.size !== 1) return null;
+    const [cod] = [...this.personasSel];
+    return this.lista.find(e => e.codigo === cod) || null;
   }
 
   /**
-   * Las secciones que SÍ van, escritas. Va en el subtítulo del reporte y en el
-   * nombre del Excel: un reporte parcial que no dice que lo es se lee como la
-   * plaza completa, y sus totales pasan por los de todos.
+   * Lo que va, escrito: en el subtítulo del reporte, en el PDF y en el nombre
+   * del Excel. Un reporte parcial que no dice que lo es se lee como la plaza
+   * completa, y sus totales pasan por los de todos.
    */
   get etiquetaSeleccion(): string {
-    const vis = this.porDepartamento.map(g => g.departamento);
-    if (!this.seccionesOcultas.size) return '';
-    if (!vis.length) return 'ninguna sección seleccionada';
-    if (vis.length <= 3) return vis.join(' + ');
-    return `${vis.length} de ${this.seccionesTodas.length} secciones`;
+    if (!this.hayPersonas) return '';
+    const uno = this.personaUnica;
+    if (uno) return uno.nombreCompleto;
+    const grupos = this.seccionesTodas;
+    const completos = grupos.filter(g => this.deptoCompleto(g));
+    const sueltos = grupos.filter(g => !this.deptoCompleto(g)).some(g => g.empleados.some(e => this.personasSel.has(e.codigo)));
+    if (completos.length && !sueltos) {
+      return completos.length <= 3 ? completos.map(g => g.departamento).join(' + ') : `${completos.length} departamentos`;
+    }
+    return `${this.personasSel.size} personas`;
   }
 
-  seccionVisible(dep: string): boolean { return !this.seccionesOcultas.has(dep); }
-
-  toggleSeccion(dep: string) {
-    if (this.seccionesOcultas.has(dep)) this.seccionesOcultas.delete(dep);
-    else this.seccionesOcultas.add(dep);
+  /** Lo que dice el campo cerrado. */
+  get textoPersonas(): string {
+    return this.hayPersonas ? this.etiquetaSeleccion : 'Toda la plaza';
   }
 
-  /** Aísla una sección: el atajo para "solo practicantes" en un clic. */
-  soloEstaSeccion(dep: string) {
-    this.seccionesOcultas = new Set(
-      this.seccionesTodas.map(g => g.departamento).filter(d => d !== dep));
+  deptoCompleto(g: { empleados: EmpleadoAsistencia[] }): boolean {
+    return this.hayPersonas && g.empleados.length > 0 && g.empleados.every(e => this.personasSel.has(e.codigo));
+  }
+  deptoParcial(g: { empleados: EmpleadoAsistencia[] }): boolean {
+    return this.hayPersonas && !this.deptoCompleto(g) && g.empleados.some(e => this.personasSel.has(e.codigo));
+  }
+  personaElegida(e: EmpleadoAsistencia): boolean {
+    return this.hayPersonas && this.personasSel.has(e.codigo);
   }
 
-  todasLasSecciones() { this.seccionesOcultas = new Set(); }
+  /** Antes de tocar la selección: si era de otra plaza, se descarta. */
+  private prepararSeleccion() {
+    if (this.personasSuc !== this.sucursalFiltro) { this.personasSel = new Set(); this.personasSuc = this.sucursalFiltro; }
+  }
 
-  /** El reporte tal como se ve: solo las secciones encendidas. */
+  toggleDepto(g: { empleados: EmpleadoAsistencia[] }) {
+    this.prepararSeleccion();
+    const todos = this.deptoCompleto(g);
+    const sel = new Set(this.personasSel);
+    for (const e of g.empleados) todos ? sel.delete(e.codigo) : sel.add(e.codigo);
+    this.personasSel = sel;
+    this.alCambiarPersonas();
+  }
+
+  togglePersona(e: EmpleadoAsistencia) {
+    this.prepararSeleccion();
+    const sel = new Set(this.personasSel);
+    sel.has(e.codigo) ? sel.delete(e.codigo) : sel.add(e.codigo);
+    this.personasSel = sel;
+    this.alCambiarPersonas();
+  }
+
+  /** Clic en un renglón de la tabla semanal: ver solo a esa persona. */
+  verSolo(e: EmpleadoAsistencia) {
+    this.personasSel = new Set([e.codigo]);
+    this.personasSuc = this.sucursalFiltro;
+    this.alCambiarPersonas();
+  }
+
+  /** Cuántas personas tiene el departamento completo (para "2 de 4"). */
+  totalDepto(dep: string): number {
+    return this.seccionesTodas.find(g => g.departamento === dep)?.empleados.length ?? 0;
+  }
+
+  /** Desde el menú ⋯ de un renglón: ver solo a esa persona. */
+  accVerSolo() {
+    const e = this.accMenu?.emp;
+    this.cerrarAcciones();
+    if (e) this.verSolo(e);
+  }
+
+  todaLaPlaza() {
+    this.personasSel = new Set();
+    this.personasAbierto = false;
+    this.alCambiarPersonas();
+  }
+
+  abrirPersonas(si: boolean) {
+    this.personasAbierto = si;
+    if (!si) this.personasFiltro = '';
+  }
+
+  /** Los departamentos con la gente que coincide con lo escrito en la lista. */
+  get gruposPersonas(): { departamento: string; empleados: EmpleadoAsistencia[]; visibles: EmpleadoAsistencia[] }[] {
+    const q = this.sinAcentos(this.personasFiltro.trim().replace(/^#/, ''));
+    return this.seccionesTodas
+      .map(g => ({
+        departamento: g.departamento,
+        empleados: g.empleados,
+        visibles: !q ? g.empleados : g.empleados.filter(e => {
+          const t = this.sinAcentos(`${e.nombreCompleto} ${e.nombre} ${e.codigo}`);
+          return q.split(/\s+/).every(w => t.includes(w));
+        }),
+      }))
+      .filter(g => g.visibles.length);
+  }
+
+  /** El reporte tal como se ve: la plaza, o solo la gente elegida. */
   get porDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
-    return this.agruparPorDepartamento().filter(g => !this.seccionesOcultas.has(g.departamento));
+    const grupos = this.agruparPorDepartamento();
+    if (!this.hayPersonas) return grupos;
+    return grupos
+      .map(g => {
+        const empleados = g.empleados.filter(e => this.personasSel.has(e.codigo));
+        return { departamento: g.departamento, empleados, retardos: empleados.reduce((s, e) => s + e.atrasoBrutoMin, 0) };
+      })
+      .filter(g => g.empleados.length);
+  }
+
+  // ── Una sola persona: su desayuno con horas, de sus checadas crudas ──
+  //
+  // El cálculo de asistencia trae la DURACIÓN del desayuno, no a qué hora salió
+  // y regresó. Para la tabla de una persona se piden sus checadas del periodo
+  // (una consulta) y el desayuno es el par de marcas entre la entrada y la
+  // salida que no es la comida. Si no se puede saber, se muestran los minutos.
+  private desayunoHoras = new Map<string, string>();
+  private desayunoClave = '';
+
+  private alCambiarPersonas() { this.cargarDesayunos(); }
+
+  private async cargarDesayunos(forzar = false) {
+    const e = this.personaUnica;
+    if (!e) { this.desayunoHoras = new Map(); this.desayunoClave = ''; return; }
+    const clave = `${this.sucursalFiltro}|${e.codigo}|${this.desde}|${this.hasta}`;
+    if (clave === this.desayunoClave && !forzar) return;
+    this.desayunoClave = clave;
+    try {
+      const checadas = await this.checador.getChecadas(this.sucursalFiltro, this.desde, this.hasta, e.codigo);
+      if (clave !== this.desayunoClave) return;   // ya se eligió a otra persona
+      const porDia = new Map<string, string[]>();
+      for (const c of checadas) {
+        const h = String(c.hora || '').slice(0, 5);
+        if (!h) continue;
+        if (!porDia.has(c.fecha)) porDia.set(c.fecha, []);
+        porDia.get(c.fecha)!.push(h);
+      }
+      const out = new Map<string, string>();
+      for (const [fecha, horas] of porDia) {
+        const d = e.diasPorFecha.get(fecha);
+        if (!d || !d.entrada || d.entrada === '—') continue;
+        const sal = d.salida && d.salida !== '—' ? d.salida : '';
+        const comida = (d.comida || '').split(/\s*[–-]\s*/).map(s => s.trim()).filter(Boolean);
+        const medio = [...new Set(horas)].sort()
+          .filter(h => h > d.entrada && (!sal || h < sal) && !comida.includes(h));
+        if (medio.length >= 2) out.set(fecha, `${medio[0]} – ${medio[1]}`);
+      }
+      this.desayunoHoras = out;
+    } catch {
+      this.desayunoHoras = new Map();   // sin horas, la tabla muestra los minutos
+    }
+  }
+
+  /** Desayuno de un día para la tabla de una persona: horas, o minutos, o nada. */
+  desayunoDe(d: DiaAsistencia | undefined): string {
+    if (!d) return '';
+    return this.desayunoHoras.get(d.fecha) || (d.desayunoMin != null ? `${d.desayunoMin} min` : '');
+  }
+
+  /** Un renglón por día del periodo, para la tabla de una persona. */
+  diasDePersona(e: EmpleadoAsistencia): { fecha: string; etiqueta: string; d: DiaAsistencia | undefined;
+      tipo: 'normal' | 'descanso' | 'falta' | 'incidencia' | 'sin'; texto: string }[] {
+    return this.columnasDia.map(c => {
+      const d = e.diasPorFecha.get(c.fecha);
+      const cel = this.celda(e, c.fecha);
+      const etiqueta = `${c.dow} ${c.dia}`;
+      if (d && !d.falta && !d.justificado && d.estadoDia !== 'descanso' && d.entrada && d.entrada !== '—') {
+        return { fecha: c.fecha, etiqueta, d, tipo: 'normal' as const, texto: '' };
+      }
+      if (d?.falta) return { fecha: c.fecha, etiqueta, d, tipo: 'falta' as const, texto: cel.inc ? cel.incTitulo || cel.inc : 'Falta' };
+      if (cel.inc) return { fecha: c.fecha, etiqueta, d, tipo: 'incidencia' as const, texto: cel.incTitulo || cel.inc };
+      if (d?.justificado) return { fecha: c.fecha, etiqueta, d, tipo: 'incidencia' as const, texto: d.justificacion || 'Justificado' };
+      if (d?.estadoDia === 'descanso') {
+        return { fecha: c.fecha, etiqueta, d, tipo: 'descanso' as const,
+          texto: d.descansoPorAusencia ? 'Descanso (no checó en un día que normalmente trabaja)' : 'Descanso' };
+      }
+      return { fecha: c.fecha, etiqueta, d, tipo: 'sin' as const, texto: 'Sin checadas' };
+    });
   }
 
   private agruparPorDepartamento(): { departamento: string; empleados: EmpleadoAsistencia[]; retardos: number }[] {
@@ -1688,10 +1854,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * carga inicial de quien nunca exporta.
    */
   async exportarPdf() {
+    const uno = this.personaUnica;
+    if (uno) return this.exportarPdfPersona(uno);
     const grupos = this.porDepartamento;
     if (!grupos.length) {
-      this.toast.alerta(this.seleccionParcial
-        ? 'No hay nada que exportar en las secciones que dejaste encendidas.'
+      this.toast.alerta(this.personasSel.size
+        ? 'Las personas que elegiste no tienen asistencia en este periodo.'
         : 'No hay asistencia para exportar en este rango.');
       return;
     }
@@ -1789,6 +1957,84 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       doc.save(`Asistencia_${limpiaTxt(this.nombreSucursal(this.sucursalFiltro))}${parte}_${this.desde}_a_${this.hasta}.pdf`);
     } catch (e) {
       console.error('Error al generar el PDF:', e);
+      this.toast.error('No se pudo generar el PDF.');
+    } finally {
+      this.generandoPdf = false;
+    }
+  }
+
+  /**
+   * El PDF de UNA persona (06/10/2026): una hoja vertical con su tabla día por
+   * día —entrada, desayuno, comida, salida, horas y retardo—, sus totales y las
+   * líneas de firma. Es la hoja que se le da al trabajador o se anexa a un acta.
+   */
+  private async exportarPdfPersona(e: EmpleadoAsistencia) {
+    this.generandoPdf = true;
+    try {
+      const [{ default: JsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const ancho = doc.internal.pageSize.getWidth();
+
+      doc.setFontSize(13); doc.setTextColor(26, 47, 78);
+      doc.text(e.nombreCompleto, 14, 16);
+      doc.setFontSize(9); doc.setTextColor(90, 105, 130);
+      const horario = e.horario && e.horario !== '—' ? ` · entra ${e.horario}` : '';
+      doc.text(`#${e.codigo} · ${e.departamento || this.SIN_DEPTO} · ${this.nombreSucursal(this.sucursalFiltro)}${horario}`, 14, 22);
+      doc.text(this.tituloReporte, 14, 27);
+
+      const body = this.diasDePersona(e).map(r => {
+        if (r.tipo !== 'normal') {
+          const color = r.tipo === 'falta' ? { fillColor: [248, 230, 230] as [number, number, number], textColor: [107, 20, 20] as [number, number, number] }
+            : { textColor: [120, 130, 150] as [number, number, number] };
+          return [r.etiqueta, { content: r.texto, colSpan: 4, styles: color }, '', ''];
+        }
+        const d = r.d!;
+        const tarde = this.mideRetardo && d.atrasoMin > 0;
+        return [
+          r.etiqueta,
+          { content: d.entrada, styles: tarde ? { textColor: [161, 38, 38] as [number, number, number], fontStyle: 'bold' as const } : {} },
+          this.desayunoDe(d) || '—',
+          d.comida && d.comida !== '—' ? d.comida : '—',
+          d.salida && d.salida !== '—' ? d.salida : 'Sin checada',
+          this.horasTexto(d.netasMin),
+          this.mideRetardo ? (d.atrasoMin || '') : '—',
+        ];
+      });
+
+      autoTable(doc, {
+        head: [['Día', 'Entrada', 'Desayuno', 'Comida', 'Salida', 'Horas', this.mideRetardo ? 'Min. retardo' : 'Retardo']],
+        body,
+        foot: [[{ content: `Totales${e.faltas ? ` · ${e.faltas} falta${e.faltas > 1 ? 's' : ''}` : ''}`, colSpan: 5, styles: { halign: 'right' as const } },
+                { content: this.horasTexto(e.minutosTrabajados), styles: { halign: 'center' as const } },
+                { content: this.mideRetardo ? String(e.atrasoBrutoMin || 0) : '—', styles: { halign: 'center' as const } }]],
+        startY: 32,
+        margin: { left: 14, right: 14, bottom: 14 },
+        styles: { fontSize: 9, cellPadding: 1.6, lineColor: [214, 222, 235], lineWidth: 0.1, valign: 'middle', halign: 'center' },
+        headStyles: { fillColor: [26, 47, 78], textColor: 255, halign: 'center' },
+        footStyles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
+        columnStyles: { 0: { halign: 'left', fontStyle: 'bold', cellWidth: 22 } },
+        rowPageBreak: 'avoid',
+        theme: 'grid',
+      });
+
+      // Firmas, debajo de la tabla (o en una hoja nueva si ya no caben).
+      let y = ((doc as any).lastAutoTable?.finalY ?? 120) + 30;
+      if (y > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); y = 40; }
+      doc.setDrawColor(26, 47, 78); doc.setLineWidth(0.3);
+      const w = (ancho - 28 - 30) / 2;
+      doc.line(14, y, 14 + w, y);
+      doc.line(ancho - 14 - w, y, ancho - 14, y);
+      doc.setFontSize(8.5); doc.setTextColor(90, 105, 130);
+      doc.text('Firma del trabajador', 14 + w / 2, y + 5, { align: 'center' });
+      doc.text('Capital Humano', ancho - 14 - w / 2, y + 5, { align: 'center' });
+
+      const limpiaTxt = (t: string) => t.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      doc.save(`Checadas_${e.codigo}_${limpiaTxt(e.nombreCompleto)}_${this.desde}_a_${this.hasta}.pdf`);
+    } catch (err) {
+      console.error('Error al generar el PDF:', err);
       this.toast.error('No se pudo generar el PDF.');
     } finally {
       this.generandoPdf = false;
@@ -2007,6 +2253,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       this.cargarCierresPeriodo();
       this.computarGraficas();
       this.computarTolerancia();
+      // Con una persona elegida, su desayuno con horas sale de sus checadas.
+      this.cargarDesayunos(true);
       // El buscador global pidió abrir a alguien de esta plaza.
       if (this.pendienteAbrir) setTimeout(() => this.abrirPendiente());
     } catch (e) {
@@ -2493,7 +2741,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   barPct(min: number): number { return Math.round((min / this.barMax) * 100); }
 
   /**
-   * Exporta a Excel LO QUE SE VE: si hay secciones apagadas, no van. Antes
+   * Exporta a Excel LO QUE SE VE: si se eligieron personas o departamentos, solo van ellos. Antes
    * exportaba `this.lista` completa sin importar el filtro, así que el archivo y
    * la pantalla decían cosas distintas.
    */
@@ -2534,7 +2782,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     }
     if (!filas.length) {
       this.toast.alerta(this.seleccionParcial
-        ? 'No hay asistencia en las secciones que dejaste encendidas.'
+        ? 'Las personas que elegiste no tienen asistencia en este periodo.'
         : 'No hay asistencia para exportar en este rango.');
       return;
     }

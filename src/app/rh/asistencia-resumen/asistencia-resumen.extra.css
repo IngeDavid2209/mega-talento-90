@@ -358,3 +358,53 @@
 .fic-pausas { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 18px 0; font-size: 12.5px; color: var(--text2); }
 .fic-pausas b { color: var(--ink); }
 @media (max-width: 520px) { .fic-dias .fic-items, .fic-dias .fic-just-ok { padding-left: 0; } }
+
+/* ══ PERSONAS (06/10/2026): toda la plaza, un departamento, varias o una ══ */
+.ar-field-personas { position: relative; }
+.per-btn {
+  display: flex; align-items: center; gap: 8px; min-width: 240px; max-width: 340px; height: 38px;
+  border: 1px solid var(--border-med); border-radius: 9px; padding: 0 30px 0 10px; background: #fff;
+  font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer; text-align: left; position: relative;
+}
+.per-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.per-btn::after {
+  content: ''; position: absolute; right: 11px; top: 50%; width: 7px; height: 7px; margin-top: -5px;
+  border-right: 1.6px solid var(--text3); border-bottom: 1.6px solid var(--text3); transform: rotate(45deg);
+}
+.per-btn[aria-expanded="true"] { border-color: var(--ink); }
+.per-btn:disabled { opacity: .55; cursor: default; }
+.per-n { flex: none; font-style: normal; background: var(--brand-bg); color: var(--ink); border-radius: 999px; padding: 0 7px; font-size: 11.5px; font-weight: 700; line-height: 20px; }
+.per-ov { position: fixed; inset: 0; z-index: 40; }
+.per-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 41; width: min(360px, 92vw);
+  background: #fff; border: 1px solid var(--border-med); border-radius: 12px;
+  box-shadow: 0 12px 28px -12px rgba(26, 47, 78, .28); display: flex; flex-direction: column;
+}
+.per-buscar { padding: 10px 10px 6px; }
+.ar-field .per-buscar input { width: 100%; min-width: 0; font-size: 13px; padding: 7px 10px; }
+.per-lista { max-height: 340px; overflow-y: auto; padding: 4px 6px 6px; }
+.ar-field .per-op {
+  display: flex; flex-direction: row; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); cursor: pointer;
+}
+.ar-field .per-op:hover { background: var(--surface3); }
+.ar-field .per-op input { width: 15px; height: 15px; min-width: 0; padding: 0; border: 0; margin: 0; flex: none; accent-color: var(--ink); cursor: pointer; }
+.ar-field .per-op small { margin-left: auto; color: var(--text3); font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.ar-field .per-op.per-dep { font-size: 11px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; margin-top: 4px; }
+.ar-field .per-op.per-ind { padding-left: 28px; }
+.per-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.per-vacio { margin: 8px; color: var(--text3); font-size: 13px; }
+.per-pie { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--border); }
+.per-pie .ar-btn { height: 32px; }
+.per-limpiar { border: 0; background: none; color: var(--text2); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 0; }
+.per-limpiar:hover { color: var(--ink); text-decoration: underline; }
+
+/* Tabla de una persona: la misma del reporte, con un día por renglón */
+.rep-scroll.rep-scroll-persona { min-height: 0; }
+.rep-persona td { font-size: 12.5px; padding: 6px 10px; }
+.rep-persona th { padding: 6px 10px; }
+.rep-tabla.rep-persona td.rep-fecha, .rep-tabla.rep-persona th.rep-fecha { position: sticky; left: 0; text-align: left; box-shadow: 1px 0 0 var(--border-med); }
+.rep-tabla.rep-persona td.rep-fecha { z-index: 1; background: #fff; font-weight: 700; color: var(--ink); }
+.rep-persona .rep-sin { color: var(--amber); font-weight: 700; }
+.rep-persona tr.rep-desc td { color: var(--text3); background: var(--surface3); }
+.rep-persona tr.rep-desc td.rep-fecha { background: var(--surface3); }
