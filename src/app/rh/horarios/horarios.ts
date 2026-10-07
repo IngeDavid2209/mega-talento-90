@@ -65,21 +65,36 @@ export class HorariosComponent implements OnInit, OnDestroy {
   // aviso del navegador cuando aparece alguien nuevo.
   nuevos: EmpleadoNuevo[] = [];
   verTodosNuevos = false;
+  /** El recuadro arranca en la plaza que se está viendo; se puede abrir a todas. */
+  nuevosTodasPlazas = false;
   private relojNuevos: any;
   private readonly CLAVE_VISTOS = 'mt90.nuevos-reloj.vistos';
 
   /** Los que todavía no tienen nombre completo o departamento. */
-  get nuevosPendientes(): EmpleadoNuevo[] { return this.nuevos.filter((n) => n.sinNombre || n.sinDepartamento); }
+  get nuevosPendientes(): EmpleadoNuevo[] { return this.nuevos.filter((n) => this.nuevoPendiente(n)); }
+  nuevoPendiente(n: EmpleadoNuevo): boolean { return n.sinNombre || n.sinDepartamento || !!n.dadoDeBaja || !!n.enPapelera; }
+  get nuevosDePlaza(): EmpleadoNuevo[] { return this.nuevosPendientes.filter((n) => n.sucursalId === this.sucursalFiltro); }
   get nuevosVisibles(): EmpleadoNuevo[] {
-    const l = this.verTodosNuevos ? this.nuevos : this.nuevosPendientes;
-    return l;
+    const base = this.nuevosTodasPlazas ? this.nuevos : this.nuevos.filter((n) => n.sucursalId === this.sucursalFiltro);
+    return this.verTodosNuevos ? base : base.filter((n) => this.nuevoPendiente(n));
   }
 
+  // ══ POR IDENTIFICAR (07/10/2026) ══
+  // Antes solo se veían las altas de los últimos 14 días. RH seguía teniendo
+  // gente que "checa pero no está en el sistema": tenían ficha, pero solo con
+  // el apodo del reloj ("Donnacho" era Ignacio), o los habían dado de baja y
+  // seguían checando. Ahora sale todo el que checó en 30 días y le falta algo.
   async cargarNuevos() {
     try {
-      this.nuevos = await this.checador.getNuevosDelReloj(14);
+      this.nuevos = await this.checador.getPorIdentificar(30);
       this.avisarNuevos();
     } catch { /* sin este recuadro la pantalla sigue sirviendo */ }
+  }
+
+  /** "Reactivar" desde el recuadro: el mismo de la tabla, y luego se refresca. */
+  async reactivarNuevo(n: EmpleadoNuevo) {
+    await this.reactivar(n);
+    this.cargarNuevos();
   }
 
   /** Aviso del navegador, una vez por persona (se recuerda en este navegador). */
@@ -87,8 +102,10 @@ export class HorariosComponent implements OnInit, OnDestroy {
     let vistos: string[] = [];
     try { vistos = JSON.parse(localStorage.getItem(this.CLAVE_VISTOS) || '[]'); } catch { vistos = []; }
     const primeraVez = !vistos.length;
-    const claves = this.nuevos.map((n) => `${n.sucursalId}|${n.codigoChecador}`);
-    const nuevosDeVerdad = this.nuevos.filter((n) => !vistos.includes(`${n.sucursalId}|${n.codigoChecador}`));
+    // El aviso es solo para las ALTAS recientes; lo viejo por completar ya está en el recuadro.
+    const recientes = this.nuevos.filter((n) => Date.now() - new Date(n.creadoEn).getTime() < 14 * 86400000);
+    const claves = recientes.map((n) => `${n.sucursalId}|${n.codigoChecador}`);
+    const nuevosDeVerdad = recientes.filter((n) => !vistos.includes(`${n.sucursalId}|${n.codigoChecador}`));
     try { localStorage.setItem(this.CLAVE_VISTOS, JSON.stringify(claves)); } catch { /* sin almacenamiento */ }
     // La primera vez que se abre la pantalla no se avisa de todo lo acumulado:
     // el recuadro ya lo enseña. Solo se avisa de lo que llega después.

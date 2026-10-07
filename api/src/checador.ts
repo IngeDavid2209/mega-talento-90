@@ -234,6 +234,12 @@ const actualizarEmpleado = async (req: AuthedRequest, res: Response) => {
        req.usuario?.email || null]
     );
     if (!rows.length) return res.status(404).json({ error: 'Empleado no encontrado.' });
+    // Reactivar también quita la "lápida" de la depuración: si se queda, el
+    // siguiente lote de la ingesta la vuelve a apagar (ver padron_depurado).
+    if (rows[0].activo) {
+      await pool.query('DELETE FROM padron_depurado WHERE sucursal_id = $1 AND codigo_checador = $2',
+        [rows[0].sucursal_id, rows[0].codigo_checador]).catch(() => { /* tabla opcional */ });
+    }
     res.json(mapEmpleado(rows[0]));
   } catch (err) { fallo(res, err, 'No se pudo actualizar el empleado.'); }
 };
@@ -278,6 +284,56 @@ checadorRouter.get('/empleados/nuevos', async (req: Request, res: Response) => {
       sinDepartamento: !String(r.departamento || '').trim(),
     })));
   } catch (err) { fallo(res, err, 'No se pudieron leer los nuevos del reloj.'); }
+});
+
+/**
+ * GET /checador/empleados/por-identificar?dias=30 — QUIÉN CHECA SIN ESTAR
+ * COMPLETO EN EL SISTEMA (07/10/2026).
+ *
+ * "Nuevos en los relojes" solo veía las altas de los últimos 14 días. Pero RH
+ * seguía teniendo gente que checa y "no está en el sistema": al revisar, nadie
+ * checaba sin ficha —la ingesta se la abre sola—; el problema era que la ficha
+ * solo traía el apodo del reloj ("Donnacho" era Ignacio, de LP Abastos), sin
+ * nombre completo ni departamento, así que nadie la encontraba. Y algunos
+ * siguen checando después de que se les dio de baja, y esos no salen en ningún
+ * lado. Al 07/10/2026 eran 53 personas.
+ *
+ * Aquí sale todo el que checó en los últimos `dias` y le falta algo, sin
+ * importar cuándo se dio de alta, más las altas recientes (aunque estén
+ * completas, para poder revisarlas). Cada renglón dice qué le falta.
+ */
+checadorRouter.get('/empleados/por-identificar', async (req: Request, res: Response) => {
+  try {
+    const dias = Math.min(90, Math.max(1, parseInt(String((req.query as any).dias || '30'), 10) || 30));
+    const { rows } = await pool.query(
+      `WITH act AS (
+         SELECT sucursal_id, empleado_codigo, count(*)::int AS n, min(fecha_hora) AS primera, max(fecha_hora) AS ultima
+           FROM checadas WHERE fecha >= (current_date - $1::int)::text
+          GROUP BY 1, 2
+       )
+       SELECT e.*, a.n AS checadas_periodo, a.primera, a.ultima
+         FROM empleados e
+         LEFT JOIN act a ON a.sucursal_id = e.sucursal_id AND a.empleado_codigo = e.codigo_checador
+        WHERE (a.n IS NOT NULL AND (
+                 coalesce(btrim(e.nombre_completo), '') = ''
+              OR coalesce(btrim(e.departamento), '') = ''
+              OR e.activo = FALSE
+              OR e.eliminado_en IS NOT NULL))
+           OR (e.eliminado_en IS NULL AND e.activo AND e.creado_en >= now() - interval '14 days')
+        ORDER BY (e.activo = FALSE OR e.eliminado_en IS NOT NULL) DESC, a.ultima DESC NULLS LAST`, [dias]);
+    const corta = (v: any) => (v ? String(v instanceof Date ? v.toISOString() : v).slice(0, 10) : null);
+    res.json(rows.map((r: any) => ({
+      ...mapEmpleado(r),
+      creadoEn: r.creado_en,
+      primeraChecada: corta(r.primera),
+      ultimaChecada: corta(r.ultima),
+      checadasPeriodo: r.checadas_periodo || 0,
+      sinNombre: !String(r.nombre_completo || '').trim(),
+      sinDepartamento: !String(r.departamento || '').trim(),
+      dadoDeBaja: r.activo === false && !r.eliminado_en,
+      enPapelera: !!r.eliminado_en,
+    })));
+  } catch (err) { fallo(res, err, 'No se pudo leer a quién falta identificar.'); }
 });
 
 /**

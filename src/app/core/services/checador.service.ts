@@ -148,6 +148,12 @@ export interface EmpleadoNuevo extends Empleado {
   ultimaChecada: string | null;
   sinNombre: boolean;
   sinDepartamento: boolean;
+  /** "Por identificar": cuántas veces checó en el periodo revisado. */
+  checadasPeriodo?: number;
+  /** Se le dio de baja pero sigue checando. */
+  dadoDeBaja?: boolean;
+  /** Está en la papelera y sigue checando. */
+  enPapelera?: boolean;
 }
 
 /** Un renglón de la Papelera de empleados. */
@@ -625,6 +631,15 @@ export class ChecadorService {
   /** Los que los relojes dieron de alta en los últimos `dias` (todas las plazas). */
   async getNuevosDelReloj(dias = 14): Promise<EmpleadoNuevo[]> {
     return this.api.get<EmpleadoNuevo[]>('/checador/empleados/nuevos', { dias: String(dias) });
+  }
+
+  /**
+   * Quién checó en los últimos `dias` y no está completo en el sistema (sin
+   * nombre completo, sin departamento, dado de baja o en la papelera), más las
+   * altas de los últimos 14 días.
+   */
+  async getPorIdentificar(dias = 30): Promise<EmpleadoNuevo[]> {
+    return this.api.get<EmpleadoNuevo[]>('/checador/empleados/por-identificar', { dias: String(dias) });
   }
 
   /** La Papelera de empleados: dados de baja y eliminados, de todas las plazas. */

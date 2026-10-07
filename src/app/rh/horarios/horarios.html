@@ -128,22 +128,36 @@
         <button class="hz-btn hz-btn-primary" (click)="nuevoEmpleado()">+ Nuevo empleado</button>
       </div>
 
-      <!-- ══ NUEVOS EN LOS RELOJES ══ Se dan de alta solos (el agente revisa cada
-           reloj cada hora); aquí se les completa lo que el reloj no trae. -->
+      <!-- ══ POR IDENTIFICAR EN LOS RELOJES ══ Quien checa y no está completo en
+           el sistema: sin nombre completo, sin departamento, o dado de baja y
+           sigue checando. Más las altas de los últimos 14 días. -->
       @if (nuevos.length) {
         <div class="hz-nuevos">
           <div class="hz-nuevos-head">
             <div>
-              <b>Nuevos en los relojes</b>
-              <span>{{ nuevos.length }} en los últimos 14 días, de todas las plazas ·
-                @if (nuevosPendientes.length) { <em>{{ nuevosPendientes.length }} por completar</em> } @else { todos completos }
+              <b>Por identificar en los relojes</b>
+              <span>
+                @if (nuevosPendientes.length) {
+                  <em>{{ nuevosPendientes.length }} checan sin estar completos</em> en todas las plazas
+                  @if (nuevosDePlaza.length) { · {{ nuevosDePlaza.length }} en {{ nombreSucursal(sucursalFiltro) }} }
+                } @else { todos completos }
               </span>
             </div>
-            <button type="button" class="hz-link" (click)="verTodosNuevos = !verTodosNuevos">
-              {{ verTodosNuevos ? 'Ver solo pendientes' : 'Ver todos' }}
-            </button>
+            <span class="hz-nuevos-togs">
+              <button type="button" class="hz-link" (click)="nuevosTodasPlazas = !nuevosTodasPlazas">
+                {{ nuevosTodasPlazas ? 'Solo ' + nombreSucursal(sucursalFiltro) : 'Ver todas las plazas' }}
+              </button>
+              <button type="button" class="hz-link" (click)="verTodosNuevos = !verTodosNuevos">
+                {{ verTodosNuevos ? 'Ver solo pendientes' : 'Incluir altas completas' }}
+              </button>
+            </span>
           </div>
-          <p class="hz-nuevos-nota">Se dan de alta solos: el agente revisa cada reloj cada hora. El reloj solo trae el nombre corto; el nombre completo y el departamento se ponen aquí.</p>
+          <p class="hz-nuevos-nota">Todos ellos checan en un reloj (últimos 30 días). El reloj solo trae el nombre corto, como "Donnacho" o "Jose":
+            ponles su nombre completo y su departamento para que se les reconozca en el reporte. Si alguien fue dado de baja y sigue checando, aquí se ve.</p>
+          @if (!nuevosVisibles.length) {
+            <p class="hz-nuevos-nota">En {{ nombreSucursal(sucursalFiltro) }} no hay nadie por identificar.
+              <button type="button" class="hz-link" (click)="nuevosTodasPlazas = true">Ver las demás plazas</button></p>
+          }
           @if (nuevosVisibles.length) {
             <ul class="hz-nuevos-lista">
               @for (n of nuevosVisibles; track n.sucursalId + n.codigoChecador) {
@@ -152,16 +166,26 @@
                   <span class="hz-nuevos-nom">
                     <b>{{ n.nombreCompleto || n.nombre }}</b>
                     <small>{{ nombreSucursal(n.sucursalId) }} · en el reloj "{{ n.nombre }}" · alta {{ haceDias(n.creadoEn) }}
-                      @if (n.primeraChecada) { · checa desde {{ n.primeraChecada }} } @else { · aún no checa }</small>
+                      @if (n.checadasPeriodo) { · {{ n.checadasPeriodo }} checadas en 30 días, la última {{ n.ultimaChecada }} }
+                      @else if (n.primeraChecada) { · checa desde {{ n.primeraChecada }} } @else { · aún no checa }
+                      @if (n.esPromotora) { · promotora }</small>
                   </span>
                   <span class="hz-nuevos-falta">
+                    @if (n.enPapelera) { <em>en la papelera y sigue checando</em> }
+                    @else if (n.dadoDeBaja) { <em>dado de baja y sigue checando</em> }
                     @if (n.sinNombre) { <em>falta nombre</em> }
                     @if (n.sinDepartamento) { <em>falta departamento</em> }
-                    @if (!n.sinNombre && !n.sinDepartamento) { <em class="ok">completo</em> }
+                    @if (!nuevoPendiente(n)) { <em class="ok">completo</em> }
                   </span>
-                  <button type="button" class="hz-btn hz-btn-primary hz-nuevos-btn" (click)="completarNuevo(n)">
-                    {{ n.sinNombre || n.sinDepartamento ? 'Completar' : 'Editar' }}
-                  </button>
+                  @if (n.enPapelera) {
+                    <button type="button" class="hz-btn hz-nuevos-btn" (click)="cambiarTab('papelera')">Ver en la papelera</button>
+                  } @else if (n.dadoDeBaja) {
+                    <button type="button" class="hz-btn hz-btn-primary hz-nuevos-btn" [disabled]="moviendo === n.id" (click)="reactivarNuevo(n)">Reactivar</button>
+                  } @else {
+                    <button type="button" class="hz-btn hz-btn-primary hz-nuevos-btn" (click)="completarNuevo(n)">
+                      {{ n.sinNombre || n.sinDepartamento ? 'Completar' : 'Editar' }}
+                    </button>
+                  }
                 </li>
               }
             </ul>
