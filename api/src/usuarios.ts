@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from './db';
-import { requireAuth } from './auth';
+import { requireAuth, esAdminReq, AuthedRequest } from './auth';
 
 /**
  * Router de usuarios de RH. Reusa la tabla `usuarios` del bot
@@ -11,6 +11,12 @@ import { requireAuth } from './auth';
  */
 export const usuariosRouter = Router();
 usuariosRouter.use(requireAuth);
+// Sólo un administrador da de alta usuarios, cambia contraseñas o roles, o borra cuentas.
+// Antes bastaba cualquier sesión (incluida Promotoría) para crearse un administrador.
+usuariosRouter.use((req: AuthedRequest, res: Response, next) => {
+  if (!esAdminReq(req)) return res.status(403).json({ error: 'Solo un administrador puede gestionar usuarios' });
+  next();
+});
 
 const DOMINIO_INTERNO = 'megatalento.app';
 

@@ -1,15 +1,21 @@
 import { inject, Injectable } from '@angular/core';
 import { ToastService } from './toast.service';
+import { ApiService } from './api.service';
 
 /**
  * Puente con el bot de reclutamiento (proyecto BOT-RH, desplegado en Railway).
+ *
+ * [RH.0.6] El navegador YA NO llama al bot directo: todo pasa por la API de Mega
+ * Talento (`/bot/*`, con sesión), y la API habla con el bot con una llave que nunca
+ * baja al navegador. Antes esos endpoints del bot no podían pedir contraseña porque
+ * los llamaba el navegador, y cualquiera podía leer conversaciones o mandar
+ * plantillas pagadas.
  *
  * El bot expone /api/nueva-solicitud: recibe un candidateId, lee al candidato
  * de Firestore por su id y le manda la plantilla de invitación por WhatsApp
  * desde el número OFICIAL del bot, enganchándolo a la conversación automática.
  * Es el mismo endpoint que dispara el formulario público /unete al registrarse.
  */
-const BOT_URL = 'https://bot-rh-production.up.railway.app';
 
 export interface InvitacionResp {
   ok: boolean;
@@ -42,9 +48,15 @@ export interface MensajeBot {
   creado_en: string;
 }
 
+/** Mensaje legible a partir del error de HttpClient (o de red). */
+function mensajeDeError(e: any, porDefecto: string): string {
+  return e?.error?.error || (e?.status ? `HTTP ${e.status}` : '') || e?.message || porDefecto;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BotService {
   private toast = inject(ToastService);
+  private api = inject(ApiService);
 
   /**
    * Pide al bot que le escriba al candidato por WhatsApp y lo conecte con la
@@ -53,19 +65,9 @@ export class BotService {
    */
   async invitarPorWhatsApp(candidateId: string): Promise<InvitacionResp> {
     try {
-      const res = await fetch(`${BOT_URL}/api/nueva-solicitud`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateId }),
-      });
-      let data: any = {};
-      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
-      if (!res.ok) {
-        return { ok: false, error: data?.error || `HTTP ${res.status}` };
-      }
-      return data as InvitacionResp;
+      return await this.api.post<InvitacionResp>('/bot/invitar', { candidateId });
     } catch (e: any) {
-      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+      return { ok: false, error: mensajeDeError(e, 'Sin conexión con el bot') };
     }
   }
 
@@ -133,19 +135,9 @@ export class BotService {
     try {
       const body: any = { candidateId };
       if (documentos?.length) body.documentos = documentos;
-      const res = await fetch(`${BOT_URL}/api/pedir-documentos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      let data: any = {};
-      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
-      if (!res.ok) {
-        return { ok: false, error: data?.error || `HTTP ${res.status}` };
-      }
-      return data as PedirDocsResp;
+      return await this.api.post<PedirDocsResp>('/bot/pedir-documentos', body);
     } catch (e: any) {
-      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+      return { ok: false, error: mensajeDeError(e, 'Sin conexión con el bot') };
     }
   }
 
@@ -203,17 +195,11 @@ export class BotService {
     datos: { puntajeTexto?: string; resultado?: string } = {}
   ): Promise<{ ok: boolean; avisados?: number; error?: string }> {
     try {
-      const res = await fetch(`${BOT_URL}/api/evaluacion-completa`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateId, puntajeTexto: datos.puntajeTexto, resultado: datos.resultado }),
+      return await this.api.post<{ ok: boolean; avisados?: number }>('/bot/evaluacion-completa', {
+        candidateId, puntajeTexto: datos.puntajeTexto, resultado: datos.resultado,
       });
-      let data: any = {};
-      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
-      if (!res.ok) return { ok: false, error: data?.error || `HTTP ${res.status}` };
-      return data as { ok: boolean; avisados?: number };
     } catch (e: any) {
-      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+      return { ok: false, error: mensajeDeError(e, 'Sin conexión con el bot') };
     }
   }
 
@@ -223,13 +209,10 @@ export class BotService {
    */
   async obtenerConversacion(candidateId: string): Promise<{ ok: boolean; mensajes?: MensajeBot[]; error?: string }> {
     try {
-      const res = await fetch(`${BOT_URL}/api/conversacion?candidateId=${encodeURIComponent(candidateId)}`);
-      let data: any = {};
-      try { data = await res.json(); } catch { /* respuesta sin JSON */ }
-      if (!res.ok) return { ok: false, error: data?.error || `HTTP ${res.status}` };
-      return { ok: true, mensajes: (data.mensajes || []) as MensajeBot[] };
+      const data = await this.api.get<{ mensajes?: MensajeBot[] }>('/bot/conversacion', { candidateId });
+      return { ok: true, mensajes: (data?.mensajes || []) as MensajeBot[] };
     } catch (e: any) {
-      return { ok: false, error: e?.message || 'Sin conexión con el bot' };
+      return { ok: false, error: mensajeDeError(e, 'Sin conexión con el bot') };
     }
   }
 }

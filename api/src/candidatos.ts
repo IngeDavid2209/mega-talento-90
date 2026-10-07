@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from './db';
-import { requireAuth } from './auth';
+import { requireAuth, usuarioOpcional } from './auth';
+import { invitarCandidatoAlBot } from './bot';
 
 /**
  * Router de candidatos. Estrategia de migración desde Firestore:
@@ -101,6 +102,37 @@ function documentosBotDesde(documentos: any) {
 }
 
 // ---- mapeo fila DB → objeto del portal (camelCase, forma del front) ----
+/**
+ * Lo único que ven de un candidato las páginas públicas del portal, que se abren sin
+ * sesión: /evaluacion/:id, /evaluar-aptitudes/:id y /solicitud/:id. Antes devolvían la
+ * ficha completa (teléfono, RFC, NSS, documentos) a quien tuviera el id. [RH.0.6]
+ */
+function vistaPublica(r: any) {
+  const c = mapCandidato(r);
+  return {
+    id: c.id,
+    nombre: c.nombre,
+    puesto: c.puesto,
+    status: c.status,
+    // /solicitud sólo necesita saber si YA hay CV, no la liga al documento.
+    cvUrl: c.cvUrl ? 'registrado' : undefined,
+    cuestionarioLiderazgo: c.cuestionarioLiderazgo,
+    rubricaAptitudes: c.rubricaAptitudes,
+    aptitudesEval: c.aptitudesEval,
+    competenciasConfig: c.competenciasConfig,
+  };
+}
+
+/** Lo que una página pública puede escribir sin sesión, y nada más. [RH.0.6] */
+const CAMPOS_PUBLICOS = new Set([
+  'cuestionarioLiderazgo', 'ultimaActividadCuestionario',          // /evaluacion/:id
+  'rubricaAptitudes', 'aptitudesResultados', 'aptitudesEval',      // /evaluar-aptitudes/:id
+  'cvUrl', 'cvUrlReverso', 'cvFormato',                            // /solicitud/:id
+  'status', '__marcarActividad',
+]);
+/** Las únicas etapas a las que una página pública puede avanzar al candidato. */
+const ETAPAS_PUBLICAS = new Set(['aptitudes', 'psicometria']);
+
 function mapCandidato(r: any) {
   const base = (r.portal_data && typeof r.portal_data === 'object') ? r.portal_data : {};
   const out: any = { ...base, id: r.id };
@@ -262,7 +294,9 @@ candidatosRouter.get('/duplicado', async (req: Request, res: Response) => {
     );
     const match = rows.find((r) => mismoNombre(nombre, r.nombre_completo));
     if (!match) return res.json(null);
-    return res.json({ ...mapCandidato(match), estaEnPapelera: false });
+    // Sólo se dice SI ya existe: antes devolvía la ficha completa a quien adivinara
+    // teléfono y nombre. El formulario sólo usa la respuesta como sí/no. [RH.0.6]
+    return res.json({ duplicado: true });
   } catch (e) { return fallo(res, e, 'Error al verificar duplicado.'); }
 });
 
@@ -309,6 +343,10 @@ candidatosRouter.post('/', async (req: Request, res: Response) => {
         esp.aptitudes_eval, esp.origen, JSON.stringify(d)
       ]
     );
+    // El bot le escribe al candidato desde el número oficial. Antes lo pedía el
+    // navegador directo al bot, y por eso ese endpoint del bot no podía tener llave.
+    // El propio bot (x-bot-secret) no se invita a sí mismo. [RH.0.6]
+    if (!esBot) void invitarCandidatoAlBot(rows[0].id);
     return res.json(mapCandidato(rows[0]));
   } catch (e) { return fallo(res, e, 'Error al crear candidato.'); }
 });
@@ -433,7 +471,7 @@ candidatosRouter.get('/:id', async (req: Request, res: Response) => {
   try {
     const { rows } = await pool.query('SELECT * FROM candidatos WHERE id=$1 LIMIT 1', [id]);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado.' });
-    return res.json(mapCandidato(rows[0]));
+    return res.json(usuarioOpcional(req) ? mapCandidato(rows[0]) : vistaPublica(rows[0]));
   } catch (e) { return fallo(res, e, 'Error al leer candidato.'); }
 });
 
@@ -442,8 +480,23 @@ candidatosRouter.get('/:id', async (req: Request, res: Response) => {
 candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
   const idPatch = await idValido(req, res);
   if (!idPatch) return;
+  const conSesion = !!usuarioOpcional(req);
   try {
     const d = req.body || {};
+    // Sin sesión (páginas públicas del portal) sólo se escribe lo que esas páginas
+    // escriben. Antes cualquiera con el id podía cambiar teléfono, etapa o CV.
+    // 400 y no 403: el interceptor del front saca a /login ante un 403. [RH.0.6]
+    if (!conSesion) {
+      const ajenos = Object.keys(d).filter((k) => !CAMPOS_PUBLICOS.has(k));
+      if (ajenos.length) return res.status(400).json({ error: `Sin sesión no se puede cambiar: ${ajenos.join(', ')}.` });
+      if (d.status !== undefined && !ETAPAS_PUBLICAS.has(String(d.status))) {
+        return res.status(400).json({ error: 'Ese cambio de etapa requiere sesión.' });
+      }
+      if (d.cvUrl !== undefined || d.cvUrlReverso !== undefined || d.cvFormato !== undefined) {
+        const ya = await pool.query('SELECT cv_url FROM candidatos WHERE id=$1', [idPatch]);
+        if (ya.rows[0]?.cv_url) return res.status(400).json({ error: 'Este candidato ya tiene CV registrado.' });
+      }
+    }
     const marcar = req.query.marcarActividad !== 'false' && d.__marcarActividad !== false;
     delete d.__marcarActividad;
     const esp = columnasEspejo(d);
@@ -507,7 +560,7 @@ candidatosRouter.patch('/:id', async (req: Request, res: Response) => {
       }
     }
 
-    return res.json(mapCandidato(rows[0]));
+    return res.json(conSesion ? mapCandidato(rows[0]) : vistaPublica(rows[0]));
   } catch (e) { return fallo(res, e, 'Error al actualizar candidato.'); }
 });
 

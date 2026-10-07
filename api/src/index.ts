@@ -12,6 +12,7 @@ import { candidatosRouter } from './candidatos';
 import { puestosRouter } from './puestos';
 import { usuariosRouter } from './usuarios';
 import { kpiRouter } from './kpi';
+import { botRouter } from './bot';
 import { requisicionesRouter } from './requisiciones';
 import { permanenciaRouter } from './permanencia';
 import { encuestasRouter, arrancarEncuestas } from './encuestas-onboarding';
@@ -70,6 +71,7 @@ app.use('/candidatos', candidatosRouter);
 app.use('/puestos', puestosRouter);
 app.use('/usuarios', usuariosRouter);
 app.use('/kpi', kpiRouter); // Concentrado de candidatos: bitácora de eventos + tablero
+app.use('/bot', botRouter); // Puente con el bot: el navegador ya no llama al bot directo ([RH.0.6])
 app.use('/requisiciones', requisicionesRouter); // Peticiones de personal de las sucursales
 app.use('/permanencia', permanenciaRouter);     // ¿El contratado sigue a los 30/60/90 días?
 app.use('/encuestas', encuestasRouter);         // Encuestas de onboarding (día 3/7/15/30/90)

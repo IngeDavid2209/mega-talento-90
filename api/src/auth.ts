@@ -84,6 +84,23 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
 }
 
 /**
+ * Lee el token SI viene, sin exigirlo. Lo usan las rutas que también abren las
+ * páginas públicas del portal (evaluaciones, subir CV): con sesión dan acceso
+ * completo; sin sesión, sólo lo que esa página necesita. Un token inválido cuenta
+ * como "sin sesión" (nunca como sesión).
+ */
+export function usuarioOpcional(req: Request): UsuarioToken | null {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token) return null;
+  try {
+    return jwt.verify(token, env.JWT_SECRET) as UsuarioToken;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * ¿El usuario del token es administrador? La base guarda el rol en dos
  * escrituras (`admin` y `Administrador`), así que se compara por prefijo.
  */
