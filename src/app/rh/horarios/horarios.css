@@ -743,3 +743,6 @@
 
 /* Por identificar: los dos botones de la cabecera del recuadro */
 .hz-nuevos-togs { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+/* Alta desde el portal, antes que en el reloj (08/10/2026) */
+.hz-alta-nota { margin: 0 0 10px; padding: 8px 10px; border-radius: 9px; background: var(--brand-bg); color: var(--ink-soft); font-size: 12.5px; line-height: 1.4; }

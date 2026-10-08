@@ -146,6 +146,24 @@ cierresRouter.post('/', async (req: AuthedRequest, res: Response) => {
       });
     }
 
+    // ══ NADIE SIN IDENTIFICAR EN LA PRENÓMINA (08/10/2026) ══
+    // Quien checó esta semana sin nombre completo o sin departamento es una
+    // ficha que nadie reconoce ("Donnacho" era Ignacio). La semana no se cierra
+    // así, salvo que quien cierra escriba por qué: queda guardado en el cierre.
+    const sinId = await sinIdentificar(sucursalId, desde, hasta);
+    const forzar = req.body?.forzar === true;
+    const motivoSinId = String(req.body?.motivo || '').trim().slice(0, 500);
+    if (sinId.length && !forzar) {
+      return res.status(409).json({
+        error: `${sinId.length} persona${sinId.length === 1 ? '' : 's'} checó esta semana y no está identificada (le falta nombre completo o departamento). ` +
+          'Complétalas en la pestaña Empleados, o cierra de todos modos explicando por qué.',
+        sinIdentificar: sinId,
+      });
+    }
+    if (sinId.length && motivoSinId.length < 5) {
+      return res.status(400).json({ error: 'Escribe por qué se cierra con gente sin identificar.' });
+    }
+
     // La foto se toma FUERA de la transacción (es el cálculo pesado); si entre
     // la foto y el cierre alguien captura algo, la transacción lo detecta abajo.
     const foto = await asistenciaPersonas({ sucursalId, desde, hasta });
@@ -178,6 +196,8 @@ cierresRouter.post('/', async (req: AuthedRequest, res: Response) => {
         retardoRealMin: r?.retardoRealMin ?? null,
         horasTrabajadas: r?.horasTrabajadas ?? null,
         incidencias: incs.length,
+        // Si se cerró con gente sin identificar, quiénes y por qué.
+        ...(sinId.length ? { sinIdentificar: sinId.length, motivoSinIdentificar: motivoSinId } : {}),
       };
       try {
         const { rows: [fila] } = await c.query(
@@ -193,6 +213,35 @@ cierresRouter.post('/', async (req: AuthedRequest, res: Response) => {
     res.json(mapCierre(cierre));
   } catch (e) { fallo(res, e, 'No se pudo cerrar la semana.'); }
 });
+
+/**
+ * Quién checó en la plaza entre `desde` y `hasta` y no está identificado: su
+ * ficha no tiene nombre completo o departamento, o el código no tiene ficha.
+ * No cuentan las promotoras (no van en la prenómina) ni el usuario "Admin" del
+ * equipo. Mismo criterio que "Por identificar" en la pestaña Empleados.
+ */
+async function sinIdentificar(sucursalId: string, desde: string, hasta: string) {
+  const { rows } = await pool.query(
+    `WITH act AS (
+       SELECT empleado_codigo AS cod, count(*)::int AS n FROM checadas
+        WHERE sucursal_id = $1 AND fecha >= $2 AND fecha <= $3 GROUP BY 1)
+     SELECT a.cod AS codigo, a.n AS checadas,
+            coalesce(nullif(btrim(e.nombre_completo), ''), e.nombre, '(sin ficha)') AS nombre,
+            coalesce(btrim(e.nombre_completo), '') = '' AS sin_nombre,
+            coalesce(btrim(e.departamento), '') = '' AS sin_departamento
+       FROM act a
+       LEFT JOIN empleados e ON e.sucursal_id = $1 AND e.codigo_checador = a.cod
+      WHERE (e.codigo_checador IS NULL
+             OR (coalesce(btrim(e.nombre_completo), '') = '' OR coalesce(btrim(e.departamento), '') = ''))
+        AND NOT coalesce(e.es_promotora, false)
+        AND coalesce(e.departamento, '') !~* 'promotor'
+        AND coalesce(e.nombre, '') !~* '^\\s*admin'
+      ORDER BY a.n DESC`, [sucursalId, desde, hasta]);
+  return rows.map((r: any) => ({
+    codigo: String(r.codigo), nombre: r.nombre, checadas: r.checadas,
+    sinNombre: !!r.sin_nombre, sinDepartamento: !!r.sin_departamento,
+  }));
+}
 
 /** POST /checador/cierres/:id/reabrir  body: { motivo } */
 cierresRouter.post('/:id/reabrir', async (req: AuthedRequest, res: Response) => {

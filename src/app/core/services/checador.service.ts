@@ -638,6 +638,11 @@ export class ChecadorService {
    * nombre completo, sin departamento, dado de baja o en la papelera), más las
    * altas de los últimos 14 días.
    */
+  /** El siguiente número libre del reloj en una plaza, y de quién es `codigo` (si se pasa). */
+  async numeroReloj(sucursalId: string, codigo = ''): Promise<{ siguiente: string; ocupadoPor: { nombre: string; activo: boolean; enPapelera: boolean } | null }> {
+    return this.api.get('/checador/empleados/numero', codigo ? { sucursalId, codigo } : { sucursalId });
+  }
+
   async getPorIdentificar(dias = 30): Promise<EmpleadoNuevo[]> {
     return this.api.get<EmpleadoNuevo[]>('/checador/empleados/por-identificar', { dias: String(dias) });
   }
@@ -742,8 +747,10 @@ export class ChecadorService {
   async getCierre(id: string): Promise<CierreSemana> {
     return this.api.get<CierreSemana>(`/checador/cierres/${id}`);
   }
-  async cerrarSemana(sucursalId: string, desde: string): Promise<CierreSemana> {
-    return this.api.post<CierreSemana>('/checador/cierres', { sucursalId, desde });
+  /** `forzar` + `motivo`: cerrar aunque haya gente que checó sin estar identificada. */
+  async cerrarSemana(sucursalId: string, desde: string, forzar?: { motivo: string }): Promise<CierreSemana> {
+    return this.api.post<CierreSemana>('/checador/cierres',
+      forzar ? { sucursalId, desde, forzar: true, motivo: forzar.motivo } : { sucursalId, desde });
   }
   async reabrirSemana(id: string, motivo: string): Promise<CierreSemana> {
     return this.api.post<CierreSemana>(`/checador/cierres/${id}/reabrir`, { motivo });

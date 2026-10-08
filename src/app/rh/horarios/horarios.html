@@ -430,13 +430,17 @@
       <h3>{{ empleadoEdit.id ? 'Editar empleado' : 'Nuevo empleado' }}</h3>
       <div class="hz-field">
         <label>Sucursal</label>
-        <select [(ngModel)]="empleadoEdit.sucursalId">
+        <select [(ngModel)]="empleadoEdit.sucursalId" (ngModelChange)="sugerirNumero()">
           @for (s of SUCURSALES; track s.id) { <option [value]="s.id">{{ nombreSucursal(s.id) }}</option> }
         </select>
       </div>
+      @if (!empleadoEdit.id) {
+        <p class="hz-alta-nota">Da de alta aquí <b>antes</b> de enrolar la huella: el encargado la registra en el reloj
+          con el número de abajo, y cuando la persona cheque ya sale con su nombre y su departamento.</p>
+      }
       <div class="hz-row">
         <div class="hz-field">
-          <label>Código del reloj</label>
+          <label>Código del reloj @if (!empleadoEdit.id && numeroSugerido) { <small>(siguiente libre)</small> }</label>
           <input type="text" [(ngModel)]="empleadoEdit.codigoChecador" placeholder="Ej. 12">
         </div>
         <div class="hz-field">
@@ -449,7 +453,7 @@
            SIN DEPARTAMENTO para siempre. Se sugieren los que ya existen para no
            partir una sección en dos por una mayúscula. -->
       <div class="hz-field">
-        <label>Departamento <small>(sección del reporte)</small></label>
+        <label>Departamento <small>{{ empleadoEdit.id ? '(sección del reporte)' : '(obligatorio)' }}</small></label>
         <!-- Todos los departamentos de SU sucursal, en una lista: las sugerencias
              de texto solo enseñaban el que ya tenía escrito. -->
         <select [(ngModel)]="empleadoEdit.departamento">
@@ -469,12 +473,12 @@
            Aquí es donde RH completa las fichas que todavía no traen nombre formal,
            sin esperar otro reporte semanal. -->
       <div class="hz-field">
-        <label>Nombre completo <small>(el del reporte de RH)</small></label>
+        <label>Nombre completo <small>{{ empleadoEdit.id ? '(el del reporte de RH)' : '(obligatorio)' }}</small></label>
         <input type="text" [(ngModel)]="empleadoEdit.nombreCompleto"
                placeholder="Ej. GARCIA TAPIA LUCIA">
       </div>
       <div class="hz-field">
-        <label>Nombre en el reloj <small>(como viene enrolada en el equipo)</small></label>
+        <label>Nombre en el reloj <small>{{ empleadoEdit.id ? '(como viene enrolada en el equipo)' : '(opcional: si lo dejas vacío se usa el completo)' }}</small></label>
         <input type="text" [(ngModel)]="empleadoEdit.nombre" placeholder="Ej. Luciagarciatapia">
       </div>
 

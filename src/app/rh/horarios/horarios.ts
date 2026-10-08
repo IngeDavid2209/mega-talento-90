@@ -570,12 +570,31 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   subiendoFoto = false;
 
+  // ══ ALTA DESDE EL PORTAL, ANTES QUE EN EL RELOJ (08/10/2026) ══
+  // Para que no vuelva a pasar lo de "Donnacho": RH da de alta primero aquí, con
+  // nombre completo y departamento, y el portal le da el NÚMERO con el que el
+  // encargado enrola la huella. Cuando el reloj reporta ese número, la ficha ya
+  // está completa: la ingesta solo rellena lo vacío.
+  numeroSugerido = '';
   nuevoEmpleado(esPromotora = false) {
     this.empleadoEdit = {
       sucursalId: this.sucursalFiltro || CENTROS_CON_RELOJ[0].id,
       codigoChecador: '', nombre: '', puesto: '', departamento: '', fotoUrl: '', activo: true,
       esPromotora
     };
+    this.deptoNuevo = '';
+    this.sugerirNumero();
+  }
+
+  /** Pone el siguiente número libre de la plaza (solo en un alta nueva). */
+  async sugerirNumero() {
+    const e = this.empleadoEdit;
+    if (!e || e.id || !e.sucursalId) return;
+    this.numeroSugerido = '';
+    try {
+      const r = await this.checador.numeroReloj(e.sucursalId);
+      if (this.empleadoEdit === e) { this.numeroSugerido = r.siguiente; e.codigoChecador = r.siguiente; }
+    } catch { /* sin sugerencia, RH lo escribe */ }
   }
   editarEmpleado(e: Empleado) {
     // `departamento` siempre viaja (aunque sea vacío): así la API distingue
@@ -769,9 +788,38 @@ export class HorariosComponent implements OnInit, OnDestroy {
   async guardarEmpleadoModal() {
     if (!this.empleadoEdit) return;
     const e = this.empleadoEdit;
+    const esAlta = !e.id;
+    // En un alta, el nombre del reloj puede quedar vacío: se usa el completo.
+    if (esAlta && !String(e.nombre || '').trim()) e.nombre = String(e.nombreCompleto || '').trim();
     if (!e.nombre.trim() || !e.codigoChecador.trim() || !e.sucursalId) {
       this.toast.alerta('El empleado necesita nombre, código del reloj y sucursal.');
       return;
+    }
+    // Un alta va COMPLETA: sin nombre completo y departamento es justo la ficha
+    // que después nadie reconoce en el reporte.
+    if (esAlta && (!String(e.nombreCompleto || '').trim() || !String(e.departamento || '').trim())) {
+      this.toast.alerta('Para dar de alta pon su nombre completo y su departamento: así se le reconoce en el reporte desde el primer día.');
+      return;
+    }
+    // ¿El número ya es de alguien en esa plaza? Un alta con ese número
+    // reemplazaría su ficha.
+    if (esAlta) {
+      try {
+        const r = await this.checador.numeroReloj(e.sucursalId, e.codigoChecador.trim());
+        if (r.ocupadoPor) {
+          if (r.ocupadoPor.activo) {
+            this.toast.alerta(`El número ${e.codigoChecador} ya es de ${r.ocupadoPor.nombre} en esta plaza. Usa el ${r.siguiente}, que está libre.`);
+            return;
+          }
+          const ok = await this.toast.confirmar({
+            titulo: 'Ese número ya se usó',
+            mensaje: `El número ${e.codigoChecador} era de ${r.ocupadoPor.nombre}, que está ${r.ocupadoPor.enPapelera ? 'en la papelera' : 'dada de baja'}. ` +
+              `Si es la misma persona que regresa, continúa. Si es alguien nuevo, mejor usa el ${r.siguiente}.`,
+            textoConfirmar: 'Es la misma persona',
+          });
+          if (!ok) return;
+        }
+      } catch { /* si no se pudo revisar, se sigue como antes */ }
     }
     // "+ Nuevo departamento": se guarda lo que se escribió.
     if (e.departamento === this.NUEVO_DEPTO) {
@@ -780,7 +828,9 @@ export class HorariosComponent implements OnInit, OnDestroy {
     }
     try {
       await this.checador.guardarEmpleado(e);
-      this.toast.exito('Empleado guardado.');
+      this.toast.exito(esAlta
+        ? `Listo. Enrola su huella en el reloj de ${this.nombreSucursal(e.sucursalId)} con el número ${e.codigoChecador}.`
+        : 'Empleado guardado.');
       this.cargarNuevos();
       this.empleadoEdit = null;
     } catch (err) {

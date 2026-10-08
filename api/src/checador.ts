@@ -166,6 +166,44 @@ checadorRouter.get('/empleados', async (req: Request, res: Response) => {
   } catch (e) { fallo(res, e, 'No se pudieron leer los empleados.'); }
 });
 
+/**
+ * GET /checador/empleados/numero?sucursalId=X[&codigo=Y] — EL NÚMERO DEL RELOJ
+ * PARA UN ALTA (08/10/2026).
+ *
+ * Para que no vuelva a pasar lo de "Donnacho": el alta empieza en el PORTAL, con
+ * nombre completo y departamento, y el portal le da el número con el que el
+ * encargado enrola la huella. Cuando el reloj reporta ese número, la ficha ya
+ * existe completa y la ingesta solo rellena lo vacío.
+ *
+ * `siguiente` es el mayor número de la plaza + 1, contando fichas (también las
+ * de la papelera: su huella puede seguir en el reloj) y códigos que aparecen en
+ * checadas. Con `codigo`, dice además de quién es ese número, si es de alguien.
+ */
+checadorRouter.get('/empleados/numero', async (req: Request, res: Response) => {
+  try {
+    const sucursalId = String((req.query as any).sucursalId || '').trim();
+    const codigo = String((req.query as any).codigo || '').trim();
+    if (!sucursalId) return res.status(400).json({ error: 'Falta sucursalId.' });
+    const { rows } = await pool.query(
+      `SELECT max(n)::int AS mayor FROM (
+         SELECT codigo_checador::bigint AS n FROM empleados WHERE sucursal_id = $1 AND codigo_checador ~ '^[0-9]{1,9}$'
+         UNION ALL
+         SELECT DISTINCT empleado_codigo::bigint FROM checadas WHERE sucursal_id = $1 AND empleado_codigo ~ '^[0-9]{1,9}$'
+       ) t`, [sucursalId]);
+    let ocupadoPor: any = null;
+    if (codigo) {
+      const o = await pool.query(
+        `SELECT nombre, nombre_completo, activo, eliminado_en FROM empleados WHERE sucursal_id = $1 AND codigo_checador = $2`,
+        [sucursalId, codigo]);
+      if (o.rows[0]) {
+        const r = o.rows[0];
+        ocupadoPor = { nombre: r.nombre_completo || r.nombre, activo: !!r.activo && !r.eliminado_en, enPapelera: !!r.eliminado_en };
+      }
+    }
+    res.json({ siguiente: String((rows[0]?.mayor || 0) + 1), ocupadoPor });
+  } catch (err) { fallo(res, err, 'No se pudo calcular el número del reloj.'); }
+});
+
 checadorRouter.post('/empleados', async (req: AuthedRequest, res: Response) => {
   try {
     const e = req.body || {};

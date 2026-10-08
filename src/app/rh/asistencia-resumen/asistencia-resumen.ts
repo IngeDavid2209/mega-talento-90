@@ -900,6 +900,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     inc: string; incTitulo: string;
     /** Contra su horario asignado: se fue antes / se pasó de la comida. */
     salioAntes?: boolean; comidaExcedida?: boolean;
+    /** Minutos que tomó de desayuno y de comida ese día (null si no hubo). */
+    desMin?: number | null; comMin?: number | null; desExcedido?: boolean;
   } {
     const d = e.diasPorFecha.get(fecha);
     // La incidencia se busca también en los PERIODOS de la persona: quien estuvo
@@ -932,6 +934,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       inc, incTitulo,
       salioAntes: (d.salidaAntesMin || 0) > 0,
       comidaExcedida: (d.comidaExcesoMin || 0) > 0,
+      // Lo que tomó de desayuno y comida, con la misma regla que la ficha.
+      desMin: this.pausasDe(d).desayunoMin,
+      comMin: this.pausasDe(d).comidaMin,
+      desExcedido: (d.desayunoExcesoMin || 0) > 0,
     };
   }
 
@@ -1285,6 +1291,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
    * "HH:MM – HH:MM" (separados por " · "); si la API identificó desayuno, es
    * el PRIMER tramo y el resto es comida.
    */
+  /** Minutos de desayuno y de comida de un día (la misma regla de la ficha). */
+  pausasDe(d: DiaAsistencia | undefined): { desayunoMin: number | null; comidaMin: number | null } {
+    const r = this.resumenDia(d);
+    return { desayunoMin: r.desayunoMin, comidaMin: r.comidaMin };
+  }
+
   private resumenDia(d: DiaAsistencia | undefined): Pick<FichaDia, 'jornada' | 'desayunoMin' | 'comidaMin' | 'horas' | 'descanso'> {
     if (!d) return { jornada: '', desayunoMin: null, comidaMin: null, horas: '', descanso: false };
     const hay = (x: string) => !!x && x !== '—';

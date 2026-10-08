@@ -654,8 +654,10 @@
                   @if (r.tipo === 'normal' && r.d; as d) {
                     <td [class.rep-tarde]="mideRetardo && d.atrasoMin > 0">{{ d.entrada }}
                       @if (p.horarioAsignado && mideRetardo && d.atrasoMin > 0) { <small class="hor-d hor-rojo">+{{ d.atrasoMin }} min</small> }</td>
-                    <td>{{ desayunoDe(d) || '—' }}</td>
+                    <td>{{ desayunoDe(d) || '—' }}
+                      @if (pausasDe(d).desayunoMin != null && desayunoDe(d).includes('–')) { <small class="rep-dur" [class.rep-pausa-exc]="!!d.desayunoExcesoMin">{{ pausasDe(d).desayunoMin }} min</small> }</td>
                     <td>{{ comidaDe(d) || '—' }}
+                      @if (pausasDe(d).comidaMin != null && !d.comidaExcesoMin) { <small class="rep-dur">{{ pausasDe(d).comidaMin }} min</small> }
                       @if (d.comidaExcesoMin) { <small class="hor-d hor-ambar">+{{ d.comidaExcesoMin }} min</small> }</td>
                     <td>@if (d.salida && d.salida !== '—') { {{ d.salida }} } @else { <span class="rep-sin">Sin checada</span> }
                       @if (d.salidaAntesMin) { <small class="hor-d hor-ambar">−{{ d.salidaAntesMin }} min</small> }</td>
@@ -706,6 +708,7 @@
         </div>
       }
 
+      <p class="rep-ley-pausas">Debajo de cada día: <b>D</b> minutos de desayuno · <b>C</b> minutos de comida. En ámbar, si se pasó.</p>
       <div class="rep-scroll">
         <table class="rep-tabla">
           <thead>
@@ -766,6 +769,12 @@
                         [attr.title]="celda(e, c.fecha).incTitulo || null">
                       <span class="rep-jornada" [class.hor-antes]="celda(e, c.fecha).salioAntes">{{ celda(e, c.fecha).jornada }}</span>
                       <span class="rep-comida" [class.hor-antes]="celda(e, c.fecha).comidaExcedida">{{ celda(e, c.fecha).comida }}</span>
+                      @if (celda(e, c.fecha).desMin != null || celda(e, c.fecha).comMin != null) {
+                        <span class="rep-pausas">
+                          @if (celda(e, c.fecha).desMin != null) { <span [class.rep-pausa-exc]="celda(e, c.fecha).desExcedido">D {{ celda(e, c.fecha).desMin }}</span> }
+                          @if (celda(e, c.fecha).comMin != null) { <span [class.rep-pausa-exc]="celda(e, c.fecha).comidaExcedida">C {{ celda(e, c.fecha).comMin }}</span> }
+                        </span>
+                      }
                     </td>
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>

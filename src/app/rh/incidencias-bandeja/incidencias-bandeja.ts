@@ -343,11 +343,41 @@ export class IncidenciasBandejaComponent implements OnInit, OnChanges {
       await this.checador.cerrarSemana(this.sucursalId, s.desde);
       this.toast.exito(`Semana ${s.numero} cerrada. La foto quedó guardada.`);
       await this.cargar();
+    } catch (e: any) {
+      // Gente que checó y no está identificada (08/10/2026): se dice quién, y
+      // solo se cierra si se escribe por qué.
+      const sinId: { codigo: string; nombre: string; sinNombre: boolean; sinDepartamento: boolean }[] | undefined = e?.error?.sinIdentificar;
+      if (sinId?.length) {
+        await this.cerrarConSinIdentificar(s, sinId);
+      } else {
+        console.error(e);
+        this.toast.error(mensajeDeError(e, 'No se pudo cerrar la semana.'));
+      }
+    } finally {
+      this.trabajando = '';
+    }
+  }
+
+  private async cerrarConSinIdentificar(s: SemanaCierre,
+      sinId: { codigo: string; nombre: string; sinNombre: boolean; sinDepartamento: boolean }[]) {
+    const lista = sinId.slice(0, 8).map((p) =>
+      `#${p.codigo} ${p.nombre} (${[p.sinNombre ? 'sin nombre completo' : '', p.sinDepartamento ? 'sin departamento' : ''].filter(Boolean).join(', ') || 'sin ficha'})`
+    ).join(' · ') + (sinId.length > 8 ? ` · y ${sinId.length - 8} más` : '');
+    const motivo = await this.toast.pedirTexto({
+      titulo: `${sinId.length} sin identificar en la semana ${s.numero}`,
+      mensaje: `Checaron esta semana y no se sabe bien quiénes son: ${lista}. ` +
+        'Lo mejor es completarlos en Horarios → Empleados ("Por identificar") y volver a cerrar. Si de todos modos hay que cerrar ya, escribe por qué: queda guardado en el cierre.',
+      textoConfirmar: 'Cerrar de todos modos',
+      campo: { etiqueta: '¿Por qué se cierra así?', placeholder: 'Ej. RH confirma sus nombres el lunes', obligatorio: true },
+    });
+    if (!motivo) return;
+    try {
+      await this.checador.cerrarSemana(this.sucursalId, s.desde, { motivo });
+      this.toast.exito(`Semana ${s.numero} cerrada, con ${sinId.length} sin identificar anotados en el cierre.`);
+      await this.cargar();
     } catch (e) {
       console.error(e);
       this.toast.error(mensajeDeError(e, 'No se pudo cerrar la semana.'));
-    } finally {
-      this.trabajando = '';
     }
   }
 
