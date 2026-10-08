@@ -1,0 +1,58 @@
+.he { display: flex; flex-direction: column; gap: 14px; }
+.he-head h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+.he-sub { margin: 4px 0 0; font-size: 13px; color: var(--text2); max-width: 780px; line-height: 1.5; }
+
+/* ── Barra (igual que la de Incidencias) ── */
+.he-barra { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.he-campo { display: flex; flex-direction: column; gap: 4px; }
+.he-campo span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); }
+.he-campo input { height: 36px; border: 1px solid var(--border-med); border-radius: 10px; padding: 0 10px; font: inherit; font-size: 13px; color: var(--ink); background: #fff; }
+.he-buscar input { width: 240px; max-width: 100%; }
+.he-filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+.he-filtro { height: 36px; padding: 0 12px; border: 1px solid var(--border-med); border-radius: 999px; background: #fff; color: var(--text2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.he-filtro.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.he-n { margin-left: 6px; font-variant-numeric: tabular-nums; opacity: .75; }
+
+/* ── Tabla ── */
+.he-vacio { margin: 0; padding: 28px; text-align: center; color: var(--text2); }
+.he-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--red-bg); color: var(--red-text); }
+.he-error button { border: 0; border-radius: 8px; padding: 7px 12px; background: var(--ink); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.he-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.he-cargando { opacity: .6; }
+.he-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.he-tabla th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); background: var(--surface3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.he-tabla td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+.he-tabla small { display: block; font-size: 11.5px; color: var(--text3); }
+.he-tabla small.he-ded { color: var(--amber-text); }
+.he-tabla tfoot td { background: var(--surface3); font-weight: 700; color: var(--ink); border-bottom: 0; }
+.he-fila { cursor: pointer; }
+.he-fila:hover td { background: var(--surface2); }
+.he-clv { font-family: 'DM Mono', monospace; color: var(--text3); white-space: nowrap; }
+.he-per b { color: var(--ink); }
+.he-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.he-saldo { font-weight: 800; color: var(--ink); }
+.he-pos { color: var(--green-text); }
+.he-neg { color: var(--red-text); }
+.he-gris { color: var(--text3); }
+.he-ver { width: 24px; color: var(--text3); text-align: center; }
+.he-det td { background: var(--surface2); }
+.he-det-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 24px; }
+.he-det-cols > div { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.he-det-cols > div > b { color: var(--ink); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.he-det-cols em { display: block; font-style: normal; color: var(--text3); font-size: 11.5px; }
+.he-nota { margin: 0; font-size: 12.5px; color: var(--text2); max-width: 780px; }
+
+/* ── Saldo inicial y ajustes ── */
+.he-btn { align-self: flex-start; min-height: 30px; padding: 0 11px; border: 1px solid var(--ink); border-radius: 9px; background: #fff; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.he-btn:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.he-btn-fuerte { background: var(--ink); color: #fff; }
+.he-btn:disabled { opacity: .45; cursor: not-allowed; }
+.he-link { border: 0; background: none; padding: 0 4px; color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.he-ajuste { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.he-ajuste .he-campo input { width: 80px; }
+.he-ajuste .he-motivo { flex: 1 1 220px; }
+.he-ajuste .he-motivo input { width: 100%; box-sizing: border-box; }
+.he-seg { display: inline-flex; border: 1px solid var(--border-med); border-radius: 10px; overflow: hidden; }
+.he-seg button { height: 36px; padding: 0 14px; border: 0; background: #fff; color: var(--text2); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.he-seg button.on { background: var(--ink); color: #fff; }
+.he-ajuste .he-btn { align-self: auto; min-height: 36px; }

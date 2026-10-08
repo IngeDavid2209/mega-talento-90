@@ -70,6 +70,16 @@ export interface DiaApi {
   comidaExcesoMin?: number | null;
   salidaAntesMin?: number | null;
   esperadoMin?: number | null;
+  // ── Horas extra y ajustes del día (08/10/2026) ──
+  /** A qué hora debía salir ese día. */
+  salidaEsperada?: string | null;
+  /** Horas extra ganadas ese día (bloques de 30 min). */
+  extraMin?: number;
+  /** "Desayuno distinto" / "Comida distinta": minutos que RH autorizó ese día. */
+  desayunoPermitidoMin?: number;
+  comidaPermitidaMin?: number;
+  /** "Cambio de día de descanso": este día pasó a ser descanso o de trabajo. */
+  descansoCambio?: 'descansa' | 'trabaja';
 }
 
 /** El horario de una persona, asignado por RH (manda sobre el deducido). */
@@ -280,6 +290,26 @@ export interface PersonaAsistencia {
   horarioAsignado?: HorarioAsignado | null;
   /** Lo que su horario pide trabajar en el periodo (null sin horario asignado). */
   minutosEsperados?: number | null;
+  /** Horas extra ganadas y usadas en el periodo. */
+  horasExtraGanadasMin?: number;
+  horasExtraUsadasMin?: number;
+  horasExtraSegun?: 'asignado' | 'deducido' | null;
+}
+
+// ══ BANCO DE HORAS EXTRA (08/10/2026) ══ ver api/src/agente-horarios/horas-extra.ts
+export interface DiaExtra { fecha: string; entrada: string | null; salida: string | null; salidaEsperada: string | null; extraMin: number; }
+export interface UsoExtra { id: string; desde: string; hasta: string; minutos: number; dias: number; totalMin: number; nota: string; }
+/** Saldo inicial o corrección de RH, con signo (+330 suma 5 h 30 min). */
+export interface AjusteExtra { id: string; fecha: string; minutos: number; motivo: string; creadoPor: string; creadoEn: string; }
+export interface PersonaExtra {
+  codigo: string; nombreCompleto: string; departamento: string | null;
+  segun: 'asignado' | 'deducido' | null; salida: string | null;
+  ganadasMin: number; usadasMin: number; ajustesMin: number; saldoMin: number;
+  ganadas: DiaExtra[]; usos: UsoExtra[]; ajustes: AjusteExtra[];
+}
+export interface BancoHorasExtra {
+  sucursalId: string; desde: string; hasta: string; bloqueMin: number;
+  sinHorarioFijo: number; personas: PersonaExtra[];
 }
 
 export interface AsistenciaPersonas {
@@ -784,6 +814,21 @@ export class ChecadorService {
    * de la del personal de planta. Es la MISMA regla con el filtro invertido —no
    * otro cálculo—, y de ahí sale la pantalla de Promotoría.
    */
+  /** El banco de horas extra de la plaza (o de una persona) al día `hasta`. */
+  async getHorasExtra(sucursalId: string, hasta: string, codigo?: string): Promise<BancoHorasExtra> {
+    return this.api.get<BancoHorasExtra>('/checador/agente/horas-extra',
+      codigo ? { sucursalId, hasta, codigo } : { sucursalId, hasta });
+  }
+
+  /** Saldo inicial o corrección del banco de horas extra (solo administradores). */
+  async crearAjusteHorasExtra(a: { sucursalId: string; codigo: string; minutos: number; motivo: string; fecha?: string }): Promise<AjusteExtra> {
+    return this.api.post<AjusteExtra>('/checador/agente/horas-extra/ajuste', a);
+  }
+  /** Quita un ajuste: no se borra, queda anulado con su motivo. */
+  async anularAjusteHorasExtra(id: string, motivo: string): Promise<void> {
+    await this.api.post(`/checador/agente/horas-extra/ajuste/${id}/anular`, { motivo });
+  }
+
   async getAsistencia(
     sucursalId: string, desde: string, hasta: string, soloPromotoras = false,
   ): Promise<AsistenciaPersonas> {

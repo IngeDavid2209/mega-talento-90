@@ -2,7 +2,7 @@ import { pool } from '../db';
 import * as hd from './horario-deducido';
 import { salidasHabitualesCache } from './presencia';
 import { asistenciaPersonas } from './asistencia-personas';
-import { incidenciasEnRango, tipoIncidencia } from '../incidencias';
+import { TIPOS_DE_AJUSTE, incidenciasEnRango, tipoIncidencia } from '../incidencias';
 
 /**
  * UBICACIÓN DE MI EQUIPO — quién está en cada RELOJ ahora mismo (29/09/2026).
@@ -199,7 +199,7 @@ export async function equipoAhora(fresco = false): Promise<EquipoAhora> {
     try {
       for (const i of await incidenciasEnRango(suc, fecha, fecha)) {
         // Una falta injustificada o una amonestación no justifican nada.
-        if (i.tipo === 'falta_injustificada' || i.tipo === 'amonestacion' || i.tipo === 'horario_distinto') continue;
+        if (i.tipo === 'falta_injustificada' || i.tipo === 'amonestacion' || TIPOS_DE_AJUSTE.has(i.tipo)) continue;
         const t = tipoIncidencia(i.tipo);
         justificadas.set(`${suc}|${i.empleadoCodigo}`, `${t?.etiqueta || i.tipo}${i.nota ? ': ' + i.nota : ''}`);
       }

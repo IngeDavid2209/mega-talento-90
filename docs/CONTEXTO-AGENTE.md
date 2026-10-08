@@ -204,6 +204,33 @@ comidaExcesoMin, salidaAntesMin, esperadoMin`), `horarioAsignado`, `minutosEsper
   `POST /checador/agente/horario-asignado/quitar` `{ sucursalId, codigos[] }` (borra la fila: vuelve
   al deducido).
 
+### 5.2b Horas extra, ajustes de pausa y cambio de descanso (08/10/2026)
+
+- **Horas extra ganadas** (por día, `extraMin`): lo que se queda después de su salida esperada
+  (`salidaEsperada` = referencia de entrada del día + jornada), **menos** lo que debía ese día (minutos
+  tarde + exceso de desayuno + exceso de comida), en **bloques completos de 30 min**
+  (`EXTRA_BLOQUE_MIN`), tope `EXTRA_MAX_DIA_MIN` = 6 h. Jornada: la del horario asignado (el sábado la
+  suya); sin asignado, la deducida **solo si es fija y de más de 5 h 20** (medio tiempo y rotativos no
+  generan: su horario cambia por día). Por persona: `horasExtraGanadasMin`, `horasExtraUsadasMin`,
+  `horasExtraSegun` ('asignado' | 'deducido' | null).
+- **Banco** (`agente-horarios/horas-extra.ts`, `GET /checador/agente/horas-extra?sucursalId[&hasta][&codigo]`):
+  saldo = ganadas − usadas desde `HORAS_EXTRA_DESDE` (env, por omisión `2026-09-24`). Las usadas salen
+  de las incidencias `horas_extra` (minutos × días). No se guarda: se recalcula. Lo único guardado son
+  los **ajustes** de RH (`horas_extra_ajustes`, db/horas-extra-ajustes.sql): saldo inicial o corrección
+  con signo, solo admin (`POST /checador/agente/horas-extra/ajuste`, `.../ajuste/:id/anular` con motivo;
+  no se borran). Saldo = ganadas − usadas + ajustes. Pestaña **Horas extra**
+  en Horarios (`rh/horas-extra`); saldo en la ficha y en el formulario de "Uso de horas extra".
+- **`desayuno_distinto` / `comida_distinta`** (DD/CD): de un día, `minutos` = lo autorizado; el exceso
+  de ese día se mide contra eso (y la comida de `esperadoMin`). Exigen motivo y quién autorizó. Se
+  capturan desde el botón "Horario distinto" de la ficha (selector Entrada / Desayuno / Comida); no van en
+  los menús (`SOLO_DESDE_FICHA` en el front).
+- **`cambio_descanso`** (DES): de un día. Ese día es descanso (`laboralPorFecha` → false) y el primer
+  descanso habitual de esa semana pasa a laborable (→ true; si no viene, es falta). Se leen las
+  incidencias de las semanas COMPLETAS que toca el periodo. Días marcados `descansoCambio`.
+- `TIPOS_DE_AJUSTE` (incidencias.ts) / `AJUSTES` (front): HD, DD, CD, DES **no justifican** el día.
+- Un día con incidencia se mide aunque la persona no haya checado en el periodo (antes, mirando un solo
+  día, el "Uso de horas extra" de un día completo no aparecía).
+
 ### 5.3 Reglas de alertas — `agente-horarios/reglas.ts`
 
 `analizarDia()` aplica: falta, retardo, checada duplicada, múltiples entradas, entrada sin salida, fuera

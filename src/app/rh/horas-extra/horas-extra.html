@@ -1,0 +1,140 @@
+<section class="he">
+  <header class="he-head">
+    <h2>Horas extra</h2>
+    <p class="he-sub">
+      Se gana lo que se queda <b>después de su hora de salida</b>, en bloques completos de 30 min
+      (45 min cuentan 30; 1 h 10 cuenta 1 h). Si ese día llegó tarde o se pasó del desayuno o de la comida,
+      primero repone eso. Se descuentan al capturar <b>Uso de horas extra</b> en la ficha o en Incidencias.
+      @if (datos) { Cuentan desde el {{ fecha(datos.desde) }}. }
+    </p>
+  </header>
+
+  <div class="he-barra">
+    <label class="he-campo">
+      <span>Saldo al</span>
+      <input type="date" [(ngModel)]="hasta" (change)="cargar()">
+    </label>
+    <label class="he-campo he-buscar">
+      <span>Buscar</span>
+      <input type="search" [(ngModel)]="busqueda" placeholder="Nombre, número o departamento" autocomplete="off">
+    </label>
+    <div class="he-filtros" role="group" aria-label="Qué personas ver">
+      <button type="button" class="he-filtro" [class.on]="filtro === 'saldo'" (click)="filtro = 'saldo'">
+        Con horas extra<span class="he-n">{{ cuantos('saldo') }}</span></button>
+      <button type="button" class="he-filtro" [class.on]="filtro === 'negativo'" (click)="filtro = 'negativo'">
+        Saldo negativo<span class="he-n">{{ cuantos('negativo') }}</span></button>
+      <button type="button" class="he-filtro" [class.on]="filtro === 'todos'" (click)="filtro = 'todos'">
+        Todos<span class="he-n">{{ cuantos('todos') }}</span></button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="he-error" role="alert"><span>{{ error }}</span><button type="button" (click)="cargar()">Reintentar</button></div>
+  } @else if (cargando && !datos) {
+    <p class="he-vacio">Calculando horas extra…</p>
+  } @else if (datos) {
+    @if (!visibles.length) {
+      <p class="he-vacio">
+        @if (filtro === 'negativo') { Nadie tiene saldo negativo. } @else { Nadie tiene horas extra en esta plaza todavía. }
+      </p>
+    } @else {
+      <div class="he-scroll" [class.he-cargando]="cargando">
+        <table class="he-tabla">
+          <thead>
+            <tr>
+              <th>Clv</th><th>Nombre</th><th>Su salida</th>
+              <th class="he-num">Ganadas</th><th class="he-num">Usadas</th><th class="he-num" title="Saldo inicial y correcciones de RH">Ajustes</th>
+              <th class="he-num">Saldo</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of visibles; track p.codigo) {
+              <tr class="he-fila" (click)="alternar(p)" [attr.aria-expanded]="abiertos.has(p.codigo)">
+                <td class="he-clv">{{ p.codigo }}</td>
+                <td class="he-per"><b>{{ p.nombreCompleto }}</b><small>{{ p.departamento || 'Sin departamento' }}</small></td>
+                <td>
+                  @if (p.segun) {
+                    {{ p.salida || '—' }}
+                    <small [class.he-ded]="p.segun === 'deducido'"
+                           [title]="p.segun === 'deducido' ? 'Salida deducida de sus checadas: asígnale horario para que sea exacta' : 'Horario asignado por RH'">
+                      {{ p.segun === 'asignado' ? 'Horario asignado' : 'Deducida' }}</small>
+                  } @else {
+                    <span class="he-gris">Sin horario fijo</span>
+                  }
+                </td>
+                <td class="he-num">{{ horas(p.ganadasMin) }}</td>
+                <td class="he-num">{{ horas(p.usadasMin) }}</td>
+                <td class="he-num">{{ p.ajustesMin ? (p.ajustesMin > 0 ? '+' : '') + horas(p.ajustesMin) : '' }}</td>
+                <td class="he-num he-saldo" [class.he-neg]="p.saldoMin < 0" [class.he-pos]="p.saldoMin > 0">{{ horas(p.saldoMin) }}</td>
+                <td class="he-ver">{{ abiertos.has(p.codigo) ? '▴' : '▾' }}</td>
+              </tr>
+              @if (abiertos.has(p.codigo)) {
+                <tr class="he-det">
+                  <td></td>
+                  <td colspan="7">
+                    <div class="he-det-cols">
+                      <div>
+                        <b>Ganadas</b>
+                        @for (g of p.ganadas; track g.fecha) {
+                          <span>{{ fecha(g.fecha) }} · salió {{ g.salida }}, debía {{ g.salidaEsperada }} · <b class="he-pos">+{{ horas(g.extraMin) }}</b></span>
+                        } @empty { <span class="he-gris">Ningún día todavía.</span> }
+                      </div>
+                      <div>
+                        <b>Usadas</b>
+                        @for (u of p.usos; track u.id) {
+                          <span>{{ periodoUso(u) }} · {{ horas(u.minutos) }}{{ u.dias > 1 ? ' por día' : '' }} · <b class="he-neg">−{{ horas(u.totalMin) }}</b>
+                            @if (u.nota) { <em>{{ u.nota }}</em> }</span>
+                        } @empty { <span class="he-gris">No ha usado.</span> }
+                      </div>
+                      <div>
+                        <b>Saldo inicial y ajustes</b>
+                        @for (j of p.ajustes; track j.id) {
+                          <span>{{ fecha(j.fecha) }} · <b [class.he-pos]="j.minutos > 0" [class.he-neg]="j.minutos < 0">{{ j.minutos > 0 ? '+' : '' }}{{ horas(j.minutos) }}</b>
+                            · {{ j.motivo }}
+                            @if (puedeAjustar) { <button type="button" class="he-link" (click)="quitarAjuste(p, j)">quitar</button> }</span>
+                        } @empty { <span class="he-gris">Sin ajustes.</span> }
+                        @if (puedeAjustar && ajuste?.codigo !== p.codigo) {
+                          <button type="button" class="he-btn" (click)="abrirAjuste(p)">{{ p.ajustes.length ? 'Ajustar saldo' : 'Capturar saldo inicial' }}</button>
+                        }
+                      </div>
+                    </div>
+                    @if (ajuste && ajuste.codigo === p.codigo) {
+                      <div class="he-ajuste" role="group" aria-label="Ajustar saldo">
+                        <div class="he-seg" role="radiogroup" aria-label="Sumar o restar">
+                          <button type="button" role="radio" [class.on]="ajuste.signo === 1" [attr.aria-checked]="ajuste.signo === 1" (click)="ajuste.signo = 1">Sumar</button>
+                          <button type="button" role="radio" [class.on]="ajuste.signo === -1" [attr.aria-checked]="ajuste.signo === -1" (click)="ajuste.signo = -1">Restar</button>
+                        </div>
+                        <label class="he-campo"><span>Horas</span><input id="he-aj-h" type="number" min="0" max="999" [(ngModel)]="ajuste.horas" placeholder="0"></label>
+                        <label class="he-campo"><span>Min</span><input id="he-aj-m" type="number" min="0" max="59" step="5" [(ngModel)]="ajuste.mins" placeholder="0"></label>
+                        <label class="he-campo he-motivo"><span>Motivo</span><input id="he-aj-motivo" type="text" maxlength="200" [(ngModel)]="ajuste.motivo"></label>
+                        <button type="button" class="he-btn he-btn-fuerte" (click)="guardarAjuste(p)" [disabled]="guardando || !minutosAjuste || ajuste.motivo.trim().length < 5">
+                          {{ guardando ? 'Guardando…' : 'Guardar' }}</button>
+                        <button type="button" class="he-link" (click)="ajuste = null">Cancelar</button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td></td><td>{{ visibles.length }} persona{{ visibles.length === 1 ? '' : 's' }}</td><td></td>
+              <td class="he-num">{{ horas(totales.ganadas) }}</td>
+              <td class="he-num">{{ horas(totales.usadas) }}</td><td></td>
+              <td class="he-num he-saldo">{{ horas(totales.saldo) }}</td><td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+    @if (datos.sinHorarioFijo) {
+      <p class="he-nota">
+        {{ datos.sinHorarioFijo }} persona{{ datos.sinHorarioFijo === 1 ? '' : 's' }} de la plaza no
+        genera{{ datos.sinHorarioFijo === 1 ? '' : 'n' }} horas extra porque no tiene{{ datos.sinHorarioFijo === 1 ? '' : 'n' }}
+        un horario fijo (medio tiempo, turnos que cambian o checan una vez al día). Asígnales su horario en Checadas → Horario
+        para que empiecen a contar.
+      </p>
+    }
+  }
+</section>

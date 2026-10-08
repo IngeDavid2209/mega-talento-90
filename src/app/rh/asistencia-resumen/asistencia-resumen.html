@@ -660,7 +660,8 @@
                       @if (pausasDe(d).comidaMin != null && !d.comidaExcesoMin) { <small class="rep-dur">{{ pausasDe(d).comidaMin }} min</small> }
                       @if (d.comidaExcesoMin) { <small class="hor-d hor-ambar">+{{ d.comidaExcesoMin }} min</small> }</td>
                     <td>@if (d.salida && d.salida !== '—') { {{ d.salida }} } @else { <span class="rep-sin">Sin checada</span> }
-                      @if (d.salidaAntesMin) { <small class="hor-d hor-ambar">−{{ d.salidaAntesMin }} min</small> }</td>
+                      @if (d.salidaAntesMin) { <small class="hor-d hor-ambar">−{{ d.salidaAntesMin }} min</small> }
+                      @if (d.extraMin) { <small class="hor-d fic-he-pill" [title]="'Debía salir a las ' + d.salidaEsperada">+{{ textoMinutos(d.extraMin) }} extra</small> }</td>
                     <td class="rep-hrs">{{ horasTexto(d.netasMin) }}</td>
                     <td class="rep-ret" [class.rep-ret-min]="mideRetardo && d.atrasoMin > 0">
                       @if (mideRetardo) { {{ d.atrasoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
@@ -1364,6 +1365,12 @@
           @if (fichaPausas.comida != null) { <span>Comida promedio <b>{{ fichaPausas.comida }} min</b></span> }
         </p>
       }
+      @if (fichaBanco) {
+        <p class="fic-pausas fic-he">
+          <span>Horas extra: saldo <b [class.fic-he-neg]="fichaBanco.saldoMin < 0">{{ saldoTexto(fichaBanco.saldoMin) }}</b></span>
+          <span>ganó {{ textoMinutos(fichaBanco.ganadasMin) }} · usó {{ textoMinutos(fichaBanco.usadasMin) }} desde el {{ fechaLarga(fichaBancoDesde) }}</span>
+        </p>
+      }
       @if (fichaPorDia.length) {
         <ul class="fic-dias">
           @for (d of fichaPorDia; track d.fecha) {
@@ -1372,6 +1379,8 @@
               <!-- Su jornada, desayuno y comida de ese día. -->
               <span class="fic-jornada">
                 @if (d.jornada) { <b>{{ d.jornada }}</b> } @else if (d.descanso) { Descanso } @else { Sin checadas }
+                @if (d.extraMin) { <span class="fic-pausa fic-he-pill" [title]="'Debía salir a las ' + d.salidaEsperada">+{{ textoMinutos(d.extraMin) }} extra</span> }
+                @if (d.descansoCambio === 'trabaja') { <span class="fic-pausa">Le tocaba trabajar (cambió su descanso)</span> }
                 @if (d.desayunoMin != null) { <span class="fic-pausa">Desayuno {{ d.desayunoMin }} min</span> }
                 @if (d.comidaMin != null) { <span class="fic-pausa">Comida {{ d.comidaMin }} min</span> }
                 @if (d.horas) { <span class="fic-pausa">{{ d.horas }}</span> }
@@ -1382,9 +1391,9 @@
               } @else {
               <!-- Horario distinto e incidencias en CUALQUIER día, esté en rojo o no. -->
               <span class="fic-acciones">
-                @if (d.jornada && horarioDistintoDe(d.fecha); as h) {
+                @if (puedeAjustar(d)) {
                   <button type="button" class="fic-hdist" [class.on]="hdAbierto === d.fecha" [disabled]="guardandoInc"
-                          (click)="hdAbierto = hdAbierto === d.fecha ? null : d.fecha; hdForm = null"
+                          (click)="abrirAjustes(d)"
                           [attr.aria-expanded]="hdAbierto === d.fecha"
                           [attr.aria-label]="'Horario distinto el ' + d.diaLabel">Horario distinto</button>
                 }
@@ -1397,12 +1406,48 @@
                 }
               </span>
               }
-              @if (!d.items.length && esSoloHorario(d.incs)) {
+              @if (!d.items.length && esCambioDescanso(d.incs)) {
+                <span class="fic-just-ok">✓ Su descanso de la semana</span>
+              } @else if (!d.items.length && esSoloHorario(d.incs)) {
                 <span class="fic-just-ok">✓ A tiempo en su horario</span>
               } @else if (!d.items.length && d.incs.length) {
                 <span class="fic-just-ok">✓ Justificado</span>
               }
-              @if (hdAbierto === d.fecha && horarioDistintoDe(d.fecha); as h) {
+              @if (hdAbierto === d.fecha && (ajustesDe(d).desayuno || ajustesDe(d).comida)) {
+                <span class="fic-hd-elegir fic-hd-modos" role="group" aria-label="Qué cambió ese día">
+                  <span>¿Qué cambió ese día?</span>
+                  @if (ajustesDe(d).entrada) {
+                    <button type="button" class="fic-hd-op" [class.on]="hdModo === 'entrada'" (click)="elegirModo(d, 'entrada')">Entrada</button>
+                  }
+                  @if (ajustesDe(d).desayuno) {
+                    <button type="button" class="fic-hd-op" [class.on]="hdModo === 'desayuno'" (click)="elegirModo(d, 'desayuno')">Desayuno</button>
+                  }
+                  @if (ajustesDe(d).comida) {
+                    <button type="button" class="fic-hd-op" [class.on]="hdModo === 'comida'" (click)="elegirModo(d, 'comida')">Comida</button>
+                  }
+                </span>
+              }
+              @if (hdAbierto === d.fecha && hdModo !== 'entrada' && pausaForm && pausaForm.fecha === d.fecha) {
+                <span class="fic-hd-form fic-pausa-form">
+                  <span class="fic-pausa-q">Tomó <b>{{ pausaForm.tomo }} min</b> de {{ pausaForm.tipo }}. ¿Cuánto tenía autorizado ese día?</span>
+                  <label><span>Minutos</span>
+                    <input type="number" min="0" max="240" step="5" [(ngModel)]="pausaForm.minutos"></label>
+                  <label><span>¿Por qué?</span>
+                    <input type="text" maxlength="200" [(ngModel)]="pausaForm.motivo"
+                           [placeholder]="pausaForm.tipo === 'desayuno' ? 'Ej. desayuno con proveedor' : 'Ej. comida de cumpleaños del área'"></label>
+                  <label><span>¿Quién lo autorizó?</span>
+                    <input type="text" maxlength="80" [(ngModel)]="pausaForm.autorizo"
+                           placeholder="Ej. Lic. Pérez, encargado de sucursal"></label>
+                  <span class="fic-pausa-acc">
+                    <button type="button" class="fic-hd-op on" (click)="guardarPausa()"
+                            [disabled]="guardandoInc || pausaForm.minutos == null || !pausaForm.motivo.trim() || !pausaForm.autorizo.trim()">
+                      {{ guardandoInc ? 'Guardando…' : 'Guardar' }}
+                    </button>
+                    <button type="button" class="fic-hd-no" (click)="hdAbierto = null; pausaForm = null">Cancelar</button>
+                  </span>
+                </span>
+              }
+              @if (hdAbierto === d.fecha && hdModo === 'entrada' && horarioDistintoDe(d.fecha); as h) {
                 <span class="fic-hd-elegir">
                   <span>Checó a las <b>{{ h.entrada }}</b>. ¿A qué hora entró ese día?</span>
                   @for (o of h.opciones; track o.min) {
@@ -1443,6 +1488,10 @@
                     <span class="inc-cod" [attr.data-t]="c.tipo">{{ c.codigo }}</span>
                     @if (c.tipo === 'horario_distinto') {
                       Horario distinto: entró a las {{ aHoraMin(c.minutos || 0) }}
+                    } @else if (c.tipo === 'desayuno_distinto' || c.tipo === 'comida_distinta') {
+                      {{ c.tipo === 'desayuno_distinto' ? 'Desayuno' : 'Comida' }} autorizada de {{ c.minutos }} min
+                    } @else if (c.tipo === 'cambio_descanso') {
+                      Cambio de día de descanso@if (c.nota) {: {{ c.nota }}}
                     } @else {
                       {{ c.etiqueta }}@if (c.minutos) { ({{ textoMinutos(c.minutos) }})}@if (c.nota) {: {{ c.nota }}}
                     }
@@ -1529,7 +1578,8 @@
         <div>
           <h3>{{ incForm.tipo.etiqueta }}</h3>
           <span class="ar-card-sub">
-            @if (esHorasExtra) { Sus horas se suman a las del día. }
+            @if (esHorasExtra) { Sus horas se suman a las del día y se descuentan de su saldo. }
+            @else if (esCambioDescansoInc) { Mueve su día de descanso de esa semana. }
             @else if (incForm.tipo.excusaFalta) { Los días que cubra quedan justificados. }
             @else { Queda registrada; no cambia el cálculo. }
           </span>
@@ -1554,13 +1604,22 @@
             <label><input type="number" min="0" max="12" [(ngModel)]="incForm.horas" placeholder="0"> h</label>
             <label><input type="number" min="0" max="59" step="5" [(ngModel)]="incForm.mins" placeholder="0"> min</label>
           </div>
-          <small class="inc-horas-ayuda">Se suman a las horas trabajadas de ese día, y el día queda justificado.</small>
+          <small class="inc-horas-ayuda">Se suman a las horas trabajadas de ese día, el día queda justificado y se descuentan de su saldo.</small>
+          @if (incSaldo) {
+            <small class="inc-horas-ayuda">Saldo de horas extra: <b>{{ saldoTexto(incSaldo.saldoMin) }}</b>
+              @if (incUsoTotal > incSaldo.saldoMin) { <span class="inc-saldo-falta"> · no le alcanza: quedaría en {{ saldoTexto(incSaldo.saldoMin - incUsoTotal) }}</span> }
+            </small>
+          }
         </div>
+      }
+      @if (esCambioDescansoInc) {
+        <small class="inc-horas-ayuda">El día que elijas será su descanso de esa semana, y su descanso habitual de esa misma semana
+          pasa a ser día de trabajo: si no viene, cuenta como falta.</small>
       }
 
       <label class="inc-campo">
         <span>¿A quién?</span>
-        <select [(ngModel)]="incForm.codigo">
+        <select [ngModel]="incForm.codigo" (ngModelChange)="incForm.codigo = $event; cargarSaldoInc()">
           <option value="">Elige a la persona…</option>
           @for (e of personasParaIncidencia; track e.codigo) {
             <option [value]="e.codigo">{{ e.nombreCompleto }} · #{{ e.codigo }}</option>
@@ -1575,8 +1634,10 @@
                   [class.on]="incForm.cuando === 'hoy'" (click)="incForm.cuando = 'hoy'">Solo hoy</button>
           <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'dia'"
                   [class.on]="incForm.cuando === 'dia'" (click)="incForm.cuando = 'dia'">Otro día</button>
-          <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'rango'"
-                  [class.on]="incForm.cuando === 'rango'" (click)="incForm.cuando = 'rango'">Varios días</button>
+          @if (!esCambioDescansoInc) {
+            <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'rango'"
+                    [class.on]="incForm.cuando === 'rango'" (click)="incForm.cuando = 'rango'">Varios días</button>
+          }
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, AuthedRequest } from '../auth';
+import { requireAuth, AuthedRequest, esAdminReq, quienReq } from '../auth';
 import { detectar } from './detector';
 import {
   guardarBorradores, reconciliarBorradores, listarAlertas, decidirAlerta,
@@ -9,6 +9,7 @@ import { getJefe, listarJefes, upsertJefe } from './jefes';
 import { notificarJefe } from './notificador';
 import { estadoCorredor, correrUnaVez } from './corredor';
 import { asistenciaPersonas } from './asistencia-personas';
+import { bancoHorasExtra, hoyMexico, crearAjuste, anularAjuste } from './horas-extra';
 import { presenciaAhora } from './presencia';
 import { equipoAhora } from './equipo';
 import { crucesEntrePlazas } from './cruces-plazas';
@@ -117,6 +118,61 @@ agenteHorariosRouter.get('/asistencia', async (req: Request, res: Response) => {
     }));
   } catch (e) {
     fallo(res, e, 'No se pudo calcular la asistencia.');
+  }
+});
+
+/**
+ * GET /checador/agente/horas-extra?sucursalId[&hasta][&codigo]
+ * El banco de horas extra de la plaza (o de una persona): ganadas, usadas y
+ * saldo, desde HORAS_EXTRA_DESDE hasta `hasta` (hoy si no viene).
+ */
+agenteHorariosRouter.get('/horas-extra', async (req: Request, res: Response) => {
+  try {
+    const { sucursalId, codigo } = req.query as any;
+    const hasta = String((req.query as any).hasta || hoyMexico());
+    if (!sucursalId) return res.status(400).json({ error: 'Falta sucursalId.' });
+    if (!RE_FECHA.test(hasta)) return res.status(400).json({ error: 'hasta debe venir como yyyy-MM-dd.' });
+    res.json(await bancoHorasExtra(String(sucursalId), hasta, codigo ? String(codigo).trim() : undefined));
+  } catch (e) {
+    fallo(res, e, 'No se pudieron calcular las horas extra.');
+  }
+});
+
+/**
+ * POST /checador/agente/horas-extra/ajuste { sucursalId, codigo, minutos, motivo, fecha? }
+ * Saldo inicial o corrección del banco de una persona (minutos con signo).
+ * Solo administradores: mueve lo que se le paga o se le descuenta a alguien.
+ */
+agenteHorariosRouter.post('/horas-extra/ajuste', async (req: AuthedRequest, res: Response) => {
+  try {
+    if (!esAdminReq(req)) return res.status(403).json({ error: 'Solo servicios al personal puede ajustar el saldo de horas extra.' });
+    const { sucursalId, codigo } = req.body || {};
+    const minutos = Math.round(Number(req.body?.minutos));
+    const motivo = String(req.body?.motivo ?? '').trim();
+    const fecha = String(req.body?.fecha || hoyMexico());
+    if (!sucursalId || !codigo) return res.status(400).json({ error: 'Faltan sucursalId y codigo.' });
+    if (!Number.isFinite(minutos) || minutos === 0 || Math.abs(minutos) > 100000) {
+      return res.status(400).json({ error: 'Indica cuántas horas suma o resta (distinto de cero).' });
+    }
+    if (motivo.length < 5) return res.status(400).json({ error: 'Escribe el motivo del ajuste (por ejemplo, "saldo que traía al 23 de septiembre").' });
+    if (!RE_FECHA.test(fecha)) return res.status(400).json({ error: 'La fecha debe venir como yyyy-MM-dd.' });
+    res.json(await crearAjuste({ sucursalId: String(sucursalId), codigo: String(codigo).trim(), minutos, motivo, fecha, quien: quienReq(req) }));
+  } catch (e) {
+    fallo(res, e, 'No se pudo guardar el ajuste.');
+  }
+});
+
+/** POST /checador/agente/horas-extra/ajuste/:id/anular { motivo } — no se borra, se anula. */
+agenteHorariosRouter.post('/horas-extra/ajuste/:id/anular', async (req: AuthedRequest, res: Response) => {
+  try {
+    if (!esAdminReq(req)) return res.status(403).json({ error: 'Solo servicios al personal puede quitar un ajuste de horas extra.' });
+    const motivo = String(req.body?.motivo ?? '').trim();
+    if (motivo.length < 5) return res.status(400).json({ error: 'Escribe por qué se quita el ajuste.' });
+    const ok = await anularAjuste(String(req.params.id), motivo, quienReq(req));
+    if (!ok) return res.status(404).json({ error: 'Ese ajuste ya no existe o ya estaba anulado.' });
+    res.json({ ok: true });
+  } catch (e) {
+    fallo(res, e, 'No se pudo quitar el ajuste.');
   }
 });
 

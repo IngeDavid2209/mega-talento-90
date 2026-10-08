@@ -24,6 +24,7 @@ async function main() {
     'departamentos-mayusculas.sql', // una sola escritura por departamento
     'incidencias-flujo.sql', // estados de la incidencia + bitácora + cierre de semana
     'horario-asignado.sql',  // el horario de cada persona, puesto por RH
+    'horas-extra-ajustes.sql', // saldo inicial y correcciones del banco de horas extra
   ];
   const dirDb = join(__dirname, '..', '..', 'db');
   for (const archivo of archivos) {

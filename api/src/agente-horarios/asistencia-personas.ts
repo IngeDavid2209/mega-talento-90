@@ -69,6 +69,24 @@ function menosDias(fecha: string, dias: number): string {
 function siguienteDia(fecha: string): string {
   return menosDias(fecha, -1);
 }
+/**
+ * ══ HORAS EXTRA (08/10/2026, regla de RH) ══
+ *
+ * Es hora extra lo que se queda DESPUÉS de su hora de salida, y solo cuenta en
+ * bloques completos de 30 min (45 min = 30; 1 h 10 = 1 h). Si ese día llegó
+ * tarde o se pasó del desayuno o de la comida, primero repone eso: quien entra
+ * una hora tarde y se va una hora tarde no hizo horas extra. Un día con más de
+ * `EXTRA_MAX_DIA_MIN` se topa ahí: casi siempre es una checada de más.
+ */
+export const EXTRA_BLOQUE_MIN = 30;
+export const EXTRA_MAX_DIA_MIN = 6 * 60;
+
+/** Los minutos de la incidencia de ese tipo en el día, o null si no hay. */
+function minutosDe(incs: IncidenciaDia[], tipo: string): number | null {
+  const i = incs.find((x) => x.tipo === tipo && x.minutos != null);
+  return i ? Number(i.minutos) : null;
+}
+
 /** Proporción de días con UNA marca a partir de la cual es crónico. */
 const UMBRAL_UNA_MARCA = 0.7;
 const DATO_VALIDO = `fecha::date > '2023-01-01'`;
@@ -115,6 +133,16 @@ export interface DiaVista extends hd.DiaMedido {
   salidaAntesMin?: number | null;
   /** Lo que su horario pide trabajar ese día, en minutos (0 si no le toca). */
   esperadoMin?: number | null;
+  // ── Horas extra (08/10/2026) ──
+  /** A qué hora debía salir ese día (su referencia de entrada + su jornada). */
+  salidaEsperada?: string | null;
+  /** Horas extra GANADAS ese día, en bloques de 30 min (ver EXTRA_BLOQUE_MIN). */
+  extraMin?: number;
+  /** "Desayuno distinto" / "Comida distinta": los minutos que RH autorizó ese día. */
+  desayunoPermitidoMin?: number;
+  comidaPermitidaMin?: number;
+  /** "Cambio de día de descanso": este día pasó a ser su descanso, o a ser de trabajo. */
+  descansoCambio?: 'descansa' | 'trabaja';
 }
 
 /** Una incidencia de RH, tal como se pinta en la celda del día. */
@@ -187,6 +215,15 @@ export interface PersonaAsistencia {
   horarioAsignado: HorarioAsignado | null;
   /** Lo que su horario pide trabajar en el periodo (null sin horario asignado). */
   minutosEsperados: number | null;
+  /** Horas extra ganadas en el periodo (bloques de 30 min después de su salida). */
+  horasExtraGanadasMin: number;
+  /** Horas extra que usó en el periodo ("Uso de horas extra"). */
+  horasExtraUsadasMin: number;
+  /**
+   * Contra qué salida se midieron: la de su horario asignado (la exacta), la
+   * deducida de sus checadas (revisar), o null si no se le calculan.
+   */
+  horasExtraSegun: 'asignado' | 'deducido' | null;
 }
 
 /**
@@ -586,8 +623,12 @@ export async function asistenciaPersonas(
     contexto(sucursalId),
     confirmados(sucursalId),
     justificantes(sucursalId, desde, hasta),
-    incidenciasEnRango(sucursalId, desde, hasta),
+    // Las semanas COMPLETAS que toca el periodo: un cambio de descanso del
+    // domingo mueve también el día de trabajo de esa semana, aunque el periodo
+    // empiece el lunes. Lo que se muestra se sigue recortando al periodo.
+    incidenciasEnRango(sucursalId, hd.inicioSemana(desde), menosDias(hd.inicioSemana(hasta), -6)),
   ]);
+  const enPeriodo = (i: { desde: string; hasta: string }) => i.desde <= hasta && i.hasta >= desde;
 
   // (código → fecha → incidencias). Una incidencia es un PERIODO; aquí se
   // abre en días, recortado al rango, para pegarla a cada celda.
@@ -716,6 +757,14 @@ export async function asistenciaPersonas(
         diasAMedir.push({ fecha: f, marcas: [] });
       }
       diasAMedir.sort((x, y) => x.fecha.localeCompare(y.fecha));
+    } else if (primeraChecada && incPorDia.has(cod)) {
+      // Sin checadas en el periodo pero con incidencias (vacaciones, uso de horas
+      // extra…): esos días se miden igual, para que la incidencia se vea y cuente.
+      // Antes, mirando un solo día, quien usó horas extra el día completo no
+      // aparecía y sus horas no se sumaban (08/10/2026).
+      for (const f of [...incPorDia.get(cod)!.keys()].sort()) {
+        if (f >= piso && f <= techo) diasAMedir.push({ fecha: f, marcas: [] });
+      }
     }
 
     // ── 3) El RETARDO se mide solo en el rango, contra ese horario ──
@@ -761,6 +810,27 @@ export async function asistenciaPersonas(
         for (const f of fechasDelRango) if (hd.diaSemana(f) === 6 && !horarioDelDia.has(f)) horarioDelDia.set(f, sab);
       }
     }
+    // CAMBIO DE DÍA DE DESCANSO (08/10/2026): el día capturado es su descanso de
+    // esa semana y su descanso habitual de ESA semana (jueves a miércoles) pasa
+    // a ser de trabajo: si no viene, es falta. Sin días laborales conocidos solo
+    // se marca el descanso. Se buscan en las semanas completas del periodo.
+    const laboralPorFecha = new Map<string, boolean>();
+    const descansoCambio = new Map<string, 'descansa' | 'trabaja'>();
+    const diasLab = laboralesAsig || ho.diasLaborales;
+    const cambiosDesc = incidencias
+      .filter((i) => i.empleadoCodigo === cod && i.tipo === 'cambio_descanso')
+      .map((i) => i.desde).sort();
+    for (const f of cambiosDesc) {
+      laboralPorFecha.set(f, false); descansoCambio.set(f, 'descansa');
+      if (!diasLab) continue;
+      for (let k = 0, g = hd.inicioSemana(f); k < 7; k++, g = siguienteDia(g)) {
+        if (g !== f && !diasLab.includes(hd.diaSemana(g)) && !laboralPorFecha.has(g)) {
+          laboralPorFecha.set(g, true); descansoCambio.set(g, 'trabaja');
+          break;
+        }
+      }
+    }
+
     // Con horario asignado, la entrada es la suya aunque no haya historia para
     // deducir nada (alguien que acaba de entrar ya tiene horario).
     const entradaUsar = asig ? hd.aMinutos(asig.entrada) : ho.entradaMin;
@@ -773,6 +843,7 @@ export async function asistenciaPersonas(
       diasLaborales: laboralesAsig || ho.diasLaborales,
       ausenciasPrevias,
       medirRetardo: !sinHorario && cfg.medirRetardo !== false,
+      laboralPorFecha: laboralPorFecha.size ? laboralPorFecha : null,
     });
     if (sinHorario) {
       for (const s of re.semanas) for (const d of s.dias) d.referencia = null;
@@ -893,12 +964,38 @@ export async function asistenciaPersonas(
     let excusadoReal = 0, excusadoAtraso = 0, diasRetardoExcusados = 0;
     // Lo que su horario asignado pide trabajar en el periodo.
     let esperados = 0;
+    // Horas extra del periodo: las que ganó y las que usó.
+    let extraGanadas = 0, extraUsadasPeriodo = 0;
+    // Cuánto dura su jornada ese día (entrada a salida, con la comida adentro),
+    // para saber a qué hora debía salir. Con horario asignado, el de RH (el
+    // sábado puede ser otro); si no, el deducido de sus checadas. Sin horario
+    // asignado NO se calculan para un rotativo ni para medio tiempo (jornada de
+    // 5 h 20 o menos): su horario cambia de un día a otro —medio tiempo de 8 a 12
+    // el lunes y de 8 a 16 el viernes— y la salida deducida no es la de ese día.
+    const jornadaDe = (f: string): number | null => {
+      if (asig) {
+        const sab = hd.diaSemana(f) === 6;
+        const e = hd.aMinutos(sab ? asig.sabadoEntrada || asig.entrada : asig.entrada);
+        const s = hd.aMinutos(sab ? asig.sabadoSalida || asig.salida : asig.salida);
+        return e !== null && s !== null && s > e ? s - e : null;
+      }
+      if (sinHorario || ho.tipo === 'rotativo' || ho.entradaMin == null || ho.salidaMin == null) return null;
+      const j = ho.salidaMin - ho.entradaMin;
+      return j > 320 && j <= 14 * 60 ? j : null;
+    };
+    const extraSegun: 'asignado' | 'deducido' | null = asig ? 'asignado'
+      : jornadaDe(hasta) !== null ? 'deducido' : null;
     const semanas = (re?.semanas || []).map((s) => {
       let minSemana = 0;
       let excReal = 0, excAtraso = 0;
       const diasVista = s.dias.map((d): DiaVista => {
         const det = detalleDia(datos?.horas.get(d.fecha) || [], desayunoCfg);
         const incs = incDeEl.get(d.fecha) || [];
+        // DESAYUNO / COMIDA DISTINTOS (08/10/2026): ese día RH autorizó otro
+        // tiempo; el exceso de ese día se mide contra el que autorizó.
+        const desPermitido = minutosDe(incs, 'desayuno_distinto');
+        const comPermitidaDia = minutosDe(incs, 'comida_distinta');
+        if (desPermitido !== null && det.desayunoMin !== null) det.desayunoExcesoMin = Math.max(0, det.desayunoMin - desPermitido);
         // USO DE HORAS EXTRA: los minutos que usó ese día se SUMAN a lo que
         // trabajó (29/09/2026). Si faltó el día completo usando horas, esas
         // horas son las de su jornada.
@@ -922,11 +1019,30 @@ export async function asistenciaPersonas(
           const leToca = (laboralesAsig as number[]).includes(hd.diaSemana(d.fecha));
           const ent = hd.aMinutos(sab ? asig.sabadoEntrada || asig.entrada : asig.entrada);
           const sal = hd.aMinutos(sab ? asig.sabadoSalida || asig.salida : asig.salida);
-          const comPermitida = sab ? 0 : asig.comidaMin;
+          const comPermitida = comPermitidaDia ?? (sab ? 0 : asig.comidaMin);
           esperadoMin = leToca && ent !== null && sal !== null ? Math.max(0, sal - ent - comPermitida) : 0;
           if (leToca && sal !== null && det.salidaMin !== null && det.netasMin !== null) salidaAntesMin = Math.max(0, sal - det.salidaMin);
           if (leToca && comPermitida > 0 && det.comidaMin !== null) comidaExcesoMin = Math.max(0, det.comidaMin - comPermitida);
         }
+        if (comPermitidaDia !== null) comidaExcesoMin = det.comidaMin !== null ? Math.max(0, det.comidaMin - comPermitidaDia) : null;
+        // ══ HORAS EXTRA GANADAS ══ (ver EXTRA_BLOQUE_MIN)
+        // Debía salir a su entrada de ese día (la referencia: su horario, su
+        // turno o el horario distinto que capturó RH) más su jornada.
+        let extraMin = 0;
+        let salidaEsperada: string | null = null;
+        const refMin = hd.aMinutos(d.referencia ?? null);
+        const jornadaDia = jornadaDe(d.fecha);
+        if (refMin !== null && jornadaDia !== null && det.salidaMin !== null && det.netasMin !== null) {
+          const esperada = refMin + jornadaDia;
+          salidaEsperada = hd.aHora(esperada);
+          const debe = (d.atrasoMin || 0) + (det.desayunoExcesoMin || 0) + (comidaExcesoMin || 0);
+          const bruto = det.salidaMin - esperada - debe;
+          if (bruto >= EXTRA_BLOQUE_MIN) {
+            extraMin = Math.min(EXTRA_MAX_DIA_MIN, Math.floor(bruto / EXTRA_BLOQUE_MIN) * EXTRA_BLOQUE_MIN);
+          }
+        }
+        extraGanadas += extraMin;
+        extraUsadasPeriodo += extraUsadas;
         const extra = {
           comida: det.comida,
           horasNetas: formatHoras(netas),
@@ -940,6 +1056,11 @@ export async function asistenciaPersonas(
           comidaExcesoMin,
           salidaAntesMin,
           esperadoMin,
+          salidaEsperada,
+          extraMin,
+          ...(desPermitido !== null ? { desayunoPermitidoMin: desPermitido } : {}),
+          ...(comPermitidaDia !== null ? { comidaPermitidaMin: comPermitidaDia } : {}),
+          ...(descansoCambio.has(d.fecha) ? { descansoCambio: descansoCambio.get(d.fecha) } : {}),
         };
         if (justificacion && d.estado === 'falta') {
           faltasJustificadas++;
@@ -1030,7 +1151,7 @@ export async function asistenciaPersonas(
       minutosTrabajados: minTrabajados,
       diasConIncidencia,
       incidencias: incidencias
-        .filter((i) => i.empleadoCodigo === cod)
+        .filter((i) => i.empleadoCodigo === cod && enPeriodo(i))
         .map((i) => {
           const t = tipoIncidencia(i.tipo);
           return {
@@ -1051,6 +1172,9 @@ export async function asistenciaPersonas(
       bloqueadoPor: bloqueantes.map((m) => m.codigo),
       horarioAsignado: asig,
       minutosEsperados: asig ? esperados : null,
+      horasExtraGanadasMin: extraGanadas,
+      horasExtraUsadasMin: extraUsadasPeriodo,
+      horasExtraSegun: extraSegun,
     });
   }
 

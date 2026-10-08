@@ -55,6 +55,11 @@
       Incidencias
       @if (incPorCalificar) { <span class="hz-tab-num hz-tab-alerta">{{ incPorCalificar }}</span> }
     </button>
+    <!-- Banco de horas extra: lo que se queda después de su salida, menos lo que usa. -->
+    <button [class.active]="tabActiva === 'horas-extra'" (click)="cambiarTab('horas-extra')"
+            title="Lo que cada quien se quedó después de su hora de salida (en bloques de 30 min), lo que ya usó y su saldo.">
+      Horas extra
+    </button>
     <button [class.active]="tabActiva === 'cruces'" (click)="cambiarTab('cruces')"
             title="Quién checó en el reloj de otra plaza. Mira todas las plazas a la vez.">
       Cruces
@@ -96,6 +101,13 @@
     <section class="hz-panel">
       <app-incidencias-bandeja [sucursalId]="sucursalFiltro" [empleados]="empleados"
                                (pendientes)="incPorCalificar = $event"></app-incidencias-bandeja>
+    </section>
+  }
+
+  <!-- ========================= HORAS EXTRA ========================= -->
+  @if (tabActiva === 'horas-extra') {
+    <section class="hz-panel">
+      <app-horas-extra [sucursalId]="sucursalFiltro"></app-horas-extra>
     </section>
   }
 

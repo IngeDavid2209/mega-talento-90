@@ -23,9 +23,10 @@ import { SucursalSelectComponent } from '../ui/sucursal-select/sucursal-select';
 import { UbicacionEquipoComponent } from '../ubicacion-equipo/ubicacion-equipo';
 import { PapeleraEmpleadosComponent } from '../papelera-empleados/papelera-empleados';
 import { IncidenciasBandejaComponent } from '../incidencias-bandeja/incidencias-bandeja';
+import { HorasExtraComponent } from '../horas-extra/horas-extra';
 import { AuthSession } from '../../core/services/auth-session';
 
-type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'incidencias' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'equipo' | 'papelera';
+type Tab = 'checadas' | 'tolerancia' | 'faltas' | 'incidencias' | 'horas-extra' | 'cruces' | 'horarios' | 'areas' | 'empleados' | 'equipo' | 'papelera';
 
 /**
  * El detalle de asistencia de UNA persona, tal como lo devuelve la API. No se
@@ -44,7 +45,7 @@ interface DetalleEmpleado {
 @Component({
   selector: 'app-horarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent, UbicacionEquipoComponent, PapeleraEmpleadosComponent, IncidenciasBandejaComponent],
+  imports: [CommonModule, FormsModule, AsistenciaResumenComponent, SucursalSelectComponent, CrucesPlazasComponent, UbicacionEquipoComponent, PapeleraEmpleadosComponent, IncidenciasBandejaComponent, HorasExtraComponent],
   templateUrl: './horarios.html',
   styleUrl: './horarios.css'
 })
