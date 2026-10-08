@@ -1,4 +1,5 @@
 import { EntradaDia, Inconsistencia, ChecadaMin, Severidad } from './tipos';
+import { DUPLICADA_MIN } from './horario-deducido';
 
 /**
  * MOTOR DE DETECCIÓN — lógica PURA (sin DB, sin Express). Testeable directo:
@@ -251,7 +252,14 @@ function reglaDesayunoExcedido(e: EntradaDia): Inconsistencia | null {
   const corte = minDeHora(config.desayunoHastaHora);
   if (corte == null) return null;
 
-  const marcas = aMarcas(e.checadas);
+  // Las lecturas repetidas del lector (dos marcas a menos de DUPLICADA_MIN) son
+  // UNA sola: igual que horario-deducido.ts::colapsarDuplicadas, que es lo que
+  // usa la pantalla. Sin esto, una entrada marcada dos veces (07:29 y 07:29)
+  // se volvía "pausa", y la alerta decía "desayuno de 116 min (07:29–09:25)".
+  const marcas = aMarcas(e.checadas).reduce<Marca[]>((out, m) => {
+    if (!out.length || m.min - out[out.length - 1].min >= DUPLICADA_MIN) out.push(m);
+    return out;
+  }, []);
   if (marcas.length < 4) return null;            // sin jornada + una pausa entera
   const medio = marcas.slice(1, -1);
   // CON UNA SOLA PAUSA, ESA PAUSA ES LA COMIDA (08/10/2026). El desayuno solo
