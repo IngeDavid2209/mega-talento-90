@@ -466,12 +466,15 @@ export function detalleDia(
   // mismo día, que es la peor forma de perder la confianza en un reporte.
   let desayunoMin: number | null = null;
   let pausas = 0;
+  // Con una sola pausa, es la comida: el desayuno solo existe si hay dos.
+  // Mismo criterio que reglas.ts::reglaDesayunoExcedido (08/10/2026).
+  const hayDosPausas = Math.floor(medio.length / 2) >= 2;
   for (let i = 0; i < medio.length; i += 2) {
     if (i + 1 < medio.length) {
       tramos.push(`${hd.aHora(medio[i])} – ${hd.aHora(medio[i + 1])}`);
       fuera += medio[i + 1] - medio[i];
       pausas++;
-      if (desayuno && desayunoMin == null && medio[i] < desayuno.hastaMin) {
+      if (desayuno && hayDosPausas && desayunoMin == null && medio[i] < desayuno.hastaMin) {
         const dur = medio[i + 1] - medio[i];
         // El mismo techo que en reglas.ts: si no es creíble como desayuno, no se
         // reporta como tal. Si aquí se mostrara y allá no, la pantalla acusaría

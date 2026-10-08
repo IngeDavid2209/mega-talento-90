@@ -254,6 +254,13 @@ function reglaDesayunoExcedido(e: EntradaDia): Inconsistencia | null {
   const marcas = aMarcas(e.checadas);
   if (marcas.length < 4) return null;            // sin jornada + una pausa entera
   const medio = marcas.slice(1, -1);
+  // CON UNA SOLA PAUSA, ESA PAUSA ES LA COMIDA (08/10/2026). El desayuno solo
+  // existe cuando el día trae DOS pausas (desayuno y comida, como corporativo).
+  // Antes bastaba con que la pausa empezara antes del corte (13:00): la comida
+  // de las 12:16 de una tienda salía como "desayuno de 59 min" y generó 553 de
+  // las 584 alertas de desayuno excedido de un mes. Mismo criterio que
+  // asistencia-personas.ts::detalleDia.
+  if (Math.floor(medio.length / 2) < 2) return null;
 
   let pausa: { ini: Marca; fin: Marca } | null = null;
   for (let i = 0; i + 1 < medio.length; i += 2) {
