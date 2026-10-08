@@ -10,6 +10,7 @@ import { ETAPAS, ETAPA_CONTRATADO, ID_ETAPAS, FLUJO_LINEAL } from '../../core/mo
 import { debeCerrarseSeguimiento } from '../../core/models/seguimiento.model';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthSession } from '../../core/services/auth-session';
+import { BotService, EstadoEnviosBot } from '../../core/services/bot.service';
 
 @Component({
   selector: 'app-layout',
@@ -29,6 +30,21 @@ export class LayoutComponent implements OnInit, OnDestroy {
   capitalHumano = inject(CapitalHumanoService);
   private toast = inject(ToastService);
   private auth = inject(AuthSession);
+  private bot = inject(BotService);
+
+  // ══ AVISO: EL BOT NO PUEDE ENVIAR (08/10/2026) ══
+  // Si Meta bloquea los envíos (p. ej. pagos pendientes de WhatsApp Business),
+  // el bot sigue recibiendo pero nadie recibe respuesta. Se revisa cada 5 min y
+  // se avisa arriba de todo el portal, para que RH se entere el mismo día.
+  envioBot: EstadoEnviosBot | null = null;
+  private relojBot: any;
+  private async revisarBot() { this.envioBot = await this.bot.estadoEnvios(); }
+  /** "desde el sábado 4 de octubre, 7:54 p.m." */
+  desdeBot(iso: string | null): string {
+    if (!iso) return '';
+    const f = new Date(iso);
+    return f.toLocaleString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+  }
 
   /**
    * ¿Se le muestra Promotoría a este usuario?
@@ -75,6 +91,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private unsubscribeFn: any;
 
   async ngOnInit() {
+    this.revisarBot();
+    this.relojBot = setInterval(() => this.ngZone.run(() => this.revisarBot()), 5 * 60 * 1000);
     // Verificar el estado actual del permiso (sin pedirlo aún)
     this.estadoNotif = this.notificaciones.getEstado();
 
@@ -149,6 +167,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.relojBot) clearInterval(this.relojBot);
     if (this.unsubscribeFn) this.unsubscribeFn();
   }
 

@@ -42,8 +42,32 @@ export interface MensajeBot {
   creado_en: string;
 }
 
+/** ¿WhatsApp está dejando salir los mensajes del bot? (lo publica /salud del bot). */
+export interface EstadoEnviosBot {
+  bloqueado: boolean;
+  desde: string | null;
+  rechazos: number;
+  motivo: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BotService {
+  /**
+   * Estado de los envíos del bot (08/10/2026). Del 04/10 al 08/10 Meta rechazó
+   * TODOS los mensajes por pagos pendientes de la cuenta de WhatsApp Business y
+   * nadie se enteró en cuatro días. null = no se pudo consultar (no se avisa).
+   */
+  async estadoEnvios(): Promise<EstadoEnviosBot | null> {
+    try {
+      const res = await fetch(`${BOT_URL}/salud`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.whatsapp ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   private toast = inject(ToastService);
 
   /**

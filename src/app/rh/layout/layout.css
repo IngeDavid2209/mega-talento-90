@@ -630,3 +630,11 @@
   .brand-section { border-left: none; padding-left: 4px; }
   .actions-section .env-badge { display: none; }
 }
+
+/* Aviso: el bot de WhatsApp no puede enviar (08/10/2026) */
+.aviso-bot {
+  margin: 0 0 14px; padding: 10px 14px; border-radius: 10px;
+  background: var(--red-bg); color: var(--red-text); border: 1px solid rgba(161, 38, 38, .25);
+  font-size: 13px; line-height: 1.45;
+}
+.aviso-bot b { font-weight: 800; }

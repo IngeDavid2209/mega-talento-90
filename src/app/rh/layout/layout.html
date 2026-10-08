@@ -278,6 +278,15 @@
   </nav>
 
   <main class="content-area">
+    @if (envioBot?.bloqueado) {
+      <div class="aviso-bot" role="alert">
+        <b>El bot de WhatsApp no está pudiendo enviar mensajes</b>
+        @if (envioBot?.desde) { desde el {{ desdeBot(envioBot!.desde) }} }.
+        Recibe lo que escriben los candidatos, pero WhatsApp rechaza sus respuestas
+        ({{ envioBot?.motivo || 'problema de la cuenta' }}). Se arregla pagando en el centro de
+        facturación de WhatsApp Business (Meta); en cuanto salga un mensaje, este aviso se quita solo.
+      </div>
+    }
     <router-outlet></router-outlet>
 
   </main>
