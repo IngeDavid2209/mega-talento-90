@@ -234,7 +234,8 @@ async function sinIdentificar(sucursalId: string, desde: string, hasta: string) 
       WHERE (e.codigo_checador IS NULL
              OR (coalesce(btrim(e.nombre_completo), '') = '' OR coalesce(btrim(e.departamento), '') = ''))
         AND NOT coalesce(e.es_promotora, false)
-        AND coalesce(e.departamento, '') !~* 'promotor'
+        -- Mismo criterio que tipos.ts::esDeptoDePromotoria.
+        AND NOT (coalesce(e.departamento, '') ~* 'promotor' AND coalesce(e.departamento, '') !~* 'mega\\s*dulces')
         AND coalesce(e.nombre, '') !~* '^\\s*admin'
       ORDER BY a.n DESC`, [sucursalId, desde, hasta]);
   return rows.map((r: any) => ({

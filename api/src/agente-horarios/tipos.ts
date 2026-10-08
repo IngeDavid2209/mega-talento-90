@@ -35,7 +35,19 @@ export function esPromotora(
 ): boolean {
   if (!ficha) return false;
   if (ficha.es_promotora === true) return true;
-  return /promotor/i.test(String(ficha.departamento || ''));
+  return esDeptoDePromotoria(ficha.departamento);
+}
+
+/**
+ * ¿Es un departamento de PROMOTORÍA DE MARCA? (la promotora la paga la marca y
+ * no se mide en la asistencia de piso). "PROMOTORIA MEGA DULCES" NO lo es: a
+ * esas las paga Mega Dulces y se miden como personal (08/10/2026). Es la única
+ * regla: la usan esPromotora(), el cierre de semana y el guardado de la ficha,
+ * que mantiene la casilla de acuerdo con el departamento (ver checador.ts).
+ */
+export function esDeptoDePromotoria(departamento: string | null | undefined): boolean {
+  const d = String(departamento || '');
+  return /promotor/i.test(d) && !/mega\s*dulces/i.test(d);
 }
 
 /** Reglas soportadas por el detector. */

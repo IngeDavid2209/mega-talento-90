@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from './db';
 import { requireAuth, AuthedRequest } from './auth';
+import { esDeptoDePromotoria } from './agente-horarios/tipos';
 
 /**
  * Router del módulo Horarios y checadas. Todo protegido con JWT.
@@ -225,7 +226,7 @@ checadorRouter.post('/empleados', async (req: AuthedRequest, res: Response) => {
                        departamento=COALESCE(EXCLUDED.departamento, empleados.departamento)
        RETURNING *`,
       [e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null, e.fotoUrl || null, e.horarioId || null,
-       e.activo !== false, e.esPromotora === true, e.nombreCompleto ?? null, e.departamento ?? null,
+       e.activo !== false, e.esPromotora === true || esDeptoDePromotoria(e.departamento), e.nombreCompleto ?? null, e.departamento ?? null,
        req.usuario?.email || null]
     );
     res.json(mapEmpleado(rows[0]));
@@ -241,9 +242,48 @@ checadorRouter.post('/empleados', async (req: AuthedRequest, res: Response) => {
  * a un empleado ya dado de alta no guardaba nada. Se descubrió al agregar la
  * marca de promotora, que se guarda justamente por esta ruta.
  */
+/**
+ * DEPARTAMENTO Y "ES PROMOTORA", SIEMPRE DE ACUERDO (08/10/2026).
+ *
+ * Son dos datos que dicen lo mismo —¿se mide en la asistencia de piso o no?—
+ * y se cambiaban por separado: RH movía a alguien de PROMOTORAS a "SUCURSAL
+ * CANINDO" y la casilla seguía puesta, así que no aparecía en Checadas; o la
+ * pasaba "a planta" desde Promotoría y su departamento seguía diciendo
+ * PROMOTORAS, y tampoco aparecía. Aquí, en el único lugar por el que pasan
+ * todas las pantallas, se ponen de acuerdo:
+ *   · si cambió el DEPARTAMENTO (y la casilla no): la casilla sigue al
+ *     departamento — uno de promotoría de marca la marca; cualquier otro no;
+ *   · si cambió la CASILLA a "planta" y su departamento es de promotoría: se
+ *     le quita ese departamento (queda por asignar, y sale en "Por
+ *     identificar" para ponerle el bueno).
+ * `departamento` undefined = la llamada no lo trae y no se toca.
+ */
+export function conciliarPromotora(
+  antes: { esPromotora: boolean; departamento: string | null },
+  pide: { esPromotora: boolean; departamento: string | undefined },
+): { esPromotora: boolean; departamento: string | undefined } {
+  const norm = (d: any) => String(d ?? '').trim().replace(/\s+/g, ' ').toUpperCase();
+  const deptoFinal = pide.departamento === undefined ? norm(antes.departamento) : norm(pide.departamento);
+  const cambioDepto = pide.departamento !== undefined && deptoFinal !== norm(antes.departamento);
+  const cambioFlag = pide.esPromotora !== antes.esPromotora;
+  let flag = pide.esPromotora;
+  let depto = pide.departamento;
+  if (cambioDepto && !cambioFlag) flag = esDeptoDePromotoria(deptoFinal);
+  if (!flag && esDeptoDePromotoria(deptoFinal)) {
+    if (cambioFlag) depto = '';        // la pasaron a planta: el departamento de promotoría ya no aplica
+    else flag = true;                  // sigue en un departamento de promotoría
+  }
+  return { esPromotora: flag, departamento: depto };
+}
+
 const actualizarEmpleado = async (req: AuthedRequest, res: Response) => {
   try {
     const e = req.body || {};
+    const actual = (await pool.query('SELECT es_promotora, departamento FROM empleados WHERE id=$1', [req.params.id])).rows[0];
+    if (!actual) return res.status(404).json({ error: 'Empleado no encontrado.' });
+    const { esPromotora: flag, departamento: depto } = conciliarPromotora(
+      { esPromotora: !!actual.es_promotora, departamento: actual.departamento },
+      { esPromotora: e.esPromotora === true, departamento: e.departamento });
     const { rows } = await pool.query(
       // `nombre_completo` NO se pisa cuando llega vacío, y eso es lo importante.
       //
@@ -267,8 +307,8 @@ const actualizarEmpleado = async (req: AuthedRequest, res: Response) => {
               baja_por=CASE WHEN $8 THEN NULL WHEN activo THEN $13 ELSE baja_por END
        WHERE id=$1 RETURNING *`,
       [req.params.id, e.sucursalId, e.codigoChecador, e.nombre, e.puesto || null,
-       e.fotoUrl || null, e.horarioId || null, e.activo !== false, e.esPromotora === true,
-       e.nombreCompleto ?? null, e.departamento !== undefined, e.departamento ?? '',
+       e.fotoUrl || null, e.horarioId || null, e.activo !== false, flag,
+       e.nombreCompleto ?? null, depto !== undefined, depto ?? '',
        req.usuario?.email || null]
     );
     if (!rows.length) return res.status(404).json({ error: 'Empleado no encontrado.' });

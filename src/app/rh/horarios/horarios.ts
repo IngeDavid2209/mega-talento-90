@@ -337,6 +337,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     try {
       await this.checador.guardarEmpleado({ ...e, activo: true });
       e.activo = true;
+      this.recargaAsistencia++;
       this.toast.exito(`${e.nombre} volvió al padrón.`);
     } catch (err) {
       console.error(err);
@@ -832,6 +833,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
         ? `Listo. Enrola su huella en el reloj de ${this.nombreSucursal(e.sucursalId)} con el número ${e.codigoChecador}.`
         : 'Empleado guardado.');
       this.cargarNuevos();
+      this.recargaAsistencia++;   // Checadas lo refleja al volver: sin esto parecía que no se guardó
       this.empleadoEdit = null;
     } catch (err) {
       console.error(err);
@@ -857,6 +859,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     try {
       await this.checador.guardarEmpleado({ ...e, activo: false });
       e.activo = false;
+      this.recargaAsistencia++;
       this.toast.exito(`${nombre} se fue a la Papelera de empleados.`);
     } catch (err) {
       console.error(err);
