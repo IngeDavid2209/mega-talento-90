@@ -468,3 +468,5 @@
 .fic-pausa-q b { color: var(--ink); }
 .fic-pausa-acc { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
 @media (max-width: 520px) { .fic-pausa-form { grid-template-columns: 1fr; } }
+.rep-extra { display: block; font-size: 10.5px; font-weight: 700; color: var(--green-text); white-space: nowrap; }
+.rep-extra-tot { color: var(--green-text); font-weight: 700; }

@@ -543,7 +543,7 @@
                   <p class="hor-nota">Es su horario: contra él se miden su retardo, su tolerancia, sus horas y sus faltas en todo el portal.</p>
                 } @else {
                   <h4>Horario para {{ destinoHorario.length }} personas</h4>
-                  <p class="hor-nota">Se le pone el mismo horario a cada una de las personas que se ven en el reporte@if (seleccionParcial) { ({{ etiquetaSeleccion }})}.
+                  <p class="hor-nota">Se le pone el mismo horario a cada una de las personas que se ven en el reporte@if (seleccionParcial) { ({{ etiquetaSeleccion }})}@if (buscando) { (las que coinciden con la búsqueda)}@if (soloIrregulares) { (solo las irregulares)}.
                     Después se puede ajustar persona por persona.
                     @if (destinoConHorario) { <b>{{ destinoConHorario }}</b> ya tiene{{ destinoConHorario > 1 ? 'n' : '' }} uno y se reemplaza. }</p>
                 }
@@ -721,6 +721,7 @@
                 <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
               }
               <th class="rep-hrs" title="Horas netas del periodo: jornada menos comida. En corporativo el desayuno no se descuenta.">Horas</th>
+              <th class="rep-hrs" title="Horas extra ganadas en el periodo: lo que se quedó después de su hora de salida, en bloques de 30 min. El saldo está en la pestaña Horas extra.">H. extra</th>
               <th class="rep-ret"
                   [title]="mideRetardo ? 'Minutos tarde en la ENTRADA (primera checada) contra su hora exacta, que siempre es :00 o :30. La tolerancia semanal de 15 min se aplica en la pestaña Tolerancia.' : 'Esta plaza no tiene hora límite de entrada: no se mide retardo.'">
                 {{ mideRetardo ? 'Min. retardo' : 'Retardo' }}</th>
@@ -731,7 +732,7 @@
           <tbody>
             @for (g of porDepartamento; track g.departamento) { @if (empleadosVisibles(g).length) {
               <tr class="rep-depto">
-                <td [attr.colspan]="columnasDia.length + 6 + (hayHorariosAsignados ? 1 : 0)">
+                <td [attr.colspan]="columnasDia.length + 7 + (hayHorariosAsignados ? 1 : 0)">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length === totalDepto(g.departamento) ? g.empleados.length : g.empleados.length + ' de ' + totalDepto(g.departamento) }})</span>
                 </td>
               </tr>
@@ -776,9 +777,13 @@
                           @if (celda(e, c.fecha).comMin != null) { <span [class.rep-pausa-exc]="celda(e, c.fecha).comidaExcedida">C {{ celda(e, c.fecha).comMin }}</span> }
                         </span>
                       }
+                      @if (celda(e, c.fecha).extraMin) {
+                        <span class="rep-extra" [title]="'Horas extra: debía salir a las ' + celda(e, c.fecha).salidaEsperada">+{{ textoMinutos(celda(e, c.fecha).extraMin || 0) }} extra</span>
+                      }
                     </td>
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
+                  <td class="rep-hrs rep-extra-tot">{{ e.horasExtraMin ? horasTexto(e.horasExtraMin) : '' }}</td>
                   <td class="rep-ret" [class.rep-ret-min]="mideRetardo && e.atrasoBrutoMin > 0">
                     @if (mideRetardo) { {{ e.atrasoBrutoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
                   </td>
@@ -801,6 +806,7 @@
               <tr class="rep-subtotal">
                 <td [attr.colspan]="columnasDia.length + 3"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
+                <td class="rep-hrs rep-extra-tot">{{ extraDeGrupo(g) ? horasTexto(extraDeGrupo(g)) : '' }}</td>
                 <td class="rep-ret">{{ mideRetardo ? (g.retardos || 0) : '' }}</td>
                 @if (hayHorariosAsignados) { <td></td> }
                 <td></td>
@@ -808,13 +814,14 @@
               }
             } }
             @if (buscando && !coincidencias) {
-              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 6 + (hayHorariosAsignados ? 1 : 0)">Nadie coincide con "{{ busqueda }}".</td></tr>
+              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 7 + (hayHorariosAsignados ? 1 : 0)">Nadie coincide con "{{ busqueda }}".</td></tr>
             }
           </tbody>
           <tfoot>
             <tr class="rep-total">
               <td [attr.colspan]="columnasDia.length + 3">Totales</td>
               <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
+              <td class="rep-hrs rep-extra-tot">{{ extraTotales ? horasTexto(extraTotales) : '' }}</td>
               <td class="rep-ret">{{ mideRetardo ? totalRetardos : '—' }}</td>
               @if (hayHorariosAsignados) { <td></td> }
               <td></td>

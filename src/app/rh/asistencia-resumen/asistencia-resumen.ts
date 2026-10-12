@@ -123,6 +123,8 @@ export interface ConteosPendientes { rebasados: number; faltas: number; }
 /** Un empleado con todo su periodo desglosado. */
 interface EmpleadoAsistencia {
   codigo: string; nombre: string; fotoUrl: string; puesto: string; registrado: boolean;
+  /** Horas extra GANADAS en el periodo (bloques de 30 min después de su salida). */
+  horasExtraMin: number;
   // ── Para el reporte calcado (vista tabla) ──
   nombreCompleto: string;
   departamento: string;
@@ -704,7 +706,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get destinoHorario(): EmpleadoAsistencia[] {
     const uno = this.personaUnica;
     if (uno) return [uno];
-    return this.porDepartamento.flatMap(g => g.empleados).filter(e => e.registrado);
+    // EXACTAMENTE lo que se ve en la tabla (08/10/2026): con el buscador en una
+    // persona, el horario es para ella, no para la plaza. Antes se ignoraba la
+    // búsqueda y "Horario" ofrecía guardarlo a las 37 de Oficinas.
+    return this.porDepartamento.flatMap(g => this.empleadosVisibles(g)).filter(e => e.registrado);
   }
 
   /** Cuántos de los destinatarios ya tienen uno (y se les va a reemplazar). */
@@ -917,6 +922,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     salioAntes?: boolean; comidaExcedida?: boolean;
     /** Minutos que tomó de desayuno y de comida ese día (null si no hubo). */
     desMin?: number | null; comMin?: number | null; desExcedido?: boolean;
+    /** Horas extra ganadas ese día y a qué hora debía salir. */
+    extraMin?: number; salidaEsperada?: string;
   } {
     const d = e.diasPorFecha.get(fecha);
     // La incidencia se busca también en los PERIODOS de la persona: quien estuvo
@@ -953,7 +960,17 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       desMin: this.pausasDe(d).desayunoMin,
       comMin: this.pausasDe(d).comidaMin,
       desExcedido: (d.desayunoExcesoMin || 0) > 0,
+      extraMin: d.extraMin || 0,
+      salidaEsperada: d.salidaEsperada,
     };
+  }
+
+  /** Horas extra del departamento completo y de todo el reporte (subtotal y pie). */
+  extraDeGrupo(g: { empleados: EmpleadoAsistencia[] }): number {
+    return g.empleados.reduce((t, e) => t + (e.horasExtraMin || 0), 0);
+  }
+  get extraTotales(): number {
+    return this.porDepartamento.reduce((t, g) => t + this.extraDeGrupo(g), 0);
   }
 
   // ══ SUMA DE HORAS ═══════════════════════════════════════════════
@@ -2132,12 +2149,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
       const ancho = doc.internal.pageSize.getWidth();
 
-      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', this.mideRetardo ? 'Min. retardo' : 'Retardo']];
+      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'H. extra', this.mideRetardo ? 'Min. retardo' : 'Retardo']];
       const body: any[] = [];
       for (const g of grupos) {
         body.push([{
           content: `${g.departamento}  (${g.empleados.length})`,
-          colSpan: dias.length + 4,
+          colSpan: dias.length + 5,
           styles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
         }]);
         for (const e of g.empleados) {
@@ -2153,11 +2170,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             };
           });
           body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados),
+            e.horasExtraMin ? this.horasTexto(e.horasExtraMin) : '',
             this.mideRetardo ? (e.atrasoBrutoMin || '') : '—']);
         }
         body.push([{
           content: '', colSpan: dias.length + 2, styles: { fillColor: [255, 255, 255] },
         }, { content: this.horasTexto(this.minutosDeGrupo(g)), styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
+           { content: this.extraDeGrupo(g) ? this.horasTexto(this.extraDeGrupo(g)) : '', styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
            { content: this.mideRetardo ? String(g.retardos || 0) : '—', styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
       }
 
@@ -2171,6 +2190,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         body,
         foot: [[{ content: 'Totales', colSpan: dias.length + 2, styles: { halign: 'right' as const } },
                 { content: this.horasTexto(this.minutosTotales), styles: { halign: 'center' as const } },
+                { content: this.extraTotales ? this.horasTexto(this.extraTotales) : '', styles: { halign: 'center' as const } },
                 { content: String(this.totalRetardos), styles: { halign: 'right' as const } }]],
         startY: 20,
         margin: { top: 20, left: 8, right: 8, bottom: 12 },
@@ -2181,7 +2201,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           0: { cellWidth: 11, halign: 'center' },
           1: { cellWidth: dias.length > 10 ? 38 : 46 },
           [dias.length + 2]: { cellWidth: 15, halign: 'center' },
-          [dias.length + 3]: { cellWidth: 15, halign: 'center' },
+          [dias.length + 3]: { cellWidth: 13, halign: 'center' },
+          [dias.length + 4]: { cellWidth: 15, halign: 'center' },
         },
         // Una fila nunca se parte, y un encabezado de departamento no se queda
         // solo al pie de la hoja.
@@ -2602,6 +2623,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       atipicos: p.diasAtipicos,
       horasTrabajadas: p.horasTrabajadas,
       minutosTrabajados: p.minutosTrabajados ?? Math.round(p.horasTrabajadas * 60),
+      horasExtraMin: p.horasExtraGanadasMin || 0,
       incidencias: p.incidencias || [],
       ...this.irregularidadesDe(semanas, p.usable),
       presupuesto: this.datos?.bolsaSemanalMin ?? 15,
@@ -3026,6 +3048,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Comida': d.comida, 'Salida': d.salida, 'Horas netas': d.horasNetas,
             // En minutos, para que se pueda SUMAR en Excel: "8h 30m" es texto.
             'Horas netas (min)': d.netasMin || 0,
+            'Debía salir': d.salidaEsperada || '',
+            'Horas extra ganadas (min)': d.extraMin || '',
             'Desayuno pagado': d.desayunoPagado ? 'Sí' : '',
             'Incidencia': d.incidencias.map(i => i.etiqueta).join(', '),
             'Medido contra': d.referencia,
