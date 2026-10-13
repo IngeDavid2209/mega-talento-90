@@ -830,6 +830,14 @@ export async function asistenciaPersonas(
         }
       }
     }
+    // DESCANSO capturado por RH (13/10/2026): esos días son descanso, sin mover
+    // ningún otro. Va después del cambio de descanso: si chocan, manda este.
+    for (const i of incidencias) {
+      if (i.empleadoCodigo !== cod || i.tipo !== 'descanso') continue;
+      for (let f = i.desde; f <= i.hasta; f = siguienteDia(f)) {
+        laboralPorFecha.set(f, false); descansoCambio.set(f, 'descansa');
+      }
+    }
 
     // Con horario asignado, la entrada es la suya aunque no haya historia para
     // deducir nada (alguien que acaba de entrar ya tiene horario).

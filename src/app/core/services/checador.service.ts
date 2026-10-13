@@ -75,6 +75,8 @@ export interface DiaApi {
   salidaEsperada?: string | null;
   /** Horas extra ganadas ese día (bloques de 30 min). */
   extraMin?: number;
+  /** "Uso de horas extra": minutos que usó ese día (se suman a sus horas y se restan de su saldo). */
+  horasExtraUsadasMin?: number;
   /** "Desayuno distinto" / "Comida distinta": minutos que RH autorizó ese día. */
   desayunoPermitidoMin?: number;
   comidaPermitidaMin?: number;

@@ -82,6 +82,11 @@ export const TIPOS_INCIDENCIA: TipoIncidencia[] = [
   // y su descanso habitual de ESA semana pasa a ser día de trabajo (si no
   // viene, es falta). De un solo día. No "justifica": cambia qué día le toca.
   { tipo: 'cambio_descanso',     etiqueta: 'Cambio de día de descanso',  codigo: 'DES', excusaFalta: false },
+  // DESCANSO (13/10/2026): ese día (o esos días) es descanso, SIN mover su
+  // descanso habitual: para quien le tocan dos descansos en la semana, o para
+  // quitarle a unas vacaciones el día que de todos modos descansaba. Manda
+  // sobre las vacaciones u otra incidencia de esos días.
+  { tipo: 'descanso',            etiqueta: 'Descanso',                   codigo: 'DSC', excusaFalta: true },
 ];
 
 /** Tipos de UN solo día que ajustan cómo se mide ese día, sin justificarlo. */

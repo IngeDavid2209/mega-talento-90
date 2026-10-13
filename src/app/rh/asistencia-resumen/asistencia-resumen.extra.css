@@ -470,3 +470,15 @@
 @media (max-width: 520px) { .fic-pausa-form { grid-template-columns: 1fr; } }
 .rep-extra { display: block; font-size: 10.5px; font-weight: 700; color: var(--green-text); white-space: nowrap; }
 .rep-extra-tot { color: var(--green-text); font-weight: 700; }
+/* ── Elegir la semana (12/10/2026): la lista es invisible encima del número ── */
+.ar-semana-sel { position: relative; padding: 0 4px; gap: 4px; }
+.ar-field .ar-sem-lista { position: absolute; inset: 0 30px; width: auto; min-width: 0; height: 100%; opacity: 0; cursor: pointer; border: 0; }
+.ar-sem-flecha { position: relative; z-index: 1; width: 26px; height: 28px; border: 0; border-radius: 7px; background: none; color: var(--ink); font: inherit; font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; }
+.ar-sem-flecha:hover:not(:disabled) { background: var(--surface2); }
+.ar-sem-flecha:disabled { opacity: .3; cursor: default; }
+.ar-semana-sel:focus-within { outline: 2px solid var(--gold); outline-offset: 1px; }
+.rep-usada { display: block; font-size: 10.5px; font-weight: 700; color: var(--red-text); white-space: nowrap; }
+.rep-usada-tot { color: var(--red-text); font-weight: 700; }
+.rep-saldo-he { color: var(--ink); font-weight: 800; }
+.rep-saldo-he.rep-saldo-neg { color: var(--red-text); }
+.rep-he { white-space: nowrap; }

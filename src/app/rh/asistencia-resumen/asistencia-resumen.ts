@@ -56,6 +56,8 @@ interface DiaAsistencia {
   // ── Horas extra y ajustes del día (08/10/2026) ──
   salidaEsperada: string;
   extraMin: number;
+  /** Horas extra que USÓ ese día ("Uso de horas extra"). */
+  usadasMin: number;
   descansoCambio: '' | 'descansa' | 'trabaja';
 }
 
@@ -86,8 +88,8 @@ interface FichaDia {
   jornada: string; horas: string;
   desayunoMin: number | null; comidaMin: number | null;
   descanso: boolean;
-  /** Horas extra que ganó ese día y a qué hora debía salir. */
-  extraMin: number; salidaEsperada: string;
+  /** Horas extra que ganó (y que usó) ese día, y a qué hora debía salir. */
+  extraMin: number; salidaEsperada: string; usadasMin: number;
   descansoCambio: '' | 'descansa' | 'trabaja';
 }
 interface FichaInc { id: string; tipo: string; codigo: string; etiqueta: string; nota: string; minutos?: number | null; }
@@ -123,8 +125,9 @@ export interface ConteosPendientes { rebasados: number; faltas: number; }
 /** Un empleado con todo su periodo desglosado. */
 interface EmpleadoAsistencia {
   codigo: string; nombre: string; fotoUrl: string; puesto: string; registrado: boolean;
-  /** Horas extra GANADAS en el periodo (bloques de 30 min después de su salida). */
+  /** Horas extra GANADAS y USADAS en el periodo. El saldo va aparte (saldosHE). */
   horasExtraMin: number;
+  horasExtraUsadasMin: number;
   // ── Para el reporte calcado (vista tabla) ──
   nombreCompleto: string;
   departamento: string;
@@ -868,6 +871,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         return { fecha: c.fecha, etiqueta, d, tipo: 'normal' as const, texto: '' };
       }
       if (d?.falta) return { fecha: c.fecha, etiqueta, d, tipo: 'falta' as const, texto: cel.inc ? cel.incTitulo || cel.inc : 'Falta' };
+      if (d?.estadoDia === 'descanso' && cel.inc.startsWith('DESC.')) return { fecha: c.fecha, etiqueta, d, tipo: 'descanso' as const, texto: cel.incTitulo || 'Descanso' };
       if (cel.inc) return { fecha: c.fecha, etiqueta, d, tipo: 'incidencia' as const, texto: cel.incTitulo || cel.inc };
       if (d?.justificado) return { fecha: c.fecha, etiqueta, d, tipo: 'incidencia' as const, texto: d.justificacion || 'Justificado' };
       if (d?.estadoDia === 'descanso') {
@@ -923,7 +927,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     /** Minutos que tomó de desayuno y de comida ese día (null si no hubo). */
     desMin?: number | null; comMin?: number | null; desExcedido?: boolean;
     /** Horas extra ganadas ese día y a qué hora debía salir. */
-    extraMin?: number; salidaEsperada?: string;
+    extraMin?: number; salidaEsperada?: string; usadasMin?: number;
   } {
     const d = e.diasPorFecha.get(fecha);
     // La incidencia se busca también en los PERIODOS de la persona: quien estuvo
@@ -936,13 +940,21 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     // El descanso que se tomó en día laborable se dice como tal: un guion ahí
     // se leería como su descanso de siempre, y RH tiene que ver que se movió.
     if (d.estadoDia === 'descanso') {
-      return { jornada: inc || (d.descansoPorAusencia ? 'DESC.' : '—'), comida: '', retardo: false, falta: false, inc,
-               incTitulo: incTitulo || (d.descansoPorAusencia ? 'No checó en un día que normalmente trabaja; se tomó como su descanso de la semana.' : '') };
+      // Un día de descanso NO es de vacaciones (ni de otra incidencia que
+      // justifica): si unas vacaciones cruzan su domingo, ese domingo es su
+      // descanso. Solo se dejan los códigos que no justifican (FI, AMO…) y el
+      // de descanso capturado (13/10/2026).
+      const deDescanso = incs.filter(i => i.tipo === 'descanso' || i.tipo === 'cambio_descanso');
+      const otras = incs.filter(i => !deDescanso.includes(i) && !this.catalogoIncidencias.find(t => t.tipo === i.tipo)?.excusaFalta);
+      const codigos = [...(deDescanso.length ? ['DESC.'] : []), ...otras.map(i => i.codigo)].join('·');
+      const titulo = [...(deDescanso.length ? ['Descanso'] : []), ...otras.map(i => i.etiqueta + (i.nota ? ` — ${i.nota}` : ''))].join(' · ');
+      return { jornada: codigos || (d.descansoPorAusencia ? 'DESC.' : '—'), comida: '', retardo: false, falta: false, inc: codigos,
+               incTitulo: titulo || (d.descansoPorAusencia ? 'No checó en un día que normalmente trabaja; se tomó como su descanso de la semana.' : '') };
     }
     // El día justificado se marca como tal en el papel: dejarlo en blanco lo
     // haría indistinguible de un día sin dato, y en rojo sería una falta que RH
     // ya perdonó. Con incidencia, va su código (VAC, INC…) en vez de "JUST.".
-    if (d.justificado) return { jornada: inc || 'JUST.', comida: '', retardo: false, falta: false, inc, incTitulo };
+    if (d.justificado) return { jornada: inc || 'JUST.', comida: '', retardo: false, falta: false, inc, incTitulo, usadasMin: d.usadasMin || 0 };
     const ent = d.entrada && d.entrada !== '—' ? d.entrada : '0';
     const sal = d.salida && d.salida !== '—' ? d.salida : '0';
     const com = d.comida && d.comida !== '—' ? d.comida.replace(/\s*[–-]\s*/, ' - ') : '';
@@ -962,6 +974,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       desExcedido: (d.desayunoExcesoMin || 0) > 0,
       extraMin: d.extraMin || 0,
       salidaEsperada: d.salidaEsperada,
+      usadasMin: d.usadasMin || 0,
     };
   }
 
@@ -971,6 +984,40 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   }
   get extraTotales(): number {
     return this.porDepartamento.reduce((t, g) => t + this.extraDeGrupo(g), 0);
+  }
+  usadasDeGrupo(g: { empleados: EmpleadoAsistencia[] }): number {
+    return g.empleados.reduce((t, e) => t + (e.horasExtraUsadasMin || 0), 0);
+  }
+  get usadasTotales(): number {
+    return this.porDepartamento.reduce((t, g) => t + this.usadasDeGrupo(g), 0);
+  }
+
+  // ══ SALDO DE HORAS EXTRA EN EL REPORTE (13/10/2026) ══
+  // RH capturaba "Uso de horas extra" y no veía que se restara: la tabla solo
+  // decía lo GANADO. Ahora trae también lo usado y el saldo acumulado al
+  // último día del periodo (el mismo de la pestaña Horas extra).
+  saldosHE = new Map<string, number>();
+  private async cargarSaldosHE() {
+    const suc = this.sucursalFiltro, hasta = this.hasta;
+    try {
+      const b = await this.checador.getHorasExtra(suc, hasta);
+      if (suc !== this.sucursalFiltro || hasta !== this.hasta) return;
+      this.saldosHE = new Map(b.personas.map((p) => [p.codigo, p.saldoMin]));
+    } catch { this.saldosHE = new Map(); }
+  }
+  saldoHE(e: EmpleadoAsistencia): number | null {
+    return this.saldosHE.has(e.codigo) ? this.saldosHE.get(e.codigo)! : null;
+  }
+  saldoDeGrupo(g: { empleados: EmpleadoAsistencia[] }): number {
+    return g.empleados.reduce((t, e) => t + (this.saldoHE(e) || 0), 0);
+  }
+  get saldoTotales(): number {
+    return this.porDepartamento.reduce((t, g) => t + this.saldoDeGrupo(g), 0);
+  }
+  /** "−3h 00m" / "2h 30m" / '' para las columnas de horas extra. */
+  heTexto(m: number | null): string {
+    if (!m) return m === 0 ? '0' : '';
+    return (m < 0 ? '−' : '') + this.horasTexto(Math.abs(m));
   }
 
   // ══ SUMA DE HORAS ═══════════════════════════════════════════════
@@ -1306,7 +1353,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       if (!m.has(fecha)) {
         const d = this.ficha!.diasPorFecha.get(fecha);
         m.set(fecha, { fecha, diaLabel: label || d?.diaLabel || this.etiquetaDia(fecha), items: [], incs: [], ...this.resumenDia(d),
-          extraMin: d?.extraMin || 0, salidaEsperada: d?.salidaEsperada || '', descansoCambio: d?.descansoCambio || '' });
+          extraMin: d?.extraMin || 0, salidaEsperada: d?.salidaEsperada || '', usadasMin: d?.usadasMin || 0, descansoCambio: d?.descansoCambio || '' });
       }
       return m.get(fecha)!;
     };
@@ -1704,6 +1751,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             ` y se descuentan ${this.textoMinutos(this.incUsoTotal)} de su saldo de horas extra` +
             (this.incSaldo ? ` (le queda${this.incSaldo.saldoMin - this.incUsoTotal < 0 ? ' en negativo' : ''}: ${this.saldoTexto(this.incSaldo.saldoMin - this.incUsoTotal)}).` : '.')
           : this.esCambioDescansoInc ? ' Ese día será su descanso de la semana, y su descanso habitual de esa semana pasa a ser día de trabajo (si no viene, es falta).'
+          : f.tipo.tipo === 'descanso' ? ' Esos días cuentan como descanso (no como falta ni como vacaciones), y su descanso de siempre no se mueve.'
           : f.tipo.excusaFalta ? ' Esos días quedan justificados: no cuentan como falta ni como retardo.' : ''),
       textoConfirmar: 'Sí, registrar',
     });
@@ -2149,12 +2197,12 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
       const ancho = doc.internal.pageSize.getWidth();
 
-      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'H. extra', this.mideRetardo ? 'Min. retardo' : 'Retardo']];
+      const head = [['Clv', 'Nombre', ...dias.map(c => `${c.dow} ${c.dia}`), 'Horas', 'HE ganó', 'HE usó', 'HE saldo', this.mideRetardo ? 'Min. retardo' : 'Retardo']];
       const body: any[] = [];
       for (const g of grupos) {
         body.push([{
           content: `${g.departamento}  (${g.empleados.length})`,
-          colSpan: dias.length + 5,
+          colSpan: dias.length + 7,
           styles: { fillColor: [238, 242, 248], textColor: [26, 47, 78], fontStyle: 'bold' },
         }]);
         for (const e of g.empleados) {
@@ -2171,12 +2219,16 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           });
           body.push([e.codigo, e.nombreCompleto, ...celdas, this.horasTexto(e.minutosTrabajados),
             e.horasExtraMin ? this.horasTexto(e.horasExtraMin) : '',
+            e.horasExtraUsadasMin ? this.horasTexto(e.horasExtraUsadasMin) : '',
+            this.heTexto(this.saldoHE(e)),
             this.mideRetardo ? (e.atrasoBrutoMin || '') : '—']);
         }
         body.push([{
           content: '', colSpan: dias.length + 2, styles: { fillColor: [255, 255, 255] },
         }, { content: this.horasTexto(this.minutosDeGrupo(g)), styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
            { content: this.extraDeGrupo(g) ? this.horasTexto(this.extraDeGrupo(g)) : '', styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
+           { content: this.usadasDeGrupo(g) ? this.horasTexto(this.usadasDeGrupo(g)) : '', styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
+           { content: this.heTexto(this.saldoDeGrupo(g) || null), styles: { fontStyle: 'bold' as const, halign: 'center' as const } },
            { content: this.mideRetardo ? String(g.retardos || 0) : '—', styles: { fontStyle: 'bold' as const, halign: 'right' as const } }]);
       }
 
@@ -2191,6 +2243,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         foot: [[{ content: 'Totales', colSpan: dias.length + 2, styles: { halign: 'right' as const } },
                 { content: this.horasTexto(this.minutosTotales), styles: { halign: 'center' as const } },
                 { content: this.extraTotales ? this.horasTexto(this.extraTotales) : '', styles: { halign: 'center' as const } },
+                { content: this.usadasTotales ? this.horasTexto(this.usadasTotales) : '', styles: { halign: 'center' as const } },
+                { content: this.heTexto(this.saldoTotales || null), styles: { halign: 'center' as const } },
                 { content: String(this.totalRetardos), styles: { halign: 'right' as const } }]],
         startY: 20,
         margin: { top: 20, left: 8, right: 8, bottom: 12 },
@@ -2201,8 +2255,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
           0: { cellWidth: 11, halign: 'center' },
           1: { cellWidth: dias.length > 10 ? 38 : 46 },
           [dias.length + 2]: { cellWidth: 15, halign: 'center' },
-          [dias.length + 3]: { cellWidth: 13, halign: 'center' },
-          [dias.length + 4]: { cellWidth: 15, halign: 'center' },
+          [dias.length + 3]: { cellWidth: 12, halign: 'center' },
+          [dias.length + 4]: { cellWidth: 12, halign: 'center' },
+          [dias.length + 5]: { cellWidth: 13, halign: 'center' },
+          [dias.length + 6]: { cellWidth: 15, halign: 'center' },
         },
         // Una fila nunca se parte, y un encabezado de departamento no se queda
         // solo al pie de la hoja.
@@ -2485,6 +2541,47 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     this.hasta = r.hasta;
     this.cargar();
   }
+  // ══ ELEGIR LA SEMANA A REVISAR (12/10/2026) ══
+  // El recuadro de semana fiscal también elige: flechas para ir una semana
+  // atrás o adelante, y la lista de las últimas 52 semanas de nómina.
+  /** Las últimas 52 semanas (0 = la actual, −1 = la pasada…). */
+  get opcionesSemana(): { off: number; etiqueta: string }[] {
+    if (this._opcionesSemana && this._opcionesDia === aFechaLocal(new Date())) return this._opcionesSemana;
+    const corta = (iso: string) => {
+      const d = new Date(iso + 'T12:00:00');
+      return `${d.getDate()} ${d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '')}`;
+    };
+    const out: { off: number; etiqueta: string }[] = [];
+    for (let off = 0; off >= -51; off--) {
+      const r = this.limitesSemana(off);
+      const sf = semanaFiscal(r.desde, this.diaCorte);
+      out.push({ off, etiqueta: `Semana ${sf.numero}${sf.anio !== this.semanaHoy.anio ? ' de ' + sf.anio : ''} · ${corta(sf.inicio)} – ${corta(sf.fin)}${off === 0 ? ' (actual)' : ''}` });
+    }
+    this._opcionesSemana = out; this._opcionesDia = aFechaLocal(new Date());
+    return out;
+  }
+  private _opcionesSemana: { off: number; etiqueta: string }[] | null = null;
+  private _opcionesDia = '';
+  /** Qué semana completa es el periodo en pantalla, o null si es otro rango. */
+  get offPeriodo(): number | null {
+    for (let off = 0; off >= -51; off--) if (this.semanaActiva(off)) return off;
+    return null;
+  }
+  /** La semana del día "desde", aunque el periodo no sea una semana exacta. */
+  private get offDesde(): number {
+    if (!this.desde) return 0;
+    const ini = this.inicioSemanaDe(new Date(this.desde + 'T12:00:00'));
+    const hoy = this.inicioSemanaDe(new Date());
+    return Math.round((ini.getTime() - hoy.getTime()) / (7 * 86400000));
+  }
+  irSemana(off: number | null) {
+    if (off === null || !Number.isFinite(off) || off > 0 || off < -51) return;
+    this.aplicarSemana(off);
+  }
+  moverSemana(paso: number) {
+    this.irSemana((this.offPeriodo ?? this.offDesde) + paso);
+  }
+
   semanaActiva(off: number): boolean {
     const r = this.limitesSemana(off);
     return this.desde === r.desde && this.hasta === r.hasta;
@@ -2528,6 +2625,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         this.sucursalFiltro, this.desde, this.hasta, this.soloPromotoras);
       this.lista = this.datos.personas.map(p => this.aVista(p));
       this.cargarCierresPeriodo();
+      this.cargarSaldosHE();
       this.computarGraficas();
       this.computarTolerancia();
       // El buscador global pidió abrir a alguien de esta plaza.
@@ -2588,6 +2686,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         esperadoMin: d.esperadoMin ?? null,
         salidaEsperada: d.salidaEsperada || '',
         extraMin: d.extraMin || 0,
+        usadasMin: d.horasExtraUsadasMin || 0,
         descansoCambio: d.descansoCambio || '',
       }))
     }));
@@ -2624,6 +2723,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       horasTrabajadas: p.horasTrabajadas,
       minutosTrabajados: p.minutosTrabajados ?? Math.round(p.horasTrabajadas * 60),
       horasExtraMin: p.horasExtraGanadasMin || 0,
+      horasExtraUsadasMin: p.horasExtraUsadasMin || 0,
       incidencias: p.incidencias || [],
       ...this.irregularidadesDe(semanas, p.usable),
       presupuesto: this.datos?.bolsaSemanalMin ?? 15,
@@ -3050,6 +3150,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
             'Horas netas (min)': d.netasMin || 0,
             'Debía salir': d.salidaEsperada || '',
             'Horas extra ganadas (min)': d.extraMin || '',
+            'Horas extra usadas (min)': d.usadasMin || '',
+            'Saldo de horas extra al fin del periodo (min)': this.saldoHE(e) ?? '',
             'Desayuno pagado': d.desayunoPagado ? 'Sí' : '',
             'Incidencia': d.incidencias.map(i => i.etiqueta).join(', '),
             'Medido contra': d.referencia,

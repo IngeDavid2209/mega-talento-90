@@ -132,9 +132,18 @@
       <label>Semana fiscal</label>
       <!-- Sigue al PERIODO elegido, no a hoy: si se ven del 10 al 16 de
            septiembre, dice la 37. Si el periodo abarca varias, dice el tramo. -->
-      <span class="ar-semana" [title]="semanaPeriodo.titulo">
-        <b>{{ semanaPeriodo.numeros }}</b> de {{ semanaPeriodo.total }}
+      <!-- También ELIGE la semana a revisar (12/10/2026): flechas y lista. -->
+      <span class="ar-semana ar-semana-sel" [title]="semanaPeriodo.titulo">
+        <button type="button" class="ar-sem-flecha" (click)="moverSemana(-1)" aria-label="Semana anterior"
+                [disabled]="(offPeriodo ?? 0) <= -51">‹</button>
+        <select id="ar-semana-sel" class="ar-sem-lista" [ngModel]="offPeriodo" (ngModelChange)="irSemana($event)" aria-label="Semana a revisar">
+          @if (offPeriodo === null) { <option [ngValue]="null">{{ semanaPeriodo.numeros }} · otro periodo</option> }
+          @for (o of opcionesSemana; track o.off) { <option [ngValue]="o.off">{{ o.etiqueta }}</option> }
+        </select>
+        <b class="ar-sem-num">{{ semanaPeriodo.numeros }}</b> de {{ semanaPeriodo.total }}
         @if (semanaPeriodo.esActual) { <em class="ar-semana-hoy">actual</em> }
+        <button type="button" class="ar-sem-flecha" (click)="moverSemana(1)" aria-label="Semana siguiente"
+                [disabled]="offPeriodo === 0 || (offPeriodo === null && semanaPeriodo.esActual)">›</button>
       </span>
     </div>
 
@@ -721,7 +730,9 @@
                 <th class="rep-dia">{{ c.dow }}<span>{{ c.dia }}</span></th>
               }
               <th class="rep-hrs" title="Horas netas del periodo: jornada menos comida. En corporativo el desayuno no se descuenta.">Horas</th>
-              <th class="rep-hrs" title="Horas extra ganadas en el periodo: lo que se quedó después de su hora de salida, en bloques de 30 min. El saldo está en la pestaña Horas extra.">H. extra</th>
+              <th class="rep-hrs rep-he" title="Horas extra GANADAS en el periodo: lo que se quedó después de su hora de salida, en bloques de 30 min.">HE ganó</th>
+              <th class="rep-hrs rep-he" title="Horas extra USADAS en el periodo (Uso de horas extra en incidencias).">HE usó</th>
+              <th class="rep-hrs rep-he" [title]="'Saldo acumulado de horas extra al ' + hasta + ': todo lo ganado menos lo usado, más el saldo inicial. El detalle está en la pestaña Horas extra.'">HE saldo</th>
               <th class="rep-ret"
                   [title]="mideRetardo ? 'Minutos tarde en la ENTRADA (primera checada) contra su hora exacta, que siempre es :00 o :30. La tolerancia semanal de 15 min se aplica en la pestaña Tolerancia.' : 'Esta plaza no tiene hora límite de entrada: no se mide retardo.'">
                 {{ mideRetardo ? 'Min. retardo' : 'Retardo' }}</th>
@@ -732,7 +743,7 @@
           <tbody>
             @for (g of porDepartamento; track g.departamento) { @if (empleadosVisibles(g).length) {
               <tr class="rep-depto">
-                <td [attr.colspan]="columnasDia.length + 7 + (hayHorariosAsignados ? 1 : 0)">
+                <td [attr.colspan]="columnasDia.length + 9 + (hayHorariosAsignados ? 1 : 0)">
                   {{ g.departamento }} <span class="rep-depto-n">({{ g.empleados.length === totalDepto(g.departamento) ? g.empleados.length : g.empleados.length + ' de ' + totalDepto(g.departamento) }})</span>
                 </td>
               </tr>
@@ -780,10 +791,15 @@
                       @if (celda(e, c.fecha).extraMin) {
                         <span class="rep-extra" [title]="'Horas extra: debía salir a las ' + celda(e, c.fecha).salidaEsperada">+{{ textoMinutos(celda(e, c.fecha).extraMin || 0) }} extra</span>
                       }
+                      @if (celda(e, c.fecha).usadasMin) {
+                        <span class="rep-usada" title="Uso de horas extra: se suman a sus horas del día y se restan de su saldo">−{{ textoMinutos(celda(e, c.fecha).usadasMin || 0) }} usadas</span>
+                      }
                     </td>
                   }
                   <td class="rep-hrs">{{ horasTexto(e.minutosTrabajados) }}</td>
                   <td class="rep-hrs rep-extra-tot">{{ e.horasExtraMin ? horasTexto(e.horasExtraMin) : '' }}</td>
+                  <td class="rep-hrs rep-usada-tot">{{ e.horasExtraUsadasMin ? horasTexto(e.horasExtraUsadasMin) : '' }}</td>
+                  <td class="rep-hrs rep-saldo-he" [class.rep-saldo-neg]="(saldoHE(e) || 0) < 0">{{ heTexto(saldoHE(e)) }}</td>
                   <td class="rep-ret" [class.rep-ret-min]="mideRetardo && e.atrasoBrutoMin > 0">
                     @if (mideRetardo) { {{ e.atrasoBrutoMin || '' }} } @else { <span class="rep-ret-na">—</span> }
                   </td>
@@ -807,6 +823,8 @@
                 <td [attr.colspan]="columnasDia.length + 3"></td>
                 <td class="rep-hrs">{{ horasTexto(minutosDeGrupo(g)) }}</td>
                 <td class="rep-hrs rep-extra-tot">{{ extraDeGrupo(g) ? horasTexto(extraDeGrupo(g)) : '' }}</td>
+                <td class="rep-hrs rep-usada-tot">{{ usadasDeGrupo(g) ? horasTexto(usadasDeGrupo(g)) : '' }}</td>
+                <td class="rep-hrs rep-saldo-he">{{ heTexto(saldoDeGrupo(g) || null) }}</td>
                 <td class="rep-ret">{{ mideRetardo ? (g.retardos || 0) : '' }}</td>
                 @if (hayHorariosAsignados) { <td></td> }
                 <td></td>
@@ -814,7 +832,7 @@
               }
             } }
             @if (buscando && !coincidencias) {
-              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 7 + (hayHorariosAsignados ? 1 : 0)">Nadie coincide con "{{ busqueda }}".</td></tr>
+              <tr><td class="rep-sin-res" [attr.colspan]="columnasDia.length + 9 + (hayHorariosAsignados ? 1 : 0)">Nadie coincide con "{{ busqueda }}".</td></tr>
             }
           </tbody>
           <tfoot>
@@ -822,6 +840,8 @@
               <td [attr.colspan]="columnasDia.length + 3">Totales</td>
               <td class="rep-hrs">{{ horasTexto(minutosTotales) }}</td>
               <td class="rep-hrs rep-extra-tot">{{ extraTotales ? horasTexto(extraTotales) : '' }}</td>
+              <td class="rep-hrs rep-usada-tot">{{ usadasTotales ? horasTexto(usadasTotales) : '' }}</td>
+              <td class="rep-hrs rep-saldo-he">{{ heTexto(saldoTotales || null) }}</td>
               <td class="rep-ret">{{ mideRetardo ? totalRetardos : '—' }}</td>
               @if (hayHorariosAsignados) { <td></td> }
               <td></td>
@@ -1387,6 +1407,7 @@
               <span class="fic-jornada">
                 @if (d.jornada) { <b>{{ d.jornada }}</b> } @else if (d.descanso) { Descanso } @else { Sin checadas }
                 @if (d.extraMin) { <span class="fic-pausa fic-he-pill" [title]="'Debía salir a las ' + d.salidaEsperada">+{{ textoMinutos(d.extraMin) }} extra</span> }
+                @if (d.usadasMin) { <span class="fic-pausa rep-usada-tot" title="Se suman a sus horas del día y se restan de su saldo">−{{ textoMinutos(d.usadasMin) }} de horas extra usadas</span> }
                 @if (d.descansoCambio === 'trabaja') { <span class="fic-pausa">Le tocaba trabajar (cambió su descanso)</span> }
                 @if (d.desayunoMin != null) { <span class="fic-pausa">Desayuno {{ d.desayunoMin }} min</span> }
                 @if (d.comidaMin != null) { <span class="fic-pausa">Comida {{ d.comidaMin }} min</span> }
@@ -1587,6 +1608,7 @@
           <span class="ar-card-sub">
             @if (esHorasExtra) { Sus horas se suman a las del día y se descuentan de su saldo. }
             @else if (esCambioDescansoInc) { Mueve su día de descanso de esa semana. }
+            @else if (incForm.tipo.tipo === 'descanso') { Esos días son descanso, aunque caigan en vacaciones. }
             @else if (incForm.tipo.excusaFalta) { Los días que cubra quedan justificados. }
             @else { Queda registrada; no cambia el cálculo. }
           </span>
