@@ -556,15 +556,27 @@
                     Después se puede ajustar persona por persona.
                     @if (destinoConHorario) { <b>{{ destinoConHorario }}</b> ya tiene{{ destinoConHorario > 1 ? 'n' : '' }} uno y se reemplaza. }</p>
                 }
-                <div class="hor-fila">
-                  <label class="hor-campo"><span>Entrada</span><input type="time" [(ngModel)]="horarioForm.entrada"></label>
-                  <label class="hor-campo"><span>Salida</span><input type="time" [(ngModel)]="horarioForm.salida"></label>
-                  <label class="hor-campo"><span>Comida</span>
-                    <select [(ngModel)]="horarioForm.comidaMin">
-                      @for (m of OPCIONES_COMIDA; track m) { <option [ngValue]="m">{{ comidaTexto(m) }}</option> }
-                    </select>
-                  </label>
-                </div>
+                @for (t of turnosForm; track $index; let i = $index) {
+                  @if (turnosForm.length > 1) {
+                    <div class="hor-turno-cab"><span>Horario {{ i + 1 }}</span>
+                      <button type="button" class="per-limpiar" (click)="quitarTurno(i)">Quitar</button></div>
+                  }
+                  <div class="hor-fila">
+                    <label class="hor-campo"><span>Entrada</span><input type="time" [(ngModel)]="t.entrada"></label>
+                    <label class="hor-campo"><span>Salida</span><input type="time" [(ngModel)]="t.salida"></label>
+                    <label class="hor-campo"><span>Comida</span>
+                      <select [(ngModel)]="t.comidaMin">
+                        @for (m of OPCIONES_COMIDA; track m) { <option [ngValue]="m">{{ comidaTexto(m) }}</option> }
+                      </select>
+                    </label>
+                  </div>
+                }
+                @if (turnosForm.length > 1) {
+                  <p class="hor-nota">Cada día se mide contra el horario más cercano a la hora en que checó su entrada.</p>
+                }
+                @if (turnosForm.length < MAX_HORARIOS) {
+                  <button type="button" class="per-limpiar hor-agregar" (click)="agregarTurno()">+ Agregar otro horario</button>
+                }
                 <label class="hor-check"><input type="checkbox" [(ngModel)]="horarioForm.sabado"> También trabaja el sábado</label>
                 @if (horarioForm.sabado) {
                   <div class="hor-fila">
@@ -662,7 +674,8 @@
                   <td class="rep-fecha">{{ r.etiqueta }}</td>
                   @if (r.tipo === 'normal' && r.d; as d) {
                     <td [class.rep-tarde]="mideRetardo && d.atrasoMin > 0">{{ d.entrada }}
-                      @if (p.horarioAsignado && mideRetardo && d.atrasoMin > 0) { <small class="hor-d hor-rojo">+{{ d.atrasoMin }} min</small> }</td>
+                      @if (p.horarioAsignado && mideRetardo && d.atrasoMin > 0) { <small class="hor-d hor-rojo">+{{ d.atrasoMin }} min</small> }
+                      @if (d.turno) { <small class="rep-dur" title="Con varios horarios, ese día se midió contra este">turno {{ hora12(d.turno) }}</small> }</td>
                     <td>{{ desayunoDe(d) || '—' }}
                       @if (pausasDe(d).desayunoMin != null && desayunoDe(d).includes('–')) { <small class="rep-dur" [class.rep-pausa-exc]="!!d.desayunoExcesoMin">{{ pausasDe(d).desayunoMin }} min</small> }</td>
                     <td>{{ comidaDe(d) || '—' }}

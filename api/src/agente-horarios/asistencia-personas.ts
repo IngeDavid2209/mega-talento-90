@@ -143,6 +143,8 @@ export interface DiaVista extends hd.DiaMedido {
   comidaPermitidaMin?: number;
   /** "Cambio de día de descanso": este día pasó a ser su descanso, o a ser de trabajo. */
   descansoCambio?: 'descansa' | 'trabaja';
+  /** Con varios horarios asignados: la entrada del que trabajó ese día. */
+  turno?: string;
 }
 
 /** Una incidencia de RH, tal como se pinta en la celda del día. */
@@ -235,16 +237,39 @@ export interface PersonaAsistencia {
  * retardo, la tolerancia, las faltas (qué días trabaja), la salida antes, la
  * comida y las horas que debe. Sin `salida` es una confirmación vieja del bot
  * (solo la hora de entrada) y se comporta como siempre.
+ *
+ * VARIOS HORARIOS (15/10/2026): piso de venta rota entre mañana y tarde. RH le
+ * puede poner varios; `horarios` los trae todos (con uno solo, ese uno) y
+ * `entrada`/`salida`/`comidaMin` son los del primero. Cada día se mide contra
+ * el que trabajó: el más cercano a la hora en que checó su entrada
+ * (hd.deducirTurnos, lo mismo que ya se hacía con un rotativo deducido). El
+ * sábado es uno solo para todos.
  */
-export interface HorarioAsignado {
+export interface TurnoAsignado {
   entrada: string;
   salida: string;
   comidaMin: number;
+}
+
+export interface HorarioAsignado extends TurnoAsignado {
+  horarios: TurnoAsignado[];
   sabado: boolean;
   sabadoEntrada: string | null;
   sabadoSalida: string | null;
   asignadoPor: string | null;
   actualizadoEn: string | null;
+}
+
+/** Los horarios guardados en la fila, si son válidos y coinciden con sus `turnos`. */
+function horariosDeFila(r: any, turnos: string[]): TurnoAsignado[] | null {
+  const lista = Array.isArray(r.horarios) ? r.horarios : null;
+  if (!lista || lista.length < 2 || lista.length !== turnos.length) return null;
+  const out: TurnoAsignado[] = [];
+  for (const h of lista) {
+    if (!h || typeof h.entrada !== 'string' || typeof h.salida !== 'string') return null;
+    out.push({ entrada: h.entrada, salida: h.salida, comidaMin: Number(h.comidaMin) || 0 });
+  }
+  return out;
 }
 
 export interface AsistenciaPersonas {
@@ -394,11 +419,13 @@ async function confirmados(sucursalId: string) {
       const turnos = t.map((x) => String(x).trim()).filter(Boolean);
       mapa.set(cod, turnos);
       // Horario completo (con salida): es SU horario. Ver HorarioAsignado.
-      if (r.salida && turnos.length === 1) {
+      const varios = r.salida ? horariosDeFila(r, turnos) : null;
+      if (r.salida && (turnos.length === 1 || varios)) {
+        const primero: TurnoAsignado = varios ? varios[0]
+          : { entrada: turnos[0], salida: String(r.salida), comidaMin: Number(r.comida_min) || 0 };
         asignados.set(cod, {
-          entrada: turnos[0],
-          salida: String(r.salida),
-          comidaMin: Number(r.comida_min) || 0,
+          ...primero,
+          horarios: varios || [primero],
           sabado: !!r.sabado,
           sabadoEntrada: r.sabado_entrada || null,
           sabadoSalida: r.sabado_salida || null,
@@ -506,22 +533,26 @@ export function detalleDia(
   // Con una sola pausa, es la comida: el desayuno solo existe si hay dos.
   // Mismo criterio que reglas.ts::reglaDesayunoExcedido (08/10/2026).
   const hayDosPausas = Math.floor(medio.length / 2) >= 2;
-  for (let i = 0; i < medio.length; i += 2) {
-    if (i + 1 < medio.length) {
-      tramos.push(`${hd.aHora(medio[i])} – ${hd.aHora(medio[i + 1])}`);
-      fuera += medio[i + 1] - medio[i];
-      pausas++;
-      if (desayuno && hayDosPausas && desayunoMin == null && medio[i] < desayuno.hastaMin) {
-        const dur = medio[i + 1] - medio[i];
-        // El mismo techo que en reglas.ts: si no es creíble como desayuno, no se
-        // reporta como tal. Si aquí se mostrara y allá no, la pantalla acusaría
-        // de algo que la alerta no sostiene.
-        if (dur <= desayuno.maxPlausibleMin) desayunoMin = dur;
-      }
-    } else {
-      // Impar: la última salida no tiene regreso. Se enseña, no se descuenta.
+  // Impar: una marca no tiene pareja. Se enseña, no se descuenta. Cuál es la
+  // decide hd.marcaSinPareja (la que deja las pausas más cortas).
+  const suelta = hd.marcaSinPareja(medio);
+  for (let i = 0; i < medio.length; ) {
+    if (i === suelta || i + 1 >= medio.length) {
       tramos.push(hd.aHora(medio[i]) as string);
+      i++;
+      continue;
     }
+    tramos.push(`${hd.aHora(medio[i])} – ${hd.aHora(medio[i + 1])}`);
+    fuera += medio[i + 1] - medio[i];
+    pausas++;
+    if (desayuno && hayDosPausas && desayunoMin == null && medio[i] < desayuno.hastaMin) {
+      const dur = medio[i + 1] - medio[i];
+      // El mismo techo que en reglas.ts: si no es creíble como desayuno, no se
+      // reporta como tal. Si aquí se mostrara y allá no, la pantalla acusaría
+      // de algo que la alerta no sostiene.
+      if (dur <= desayuno.maxPlausibleMin) desayunoMin = dur;
+    }
+    i += 2;
   }
 
   const desayunoPagado = !!desayuno?.cuentaComoJornada && desayunoMin != null && pausas >= 2;
@@ -776,6 +807,24 @@ export async function asistenciaPersonas(
             : ho.bloques,
           opciones)
       : null;
+    // VARIOS HORARIOS ASIGNADOS (15/10/2026): cada día se mide contra el que
+    // trabajó, el más cercano a su entrada. Con el mismo margen que un horario
+    // asignado único (120 min, ver atipicoFijoMin): con el de un rotativo
+    // deducido (60) quien llega 70 min tarde al turno de la mañana se mediría
+    // contra "otro turno" y su retardo desaparecería.
+    const variosHorarios = !!asig && asig.horarios.length > 1;
+    const turnoAsig = variosHorarios
+      ? hd.deducirTurnos(
+          diasAMedir,
+          asig!.horarios.map((h) => hd.aMinutos(h.entrada)).filter((x): x is number => x !== null),
+          { ...opciones, atipicoRotativoMin: 120 })
+      : null;
+    /** Su horario asignado de ese día (con varios, el que trabajó; sin checadas, el primero). */
+    const horarioDe = (f: string): TurnoAsignado | null => {
+      if (!asig) return null;
+      const t = turnoAsig?.get(f);
+      return (t && asig.horarios.find((h) => hd.aMinutos(h.entrada) === t.bloque)) || asig.horarios[0];
+    };
     // Si el periodo empieza a media semana, los días de esa semana que quedaron
     // ANTES del periodo también gastan descansos: quien descansó el domingo y
     // se mira desde el lunes ya no tiene un descanso libre para el martes.
@@ -847,7 +896,7 @@ export async function asistenciaPersonas(
       ...opciones,
       horarioDelDia: sinHorario ? null : horarioDelDia,
       entradaMin: sinHorario ? 0 : entradaUsar,
-      turnoPorFecha: sinHorario || asig ? null : turnoPorFecha,
+      turnoPorFecha: sinHorario ? null : asig ? turnoAsig : turnoPorFecha,
       diasLaborales: laboralesAsig || ho.diasLaborales,
       ausenciasPrevias,
       medirRetardo: !sinHorario && cfg.medirRetardo !== false,
@@ -862,9 +911,12 @@ export async function asistenciaPersonas(
     const marcas: Marca[] = [];
 
     if (asig) {
+      const lista = asig.horarios.map((h) => `${h.entrada} a ${h.salida}, comida ${h.comidaMin} min`);
       marcas.push({
         codigo: 'horario_confirmado', gravedad: 'ok',
-        detalle: `RH le asignó su horario: ${asig.entrada} a ${asig.salida}, comida ${asig.comidaMin} min` +
+        detalle: (variosHorarios
+          ? `RH le asignó ${lista.length} horarios: ${lista.join(' · ')}; cada día se mide contra el que trabajó`
+          : `RH le asignó su horario: ${lista[0]}`) +
           (asig.sabado ? `, sábado ${asig.sabadoEntrada || asig.entrada} a ${asig.sabadoSalida || asig.salida}` : ', sin sábado') +
           '. Manda sobre la deducción.',
       });
@@ -981,10 +1033,11 @@ export async function asistenciaPersonas(
     // 5 h 20 o menos): su horario cambia de un día a otro —medio tiempo de 8 a 12
     // el lunes y de 8 a 16 el viernes— y la salida deducida no es la de ese día.
     const jornadaDe = (f: string): number | null => {
-      if (asig) {
+      const h = horarioDe(f);
+      if (asig && h) {
         const sab = hd.diaSemana(f) === 6;
-        const e = hd.aMinutos(sab ? asig.sabadoEntrada || asig.entrada : asig.entrada);
-        const s = hd.aMinutos(sab ? asig.sabadoSalida || asig.salida : asig.salida);
+        const e = hd.aMinutos(sab ? asig.sabadoEntrada || h.entrada : h.entrada);
+        const s = hd.aMinutos(sab ? asig.sabadoSalida || h.salida : h.salida);
         return e !== null && s !== null && s > e ? s - e : null;
       }
       if (sinHorario || ho.tipo === 'rotativo' || ho.entradaMin == null || ho.salidaMin == null) return null;
@@ -1022,12 +1075,13 @@ export async function asistenciaPersonas(
         // Contra su horario asignado: lo que pedía ese día, si se fue antes y si
         // se pasó de la comida. Sin horario asignado no se calcula nada de esto.
         let esperadoMin: number | null = null, salidaAntesMin: number | null = null, comidaExcesoMin: number | null = null;
-        if (asig) {
+        const hDia = horarioDe(d.fecha);
+        if (asig && hDia) {
           const sab = hd.diaSemana(d.fecha) === 6;
           const leToca = (laboralesAsig as number[]).includes(hd.diaSemana(d.fecha));
-          const ent = hd.aMinutos(sab ? asig.sabadoEntrada || asig.entrada : asig.entrada);
-          const sal = hd.aMinutos(sab ? asig.sabadoSalida || asig.salida : asig.salida);
-          const comPermitida = comPermitidaDia ?? (sab ? 0 : asig.comidaMin);
+          const ent = hd.aMinutos(sab ? asig.sabadoEntrada || hDia.entrada : hDia.entrada);
+          const sal = hd.aMinutos(sab ? asig.sabadoSalida || hDia.salida : hDia.salida);
+          const comPermitida = comPermitidaDia ?? (sab ? 0 : hDia.comidaMin);
           esperadoMin = leToca && ent !== null && sal !== null ? Math.max(0, sal - ent - comPermitida) : 0;
           if (leToca && sal !== null && det.salidaMin !== null && det.netasMin !== null) salidaAntesMin = Math.max(0, sal - det.salidaMin);
           if (leToca && comPermitida > 0 && det.comidaMin !== null) comidaExcesoMin = Math.max(0, det.comidaMin - comPermitida);
@@ -1069,6 +1123,10 @@ export async function asistenciaPersonas(
           ...(desPermitido !== null ? { desayunoPermitidoMin: desPermitido } : {}),
           ...(comPermitidaDia !== null ? { comidaPermitidaMin: comPermitidaDia } : {}),
           ...(descansoCambio.has(d.fecha) ? { descansoCambio: descansoCambio.get(d.fecha) } : {}),
+          // Con varios horarios: contra cuál se midió ese día (su entrada). El
+          // sábado no: si trabaja sábado, ese día manda su horario de sábado.
+          ...(variosHorarios && hDia && turnoAsig?.has(d.fecha) && !(asig!.sabado && hd.diaSemana(d.fecha) === 6)
+            ? { turno: hDia.entrada } : {}),
         };
         if (justificacion && d.estado === 'falta') {
           faltasJustificadas++;
@@ -1134,7 +1192,7 @@ export async function asistenciaPersonas(
       activo: emp ? emp.activo : null,
       tipo: ho.tipo,
       horario: asig ? asig.entrada : ho.entrada,
-      turnos: asig ? [asig.entrada] : ho.turnos,
+      turnos: asig ? asig.horarios.map((h) => h.entrada) : ho.turnos,
       horarioConfirmado: !!turnosConf,
       costumbre: ho.entradaCruda,
       desfaseMin: ho.desfaseMin,

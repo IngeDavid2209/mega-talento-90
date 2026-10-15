@@ -6,7 +6,7 @@ import {
   ChecadorService, RevisionDia, EstadoRevision,
   AsistenciaPersonas, PersonaAsistencia, MarcaAsistencia, EstadoDiaApi,
   EstadoReloj, SemaforoReloj, IncidenciaDia, TipoIncidencia, CambiosReloj, ComandoReloj,
-  Incidencia, CierreSemana, HorarioAsignado, PersonaExtra
+  Incidencia, CierreSemana, HorarioAsignado, TurnoHorario, PersonaExtra
 } from '../../core/services/checador.service';
 import { ETIQUETA_ESTADO_INC, ETIQUETA_BANDERA, mensajeDeError } from '../incidencias-bandeja/incidencias-flujo';
 import { PeriodoAsistenciaService } from '../../core/services/periodo-asistencia.service';
@@ -59,6 +59,8 @@ interface DiaAsistencia {
   /** Horas extra que USÓ ese día ("Uso de horas extra"). */
   usadasMin: number;
   descansoCambio: '' | 'descansa' | 'trabaja';
+  /** Con varios horarios asignados: la entrada del que trabajó ese día ('' si no aplica). */
+  turno: string;
 }
 
 /**
@@ -700,9 +702,28 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   readonly OPCIONES_COMIDA = [0, 30, 45, 60, 90, 120];
   guardandoHorario = false;
   horarioForm: HorarioAsignado = this.horarioPorOmision();
+  // VARIOS HORARIOS (15/10/2026): piso de venta rota entre mañana y tarde. Cada
+  // renglón es un horario; la API mide cada día contra el que trabajó (el más
+  // cercano a su entrada). El sábado sigue siendo uno solo.
+  readonly MAX_HORARIOS = 4;
+  turnosForm: TurnoHorario[] = [];
 
   private horarioPorOmision(): HorarioAsignado {
     return { entrada: '08:00', salida: '18:00', comidaMin: 60, sabado: true, sabadoEntrada: '08:00', sabadoSalida: '14:00' };
+  }
+
+  /** Otro horario: arranca donde termina el último, con la misma comida. */
+  agregarTurno() {
+    if (this.turnosForm.length >= this.MAX_HORARIOS) return;
+    const ultimo = this.turnosForm[this.turnosForm.length - 1];
+    this.turnosForm = [...this.turnosForm, { entrada: ultimo?.salida || '14:00', salida: '21:00', comidaMin: ultimo?.comidaMin ?? 30 }];
+  }
+  quitarTurno(i: number) {
+    if (this.turnosForm.length > 1) this.turnosForm = this.turnosForm.filter((_, k) => k !== i);
+  }
+  /** Los horarios de un horario asignado (con uno solo, ese uno). */
+  turnosDe(h: HorarioAsignado): TurnoHorario[] {
+    return h.horarios?.length ? h.horarios : [{ entrada: h.entrada, salida: h.salida, comidaMin: h.comidaMin }];
   }
 
   /** A quién se le guarda lo que se capture: la persona sola, o todos los que se ven. */
@@ -727,6 +748,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     this.horarioForm = propio
       ? { ...propio, sabadoEntrada: propio.sabadoEntrada || '08:00', sabadoSalida: propio.sabadoSalida || '14:00' }
       : this.horarioPorOmision();
+    this.turnosForm = this.turnosDe(this.horarioForm).map(t => ({ ...t }));
     this.horarioAbierto = true;
   }
 
@@ -735,7 +757,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (!d.length || this.guardandoHorario) return;
     this.guardandoHorario = true;
     try {
-      await this.checador.asignarHorario(this.sucursalFiltro, d.map(e => e.codigo), this.horarioForm);
+      // El primero va también suelto: es el que leen quienes conocen uno solo.
+      const h: HorarioAsignado = { ...this.horarioForm, ...this.turnosForm[0], horarios: this.turnosForm };
+      await this.checador.asignarHorario(this.sucursalFiltro, d.map(e => e.codigo), h);
       this.toast.exito(d.length === 1 ? `Guardado el horario de ${d[0].nombreCompleto}.` : `Guardado el horario de ${d.length} personas.`);
       this.horarioAbierto = false;
       await this.cargar(true);
@@ -773,15 +797,20 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (!min) return 'sin comida';
     return min % 60 === 0 ? `${min / 60} h` : min > 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
   }
-  /** "8:00 am a 6:00 pm · comida 1 h · sábado 8:00 am a 2:00 pm". */
+  /**
+   * "8:00 am a 6:00 pm · comida 1 h · sábado 8:00 am a 2:00 pm".
+   * Con varios: "7:00 am a 3:00 pm · comida 30 min, o 1:00 pm a 9:00 pm · comida 30 min · sábado …".
+   */
   textoHorario(h: HorarioAsignado): string {
-    return `${this.hora12(h.entrada)} a ${this.hora12(h.salida)} · comida ${this.comidaTexto(h.comidaMin)}` +
+    return this.turnosDe(h).map(t => `${this.hora12(t.entrada)} a ${this.hora12(t.salida)} · comida ${this.comidaTexto(t.comidaMin)}`).join(', o ') +
       (h.sabado ? ` · sábado ${this.hora12(h.sabadoEntrada || h.entrada)} a ${this.hora12(h.sabadoSalida || h.salida)}` : ' · sin sábado');
   }
-  /** Para la columna del reporte: "8–6 · 1 h". */
+  /** Para la columna del reporte: "8–6 · 1 h" (con varios: "7–3 / 1–9 · 30 min"). */
   horarioCorto(h: HorarioAsignado): string {
     const c = (t: string) => { const [a, b] = t.split(':').map(Number); return `${a % 12 || 12}${b ? ':' + String(b).padStart(2, '0') : ''}`; };
-    return `${c(h.entrada)}–${c(h.salida)} · ${this.comidaTexto(h.comidaMin)}`;
+    const ts = this.turnosDe(h);
+    const comidas = [...new Set(ts.map(t => t.comidaMin))];
+    return `${ts.map(t => `${c(t.entrada)}–${c(t.salida)}`).join(' / ')} · ${comidas.map(m => this.comidaTexto(m)).join(' / ')}`;
   }
 
   /** ¿Alguien de lo que se ve tiene horario asignado? Decide si sale la columna "vs. horario". */
@@ -2688,6 +2717,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
         extraMin: d.extraMin || 0,
         usadasMin: d.horasExtraUsadasMin || 0,
         descansoCambio: d.descansoCambio || '',
+        turno: d.turno || '',
       }))
     }));
 

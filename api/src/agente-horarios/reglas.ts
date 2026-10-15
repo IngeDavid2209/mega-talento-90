@@ -1,5 +1,5 @@
 import { EntradaDia, Inconsistencia, ChecadaMin, Severidad } from './tipos';
-import { DUPLICADA_MIN } from './horario-deducido';
+import { DUPLICADA_MIN, marcaSinPareja } from './horario-deducido';
 
 /**
  * MOTOR DE DETECCIÓN — lógica PURA (sin DB, sin Express). Testeable directo:
@@ -270,9 +270,14 @@ function reglaDesayunoExcedido(e: EntradaDia): Inconsistencia | null {
   // asistencia-personas.ts::detalleDia.
   if (Math.floor(medio.length / 2) < 2) return null;
 
+  // La marca sin pareja (si la hay) se salta: la misma que deja suelta la
+  // pantalla, ver horario-deducido.ts::marcaSinPareja.
+  const suelta = marcaSinPareja(medio.map((m) => m.min));
   let pausa: { ini: Marca; fin: Marca } | null = null;
-  for (let i = 0; i + 1 < medio.length; i += 2) {
+  for (let i = 0; i + 1 < medio.length; ) {
+    if (i === suelta) { i++; continue; }
     if (medio[i].min < corte) { pausa = { ini: medio[i], fin: medio[i + 1] }; break; }
+    i += 2;
   }
   if (!pausa) return null;                       // solo comió: no hay desayuno que medir
 

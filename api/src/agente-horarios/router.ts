@@ -451,15 +451,37 @@ agenteCallbackRouter.post('/justificar', async (req: Request, res: Response) => 
 const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 const aMin = (h: string) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };
 
+/** Hasta cuántos horarios distintos se le ponen a una persona (mañana, tarde, …). */
+const MAX_HORARIOS = 4;
+
+/**
+ * Los horarios que llegan: `horarios: [{entrada, salida, comidaMin}, …]` (varios,
+ * 15/10/2026) o, como antes, `entrada`/`salida`/`comidaMin` sueltos (uno).
+ */
+function horariosDelCuerpo(b: any): Array<{ entrada: string; salida: string; comidaMin: number }> {
+  const lista = Array.isArray(b.horarios) && b.horarios.length ? b.horarios : [b];
+  return lista.map((h: any) => ({
+    entrada: String(h?.entrada || ''), salida: String(h?.salida || ''), comidaMin: Number(h?.comidaMin),
+  }));
+}
+
 /** Valida lo que llega; devuelve el error en palabras de RH, o null si está bien. */
 function errorDeHorario(b: any): string | null {
-  if (!RE_HORA.test(String(b.entrada || '')) || !RE_HORA.test(String(b.salida || ''))) {
-    return 'La entrada y la salida deben venir como HH:MM (por ejemplo 08:00 y 18:00).';
+  const horarios = horariosDelCuerpo(b);
+  if (horarios.length > MAX_HORARIOS) return `Se le pueden poner hasta ${MAX_HORARIOS} horarios.`;
+  for (const [i, h] of horarios.entries()) {
+    const cual = horarios.length > 1 ? ` (horario ${i + 1})` : '';
+    if (!RE_HORA.test(h.entrada) || !RE_HORA.test(h.salida)) {
+      return `La entrada y la salida deben venir como HH:MM (por ejemplo 08:00 y 18:00)${cual}.`;
+    }
+    if (aMin(h.salida) <= aMin(h.entrada)) return `La salida tiene que ser después de la entrada${cual}.`;
+    if (!Number.isInteger(h.comidaMin) || h.comidaMin < 0 || h.comidaMin > 180) return `La comida va de 0 a 180 minutos${cual}.`;
+    if (aMin(h.salida) - aMin(h.entrada) - h.comidaMin < 60) return `Con esa comida no le queda ni una hora de trabajo: revisa las horas${cual}.`;
   }
-  if (aMin(b.salida) <= aMin(b.entrada)) return 'La salida tiene que ser después de la entrada.';
-  const com = Number(b.comidaMin);
-  if (!Number.isInteger(com) || com < 0 || com > 180) return 'La comida va de 0 a 180 minutos.';
-  if (aMin(b.salida) - aMin(b.entrada) - com < 60) return 'Con esa comida no le queda ni una hora de trabajo: revisa las horas.';
+  // Cada día se elige el horario por su ENTRADA: dos con la misma no se distinguen.
+  if (new Set(horarios.map((h) => h.entrada)).size !== horarios.length) {
+    return 'Dos horarios no pueden empezar a la misma hora: cada día se reconoce cuál trabajó por su hora de entrada.';
+  }
   if (b.sabado) {
     if (!RE_HORA.test(String(b.sabadoEntrada || '')) || !RE_HORA.test(String(b.sabadoSalida || ''))) {
       return 'El sábado necesita su hora de entrada y de salida.';
@@ -472,6 +494,7 @@ function errorDeHorario(b: any): string | null {
 /**
  * PUT /checador/agente/horario-asignado
  * body: { sucursalId, codigos: string[], entrada, salida, comidaMin, sabado, sabadoEntrada?, sabadoSalida? }
+ *   o, con varios horarios: { …, horarios: [{ entrada, salida, comidaMin }, …], sabado, … }
  */
 agenteHorariosRouter.put('/horario-asignado', async (req: AuthedRequest, res: Response) => {
   const b = req.body || {};
@@ -485,20 +508,25 @@ agenteHorariosRouter.put('/horario-asignado', async (req: AuthedRequest, res: Re
 
   const quien = req.usuario?.email || req.usuario?.sub || 'RH';
   const sabado = !!b.sabado;
+  // Ver db/horario-asignado.sql: `turnos` lleva todas las entradas y la salida y
+  // la comida son las del primero; `horarios` solo se llena cuando son varios.
+  const horarios = horariosDelCuerpo(b);
+  const [primero] = horarios;
   try {
     const { rowCount } = await pool.query(
       `INSERT INTO horarios_confirmados
          (sucursal_id, empleado_codigo, turnos, salida, comida_min, sabado, sabado_entrada, sabado_salida,
-          nota, confirmado_por)
-       SELECT $1, c, ARRAY[$3::text], $4, $5, $6, $7, $8, 'Horario asignado desde el portal', $9
+          horarios, nota, confirmado_por)
+       SELECT $1, c, $3::text[], $4, $5, $6, $7, $8, $9::jsonb, 'Horario asignado desde el portal', $10
          FROM unnest($2::text[]) AS c
        ON CONFLICT (sucursal_id, empleado_codigo) DO UPDATE
          SET turnos = EXCLUDED.turnos, salida = EXCLUDED.salida, comida_min = EXCLUDED.comida_min,
              sabado = EXCLUDED.sabado, sabado_entrada = EXCLUDED.sabado_entrada,
-             sabado_salida = EXCLUDED.sabado_salida, nota = EXCLUDED.nota,
+             sabado_salida = EXCLUDED.sabado_salida, horarios = EXCLUDED.horarios, nota = EXCLUDED.nota,
              confirmado_por = EXCLUDED.confirmado_por, actualizado_en = now()`,
-      [sucursalId, codigos, b.entrada, b.salida, Number(b.comidaMin), sabado,
-       sabado ? b.sabadoEntrada : null, sabado ? b.sabadoSalida : null, quien]);
+      [sucursalId, codigos, horarios.map((h) => h.entrada), primero.salida, primero.comidaMin, sabado,
+       sabado ? b.sabadoEntrada : null, sabado ? b.sabadoSalida : null,
+       horarios.length > 1 ? JSON.stringify(horarios) : null, quien]);
     res.json({ ok: true, guardados: rowCount });
   } catch (e) { fallo(res, e, 'No se pudo guardar el horario.'); }
 });

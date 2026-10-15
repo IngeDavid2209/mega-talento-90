@@ -82,11 +82,20 @@ export interface DiaApi {
   comidaPermitidaMin?: number;
   /** "Cambio de día de descanso": este día pasó a ser descanso o de trabajo. */
   descansoCambio?: 'descansa' | 'trabaja';
+  /** Con varios horarios asignados: la entrada del que trabajó ese día. */
+  turno?: string;
 }
 
-/** El horario de una persona, asignado por RH (manda sobre el deducido). */
-export interface HorarioAsignado {
-  entrada: string; salida: string; comidaMin: number;
+/** Uno de los horarios de una persona: entrada, salida y comida. */
+export interface TurnoHorario { entrada: string; salida: string; comidaMin: number; }
+
+/**
+ * El horario de una persona, asignado por RH (manda sobre el deducido).
+ * Con varios (15/10/2026), `horarios` los trae todos y `entrada`/`salida`/
+ * `comidaMin` son los del primero; cada día se mide contra el que trabajó.
+ */
+export interface HorarioAsignado extends TurnoHorario {
+  horarios?: TurnoHorario[];
   sabado: boolean; sabadoEntrada: string | null; sabadoSalida: string | null;
   asignadoPor?: string | null; actualizadoEn?: string | null;
 }
