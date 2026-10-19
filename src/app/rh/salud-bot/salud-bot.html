@@ -1,0 +1,103 @@
+<div class="sb-wrap">
+  <header class="sb-head">
+    <div>
+      <h1>Salud del bot</h1>
+      <p class="sub">
+        Cómo está atendiendo el bot de reclutamiento por WhatsApp. Si el bot no logra
+        ayudar a alguien (le repite la misma pregunta) o la persona escribe <b>asesor</b>,
+        aparece en <b>Atorados</b>: escríbele por WhatsApp y márcalo como atendido.
+      </p>
+    </div>
+    <button type="button" class="pill" (click)="cargar()" title="Volver a revisar">↻</button>
+  </header>
+
+  @if (cargando && !s) {
+    <div class="estado">Revisando al bot…</div>
+  } @else if (error) {
+    <div class="estado err">{{ error }}</div>
+  } @else if (s) {
+    <section class="sb-tiles">
+      <div class="sb-tile" [class.mal]="s.envios?.bloqueado" [class.bien]="!s.envios?.bloqueado">
+        <div class="sb-t-tit">Envíos de WhatsApp</div>
+        <div class="sb-t-num">{{ s.envios?.bloqueado ? 'Bloqueados' : 'Funcionando' }}</div>
+        <div class="sb-t-sub">
+          @if (s.envios?.bloqueado) {
+            Desde el {{ cuando(s.envios?.desde ?? null) }} · {{ s.envios?.motivo || 'problema de la cuenta' }}
+          } @else {
+            Último mensaje enviado: {{ cuando(s.envios?.ultimoEnvioOk ?? null) }}
+          }
+        </div>
+      </div>
+      <div class="sb-tile" [class.mal]="s.atorados.length > 0">
+        <div class="sb-t-tit">Atorados</div>
+        <div class="sb-t-num">{{ s.atorados.length }}</div>
+        <div class="sb-t-sub">esperan que les escriba una persona</div>
+      </div>
+      <div class="sb-tile" [class.ojo]="s.ciclos.dia >= 10">
+        <div class="sb-t-tit">Mensajes repetidos (24 h)</div>
+        <div class="sb-t-num">{{ s.ciclos.dia }}</div>
+        <div class="sb-t-sub">a {{ s.ciclos.personasDia }} persona(s) · {{ s.ciclos.semana }} en 7 días</div>
+      </div>
+      <div class="sb-tile" [class.mal]="s.sinRespuesta > 0">
+        <div class="sb-t-tit">Sin respuesta</div>
+        <div class="sb-t-num">{{ s.sinRespuesta }}</div>
+        <div class="sb-t-sub">escribieron hace +10 min y el bot no contestó</div>
+      </div>
+      <div class="sb-tile">
+        <div class="sb-t-tit">Actividad (24 h)</div>
+        <div class="sb-t-num">{{ s.actividad.personas }}</div>
+        <div class="sb-t-sub">persona(s) · {{ s.actividad.entran }} recibidos · {{ s.actividad.salen }} enviados</div>
+      </div>
+    </section>
+
+    <section class="bloque">
+      <h2>Atorados</h2>
+      @if (!s.atorados.length) {
+        <div class="sin-dato">Nadie está esperando. El bot está pudiendo ayudar a todos.</div>
+      } @else {
+        <div class="sb-lista">
+          @for (a of s.atorados; track a.telefono) {
+            <article class="sb-fila" (click)="abrir(a)">
+              <div>
+                <div class="sb-nom">{{ a.nombre }}</div>
+                <div class="sb-meta">{{ a.puesto || 'Sin puesto' }} · {{ a.telefono }} · {{ cuando(a.en) }}</div>
+              </div>
+              <div class="sb-porque">
+                <div class="sb-motivo">{{ motivo(a) }}</div>
+                @if (a.pregunta) { <div class="sb-cita"><span>Bot:</span> {{ a.pregunta }}</div> }
+                @if (a.ultimaRespuesta) { <div class="sb-cita"><span>Contestó:</span> {{ a.ultimaRespuesta }}</div> }
+              </div>
+              <div class="sb-acciones">
+                <a class="sb-btn wa" [href]="wa(a.telefono)" target="_blank" rel="noopener"
+                   (click)="$event.stopPropagation()">WhatsApp</a>
+                <button type="button" class="sb-btn" (click)="atendido(a, $event)"
+                        [disabled]="marcando === a.telefono">
+                  {{ marcando === a.telefono ? 'Guardando…' : 'Atendido' }}
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    @if (s.ciclos.repetidas.length) {
+      <section class="bloque">
+        <h2>Lo que más se repitió (7 días)</h2>
+        <p class="sb-nota">
+          Mensajes que el bot mandó dos veces seguidas a la misma persona. Algunos son normales
+          (la persona se equivocó una vez); si uno sube mucho, esa pregunta tiene un problema.
+        </p>
+        <div class="sb-rep">
+          @for (r of s.ciclos.repetidas; track r.texto) {
+            <div class="sb-rep-fila">
+              <span class="sb-rep-n">{{ r.veces }}×</span>
+              <span class="sb-rep-txt">{{ r.texto }}</span>
+              <span class="sb-rep-p">{{ r.personas }} persona(s)</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { ToastService } from './toast.service';
+import { ApiService } from './api.service';
 
 /**
  * Puente con el bot de reclutamiento (proyecto BOT-RH, desplegado en Railway).
@@ -50,8 +51,41 @@ export interface EstadoEnviosBot {
   motivo: string | null;
 }
 
+/** Alguien a quien el bot ya no supo ayudar (ver BOT-RH/src/freno-ciclos.js). */
+export interface AtoradoBot {
+  id: string;
+  telefono: string;
+  nombre: string;
+  estado: string;
+  puesto: string | null;
+  en: string | null;
+  motivo: 'ciclo' | 'pidio_asesor' | string;
+  pregunta: string;
+  ultimaRespuesta: string;
+}
+
+/** El tablero de "Salud del bot" (api/src/bot-salud.ts). */
+export interface SaludBot {
+  envios: (EstadoEnviosBot & { ultimoEnvioOk?: string | null }) | null;
+  actividad: { entran: number; salen: number; personas: number };
+  ciclos: { dia: number; semana: number; personasDia: number; repetidas: { texto: string; veces: number; personas: number }[] };
+  sinRespuesta: number;
+  atorados: AtoradoBot[];
+  alerta: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BotService {
+  private api = inject(ApiService);
+
+  /** Salud del bot (19/10/2026): envíos, ciclos, sin respuesta y la bandeja de atorados. */
+  salud(): Promise<SaludBot> { return this.api.get<SaludBot>('/bot/salud'); }
+
+  /** RH ya le escribió: sale de la bandeja de atorados. */
+  marcarAtendido(telefono: string): Promise<any> {
+    return this.api.post(`/bot/atorados/${encodeURIComponent(telefono)}/atendido`);
+  }
+
   /**
    * Estado de los envíos del bot (08/10/2026). Del 04/10 al 08/10 Meta rechazó
    * TODOS los mensajes por pagos pendientes de la cuenta de WhatsApp Business y

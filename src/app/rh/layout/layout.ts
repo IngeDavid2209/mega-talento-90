@@ -38,7 +38,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // se avisa arriba de todo el portal, para que RH se entere el mismo día.
   envioBot: EstadoEnviosBot | null = null;
   private relojBot: any;
-  private async revisarBot() { this.envioBot = await this.bot.estadoEnvios(); }
+  /** Personas en la bandeja de atorados de "Salud del bot" (contador del menú). */
+  atoradosBot = 0;
+  private async revisarBot() {
+    this.envioBot = await this.bot.estadoEnvios();
+    try { this.atoradosBot = (await this.bot.salud()).atorados.length; } catch { /* sin permiso o sin red: sin contador */ }
+  }
   /** "desde el sábado 4 de octubre, 7:54 p.m." */
   desdeBot(iso: string | null): string {
     if (!iso) return '';

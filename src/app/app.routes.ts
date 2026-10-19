@@ -35,6 +35,7 @@ import { PermanenciaComponent } from './rh/permanencia/permanencia';
 import { RequisicionPublicaComponent } from '../portal/requisicion/requisicion';
 import { NoRecontratablesComponent } from './rh/no-recontratables/no-recontratables';
 import { SpamComponent } from './rh/spam/spam';
+import { SaludBotComponent } from './rh/salud-bot/salud-bot';
 
 export const routes: Routes = [
   {
@@ -79,6 +80,7 @@ export const routes: Routes = [
       { path: 'mapa', redirectTo: 'horarios', pathMatch: 'full' },
       { path: 'no-recontratables', component: NoRecontratablesComponent }, // lista negra + alerta de reingresos
       { path: 'spam',       component: SpamComponent },             // postulaciones sin ciudad ni puesto (06/10/2026)
+      { path: 'salud-bot',  component: SaludBotComponent },         // ¿el bot está atendiendo bien? (19/10/2026)
       { path: 'papelera',   component: PapeleraComponent },
       { path: 'expediente/:id', component: ExpedienteComponent },
       { path: 'kanban', redirectTo: 'dashboard', pathMatch: 'full' },

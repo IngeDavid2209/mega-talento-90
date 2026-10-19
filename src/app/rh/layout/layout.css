@@ -304,6 +304,7 @@
   padding: 1px 8px;
   flex-shrink: 0;
 }
+.nav-count.nav-count-alerta { background: #dc2626; border-color: #dc2626; color: #fff; }
 .nav-list a.active .nav-count {
   background: var(--gold-bright);
   color: var(--ink);
