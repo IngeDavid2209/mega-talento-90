@@ -73,8 +73,8 @@ app.use('/usuarios', usuariosRouter);
 app.use('/kpi', kpiRouter); // Concentrado de candidatos: bitácora de eventos + tablero
 app.use('/requisiciones', requisicionesRouter); // Peticiones de personal de las sucursales
 app.use('/permanencia', permanenciaRouter);     // ¿El contratado sigue a los 30/60/90 días?
-app.use('/encuestas', encuestasRouter);
-app.use('/bot', botSaludRouter);          // Salud del bot de reclutamiento (ciclos, atorados, envíos)         // Encuestas de onboarding (día 3/7/15/30/90)
+app.use('/encuestas', encuestasRouter);         // Encuestas de onboarding (día 3/7/15/30/90)
+app.use('/bot', botSaludRouter);                // Salud del bot de reclutamiento (ciclos, atorados, envíos)
 
 app.listen(env.PORT, () => {
   console.log(`[api] Mega Talento API escuchando en el puerto ${env.PORT}`);

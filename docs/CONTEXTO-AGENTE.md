@@ -376,6 +376,39 @@ Decisiones recientes:
   "no sé", "donde sea" no cuentan; nadie pasa del resumen ni entrega CV sin ellos; si ya mandó CV, se
   guarda y al aclarar el dato cierra sin pedirlo otra vez.
 
+### Que el bot no se cicle (19/10/2026)
+
+En octubre el bot repetía la misma pregunta a gente que ya había contestado ("No" al familiar 41 veces
+en un mes, "Ninguna", "Sí.", "Mis padres", RFC sin homoclave…). Se arreglaron las causas y se pusieron
+cuatro capas para que el siguiente error no pase desapercibido:
+
+1. **Freno de ciclos** (`src/freno-ciclos.js`, se llama en `responderConversacion` de `server.js`):
+   antes de enviar, cuenta cuántas veces SEGUIDAS ya se le mandó ese mismo mensaje a esa persona.
+   1ª y 2ª normal; 3ª se reformula y ofrece escribir *asesor*; 4ª ya no se repite: se le dice que una
+   persona de Capital Humano le escribirá y queda en `candidatos.portal_data.atorado`. En etapas sin
+   pregunta (completado, en revisión…) contesta un acuse corto en vez del texto largo.
+2. **"asesor"** en cualquier momento (`pideAsesor`, bloque antes de CASO 0-retomar en
+   `conversacion.js`) también lo deja en la bandeja, y la conversación sigue donde estaba.
+3. **Salud del bot** en el portal (`/app/salud-bot`, API `api/src/bot-salud.ts`, montada en `/bot`):
+   envíos de WhatsApp, mensajes repetidos 24 h / 7 días, quién escribió y no tuvo respuesta, y la
+   bandeja de **Atorados** (botón WhatsApp + "Atendido"). El menú muestra cuántos esperan.
+4. **`scripts/probar-ciclos.js`** corre en `npm run desplegar`: si falla, no se sube.
+
+Reglas para cualquier cambio en preguntas o validaciones del bot:
+- **Cada ciclo nuevo que encuentres**: arréglalo y AGREGA la respuesta real que lo causó como caso en
+  `probar-ciclos.js`.
+- **Lo que ve la persona = lo que el bot compara**: si una pregunta muestra opciones numeradas, cada
+  opción escrita tal cual debe aceptarse (la prueba lo revisa sola). Usa `alias` en `solicitud.js` para
+  sinónimos; `vOpciones` ya quita "mi/mis/su/con".
+- **Todo error de validación dice qué está mal y trae un ejemplo** ("le faltan los 3 de la homoclave",
+  "por ejemplo: $9,000 al mes"). La prueba revisa que cada `validar` lo tenga.
+- **Respuesta corta = contesta el paso actual**: no dejes que la IA mande un "No"/"Ninguna" a otro
+  campo (`respuestaCortaAjena`). Confirmaciones con `esConfirmacion` (acepta "Sí.", "sì", "todo correcto").
+- Toda pregunta debe aceptar "no sé"/ayuda sin ciclar, y no compares textos del bot contra sí mismos
+  con la barra de avance incluida (`clave()` la quita).
+- Avisar por WhatsApp a reclutadores de cada atorado requiere una plantilla nueva aprobada por Meta;
+  no está hecho (por ahora solo la bandeja del portal).
+
 Despliegue: `npm run desplegar` (candados: sin cambios sin commitear, `node --check`, pruebas puras
 `scripts/probar-*.js`, servicio enlazado, verificación de `/salud`). Requiere `railway link` al
 servicio `bot-rh` en esa carpeta (ya enlazado).
@@ -402,7 +435,7 @@ servicio `bot-rh` en esa carpeta (ya enlazado).
   corre sola al arrancar la API.
 - Antes de subir, mira `railway deployment list --service <s>`: si el último despliegue no es tuyo,
   alguien más subió; no lo pises sin revisar.
-- Después: `/health`, rutas nuevas responden 401 sin sesión, y busca un texto nuevo en el bundle
+- Después: `/health`, rutas nuevas responden 401 sin sesión (si responden 200 con HTML, subiste el front a la API), y busca un texto nuevo en el bundle
   (`main-*.js`/`chunk-*.js`) para confirmar que el front nuevo está servido.
 - GitHub: `git push origin horarios-incidencias` y `git push origin horarios-incidencias:main`.
 - Commits en español, con la atribución que indique el sistema.
@@ -421,6 +454,10 @@ servicio `bot-rh` en esa carpeta (ya enlazado).
 - **El corredor salta plazas sin datos nuevos**: una corrección de reglas no limpia borradores de esas
   plazas hasta la siguiente checada (o forzando).
 - **CRLF**: Git avisa "LF will be replaced by CRLF"; es normal en este repo.
+- **`railway up --service mega-talento-api` SIEMPRE desde `api/`**. Desde la raíz sube el FRONT al
+  servicio de la API y la API deja de contestar (pasó el 19/10/2026: ~4 min sin API; `/salud` de la API
+  respondía `"servicio":"mega-talento-front"`). Después de subir, confirma que una ruta protegida
+  responde 401 y no HTML. Los relojes se recuperan solos (backfill cada 60 min, ADMS con stamp 0).
 - **El POST de empleados es UPSERT**: dar de alta un código existente reemplaza la ficha (por eso el
   portal avisa con `/empleados/numero`).
 - **La ingesta crea fichas solas**: "no está en el sistema" casi nunca es falta de ficha; suele ser
