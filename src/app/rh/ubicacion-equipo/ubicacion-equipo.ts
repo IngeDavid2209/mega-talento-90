@@ -334,9 +334,14 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
     return j ? Math.round((Number(j.horas) || 0) * 60 + (Number(j.mins) || 0)) : 0;
   }
 
-  /** Los tipos que sí justifican (una amonestación o una falta injustificada no). */
+  /**
+   * Los tipos que se ofrecen al justificar. "Amonestación" también va (22/10/2026,
+   * RH la pidió en todas las listas): no justifica, solo queda registrada.
+   * Los ajustes de un día (horario, desayuno, comida) se capturan desde la ficha.
+   */
   get tiposQueJustifican(): TipoIncidencia[] {
-    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada' && t.tipo !== 'amonestacion');
+    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada'
+      && !['horario_distinto', 'desayuno_distinto', 'comida_distinta'].includes(t.tipo));
   }
 
   async justificar(x: { sucursalId: string; codigo: string; nombre: string }, motivo: 'falta' | 'salida', detalle: string) {
@@ -363,8 +368,9 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
       mensaje: `¿Seguro? Se registra "${t?.etiqueta || j.tipo}" para ${j.nombre} hoy` +
         (j.nota.trim() ? ` (${j.nota.trim()})` : '') + '. ' +
         (this.esHorasExtra ? `Se le suman ${this.duracion(this.minutosJust)} a sus horas de hoy. ` : '') +
-        (j.motivo === 'falta' ? 'Deja de contar como falta.' : 'La salida anticipada deja de contar como aviso.'),
-      textoConfirmar: 'Sí, justificar',
+        (!t?.excusaFalta ? 'Queda registrada, pero no justifica: ' + (j.motivo === 'falta' ? 'sigue contando como falta.' : 'la salida sigue como aviso.')
+          : j.motivo === 'falta' ? 'Deja de contar como falta.' : 'La salida anticipada deja de contar como aviso.'),
+      textoConfirmar: t?.excusaFalta === false ? 'Sí, registrar' : 'Sí, justificar',
     });
     if (!ok) return;
     j.guardando = true;
@@ -375,7 +381,7 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
         desde: hoy, hasta: hoy, nota: j.nota.trim(),
         minutos: this.esHorasExtra ? this.minutosJust : null,
       });
-      this.toast.exito(`${j.nombre}: justificado.`);
+      this.toast.exito(`${j.nombre}: ${t?.excusaFalta === false ? (t?.etiqueta || 'incidencia') + ' registrada' : 'justificado'}.`);
       this.justificando = null;
       const abierta = this.lista?.clave;
       await this.cargar(true, true);

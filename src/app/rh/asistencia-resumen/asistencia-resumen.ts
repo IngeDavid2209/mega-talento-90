@@ -1680,7 +1680,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
 
   /** Los que justifican, para el selector de "Justificar". */
   get tiposQueJustifican(): TipoIncidencia[] {
-    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada' && t.tipo !== 'amonestacion');
+    // "Amonestación" también va (22/10/2026, RH la pidió en TODAS las listas de
+    // incidencias): no justifica el día, solo queda registrada en él.
+    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada');
   }
   get esHorasExtra(): boolean { return this.incForm?.tipo.tipo === 'horas_extra'; }
   private get incMinutos(): number {
