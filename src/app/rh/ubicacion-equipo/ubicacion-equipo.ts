@@ -340,8 +340,11 @@ export class UbicacionEquipoComponent implements OnInit, OnDestroy {
    * Los ajustes de un día (horario, desayuno, comida) se capturan desde la ficha.
    */
   get tiposQueJustifican(): TipoIncidencia[] {
+    // 'visita_fuera' también se excluye: necesita recogida/entrega/autorizó, y
+    // esta pantalla no tiene esos campos (se captura desde "+ Incidencia" en
+    // Horarios y checadas). Dejarlo aquí daría un 400 sin salida.
     return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada'
-      && !['horario_distinto', 'desayuno_distinto', 'comida_distinta'].includes(t.tipo));
+      && !['horario_distinto', 'desayuno_distinto', 'comida_distinta', 'visita_fuera'].includes(t.tipo));
   }
 
   async justificar(x: { sucursalId: string; codigo: string; nombre: string }, motivo: 'falta' | 'salida', detalle: string) {

@@ -1658,6 +1658,17 @@
         <small class="inc-horas-ayuda">El día que elijas será su descanso de esa semana, y su descanso habitual de esa misma semana
           pasa a ser día de trabajo: si no viene, cuenta como falta.</small>
       }
+      <!-- Visita fuera: el horario de recogida→entrega en casa. Ese lapso se
+           suma a sus horas del día y el día queda justificado (no toca su saldo). -->
+      @if (esVisitaFuera) {
+        <div class="inc-rango">
+          <label class="inc-campo"><span>Lo recogieron</span><input type="time" [(ngModel)]="incForm.entrada"></label>
+          <label class="inc-campo"><span>Lo dejaron en casa</span><input type="time" [(ngModel)]="incForm.salida"></label>
+        </div>
+        <label class="inc-campo"><span>¿Quién lo autorizó? <small>(obligatorio)</small></span>
+          <input type="text" [(ngModel)]="incForm.autorizo" maxlength="80" placeholder="Ej. Lic. Pérez"></label>
+        <small class="inc-horas-ayuda">Ese lapso se suma a sus horas trabajadas del día y el día queda justificado. No toca su saldo de horas extra.</small>
+      }
 
       <label class="inc-campo">
         <span>¿A quién?</span>

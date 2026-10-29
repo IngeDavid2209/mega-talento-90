@@ -1638,7 +1638,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get incUsoTotal(): number { return this.incMinutos * (this.incDias || 0); }
 
   /** "Otros" sin descripción no dice nada: la nota es lo que explica qué pasó. */
-  get incNotaObligatoria(): boolean { return this.incForm?.tipo.tipo === 'otros'; }
+  get incNotaObligatoria(): boolean { return this.incForm?.tipo.tipo === 'otros' || this.incForm?.tipo.tipo === 'visita_fuera'; }
+  get esVisitaFuera(): boolean { return this.incForm?.tipo.tipo === 'visita_fuera'; }
 
   /** De la ficha al detalle completo (semanas, justificación por día). */
   fichaADetalle() {
@@ -1672,6 +1673,8 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     desde: string; hasta: string; nota: string;
     /** "Uso de horas extra": cuántas horas y minutos usó (por día). */
     horas?: number | null; mins?: number | null;
+    /** "Visita fuera": recogida y entrega (HH:mm) y quién la autorizó. */
+    entrada?: string; salida?: string; autorizo?: string;
     /** Se abrió desde "Justificar" en la ficha: se deja elegir el motivo. */
     elegirTipo?: boolean;
     /** Abierto desde un día sin nada en rojo: se ofrecen TODOS los tipos. */
@@ -1734,6 +1737,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       tipo, codigo,
       cuando: fecha && fecha !== hoy ? 'dia' : 'hoy',
       desde: fecha || hoy, hasta: fecha || hoy, nota: '',
+      entrada: '', salida: '', autorizo: '',
     };
     this.cargarSaldoInc();
   }
@@ -1764,12 +1768,18 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const f = this.incForm, p = this.incPeriodo;
     if (!f || !p || !f.codigo || this.guardandoInc) return;
     if (this.incNotaObligatoria && !f.nota.trim()) {
-      this.toast.alerta('Escribe qué pasó: con "Otros" la descripción es lo único que explica la incidencia.');
+      this.toast.alerta('Escribe la descripción: es lo único que explica esta incidencia.');
       return;
     }
     if (this.esHorasExtra && (this.incMinutos < 1 || this.incMinutos > 720)) {
       this.toast.alerta('Escribe cuántas horas extra usó (entre 1 minuto y 12 horas).');
       return;
+    }
+    if (this.esVisitaFuera) {
+      const ent = this.aMinutos(f.entrada || ''), sal = this.aMinutos(f.salida || '');
+      if (ent == null || sal == null) { this.toast.alerta('Pon la hora en que lo recogieron y en que lo dejaron en su casa.'); return; }
+      if (sal <= ent) { this.toast.alerta('La hora de entrega debe ser después de la de recogida.'); return; }
+      if (!f.autorizo?.trim()) { this.toast.alerta('Escribe quién autorizó la visita fuera.'); return; }
     }
     const quien0 = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
     const cuando = p.desde === p.hasta
@@ -1789,10 +1799,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     if (!ok) return;
     this.guardandoInc = true;
     try {
+      const vfEnt = this.esVisitaFuera ? this.aMinutos(f.entrada || '') : null;
+      const vfSal = this.esVisitaFuera ? this.aMinutos(f.salida || '') : null;
       const r = await this.checador.crearIncidencia({
         sucursalId: this.sucursalFiltro, empleadoCodigo: f.codigo,
         tipo: f.tipo.tipo, desde: p.desde, hasta: p.hasta, nota: f.nota,
-        minutos: this.esHorasExtra ? this.incMinutos : null,
+        minutos: this.esHorasExtra ? this.incMinutos
+               : (this.esVisitaFuera && vfEnt != null && vfSal != null ? vfSal - vfEnt : null),
+        ...(this.esVisitaFuera ? { horarioBase: vfEnt, autorizo: f.autorizo?.trim() } : {}),
       });
       const quien = this.lista.find(e => e.codigo === f.codigo)?.nombreCompleto || f.codigo;
       this.toast.exito(`${f.tipo.etiqueta} · ${quien} · ${this.incDias} día(s).` +

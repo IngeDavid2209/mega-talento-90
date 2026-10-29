@@ -1062,7 +1062,16 @@ export async function asistenciaPersonas(
         // horas son las de su jornada.
         const extraUsadas = incs.filter((i) => i.tipo === 'horas_extra')
           .reduce((t, i) => t + (Number(i.minutos) || 0), 0);
-        const netas = (det.netasMin || 0) + extraUsadas;
+        // VISITA FUERA (29/10/2026): el lapso recogida→entrega (en `minutos`) se
+        // suma a las horas del día igual que las horas extra usadas, PERO no toca
+        // el saldo de horas extra. Por eso va en su propio acumulador y NO entra
+        // en `extraUsadasPeriodo`.
+        // En un rango que cruza su día de descanso, ese día NO recibe el lapso:
+        // sería pagar horas de un día en que no trabajó.
+        const visitaFueraMin = d.estado === 'descanso' ? 0
+          : incs.filter((i) => i.tipo === 'visita_fuera')
+            .reduce((t, i) => t + (Number(i.minutos) || 0), 0);
+        const netas = (det.netasMin || 0) + extraUsadas + visitaFueraMin;
         if (netas) { minTrabajados += netas; minSemana += netas; }
         if (det.desayunoExcesoMin) { desayunoExcesoMin += det.desayunoExcesoMin; diasDesayunoExcedido++; }
         if (incs.length) diasConIncidencia++;

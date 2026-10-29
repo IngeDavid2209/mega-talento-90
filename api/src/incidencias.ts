@@ -87,6 +87,13 @@ export const TIPOS_INCIDENCIA: TipoIncidencia[] = [
   // quitarle a unas vacaciones el día que de todos modos descansaba. Manda
   // sobre las vacaciones u otra incidencia de esos días.
   { tipo: 'descanso',            etiqueta: 'Descanso',                   codigo: 'DSC', excusaFalta: true },
+  // VISITA FUERA (29/10/2026): salió a una visita de trabajo y lo recogen/dejan
+  // en su casa, así que no checa en el reloj. JUSTIFICA el día y el lapso
+  // recogida→entrega se SUMA a sus horas trabajadas (como "uso de horas extra"),
+  // pero NO toca su saldo de horas extra. Lleva descripción (nota) y quién lo
+  // autorizó. Reusa `minutos` (el lapso) y `horario_base_min` (la recogida);
+  // puede abarcar varios días con el mismo horario.
+  { tipo: 'visita_fuera',        etiqueta: 'Visita fuera',               codigo: 'VF',  excusaFalta: true },
 ];
 
 /** Tipos de UN solo día que ajustan cómo se mide ese día, sin justificarlo. */
@@ -415,6 +422,22 @@ incidenciasRouter.post('/', async (req: AuthedRequest, res: Response) => {
       if (!motivo) return res.status(400).json({ error: `Escribe por qué ese día tuvo otro tiempo de ${cual}.` });
       if (!autorizo) return res.status(400).json({ error: 'Escribe quién lo autorizó.' });
       nota = nota ? `${motivo} — ${nota}` : motivo;
+    }
+    if (tipo === 'visita_fuera') {
+      // Recogida (horario_base, minuto del día) → entrega. `minutos` es el lapso
+      // trabajado que se suma a las horas del día; la entrega = recogida + lapso.
+      const recogida = req.body?.horarioBase != null && req.body?.horarioBase !== ''
+        ? Math.round(Number(req.body.horarioBase)) : NaN;
+      minutos = Math.round(Number(req.body?.minutos));
+      if (!Number.isFinite(recogida) || recogida < 0 || recogida > 1439) {
+        return res.status(400).json({ error: 'Indica a qué hora lo recogieron.' });
+      }
+      if (!Number.isFinite(minutos) || minutos < 1 || recogida + minutos > 1439) {
+        return res.status(400).json({ error: 'Indica a qué hora lo dejaron en su casa (después de la recogida).' });
+      }
+      if (!nota) return res.status(400).json({ error: 'Escribe a dónde fue y por qué.' });
+      if (!autorizo) return res.status(400).json({ error: 'Escribe quién autorizó la visita fuera.' });
+      horarioBase = recogida;
     }
     if (tipo === 'cambio_descanso' && (req.body?.hasta || desde) !== desde) {
       return res.status(400).json({ error: 'El cambio de descanso es de un solo día: elige el día que descansa.' });
