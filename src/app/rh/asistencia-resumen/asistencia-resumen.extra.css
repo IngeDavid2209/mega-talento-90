@@ -374,11 +374,16 @@
 .per-btn[aria-expanded="true"] { border-color: var(--ink); }
 .per-btn:disabled { opacity: .55; cursor: default; }
 .per-n { flex: none; font-style: normal; background: var(--brand-bg); color: var(--ink); border-radius: 999px; padding: 0 7px; font-size: 11.5px; font-weight: 700; line-height: 20px; }
-.per-ov { position: fixed; inset: 0; z-index: 40; }
+/* Antes: overlay transparente (z-40) + popover absoluto anclado al botón (z-41).
+   Quedaba DEBAJO del sistema de modales (1200+) y, sin fondo que atenúe, se
+   encimaba sobre la tabla en cualquier pantalla. Ahora es un modal centrado,
+   igual que `.ar-modal`: fondo atenuado, centrado y con scroll si no cabe. */
+.per-ov { position: fixed; inset: 0; z-index: 1200; background: rgba(15, 23, 42, 0.5); }
 .per-pop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 41; width: min(360px, 92vw);
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1201;
+  width: min(360px, 94vw); max-height: min(85vh, 560px); overflow-y: auto;
   background: #fff; border: 1px solid var(--border-med); border-radius: 12px;
-  box-shadow: 0 12px 28px -12px rgba(26, 47, 78, .28); display: flex; flex-direction: column;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35); display: flex; flex-direction: column;
 }
 .per-buscar { padding: 10px 10px 6px; }
 .ar-field .per-buscar input { width: 100%; min-width: 0; font-size: 13px; padding: 7px 10px; }
@@ -412,9 +417,10 @@
 /* ══ HORARIO DE CADA PERSONA (06/10/2026) ══ */
 .hor-wrap { position: relative; }
 .hor-pop {
-  position: absolute; top: calc(100% + 6px); right: 0; z-index: 41; width: min(380px, 92vw);
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1201;
+  width: min(420px, 94vw); max-height: min(88vh, 640px); overflow-y: auto;
   background: #fff; border: 1px solid var(--border-med); border-radius: 12px;
-  box-shadow: 0 12px 28px -12px rgba(26, 47, 78, .28); padding: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35); padding: 16px;
   display: flex; flex-direction: column; gap: 12px; text-align: left;
 }
 .hor-pop h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--ink); }
