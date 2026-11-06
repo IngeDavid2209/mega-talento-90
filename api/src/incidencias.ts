@@ -62,6 +62,12 @@ export const TIPOS_INCIDENCIA: TipoIncidencia[] = [
   // Usó horas que tenía a favor: justifica el día y sus minutos SE SUMAN a las
   // horas trabajadas de ese día (29/09/2026). Lleva `minutos` obligatorio.
   { tipo: 'horas_extra',         etiqueta: 'Uso de horas extra',         codigo: 'HE',  excusaFalta: true },
+  // Pago de horas extra en efectivo (06/11/2026): LIQUIDA horas del banco. A
+  // diferencia de "Uso", NO suma a las horas trabajadas del día ni lo justifica:
+  // es solo un movimiento del banco que DESCUENTA del saldo (le pagaron el tiempo
+  // en vez de tomarlo). Se registra en un solo día, con el TOTAL pagado en
+  // `minutos` (no por día) y una referencia obligatoria en la nota.
+  { tipo: 'pago_horas_extra',    etiqueta: 'Pago de horas extras',       codigo: 'PHE', excusaFalta: false },
   // "Otros" JUSTIFICA desde el 29/09/2026: el portal exige escribir el motivo, y
   // RH lo usa para lo que no tiene tipo propio (una junta, un trámite).
   { tipo: 'otros',               etiqueta: 'Otros',                      codigo: 'OTR', excusaFalta: true },
@@ -154,6 +160,10 @@ export interface Incidencia {
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 /** Un dedazo en el año (2062) no debe escribir un periodo de 36 años. */
 const TOPE_DIAS = 366;
+// Tope de un pago de horas extra en un solo registro: 100 h. Es un banco que se
+// llena en bloques de 30 min a lo largo de semanas; 100 h cubre con holgura una
+// liquidación acumulada y a la vez atrapa un dedazo (p. ej. 1000 h).
+const TOPE_PAGO_MIN = 6000;
 
 const aFecha = (v: any): string =>
   v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10);
@@ -388,6 +398,20 @@ incidenciasRouter.post('/', async (req: AuthedRequest, res: Response) => {
       minutos = Math.round(Number(req.body?.minutos));
       if (!Number.isFinite(minutos) || minutos < 1 || minutos > 720) {
         return res.status(400).json({ error: 'Indica cuántas horas extra usó (entre 1 minuto y 12 horas).' });
+      }
+    }
+    // Pago de horas extra: el TOTAL pagado (no por día), en un solo día, con
+    // referencia. Baja el saldo del banco; no toca la asistencia del día.
+    if (tipo === 'pago_horas_extra') {
+      minutos = Math.round(Number(req.body?.minutos));
+      if (!Number.isFinite(minutos) || minutos < 1 || minutos > TOPE_PAGO_MIN) {
+        return res.status(400).json({ error: `Indica cuántas horas extra se pagaron (entre 1 minuto y ${TOPE_PAGO_MIN / 60} horas).` });
+      }
+      if ((req.body?.hasta || desde) !== desde) {
+        return res.status(400).json({ error: 'El pago de horas extras se registra en un solo día.' });
+      }
+      if (!nota) {
+        return res.status(400).json({ error: 'Escribe la referencia del pago (p. ej. nómina del 15).' });
       }
     }
     if (tipo === 'horario_distinto') {

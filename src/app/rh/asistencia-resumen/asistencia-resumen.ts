@@ -334,6 +334,20 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   desde = '';
   hasta = '';
 
+  /**
+   * La sucursal se recuerda en la sesión (como el periodo, ver
+   * PeriodoAsistenciaService), para que una recarga —p. ej. cuando se aplica una
+   * versión nueva— no te devuelva a la primera plaza. Solo en la pantalla propia:
+   * cuando la sucursal la impone un contenedor externo, esa manda.
+   */
+  private readonly CLAVE_SUC = 'mt90.asistencia.sucursal';
+  private leerSucursalGuardada(): string | null {
+    try {
+      const v = sessionStorage.getItem(this.CLAVE_SUC);
+      return v && CENTROS_CON_RELOJ.some(c => c.id === v) ? v : null;
+    } catch { return null; }
+  }
+
   lista: EmpleadoAsistencia[] = [];
   cargando = false;
 
@@ -372,7 +386,15 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     this.hasta = aFechaLocal(hoy);
     this.desde = aFechaLocal(hace30);
 
-    if (this.sucursalIdExterna) this.sucursalFiltro = this.sucursalIdExterna;
+    // Si un contenedor externo (Ubicación de mi equipo) impone la sucursal, esa
+    // manda; si es la pantalla principal, se restaura la última elegida en la
+    // sesión para no volver siempre a la primera plaza tras una recarga.
+    if (this.sucursalIdExterna) {
+      this.sucursalFiltro = this.sucursalIdExterna;
+    } else {
+      const guardada = this.leerSucursalGuardada();
+      if (guardada) this.sucursalFiltro = guardada;
+    }
 
     // Si RH ya eligió un periodo en esta sesión, ese manda: el componente se
     // desmonta al pasar a Empleados o a Cruces, y antes al volver se reescribía
@@ -1477,6 +1499,9 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   tieneRetardo(items: Irregularidad[]): boolean { return items.some((i) => i.tipo === 'retardo' || i.tipo === 'tolerancia'); }
   esSoloHorario(incs: FichaInc[]): boolean { return !!incs.length && incs.every((i) => AJUSTES.has(i.tipo) && i.tipo !== 'cambio_descanso'); }
   esCambioDescanso(incs: FichaInc[]): boolean { return incs.some((i) => i.tipo === 'cambio_descanso'); }
+  /** El pago de horas extra NO justifica el día: solo mueve el banco. Un día cuya
+   *  única incidencia es un pago no debe mostrarse como "Justificado". */
+  esSoloPago(incs: FichaInc[]): boolean { return !!incs.length && incs.every((i) => i.tipo === 'pago_horas_extra'); }
 
   aHoraMin(min: number): string {
     return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
@@ -1627,7 +1652,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   async cargarSaldoInc() {
     const f = this.incForm;
     this.incSaldo = null;
-    if (!f || f.tipo.tipo !== 'horas_extra' || !f.codigo) return;
+    if (!f || !(f.tipo.tipo === 'horas_extra' || f.tipo.tipo === 'pago_horas_extra') || !f.codigo) return;
     const cod = f.codigo;
     try {
       const b = await this.checador.getHorasExtra(this.sucursalFiltro, aFechaLocal(new Date()), cod);
@@ -1638,7 +1663,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get incUsoTotal(): number { return this.incMinutos * (this.incDias || 0); }
 
   /** "Otros" sin descripción no dice nada: la nota es lo que explica qué pasó. */
-  get incNotaObligatoria(): boolean { return this.incForm?.tipo.tipo === 'otros' || this.incForm?.tipo.tipo === 'visita_fuera'; }
+  get incNotaObligatoria(): boolean {
+    // El pago exige referencia: es dinero, tiene que quedar trazable.
+    return this.incForm?.tipo.tipo === 'otros' || this.incForm?.tipo.tipo === 'visita_fuera' || this.esPagoHorasExtra;
+  }
   get esVisitaFuera(): boolean { return this.incForm?.tipo.tipo === 'visita_fuera'; }
 
   /** De la ficha al detalle completo (semanas, justificación por día). */
@@ -1685,9 +1713,14 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
   get tiposQueJustifican(): TipoIncidencia[] {
     // "Amonestación" también va (22/10/2026, RH la pidió en TODAS las listas de
     // incidencias): no justifica el día, solo queda registrada en él.
-    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada');
+    // "Pago de horas extras" NO: no justifica nada, solo mueve el banco; ofrecerlo
+    // como motivo para justificar un día confundiría (y no excusa la falta).
+    return this.tiposIncidencia.filter((t) => t.tipo !== 'falta_injustificada' && t.tipo !== 'pago_horas_extra');
   }
   get esHorasExtra(): boolean { return this.incForm?.tipo.tipo === 'horas_extra'; }
+  get esPagoHorasExtra(): boolean { return this.incForm?.tipo.tipo === 'pago_horas_extra'; }
+  /** Tipos que usan el campo de horas+minutos (uso y pago del banco). */
+  get usaCampoHoras(): boolean { return this.esHorasExtra || this.esPagoHorasExtra; }
   private get incMinutos(): number {
     const f = this.incForm;
     return f ? Math.round((Number(f.horas) || 0) * 60 + (Number(f.mins) || 0)) : 0;
@@ -1696,10 +1729,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const t = this.tiposIncidencia.find((x) => x.tipo === tipo);
     if (t && this.incForm) {
       this.incForm.tipo = t;
-      if (tipo === 'cambio_descanso' && this.incForm.cuando === 'rango') this.incForm.cuando = 'dia';
+      // Cambio de descanso y pago de horas extra son de un solo día.
+      if ((tipo === 'cambio_descanso' || tipo === 'pago_horas_extra') && this.incForm.cuando === 'rango') this.incForm.cuando = 'dia';
       this.cargarSaldoInc();
     }
   }
+  /** Un solo día (sin "varios días"): cambio de descanso y pago de horas extra. */
+  get esUnSoloDiaInc(): boolean { return this.esCambioDescansoInc || this.esPagoHorasExtra; }
   get esCambioDescansoInc(): boolean { return this.incForm?.tipo.tipo === 'cambio_descanso'; }
 
   /**
@@ -1775,6 +1811,13 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       this.toast.alerta('Escribe cuántas horas extra usó (entre 1 minuto y 12 horas).');
       return;
     }
+    if (this.esPagoHorasExtra) {
+      if (this.incMinutos < 1 || this.incMinutos > 6000) {
+        this.toast.alerta('Escribe cuántas horas extra se pagaron (entre 1 minuto y 100 horas).');
+        return;
+      }
+      if (this.incDias !== 1) { this.toast.alerta('El pago de horas extras se registra en un solo día.'); return; }
+    }
     if (this.esVisitaFuera) {
       const ent = this.aMinutos(f.entrada || ''), sal = this.aMinutos(f.salida || '');
       if (ent == null || sal == null) { this.toast.alerta('Pon la hora en que lo recogieron y en que lo dejaron en su casa.'); return; }
@@ -1788,7 +1831,10 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     const ok = await this.toast.confirmar({
       titulo: `Registrar ${f.tipo.etiqueta.toLowerCase()}`,
       mensaje: `¿Seguro? Se registra ${f.tipo.etiqueta.toLowerCase()} para ${quien0} ${cuando}.` +
-        (this.esHorasExtra ? ` Se le suman ${this.textoMinutos(this.incMinutos)} a sus horas trabajadas por día, el día queda justificado` +
+        (this.esPagoHorasExtra ? ` Se descuentan ${this.textoMinutos(this.incMinutos)} de su saldo de horas extra (le pagaron ese tiempo en efectivo)` +
+            (this.incSaldo ? ` y le queda${this.incSaldo.saldoMin - this.incMinutos < 0 ? ' en negativo' : ''}: ${this.saldoTexto(this.incSaldo.saldoMin - this.incMinutos)}.` : '.') +
+            ' No suma a sus horas trabajadas ni justifica el día.'
+          : this.esHorasExtra ? ` Se le suman ${this.textoMinutos(this.incMinutos)} a sus horas trabajadas por día, el día queda justificado` +
             ` y se descuentan ${this.textoMinutos(this.incUsoTotal)} de su saldo de horas extra` +
             (this.incSaldo ? ` (le queda${this.incSaldo.saldoMin - this.incUsoTotal < 0 ? ' en negativo' : ''}: ${this.saldoTexto(this.incSaldo.saldoMin - this.incUsoTotal)}).` : '.')
           : this.esCambioDescansoInc ? ' Ese día será su descanso de la semana, y su descanso habitual de esa semana pasa a ser día de trabajo (si no viene, es falta).'
@@ -1804,7 +1850,7 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
       const r = await this.checador.crearIncidencia({
         sucursalId: this.sucursalFiltro, empleadoCodigo: f.codigo,
         tipo: f.tipo.tipo, desde: p.desde, hasta: p.hasta, nota: f.nota,
-        minutos: this.esHorasExtra ? this.incMinutos
+        minutos: this.usaCampoHoras ? this.incMinutos
                : (this.esVisitaFuera && vfEnt != null && vfSal != null ? vfSal - vfEnt : null),
         ...(this.esVisitaFuera ? { horarioBase: vfEnt, autorizo: f.autorizo?.trim() } : {}),
       });
@@ -2663,6 +2709,11 @@ export class AsistenciaResumenComponent implements OnInit, OnDestroy, OnChanges 
     // Todo cambio de periodo pasa por aquí (atajos, calendario, autoajuste): es
     // el único punto donde hace falta recordarlo.
     if (this.desde && this.hasta) this.periodo.fijar(this.desde, this.hasta);
+    // La sucursal se recuerda igual que el periodo (solo en la pantalla propia,
+    // no cuando la impone un contenedor externo).
+    if (!this.sucursalIdExterna && this.sucursalFiltro) {
+      try { sessionStorage.setItem(this.CLAVE_SUC, this.sucursalFiltro); } catch { /* sin storage */ }
+    }
     if (!this.sucursalFiltro || !this.desde || !this.hasta) { this.lista = []; this.computarTolerancia(); return; }
     if (!silencioso) this.cargando = true;
     try {

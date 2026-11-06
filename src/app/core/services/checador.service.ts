@@ -310,13 +310,15 @@ export interface PersonaAsistencia {
 // ══ BANCO DE HORAS EXTRA (08/10/2026) ══ ver api/src/agente-horarios/horas-extra.ts
 export interface DiaExtra { fecha: string; entrada: string | null; salida: string | null; salidaEsperada: string | null; extraMin: number; }
 export interface UsoExtra { id: string; desde: string; hasta: string; minutos: number; dias: number; totalMin: number; nota: string; }
+/** Pago en efectivo de horas del banco: total en una fecha, descuenta del saldo. */
+export interface PagoExtra { id: string; fecha: string; minutos: number; nota: string; }
 /** Saldo inicial o corrección de RH, con signo (+330 suma 5 h 30 min). */
 export interface AjusteExtra { id: string; fecha: string; minutos: number; motivo: string; creadoPor: string; creadoEn: string; }
 export interface PersonaExtra {
   codigo: string; nombreCompleto: string; departamento: string | null;
   segun: 'asignado' | 'deducido' | null; salida: string | null;
-  ganadasMin: number; usadasMin: number; ajustesMin: number; saldoMin: number;
-  ganadas: DiaExtra[]; usos: UsoExtra[]; ajustes: AjusteExtra[];
+  ganadasMin: number; usadasMin: number; pagadasMin: number; ajustesMin: number; saldoMin: number;
+  ganadas: DiaExtra[]; usos: UsoExtra[]; pagos: PagoExtra[]; ajustes: AjusteExtra[];
 }
 export interface BancoHorasExtra {
   sucursalId: string; desde: string; hasta: string; bloqueMin: number;

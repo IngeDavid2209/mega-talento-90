@@ -63,7 +63,7 @@ export class HorasExtraComponent implements OnChanges {
   get visibles(): PersonaExtra[] {
     const q = this.sinAcentos(this.busqueda.trim());
     return (this.datos?.personas || []).filter((p) => {
-      if (this.filtro === 'saldo' && !p.saldoMin && !p.ganadasMin && !p.usadasMin) return false;
+      if (this.filtro === 'saldo' && !p.saldoMin && !p.ganadasMin && !p.usadasMin && !p.pagadasMin) return false;
       if (this.filtro === 'negativo' && p.saldoMin >= 0) return false;
       if (!q) return true;
       const t = this.sinAcentos(`${p.codigo} ${p.nombreCompleto} ${p.departamento || ''}`);
@@ -75,14 +75,15 @@ export class HorasExtraComponent implements OnChanges {
     const l = this.datos?.personas || [];
     if (f === 'todos') return l.length;
     if (f === 'negativo') return l.filter((p) => p.saldoMin < 0).length;
-    return l.filter((p) => p.saldoMin || p.ganadasMin || p.usadasMin).length;
+    return l.filter((p) => p.saldoMin || p.ganadasMin || p.usadasMin || p.pagadasMin).length;
   }
 
-  get totales(): { ganadas: number; usadas: number; saldo: number } {
+  get totales(): { ganadas: number; usadas: number; pagadas: number; saldo: number } {
     const l = this.visibles;
     return {
       ganadas: l.reduce((t, p) => t + p.ganadasMin, 0),
       usadas: l.reduce((t, p) => t + p.usadasMin, 0),
+      pagadas: l.reduce((t, p) => t + p.pagadasMin, 0),
       saldo: l.reduce((t, p) => t + p.saldoMin, 0),
     };
   }

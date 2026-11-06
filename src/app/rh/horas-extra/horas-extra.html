@@ -4,7 +4,7 @@
     <p class="he-sub">
       Se gana lo que se queda <b>después de su hora de salida</b>, en bloques completos de 30 min
       (45 min cuentan 30; 1 h 10 cuenta 1 h). Si ese día llegó tarde o se pasó del desayuno o de la comida,
-      primero repone eso. Se descuentan al capturar <b>Uso de horas extra</b> en la ficha o en Incidencias.
+      primero repone eso. Se descuentan al capturar <b>Uso de horas extra</b> (se toma el tiempo) o <b>Pago de horas extras</b> (se paga en efectivo) en la ficha o en Incidencias.
       @if (datos) { Cuentan desde el {{ fecha(datos.desde) }}. }
     </p>
   </header>
@@ -43,7 +43,7 @@
           <thead>
             <tr>
               <th>Clv</th><th>Nombre</th><th>Su salida</th>
-              <th class="he-num">Ganadas</th><th class="he-num">Usadas</th><th class="he-num" title="Saldo inicial y correcciones de RH">Ajustes</th>
+              <th class="he-num">Ganadas</th><th class="he-num">Usadas</th><th class="he-num" title="Horas ya pagadas en efectivo (salen del banco)">Pagadas</th><th class="he-num" title="Saldo inicial y correcciones de RH">Ajustes</th>
               <th class="he-num">Saldo</th><th></th>
             </tr>
           </thead>
@@ -64,6 +64,7 @@
                 </td>
                 <td class="he-num">{{ horas(p.ganadasMin) }}</td>
                 <td class="he-num">{{ horas(p.usadasMin) }}</td>
+                <td class="he-num">{{ p.pagadasMin ? horas(p.pagadasMin) : '' }}</td>
                 <td class="he-num">{{ p.ajustesMin ? (p.ajustesMin > 0 ? '+' : '') + horas(p.ajustesMin) : '' }}</td>
                 <td class="he-num he-saldo" [class.he-neg]="p.saldoMin < 0" [class.he-pos]="p.saldoMin > 0">{{ horas(p.saldoMin) }}</td>
                 <td class="he-ver">{{ abiertos.has(p.codigo) ? '▴' : '▾' }}</td>
@@ -71,7 +72,7 @@
               @if (abiertos.has(p.codigo)) {
                 <tr class="he-det">
                   <td></td>
-                  <td colspan="7">
+                  <td colspan="8">
                     <div class="he-det-cols">
                       <div>
                         <b>Ganadas</b>
@@ -85,6 +86,13 @@
                           <span>{{ periodoUso(u) }} · {{ horas(u.minutos) }}{{ u.dias > 1 ? ' por día' : '' }} · <b class="he-neg">−{{ horas(u.totalMin) }}</b>
                             @if (u.nota) { <em>{{ u.nota }}</em> }</span>
                         } @empty { <span class="he-gris">No ha usado.</span> }
+                      </div>
+                      <div>
+                        <b>Pagadas</b>
+                        @for (pg of p.pagos; track pg.id) {
+                          <span>{{ fecha(pg.fecha) }} · <b class="he-neg">−{{ horas(pg.minutos) }}</b>
+                            @if (pg.nota) { <em>{{ pg.nota }}</em> }</span>
+                        } @empty { <span class="he-gris">Sin pagos.</span> }
                       </div>
                       <div>
                         <b>Saldo inicial y ajustes</b>
@@ -121,7 +129,8 @@
             <tr>
               <td></td><td>{{ visibles.length }} persona{{ visibles.length === 1 ? '' : 's' }}</td><td></td>
               <td class="he-num">{{ horas(totales.ganadas) }}</td>
-              <td class="he-num">{{ horas(totales.usadas) }}</td><td></td>
+              <td class="he-num">{{ horas(totales.usadas) }}</td>
+              <td class="he-num">{{ totales.pagadas ? horas(totales.pagadas) : '' }}</td><td></td>
               <td class="he-num he-saldo">{{ horas(totales.saldo) }}</td><td></td>
             </tr>
           </tfoot>

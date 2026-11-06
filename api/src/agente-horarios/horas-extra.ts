@@ -14,7 +14,14 @@ import { asistenciaPersonas, EXTRA_BLOQUE_MIN } from './asistencia-personas';
  * una checada que llega tarde o un "Horario distinto" capturado después
  * corrigen el saldo solos. Lo único guardado son los AJUSTES de RH
  * (`horas_extra_ajustes`): el saldo inicial de quien ya traía horas de antes
- * del banco, o una corrección. Saldo = ganadas − usadas + ajustes.
+ * del banco, o una corrección.
+ *
+ * Desde el 06/11/2026 el banco también baja cuando RH captura "Pago de horas
+ * extras" (tipo `pago_horas_extra`): le pagaron el tiempo en efectivo en vez de
+ * tomarlo, así que esas horas salen del banco igual que las usadas. Se registra
+ * como un total en una fecha y NO toca la asistencia de ese día.
+ *
+ * Saldo = ganadas − usadas − pagadas + ajustes.
  */
 export const HORAS_EXTRA_DESDE = process.env.HORAS_EXTRA_DESDE || '2026-09-24';
 
@@ -39,6 +46,16 @@ export interface UsoExtra {
   nota: string;
 }
 
+export interface PagoExtra {
+  id: string;
+  /** Día en que se registró el pago. */
+  fecha: string;
+  /** Total de minutos pagados (descuenta del saldo). */
+  minutos: number;
+  /** Referencia del pago (p. ej. "nómina del 15"). */
+  nota: string;
+}
+
 export interface AjusteExtra {
   id: string;
   fecha: string;
@@ -58,11 +75,14 @@ export interface PersonaExtra {
   salida: string | null;
   ganadasMin: number;
   usadasMin: number;
+  /** Horas que ya se le pagaron en efectivo (descuentan del saldo). */
+  pagadasMin: number;
   /** Saldo inicial y correcciones de RH (con signo). */
   ajustesMin: number;
   saldoMin: number;
   ganadas: DiaExtra[];
   usos: UsoExtra[];
+  pagos: PagoExtra[];
   ajustes: AjusteExtra[];
 }
 
@@ -136,16 +156,22 @@ export async function bancoHorasExtra(sucursalId: string, hasta: string, codigo?
         return { id: i.id, desde: i.desde, hasta: i.hasta, minutos: Number(i.minutos), dias, totalMin: dias * Number(i.minutos), nota: i.nota || '' };
       })
       .filter((u) => u.dias > 0);
+    // Pago de horas extra: total en una fecha. A diferencia del uso, no se
+    // multiplica por días; cada registro descuenta sus `minutos` del saldo.
+    const pagos: PagoExtra[] = p.incidencias
+      .filter((i) => i.tipo === 'pago_horas_extra' && Number(i.minutos) > 0 && i.desde >= desde && i.desde <= hasta)
+      .map((i) => ({ id: i.id, fecha: i.desde, minutos: Number(i.minutos), nota: i.nota || '' }));
     const ganadasMin = ganadas.reduce((t, x) => t + x.extraMin, 0);
     const usadasMin = usos.reduce((t, x) => t + x.totalMin, 0);
+    const pagadasMin = pagos.reduce((t, x) => t + x.minutos, 0);
     const susAjustes = ajustes.get(p.codigo) || [];
     const ajustesMin = susAjustes.reduce((t, x) => t + x.minutos, 0);
-    if (!p.horasExtraSegun && !ganadasMin && !usadasMin && !susAjustes.length) continue;
+    if (!p.horasExtraSegun && !ganadasMin && !usadasMin && !pagadasMin && !susAjustes.length) continue;
     personas.push({
       codigo: p.codigo, nombreCompleto: p.nombreCompleto, departamento: p.departamento,
       segun: p.horasExtraSegun, salida: p.salida,
-      ganadasMin, usadasMin, ajustesMin, saldoMin: ganadasMin - usadasMin + ajustesMin,
-      ganadas, usos, ajustes: susAjustes,
+      ganadasMin, usadasMin, pagadasMin, ajustesMin, saldoMin: ganadasMin - usadasMin - pagadasMin + ajustesMin,
+      ganadas, usos, pagos, ajustes: susAjustes,
     });
   }
   personas.sort((x, y) => y.saldoMin - x.saldoMin || x.nombreCompleto.localeCompare(y.nombreCompleto, 'es'));

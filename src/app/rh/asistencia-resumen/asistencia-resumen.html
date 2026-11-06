@@ -1451,7 +1451,7 @@
                 <span class="fic-just-ok">✓ Su descanso de la semana</span>
               } @else if (!d.items.length && esSoloHorario(d.incs)) {
                 <span class="fic-just-ok">✓ A tiempo en su horario</span>
-              } @else if (!d.items.length && d.incs.length) {
+              } @else if (!d.items.length && d.incs.length && !esSoloPago(d.incs)) {
                 <span class="fic-just-ok">✓ Justificado</span>
               }
               @if (hdAbierto === d.fecha && (ajustesDe(d).desayuno || ajustesDe(d).comida)) {
@@ -1620,6 +1620,7 @@
           <h3>{{ incForm.tipo.etiqueta }}</h3>
           <span class="ar-card-sub">
             @if (esHorasExtra) { Sus horas se suman a las del día y se descuentan de su saldo. }
+            @else if (esPagoHorasExtra) { Se le pagan horas del banco: solo descuentan de su saldo. }
             @else if (esCambioDescansoInc) { Mueve su día de descanso de esa semana. }
             @else if (incForm.tipo.tipo === 'descanso') { Esos días son descanso, aunque caigan en vacaciones. }
             @else if (incForm.tipo.excusaFalta) { Los días que cubra quedan justificados. }
@@ -1638,15 +1639,24 @@
           </select>
         </label>
       }
-      <!-- Uso de horas extra: cuántas usó. Se suman a sus horas de ese día. -->
-      @if (esHorasExtra) {
+      <!-- Uso de horas extra: cuántas usó. Se suman a sus horas de ese día.
+           Pago de horas extra: el TOTAL pagado; solo descuenta del saldo. -->
+      @if (usaCampoHoras) {
         <div class="inc-campo">
-          <span>¿Cuántas horas extra usó? <small>(por día)</small></span>
+          @if (esPagoHorasExtra) {
+            <span>¿Cuántas horas extra se pagaron? <small>(total)</small></span>
+          } @else {
+            <span>¿Cuántas horas extra usó? <small>(por día)</small></span>
+          }
           <div class="inc-horas">
-            <label><input type="number" min="0" max="12" [(ngModel)]="incForm.horas" placeholder="0"> h</label>
+            <label><input type="number" min="0" [attr.max]="esPagoHorasExtra ? 100 : 12" [(ngModel)]="incForm.horas" placeholder="0"> h</label>
             <label><input type="number" min="0" max="59" step="5" [(ngModel)]="incForm.mins" placeholder="0"> min</label>
           </div>
-          <small class="inc-horas-ayuda">Se suman a las horas trabajadas de ese día, el día queda justificado y se descuentan de su saldo.</small>
+          @if (esPagoHorasExtra) {
+            <small class="inc-horas-ayuda">Se descuentan de su saldo de horas extra (le pagaron el tiempo en efectivo). No suma a sus horas trabajadas ni justifica el día.</small>
+          } @else {
+            <small class="inc-horas-ayuda">Se suman a las horas trabajadas de ese día, el día queda justificado y se descuentan de su saldo.</small>
+          }
           @if (incSaldo) {
             <small class="inc-horas-ayuda">Saldo de horas extra: <b>{{ saldoTexto(incSaldo.saldoMin) }}</b>
               @if (incUsoTotal > incSaldo.saldoMin) { <span class="inc-saldo-falta"> · no le alcanza: quedaría en {{ saldoTexto(incSaldo.saldoMin - incUsoTotal) }}</span> }
@@ -1687,7 +1697,7 @@
                   [class.on]="incForm.cuando === 'hoy'" (click)="incForm.cuando = 'hoy'">Solo hoy</button>
           <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'dia'"
                   [class.on]="incForm.cuando === 'dia'" (click)="incForm.cuando = 'dia'">Otro día</button>
-          @if (!esCambioDescansoInc) {
+          @if (!esUnSoloDiaInc) {
             <button type="button" role="radio" [attr.aria-checked]="incForm.cuando === 'rango'"
                     [class.on]="incForm.cuando === 'rango'" (click)="incForm.cuando = 'rango'">Varios días</button>
           }
@@ -1704,7 +1714,10 @@
       }
 
       <label class="inc-campo">
-        @if (incNotaObligatoria) {
+        @if (esPagoHorasExtra) {
+          <span>Referencia del pago <small>(obligatorio)</small></span>
+          <input type="text" [(ngModel)]="incForm.nota" maxlength="200" placeholder="Ej. nómina del 15, recibo 1234">
+        } @else if (incNotaObligatoria) {
           <span>¿Qué fue? <small>(obligatorio)</small></span>
           <input type="text" [(ngModel)]="incForm.nota" maxlength="200" placeholder="Ej. salió temprano por junta con el proveedor">
         } @else {
