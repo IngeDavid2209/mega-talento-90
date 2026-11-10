@@ -5,19 +5,23 @@
  *
  *   · La semana es la de nómina: de JUEVES a MIÉRCOLES.
  *   · El año tiene SIEMPRE 52 semanas.
- *   · La semana del jue 24 al mié 30 de septiembre de 2026 es la 41.
+ *   · La fuente es el reporte de RH (ReporteSemMD): "SEM 33" = del jue 06/08/26
+ *     al mié 12/08/26 (api/tools/reportes-sem33.json). La del 5 al 11 de
+ *     noviembre de 2026 es la 46.
  *
- * Contando hacia atrás, la semana 1 del ciclo 2026 fue la del jueves 18 al
- * miércoles 24 de diciembre de 2025, y de ahí se cuentan ciclos de 52 semanas
- * (364 días): la 52 de 2026 es del 10 al 16 de diciembre, y la 1 del ciclo 2027
- * empieza el jueves 17 de diciembre de 2026.
+ * Contando hacia atrás, la semana 1 del ciclo 2026 fue la del jueves 25 al
+ * miércoles 31 de diciembre de 2025, y de ahí se cuentan ciclos de 52 semanas
+ * (364 días): la 52 de 2026 es del 17 al 23 de diciembre, y la 1 del ciclo 2027
+ * empezaría el jueves 24 de diciembre de 2026 (⚠️ sin confirmar con RH).
  *
  * Historia, para no volver a equivocarse:
  *   · 1ª versión: semana de nómina contada desde la que contiene el 1 de enero
  *     → el 28/09 decía 39.
  *   · 2ª versión: número ISO (lunes a domingo) → decía 40 y 53 semanas.
- *   · RH aclaró: es la 41 y el año trae 52. Ninguna regla de calendario da eso;
- *     es el calendario propio de nómina, anclado aquí.
+ *   · 3ª versión (29/09): "la del 24 al 30 de septiembre es la 41", dicho de
+ *     palabra → todo quedó UNA semana adelantado.
+ *   · 10/11/2026: RH reporta que la 47 es la 46. Cuadra con sus PDF de la
+ *     semana 33: el 24 al 30 de septiembre es la 40. Ancla corrida al 25/12/2025.
  *
  * Si RH mueve el inicio de un ciclo (p. ej. para cuadrar con el año), basta con
  * cambiar ANCLA_SEMANA_1.
@@ -25,7 +29,7 @@
 
 const DIA_MS = 86400000;
 /** Jueves en que empezó la semana 1 del ciclo 2026. */
-const ANCLA_SEMANA_1 = '2025-12-18';
+const ANCLA_SEMANA_1 = '2025-12-25';
 const ANIO_DEL_ANCLA = 2026;
 const SEMANAS_POR_ANIO = 52;
 
